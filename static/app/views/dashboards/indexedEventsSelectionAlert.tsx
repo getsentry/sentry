@@ -5,7 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   MEPConsumer,
@@ -88,5 +87,5 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 }
 
 const StoredDataAlert = styled(Alert)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

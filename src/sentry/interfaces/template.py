@@ -32,7 +32,7 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         for key in (
             "abs_path",
             "filename",
@@ -43,7 +43,7 @@ class Template(Interface):
         ):
             data.setdefault(key, None)
 
-        return super().to_python(data, **kwargs)
+        return super().to_python(data)
 
     def to_string(self, event) -> str:
         context = get_context(

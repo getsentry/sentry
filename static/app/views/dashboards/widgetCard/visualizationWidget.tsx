@@ -10,6 +10,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
@@ -54,6 +55,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
@@ -72,6 +74,7 @@ interface VisualizationWidgetProps {
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
@@ -87,6 +90,7 @@ export function VisualizationWidget({
   widgetInterval,
   renderErrorMessage,
   showReleaseAs = 'bubble',
+  showConfidenceWarning,
 }: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
@@ -115,6 +119,10 @@ export function VisualizationWidget({
         tableResults,
         errorMessage,
         loading,
+        confidence,
+        dataScanned,
+        isSampled,
+        sampleCount,
       }) => {
         return (
           <VisualizationWidgetContent
@@ -129,6 +137,11 @@ export function VisualizationWidget({
             showReleaseAs={showReleaseAs}
             renderErrorMessage={renderErrorMessage}
             dashboardFilters={dashboardFilters}
+            showConfidenceWarning={showConfidenceWarning}
+            confidence={confidence}
+            dataScanned={dataScanned}
+            isSampled={isSampled}
+            sampleCount={sampleCount}
           />
         );
       }}
@@ -142,9 +155,14 @@ interface VisualizationWidgetContentProps {
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
   timeseriesResults: Series[];
   widget: Widget;
+  confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  isSampled?: boolean | null;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  sampleCount?: number;
+  showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -162,6 +180,11 @@ function VisualizationWidgetContent({
   showReleaseAs,
   renderErrorMessage,
   dashboardFilters,
+  showConfidenceWarning,
+  confidence,
+  dataScanned,
+  isSampled,
+  sampleCount,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -171,8 +194,10 @@ function VisualizationWidgetContent({
   const firstWidgetQuery = widget.queries[0];
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
+  const fields = firstWidgetQuery?.fields ?? [...columns, ...aggregates];
+  const fieldAliases = firstWidgetQuery?.fieldAliases ?? [];
 
-  const timeSeriesWithPlottable: Array<[TimeSeries, Plottable]> = timeseriesResults
+  const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const seriesName = series.seriesName ?? aggregates[0] ?? '';
       const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
@@ -181,7 +206,8 @@ function VisualizationWidgetContent({
         aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
         aggregates[0];
 
-      const alias =
+      // This is the query name for the series, aka the legend alias from the UI
+      const queryName =
         widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
         undefined;
 
@@ -191,14 +217,21 @@ function VisualizationWidgetContent({
         timeseriesResultsUnits,
         columns,
         yAxis,
-        alias
+        queryName
       );
 
       if (!timeSeries) {
         return null;
       }
 
-      const labelParts = [alias, formatTimeSeriesLabel(timeSeries)];
+      const fieldIndex = yAxis === undefined ? -1 : fields.indexOf(yAxis);
+      // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
+      const fieldAlias =
+        aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
+          ? fieldAliases[fieldIndex]
+          : undefined;
+
+      const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
       // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
       if (aggregates.length > 1 && columns.length > 1) {
         labelParts.push(timeSeries.yAxis);
@@ -394,6 +427,20 @@ function VisualizationWidgetContent({
     );
   }
 
+  const confidenceFooter = showConfidenceWarning ? (
+    <WidgetCardConfidenceFooter
+      confidence={confidence}
+      dataScanned={dataScanned}
+      isSampled={isSampled}
+      loading={loading}
+      sampleCount={sampleCount}
+      series={timeseriesResults}
+      timeseriesResults={timeseriesResults}
+      widget={widget}
+      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+    />
+  ) : null;
+
   if (showBreakdownData) {
     return (
       <Flex direction="column" height="100%">
@@ -403,8 +450,10 @@ function VisualizationWidgetContent({
             releases={releases}
             showReleaseAs={showReleaseAs}
             showLegend="never"
+            axisRange={widget.axisRange}
           />
         </Container>
+        <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
@@ -415,13 +464,17 @@ function VisualizationWidgetContent({
   }
 
   return (
-    <Container flex={1} {...timeseriesContainerPadding}>
-      <TimeSeriesWidgetVisualization
-        plottables={plottables}
-        releases={releases}
-        showReleaseAs={showReleaseAs}
-      />
-    </Container>
+    <Flex direction="column" height="100%">
+      <Container flex={1} {...timeseriesContainerPadding}>
+        <TimeSeriesWidgetVisualization
+          plottables={plottables}
+          releases={releases}
+          showReleaseAs={showReleaseAs}
+          axisRange={widget.axisRange}
+        />
+      </Container>
+      <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+    </Flex>
   );
 }
 

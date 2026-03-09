@@ -16,6 +16,7 @@ from sentry.analytics.events.rule_disable_opt_out import (
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -24,16 +25,18 @@ from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import AlertRuleWorkflow
-from sentry.workflow_engine.models.data_condition import DataCondition
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -92,7 +95,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
-class ProjectRuleDetailsBaseTestCase(APITestCase):
+class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-details"
 
     def setUp(self) -> None:
@@ -134,6 +137,34 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
             }
         ]
+        # create single written workflow
+        self.detector = self.create_detector()
+        self.workflow_triggers = self.create_data_condition_group()
+        self.workflow = self.create_workflow(
+            when_condition_group=self.workflow_triggers,
+            organization=self.detector.project.organization,
+        )
+        self.detector_workflow = self.create_detector_workflow(
+            detector=self.detector, workflow=self.workflow
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 100},
+            condition_result=True,
+        )
+        self.workflow_filters = self.create_data_condition_group()
+        self.workflow_dcg = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+        self.create_data_condition(  # filter condition
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
+        self.fake_workflow_id = get_fake_id_from_object_id(self.workflow.id)
 
 
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
@@ -144,6 +175,25 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
         assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_serializer_dual_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_serializer_single_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
+        )
+        assert response.data["id"] == str(self.fake_workflow_id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+        assert response.data["filters"][0]["name"]
 
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
@@ -611,6 +661,12 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_passed(self) -> None:
+        self.get_error_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=400
+        )
 
     def test_no_owner(self) -> None:
         conditions = [
@@ -1584,6 +1640,19 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not Rule.objects.filter(
             id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_single_written_workflow_passed(self) -> None:
+        self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=202
+        )
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Workflow.objects.filter(id=self.workflow.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.workflow_triggers.id).exists()
+        assert not Action.objects.filter(id=self.action.id).exists()
 
     def test_dual_delete_workflow_engine(self) -> None:
         rule = self.create_project_rule(

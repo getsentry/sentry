@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import io
 import logging
 import tempfile
@@ -44,10 +43,10 @@ def _mask_from_diff_output(output_path: Path) -> Image.Image:
         rgba.close()
 
 
-def _encode_mask_png_base64(mask: Image.Image) -> str:
+def _encode_mask_png(mask: Image.Image) -> bytes:
     buf = io.BytesIO()
     mask.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("ascii")
+    return buf.getvalue()
 
 
 def compare_images(
@@ -114,10 +113,7 @@ def _compare_single_pair(
             failOnLayoutDiff=False,
         )
         changed_pixels = resp.diffCount or 0
-        diff_pct = resp.diffPercentage or 0.0
-
         total_pixels = max_w * max_h
-        diff_score = diff_pct / 100.0
 
         if changed_pixels == 0:
             diff_mask = Image.new("L", (max_w, max_h), 0)
@@ -130,15 +126,13 @@ def _compare_single_pair(
                 diff_mask = diff_mask.resize((max_w, max_h), Image.NEAREST)
                 old_mask.close()
 
-        diff_mask_png = _encode_mask_png_base64(diff_mask)
+        diff_mask_png = _encode_mask_png(diff_mask)
 
         return DiffResult(
             diff_mask_png=diff_mask_png,
-            diff_score=diff_score,
             changed_pixels=changed_pixels,
             total_pixels=total_pixels,
             aligned_height=max_h,
-            width=max_w,
             before_width=bw,
             before_height=bh,
             after_width=aw,

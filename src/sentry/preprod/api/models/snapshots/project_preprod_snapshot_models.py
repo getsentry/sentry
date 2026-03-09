@@ -11,6 +11,7 @@ from sentry.preprod.models import PreprodArtifact
 class SnapshotDiffSection(StrEnum):
     ADDED = "added"
     REMOVED = "removed"
+    RENAMED = "renamed"
     CHANGED = "changed"
     UNCHANGED = "unchanged"
     ERRORED = "errored"
@@ -25,6 +26,7 @@ class SnapshotImageResponse(BaseModel):
     image_file_name: str
     width: int
     height: int
+    previous_image_file_name: str | None = None
 
 
 class SnapshotDiffPair(BaseModel):
@@ -34,9 +36,17 @@ class SnapshotDiffPair(BaseModel):
     diff: float | None = None
 
 
+class SnapshotComparisonRunInfo(BaseModel):
+    state: str | None = None
+    completed_at: str | None = None
+    duration_ms: int | None = None
+
+
 class SnapshotDetailsApiResponse(BaseModel):
     head_artifact_id: str
-    base_artifact_id: str | None = None  # Only present for diffs
+    base_artifact_id: str | None = None
+    project_id: str
+    comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
 
@@ -51,6 +61,9 @@ class SnapshotDetailsApiResponse(BaseModel):
     removed: list[SnapshotImageResponse] = []
     removed_count: int = 0
 
+    renamed: list[SnapshotImageResponse] = []
+    renamed_count: int = 0
+
     changed: list[SnapshotDiffPair] = []
     changed_count: int = 0
 
@@ -59,6 +72,8 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
+
+    comparison_run_info: SnapshotComparisonRunInfo | None = None
 
 
 # TODO: POST request in the future when we migrate away from current schemas

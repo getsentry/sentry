@@ -98,6 +98,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
     <form
       data-test-id={form.formId}
       id={form.formId}
+      style={{width: '100%', flexGrow: 1}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();

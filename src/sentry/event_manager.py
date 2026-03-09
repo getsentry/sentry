@@ -120,7 +120,7 @@ from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
@@ -1979,6 +1979,7 @@ def make_severity_score_request(
     body: SeverityScoreRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     payload: SeverityScoreRequest = {**body}
     if options.get("processing.severity-backlog-test.timeout"):
@@ -1990,6 +1991,7 @@ def make_severity_score_request(
         "/v0/issues/severity-score",
         body=orjson.dumps(payload),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -2210,7 +2212,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                response = make_severity_score_request(payload, timeout=timeout)
+                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
+                response = make_severity_score_request(
+                    payload, timeout=timeout, viewer_context=viewer_context
+                )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:
@@ -2450,39 +2455,43 @@ def save_attachment(
 
         logger.exception("Missing chunks for cache_key=%s", cache_key)
         return
-    from sentry import ratelimits as ratelimiter
+    # Rate limits protect against filestore write abuse. When stored_id is set,
+    # the payload is already in objectstore and putfile will read from there —
+    # no filestore write occurs, so there is nothing to limit.
+    if not attachment.stored_id:
+        from sentry import ratelimits as ratelimiter
 
-    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-        key="event_attachment.save_per_sec",
-        limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
-        project=project,
-        window=1,
-    )
-    rate_limit_tag = "per_sec"
-    if not is_limited:
         is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
-            key="event_attachment.save_5_min",
-            limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+            key="event_attachment.save_per_sec",
+            limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
             project=project,
-            window=5 * 60,
+            window=1,
         )
-        rate_limit_tag = "per_five_min"
-    if is_limited:
-        metrics.incr(
-            "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
-        )
-        track_outcome(
-            org_id=project.organization_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.RATE_LIMITED,
-            reason="rate_limited",
-            timestamp=timestamp,
-            event_id=event_id,
-            category=DataCategory.ATTACHMENT,
-            quantity=attachment.size or 1,
-        )
-        return
+        rate_limit_tag = "per_sec"
+        if not is_limited:
+            is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
+                key="event_attachment.save_5_min",
+                limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
+                project=project,
+                window=5 * 60,
+            )
+            rate_limit_tag = "per_five_min"
+        if is_limited:
+            metrics.incr(
+                "event_manager.attachments.rate_limited", tags={"rate_limit_type": rate_limit_tag}
+            )
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=key_id,
+                outcome=Outcome.RATE_LIMITED,
+                reason="rate_limited",
+                timestamp=timestamp,
+                event_id=event_id,
+                category=DataCategory.ATTACHMENT,
+                quantity=attachment.size or 1,
+            )
+            return
 
     file = EventAttachment.putfile(project.id, attachment)
 

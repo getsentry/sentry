@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -14,7 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import {
   platformEventLinkMap,
@@ -39,6 +39,7 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 function OrganizationDeveloperSettings() {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -180,7 +181,7 @@ function OrganizationDeveloperSettings() {
           <Flex>
             <ExampleIntegrationButton
               analyticsView={analyticsView}
-              style={{marginRight: space(1)}}
+              style={{marginRight: theme.space.md}}
             />
             <CreateIntegrationButton analyticsView={analyticsView} />
           </Flex>
@@ -201,7 +202,7 @@ function OrganizationDeveloperSettings() {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default OrganizationDeveloperSettings;

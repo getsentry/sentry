@@ -263,7 +263,11 @@ class RedisBuffer(Buffer):
         return result
 
     @classmethod
-    def _dump_value(cls, value: str | datetime | date | int | float) -> tuple[str, str]:
+    def _dump_value(
+        cls, value: str | datetime | date | int | float | dict[str, Any], depth: int = 0
+    ) -> tuple[str, str]:
+        if depth > 3:
+            raise Exception("Depth limit exceeded in _dump_value")
         if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
@@ -276,6 +280,9 @@ class RedisBuffer(Buffer):
             type_ = "i"
         elif isinstance(value, float):
             type_ = "f"
+        elif isinstance(value, dict):
+            type_ = "di"
+            value = json.dumps({k: cls._dump_value(v, depth + 1) for k, v in value.items()})
         else:
             raise TypeError(type(value))
         return type_, str(value)
@@ -283,14 +290,16 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_values(
         cls, payload: dict[str, tuple[str, Any]]
-    ) -> dict[str, str | datetime | date | int | float]:
+    ) -> dict[str, str | datetime | date | int | float | dict[str, Any]]:
         result = {}
         for k, (t, v) in payload.items():
             result[k] = cls._load_value((t, v))
         return result
 
     @classmethod
-    def _load_value(cls, payload: tuple[str, Any]) -> str | datetime | date | int | float:
+    def _load_value(
+        cls, payload: tuple[str, Any]
+    ) -> dict[str, Any] | str | datetime | date | int | float:
         (type_, value) = payload
         if type_ == "s":
             return force_str(value)
@@ -302,6 +311,9 @@ class RedisBuffer(Buffer):
             return int(value)
         elif type_ == "f":
             return float(value)
+        elif type_ == "di":
+            value = json.loads(value)
+            return {k: cls._load_value(v) for k, v in value.items()}
         else:
             raise TypeError(f"invalid type: {type_}")
 

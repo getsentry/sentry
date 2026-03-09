@@ -7,7 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import TextField from 'sentry/components/forms/fields/textField';
-import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type SuperuserAccessCategories = [string, React.ReactNode];
@@ -92,8 +91,8 @@ function SuperuserAccessCategory() {
 }
 
 const CategoriesLabel = styled(TextBlock)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const CategoryGrid = styled('div')`

@@ -31,14 +31,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 
 _REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
 ]
 
 

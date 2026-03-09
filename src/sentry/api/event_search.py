@@ -175,6 +175,9 @@ numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma 
 
 has_item               = text_key / search_value
 has_in_list            = open_bracket has_item (spaces comma spaces !comma has_item?)* closed_bracket &end_value
+
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
@@ -213,6 +216,8 @@ closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
 # Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_unicode     = "\uF00D"
 contains             = "Contains"
 starts_with          = "StartsWith"

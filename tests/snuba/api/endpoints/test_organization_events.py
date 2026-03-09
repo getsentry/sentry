@@ -32,6 +32,7 @@ from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
     PerformanceIssueTestCase,
+    ProcessingErrorTestCase,
     ProfileFunctionsTestCase,
     ProfilesSnubaTestCase,
     SnubaTestCase,
@@ -57,6 +58,7 @@ class OrganizationEventsEndpointTestBase(
     SnubaTestCase,
     SpanTestCase,
     OurLogTestCase,
+    ProcessingErrorTestCase,
     TraceMetricsTestCase,
     ProfileFunctionsTestCase,
 ):

@@ -6,6 +6,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
 import {
   serializeFields,
@@ -44,13 +45,7 @@ export function convertWidgetToBuilderStateParams(
   if (usesTimeSeriesData(widget.displayType)) {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   } else {
-    // For TRACEMETRICS table/big_number widgets, use raw field strings directly
-    // because stringifyFields loses the 4th argument (unit: "-")
-    if (widget.widgetType === WidgetType.TRACEMETRICS && firstWidgetQuery?.fields) {
-      field = firstWidgetQuery.fields;
-    } else {
-      field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
-    }
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
 
     yAxis = [];
     legendAlias = [];
@@ -75,5 +70,6 @@ export function convertWidgetToBuilderStateParams(
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
+    axisRange: getAxisRange(widget.axisRange) ?? 'auto',
   };
 }

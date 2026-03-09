@@ -55,7 +55,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     },
   ];
 
-  const values: string[] = useMemo(() => {
+  const values = useMemo(() => {
     const value: string[] = [];
     if (props.autogroup) {
       value.push('autogroup');

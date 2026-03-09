@@ -1,20 +1,32 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
-from django.db.models.functions import Now
+from django.db.models import F
+from django.db.models.functions import Now, TruncSecond
 from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
 if TYPE_CHECKING:
     from sentry.organizations.services.organization import RpcOrganizationMappingFlags
+
+
+# TODO(cells): remove once all callers have been migrated to cell_name
+class OrganizationMappingManager(BaseManager["OrganizationMapping"]):
+    def get_queryset(self) -> BaseQuerySet[OrganizationMapping]:
+        # annotate(region_name=...) makes mypy think we're redefining the region_name property
+        # on the model class, but the annotation only exists on queryset results at runtime.
+        return super().get_queryset().annotate(region_name=F("cell_name"))  # type: ignore[no-redef]
 
 
 @control_silo_model
@@ -29,6 +41,9 @@ class OrganizationMapping(Model):
     # references, so there is no need to explicitly include it in the export.
     __relocation_scope__ = RelocationScope.Excluded
 
+    # TODO(cells): remove once getsentry callers have been migrated to cell_name
+    objects: ClassVar[OrganizationMappingManager] = OrganizationMappingManager()
+
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
@@ -38,8 +53,25 @@ class OrganizationMapping(Model):
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
-    # TODO(cells): rename to cell_name
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
+
+    # TODO(cells): remove once all callers have been migrated to cell_name
+    @property
+    def region_name(self) -> str:
+        return self.cell_name
+
+    # TODO(cells): remove once getsentry callers have been migrated to cell_name
+    @region_name.setter
+    def region_name(self, value: str) -> None:
+        self.cell_name = value
+
+    # TODO(cells): remove this function once getsentry callers have been migrated to cell_name
+    # This is currently needed by https://github.com/getsentry/getsentry/blob/94673f4686d5fa78e71b8c81addba9a3b33bc64a/tests/getsentry/middleware/integrations/parsers/test_salesforce.py#L97
+    def update(self, using: str | None = None, **kwargs: Any) -> int:
+        if "region_name" in kwargs:
+            kwargs["cell_name"] = kwargs.pop("region_name")
+        return super().update(using=using, **kwargs)
+
     status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
 
     # Replicated from the Organization.flags attribute
@@ -55,13 +87,26 @@ class OrganizationMapping(Model):
     prevent_superuser_access = models.BooleanField(default=False, db_default=False)
     disable_member_invite = models.BooleanField(default=False, db_default=False)
 
-    date_updated = models.DateTimeField(db_default=Now(), auto_now=True, db_index=True)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmapping"
+        indexes = [
+            IndexWithPostgresNameLimits(
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_date_updated_id_idx",
+            ),
+            IndexWithPostgresNameLimits(
+                "cell_name",
+                TruncSecond("date_updated"),
+                "id",
+                name="sentry_orgmapping_cell_name_date_updated_id_idx",
+            ),
+        ]
 
-    __repr__ = sane_repr("organization_id", "slug", "region_name", "verified")
+    __repr__ = sane_repr("organization_id", "slug", "cell_name", "verified")
 
     @staticmethod
     def find_expected_provisioned(user_id: int, slug: str) -> OrganizationMapping | None:

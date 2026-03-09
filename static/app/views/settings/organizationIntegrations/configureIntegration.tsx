@@ -17,7 +17,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -89,7 +88,7 @@ function ConfigureIntegration() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -179,7 +178,6 @@ function ConfigureIntegration() {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
     navigate({
-      pathname: location.pathname,
       query: {...query, tab: value},
     });
   };
@@ -553,12 +551,12 @@ function ConfigureIntegration() {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;

@@ -10,6 +10,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -21,6 +22,19 @@ import type {Project} from 'sentry/types/project';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+
+export const AiSetupConfiguration = HookOrDefault({
+  hookName: 'component:ai-setup-configuration',
+  defaultComponent: ({
+    event,
+    group,
+    project,
+  }: {
+    event: Event;
+    group: Group;
+    project: Project;
+  }) => <AutofixConfigureSeer event={event} group={group} project={project} />,
+});
 
 interface AutofixConfigureSeerProps {
   event: Event;

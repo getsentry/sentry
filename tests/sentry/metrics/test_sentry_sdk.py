@@ -163,3 +163,19 @@ class TestSentrySDKMetricsBackend:
             unit="millisecond",
             attributes={"x": "y", "sentry.client_sample_rate": 0.75, "is_timing": True},
         )
+
+    @mock.patch("sentry_sdk.metrics.count")
+    def test_incr_effective_sample_rate_includes_experimental(self, mock_count):
+        backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.5)
+        with (
+            mock.patch.object(backend, "_should_sample_experimental", return_value=True),
+            mock.patch.object(backend, "_should_sample", return_value=True),
+        ):
+            backend.incr("foo", tags={"x": "y"}, amount=2, sample_rate=0.5)
+
+        mock_count.assert_called_once_with(
+            "test.foo",
+            2,
+            unit=None,
+            attributes={"x": "y", "sentry.client_sample_rate": 0.25},
+        )

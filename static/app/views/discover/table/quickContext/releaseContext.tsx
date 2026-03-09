@@ -9,7 +9,6 @@ import Panel from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
@@ -191,7 +190,7 @@ function ReleaseContext(props: BaseContextProps) {
 }
 
 const StyledAvatarList = styled(AvatarList)`
-  margin: 0 ${space(0.75)};
+  margin: 0 ${p => p.theme.space.sm};
 `;
 
 const ReleaseContextContainer = styled(ContextContainer)`
@@ -204,7 +203,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
     padding: 0;
   }
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space.xl};
   }
 `;
 

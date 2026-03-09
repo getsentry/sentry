@@ -106,7 +106,7 @@ function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string,
-  [start, end]: [number, number] | [null, null]
+  [start, end]: readonly [number, number] | readonly [null, null]
 ): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   const spaceDuration = start !== null && end !== null ? end - start : 0;
@@ -264,9 +264,9 @@ export function ContinuousFlamegraph(): ReactElement {
     );
   }, [profileGroup]);
 
-  const configSpaceQueryParam: [number, number] = useMemo(() => {
+  const configSpaceQueryParam = useMemo(() => {
     const [startedAtMs, endedAtMs] = decodeConfigSpace();
-    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp] as const;
   }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -334,7 +334,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
 
-  const spanTree: SpanTree | null = useMemo(() => {
+  const spanTree = useMemo(() => {
     if (segment.type === 'empty') {
       return null;
     }

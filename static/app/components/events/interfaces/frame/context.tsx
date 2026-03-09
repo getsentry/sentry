@@ -7,7 +7,6 @@ import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashC
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   LineCoverage,
@@ -221,7 +220,7 @@ const StyledClippedBox = styled(ClippedBox)`
 `;
 
 const StyledIconFlag = styled(IconFlag)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('ol')<{startLineNo: number}>`
@@ -251,7 +250,7 @@ const CodeWrapper = styled('div')`
 const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: 20px;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
@@ -260,10 +259,10 @@ const EmptyContext = styled('div')`
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   background: ${p =>
     p.isActive ? 'var(--prism-highlight-background)' : p.theme.tokens.background.primary};
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
 `;
 
 const ContextLineCode = styled('div')`

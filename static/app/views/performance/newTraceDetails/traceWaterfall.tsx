@@ -21,7 +21,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
@@ -32,6 +31,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -91,6 +91,7 @@ export interface TraceWaterfallProps {
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const api = useApi();
+  const navigate = useNavigate();
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -282,13 +283,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             return;
           }
           const {eventId: _eventId, ...query} = qs.parse(location.search);
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {
-              ...query,
-              node: nextNodePath,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...query,
+                node: nextNodePath,
+              },
             },
-          });
+            {replace: true}
+          );
           queryStringAnimationTimeoutRef.current = null;
         }, debounce);
 
@@ -307,7 +311,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [navigate, traceDispatch]
   );
 
   const onRowClick = useCallback(

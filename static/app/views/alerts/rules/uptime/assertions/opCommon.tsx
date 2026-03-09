@@ -10,6 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {
   UptimeComparisonType,
   type UptimeOp,
@@ -57,6 +58,7 @@ interface OpContainerProps {
   label: React.ReactNode;
   onRemove: () => void;
   op: UptimeOp;
+  erroredOp?: UptimeOp;
   inputId?: string;
   tooltip?: React.ReactNode;
 }
@@ -67,6 +69,7 @@ export function OpContainer({
   onRemove,
   inputId,
   op,
+  erroredOp,
 }: OpContainerProps) {
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
     useDraggable({
@@ -96,13 +99,16 @@ export function OpContainer({
           </Flex>
           <Grid columns="1fr max-content" align="center" gap="sm">
             {children}
-            <Button
-              size="sm"
-              priority="transparent"
-              icon={<IconDelete />}
-              aria-label={t('Remove assertion')}
-              onClick={onRemove}
-            />
+            <Flex align="center" gap="sm">
+              <Button
+                size="sm"
+                priority="transparent"
+                icon={<IconDelete />}
+                aria-label={t('Remove assertion')}
+                onClick={onRemove}
+              />
+              <AssertionFormError op={op} erroredOp={erroredOp} />
+            </Flex>
           </Grid>
         </AnimatedOp>
       )}

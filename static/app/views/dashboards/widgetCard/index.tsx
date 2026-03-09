@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -14,7 +14,6 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
@@ -44,11 +43,9 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
-import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
@@ -121,13 +118,13 @@ type Props = WithRouterProps & {
   showLoadingText?: boolean;
   showStoredAlert?: boolean;
   tableItemLimit?: number;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
   windowWidth?: number;
 };
 
 type Data = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -141,7 +138,6 @@ type Data = {
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
-  const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
   const navigate = useNavigate();
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,20 +185,11 @@ function WidgetCard(props: Props) {
     onWidgetTableSort,
     onWidgetTableResizeColumn,
     disableTableActions,
-    useTimeseriesVisualization,
     widgetInterval,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
-    const queries = widget.queries.map(query => ({
-      ...query,
-      // Use the last aggregate because that's where the y-axis is stored
-      aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]!]
-        : [],
-    }));
-    widget.queries = queries;
-    widget.limit = DEFAULT_RESULTS_LIMIT;
+    widget.displayType = DisplayType.AREA;
   }
 
   const hasSessionDuration = widget.queries.some(query =>
@@ -248,17 +235,6 @@ function WidgetCard(props: Props) {
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
-      setWidgetViewerData({
-        pageLinks: data?.pageLinks,
-        seriesData: data?.timeseriesResults,
-        tableData: data?.tableResults,
-        seriesResultsType: data?.timeseriesResultsTypes,
-        totalIssuesCount: data?.totalIssuesCount,
-        confidence: data?.confidence,
-        sampleCount: data?.sampleCount,
-        isSampled: data?.isSampled,
-      });
-
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -275,16 +251,14 @@ function WidgetCard(props: Props) {
     }
   };
 
-  const onDemandExtractionBadge: string | undefined =
+  const onDemandExtractionBadge =
     extractionStatus === 'extracted'
       ? t('Extracted')
       : extractionStatus === 'not-extracted'
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge: string | undefined = indexedEventsWarning
-    ? t('Indexed')
-    : undefined;
+  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
 
   const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
 
@@ -323,7 +297,7 @@ function WidgetCard(props: Props) {
     : undefined;
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
-  if (canUseTimeseriesVisualization && useTimeseriesVisualization) {
+  if (canUseTimeseriesVisualization) {
     return (
       <ErrorBoundary
         customComponent={() => <ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -366,6 +340,7 @@ function WidgetCard(props: Props) {
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
+              showConfidenceWarning={showConfidenceWarning}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -560,7 +535,7 @@ const ErrorCard = styled(Placeholder)`
   border: 1px solid ${p => p.theme.colors.red200};
   color: ${p => p.theme.colors.red200};
   border-radius: ${p => p.theme.radius.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export const WidgetDescription = styled('small')`
