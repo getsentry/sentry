@@ -9,8 +9,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconChevron, IconLink, IconThumb} from 'sentry/icons';
+import {IconChevron, IconCopy, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -345,6 +346,16 @@ function BlockComponent({
     onDelete?.();
   };
 
+  const handleCopyClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(block.message.content);
+      addSuccessMessage(t('Copied to clipboard'));
+    } catch {
+      addErrorMessage(t('Failed to copy to clipboard'));
+    }
+  };
+
   const handleNavigateClick = (e: React.MouseEvent, linkIndex: number) => {
     e.stopPropagation();
     if (sortedToolLinks.length === 0) {
@@ -489,6 +500,16 @@ function BlockComponent({
           <ActionButtonBar gap="xs">
             {showFeedbackButtons && thumbsFeedbackButton('positive')}
             {showFeedbackButtons && thumbsFeedbackButton('negative')}
+            <Button
+              aria-label={t('Copy block content')}
+              icon={<IconCopy />}
+              priority="transparent"
+              size="xs"
+              tooltipProps={{title: t('Copy to clipboard')}}
+              onClick={handleCopyClick}
+            >
+              {undefined}
+            </Button>
             <Button
               size="xs"
               priority="transparent"
