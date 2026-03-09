@@ -1184,6 +1184,11 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
         {
+          path: 'scm/',
+          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+          component: make(() => import('getsentry/views/seerAutomation/scm')),
+        },
+        {
           path: 'projects/',
           // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
           component: make(() => import('getsentry/views/seerAutomation/projects')),
