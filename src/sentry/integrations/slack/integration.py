@@ -214,9 +214,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         Fetch thread replies using the conversations.replies API.
         Returns a list of message dicts, or an empty list on error.
-
-        Note: The Slack SDK does not provide typed message objects;
-        messages are untyped dicts from the API response.
         """
         client = self.get_client()
         try:
