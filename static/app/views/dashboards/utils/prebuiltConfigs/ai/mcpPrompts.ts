@@ -122,7 +122,7 @@ const PROMPTS_TABLE = {
 export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Prompts',
+  title: 'MCP Prompt Details',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, PROMPTS_TABLE],
 };
