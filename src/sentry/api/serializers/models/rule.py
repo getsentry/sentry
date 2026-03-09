@@ -36,6 +36,19 @@ from sentry.workflow_engine.processors.workflow_fire_history import get_last_fir
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
+# Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
+# if we're trying to return these in legacy APIs, it's best to skip over them and warn the user
+UNSUPPORTED_CONDITIONS = [
+    Condition.EVENT_CREATED_BY_DETECTOR.value,
+    Condition.EVENT_SEEN_COUNT.value,
+    Condition.ISSUE_OPEN_DURATION.value,
+    Condition.ISSUE_PRIORITY_EQUALS.value,
+    Condition.ISSUE_PRIORITY_DEESCALATING.value,
+    Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL.value,
+    Condition.ISSUE_RESOLUTION_CHANGE.value,
+    Condition.ISSUE_RESOLVED_TRIGGER.value,
+]
+
 
 def generate_rule_label(project, rule, data):
     from sentry.rules import rules
@@ -631,17 +644,6 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 
-            # Check for unsupported conditions
-            UNSUPPORTED_CONDITIONS = [
-                Condition.EVENT_CREATED_BY_DETECTOR.value,
-                Condition.EVENT_SEEN_COUNT.value,
-                Condition.ISSUE_OPEN_DURATION.value,
-                Condition.ISSUE_PRIORITY_EQUALS.value,
-                Condition.ISSUE_PRIORITY_DEESCALATING.value,
-                Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL.value,
-                Condition.ISSUE_RESOLUTION_CHANGE.value,
-                Condition.ISSUE_RESOLVED_TRIGGER.value,
-            ]
             trigger_conditions = (
                 list(workflow.when_condition_group.conditions.all())
                 if workflow.when_condition_group
