@@ -177,8 +177,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def get_organizations_by_user_and_scope(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when getsentry is updated
-        region_name: str | None = None,  # TODO(cells): remove when getsentry is updated
+        cell_name: str,
         user: RpcUser,
         scope: str | None = None,
     ) -> list[RpcOrganization]:
