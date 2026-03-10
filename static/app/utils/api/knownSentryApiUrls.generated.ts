@@ -217,6 +217,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/'
   | '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/'
+  | '/organizations/$organizationIdOrSlug/dashboards/generate/'
   | '/organizations/$organizationIdOrSlug/dashboards/starred/'
   | '/organizations/$organizationIdOrSlug/dashboards/starred/order/'
   | '/organizations/$organizationIdOrSlug/dashboards/widgets/'
