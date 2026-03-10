@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -5,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
@@ -98,6 +100,10 @@ export default function RepositoryProjectPathConfigModal({
         url: endpoint,
         data,
       }),
+    onError: e => {
+      Sentry.captureException(e);
+      addErrorMessage(t('Failed to configure code path mapping'));
+    },
     onSuccess: () => {
       trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'manual',
