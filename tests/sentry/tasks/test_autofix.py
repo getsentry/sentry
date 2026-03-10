@@ -11,6 +11,8 @@ from sentry.tasks.autofix import (
     check_autofix_status,
     configure_seer_for_existing_org,
     generate_issue_summary_only,
+    generate_summary_and_run_automation,
+    run_automation_only_task,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils.cache import cache
@@ -143,6 +145,58 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
+
+    @patch("sentry.tasks.autofix.logger")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_handles_deleted_group_gracefully(
+        self, mock_get_issue_summary: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """Test that task handles Group.DoesNotExist exception gracefully."""
+        non_existent_group_id = 999999
+
+        generate_issue_summary_only(non_existent_group_id)
+
+        mock_logger.warning.assert_called_once_with(
+            "generate_issue_summary_only.group_not_found",
+            extra={"group_id": non_existent_group_id},
+        )
+        mock_get_issue_summary.assert_not_called()
+
+
+class TestGenerateSummaryAndRunAutomation(SentryTestCase):
+    @patch("sentry.tasks.autofix.logger")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_handles_deleted_group_gracefully(
+        self, mock_get_issue_summary: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """Test that task handles Group.DoesNotExist exception gracefully."""
+        non_existent_group_id = 999999
+
+        generate_summary_and_run_automation(non_existent_group_id, trigger_path="test")
+
+        mock_logger.warning.assert_called_once_with(
+            "generate_summary_and_run_automation.group_not_found",
+            extra={"group_id": non_existent_group_id},
+        )
+        mock_get_issue_summary.assert_not_called()
+
+
+class TestRunAutomationOnlyTask(SentryTestCase):
+    @patch("sentry.tasks.autofix.logger")
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
+    def test_handles_deleted_group_gracefully(
+        self, mock_run_automation: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        """Test that task handles Group.DoesNotExist exception gracefully."""
+        non_existent_group_id = 999999
+
+        run_automation_only_task(non_existent_group_id)
+
+        mock_logger.warning.assert_called_once_with(
+            "run_automation_only_task.group_not_found",
+            extra={"group_id": non_existent_group_id},
+        )
+        mock_run_automation.assert_not_called()
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):

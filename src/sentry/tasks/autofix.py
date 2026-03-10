@@ -63,7 +63,14 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
 
-    group = Group.objects.get(id=group_id)
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning(
+            "generate_summary_and_run_automation.group_not_found", extra={"group_id": group_id}
+        )
+        return
+
     organization = group.project.organization
 
     task_state = current_task()
@@ -99,7 +106,12 @@ def generate_issue_summary_only(group_id: int) -> None:
         get_issue_summary,
     )
 
-    group = Group.objects.get(id=group_id)
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning("generate_issue_summary_only.group_not_found", extra={"group_id": group_id})
+        return
+
     organization = group.project.organization
 
     task_state = current_task()
@@ -139,7 +151,12 @@ def run_automation_only_task(group_id: int) -> None:
 
     from sentry.seer.autofix.issue_summary import run_automation
 
-    group = Group.objects.get(id=group_id)
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning("run_automation_only_task.group_not_found", extra={"group_id": group_id})
+        return
+
     organization = group.project.organization
 
     task_state = current_task()
