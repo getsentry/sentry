@@ -114,7 +114,7 @@ function mergeOptions(
 
   // Ensure current mapping's entry is present
   if (mapping && type && isExternalActorMapping(mapping) && mapping.sentryName) {
-    const mappingId = (mapping as any)[`${type}Id`] as string | undefined;
+    const mappingId = mapping[`${type}Id`];
     if (mappingId && !result.some(o => o.value === mappingId)) {
       result.unshift({value: mappingId, label: mapping.sentryName});
     }
@@ -150,11 +150,8 @@ function InlineMappingForm({
 }: InlineProps) {
   const {slug: orgSlug} = useOrganization();
 
-  const fieldName = `${type}Id` as const;
   const initialValue =
-    mapping && isExternalActorMapping(mapping)
-      ? String((mapping as any)[fieldName] ?? '')
-      : '';
+    mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
 
   const schema = z.object({sentryId: z.string()});
 
@@ -171,9 +168,13 @@ function InlineMappingForm({
               getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
               fullData as ExternalActorMappingOrSuggestion
             );
-            return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
+            return fetchMutation<ExternalActorMapping>({
+              url: apiEndpoint,
+              method: apiMethod,
+              data: fullData,
+            });
           },
-          onSuccess: data => onSubmitSuccess?.(data as ExternalActorMapping),
+          onSuccess: data => onSubmitSuccess?.(data),
           onError: () => onSubmitError?.(),
         }}
       >
@@ -228,11 +229,8 @@ function ModalMappingForm({
           mapping
         ) as unknown as ReturnType<typeof makeTeamSelectQueryOptions>);
 
-  const fieldName = `${type}Id` as const;
   const initialSentryId =
-    mapping && isExternalActorMapping(mapping)
-      ? String((mapping as any)[fieldName] ?? '')
-      : '';
+    mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
 
   const modalSchema = z.object({
     externalName: z.string().min(1, 'This field is required'),
@@ -252,10 +250,14 @@ function ModalMappingForm({
         getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
         fullData as ExternalActorMappingOrSuggestion
       );
-      return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
+      return fetchMutation<ExternalActorMapping>({
+        url: apiEndpoint,
+        method: apiMethod,
+        data: fullData,
+      });
     },
     onSuccess: data => {
-      onSubmitSuccess?.(data as ExternalActorMapping);
+      onSubmitSuccess?.(data);
       closeModal();
     },
     onError: () => onSubmitError?.(),

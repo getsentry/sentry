@@ -102,6 +102,7 @@ type AutoSaveFieldRenderArg<
  */
 
 interface AutoSaveFieldProps<
+  TData,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 > {
@@ -119,7 +120,7 @@ interface AutoSaveFieldProps<
    * TanStack Query mutation options - mutationFn receives single-field data
    */
   mutationOptions: UseMutationOptions<
-    any, // it doesn't matter here what the mutation returns
+    TData,
     Error,
     NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
     any // context type from onMutate - allow any shape
@@ -155,9 +156,10 @@ interface AutoSaveFieldProps<
 }
 
 export function AutoSaveField<
+  TData,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->(props: AutoSaveFieldProps<TSchema, TFieldName>) {
+>(props: AutoSaveFieldProps<TData, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);
