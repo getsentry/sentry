@@ -227,17 +227,7 @@ def resolve_fingerprint_variable(
 
     elif variable_key == "message":
         message = get_canonical_message_from_event(event)
-
-        # Fingerprint variables can be used in custom titles, and there we want the original message
-        if not parameterize_message:
-            return message or "<no-message>"
-
-        normalized_message = (
-            normalize_message_for_grouping(message, event, reason="fingerprint", trim_message=False)
-            if message
-            else None
-        )
-        return normalized_message or "<no-message>"
+        return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -320,6 +310,12 @@ def resolve_fingerprint_values(
         # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
+
+        if variable_key == "message" and resolved_value != "<no-message>":
+            return normalize_message_for_grouping(
+                resolved_value, event, reason="fingerprint", trim_message=False
+            )
+
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
