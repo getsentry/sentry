@@ -304,9 +304,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number'
-          ? Number.isInteger(data[field])
-            ? data[field].toLocaleString()
-            : formatFloat(data[field], 4)
+          ? formatFloat(data[field], 4).toLocaleString()
           : emptyValue}
       </NumberContainer>
     ),
