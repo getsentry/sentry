@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
+import functools
 import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, TypeVar
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
@@ -25,6 +27,8 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
+from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.utils.errors import ALREADY_REACTED, NO_REACTION
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -36,6 +40,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -169,16 +175,29 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
-    def _has_scope(self, scope: str) -> bool:
-        """Check if this installation has a specific OAuth scope."""
-        has_scope = scope in self.model.metadata.get("scopes", [])
-        if not has_scope:
-            _logger.warning(
-                "slack.missing_scope",
-                extra={"integration_id": self.model.id, "scope": scope},
-            )
-        return has_scope
+    @staticmethod
+    def requires_scope(scope: SlackScope, *, default: Any = None) -> Callable[[F], F]:
+        """Decorator that gates a method on a required OAuth scope.
 
+        If the scope is missing, logs a warning and returns ``default``.
+        """
+
+        def decorator(fn: F) -> F:
+            @functools.wraps(fn)
+            def wrapper(self: SlackIntegration, *args: Any, **kwargs: Any) -> Any:
+                if scope not in self.model.metadata.get("scopes", []):
+                    _logger.warning(
+                        "slack.missing_scope",
+                        extra={"integration_id": self.model.id, "scope": scope},
+                    )
+                    return default if default is None else copy.copy(default)
+                return fn(self, *args, **kwargs)
+
+            return wrapper  # type: ignore[return-value]
+
+        return decorator
+
+    @requires_scope(SlackScope.CHANNELS_HISTORY, default=[])
     def get_thread_history(
         self,
         *,
@@ -188,12 +207,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         Fetch thread replies using the conversations.replies API.
         Returns a list of message dicts, or an empty list on error.
-
-        Requires channels:history scope.
         """
-        if not self._has_scope("channels:history"):
-            return []
-
         client = self.get_client()
         try:
             response = client.conversations_replies(
@@ -208,6 +222,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
             return []
 
+    @requires_scope(SlackScope.REACTIONS_WRITE)
     def add_reaction(
         self,
         *,
@@ -218,12 +233,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         Add an emoji reaction to a message.
         Idempotent: does not raise if the reaction already exists.
-
-        Requires reactions:write scope.
         """
-        if not self._has_scope("reactions:write"):
-            return
-
         client = self.get_client()
         try:
             client.reactions_add(
@@ -232,13 +242,14 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 name=emoji,
             )
         except SlackApiError as e:
-            if e.response.get("error") == "already_reacted":
+            if e.response.get("error") == ALREADY_REACTED.message:
                 return
             _logger.warning(
                 "slack.add_reaction.error",
                 extra={"channel_id": channel_id, "message_ts": message_ts, "error": str(e)},
             )
 
+    @requires_scope(SlackScope.REACTIONS_WRITE)
     def remove_reaction(
         self,
         *,
@@ -249,12 +260,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         """
         Remove an emoji reaction from a message.
         Idempotent: does not raise if the reaction does not exist.
-
-        Requires reactions:write scope.
         """
-        if not self._has_scope("reactions:write"):
-            return
-
         client = self.get_client()
         try:
             client.reactions_remove(
@@ -263,7 +269,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
                 name=emoji,
             )
         except SlackApiError as e:
-            if e.response.get("error") == "no_reaction":
+            if e.response.get("error") == NO_REACTION.message:
                 return
             _logger.warning(
                 "slack.remove_reaction.error",
@@ -299,10 +305,10 @@ class SlackIntegrationProvider(IntegrationProvider):
     # Gated by slack.extended-scopes-enabled option
     extended_oauth_scopes = frozenset(
         [
-            "reactions:write",
-            "channels:history",
-            "groups:history",
-            "app_mentions:read",
+            SlackScope.REACTIONS_WRITE,
+            SlackScope.CHANNELS_HISTORY,
+            SlackScope.GROUPS_HISTORY,
+            SlackScope.APP_MENTIONS_READ,
         ]
     )
     user_scopes = frozenset(
