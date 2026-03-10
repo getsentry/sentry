@@ -7,6 +7,9 @@ from operator import or_
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -22,10 +25,6 @@ from sentry.search.utils import tokenize_query
 from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 @control_silo_endpoint
@@ -73,6 +72,12 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
+        elif request.GET.get("show") == "latest":
+            try:
+                limit = int(request.GET.get("limit", 3))
+            except (ValueError, TypeError):
+                raise ParseError(detail="Invalid limit parameter")
+            queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")[:limit]
         else:
             # only allow active broadcasts if they're not a superuser
             queryset = Broadcast.objects.filter(
