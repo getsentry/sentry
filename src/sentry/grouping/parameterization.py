@@ -306,12 +306,10 @@ class Parameterizer:
 
     def parameterize(self, input_str: str) -> str:
         """
-        Replace all matches of the given regex in the input string with a placeholder.
+        Replace all regex matches in the input string with placeholder strings, using the regexes
+        with which the parameterizer was initialized.
 
-        @param input_str: The string to replace matches in.
-        @param parameterization_regex: The compiled regex pattern to match.
-
-        @returns: The input string with all matches replaced with placeholders.
+        For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
         def _handle_regex_match(match: re.Match[str]) -> str:
