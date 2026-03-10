@@ -127,6 +127,19 @@ def fetch_source_context_from_scm(
         if file_content is None:
             try:
                 client = install.get_client()
+            except Exception:
+                logger.warning(
+                    "scm_source_context.get_client_error",
+                    extra={
+                        "integration_id": integration.id,
+                        "src_path": src_path,
+                    },
+                    exc_info=True,
+                )
+                result["error"] = "integration_error"
+                continue
+
+            try:
                 file_content = client.get_file(config.repository, src_path, ref)
             except NotImplementedError:
                 result["error"] = "get_file_not_supported"
@@ -154,16 +167,13 @@ def fetch_source_context_from_scm(
             if file_content is not None:
                 cache.set(cache_key, file_content, SOURCE_CONTEXT_CACHE_TTL)
 
-        if file_content is None:
-            result["error"] = "empty_file"
-            continue
-
         lines = [line.encode("utf-8") for line in file_content.splitlines()]
-        pre_context, context_line, post_context = get_source_context(lines, lineno, context_lines)
 
-        if context_line is None:
+        if lineno < 1 or lineno > len(lines):
             result["error"] = "line_out_of_range"
             continue
+
+        pre_context, context_line, post_context = get_source_context(lines, lineno, context_lines)
 
         result["context"] = _format_context(
             pre_context, context_line, post_context, lineno, context_lines
