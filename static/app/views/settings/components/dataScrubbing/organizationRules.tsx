@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -39,9 +39,18 @@ export function OrganizationRules({organization}: Props) {
     }
   }, [organization.relayPiiConfig]);
 
-  const handleToggleCollapsed = () => {
+  const handleToggleCollapsed = useCallback(() => {
     setIsCollapsed(previousIsCollapsed => !previousIsCollapsed);
-  };
+  }, []);
+
+  const measureRulesRef = useCallback(
+    (node: HTMLUListElement) => {
+      if (!contentHeight && node) {
+        setContentHeight(`${node.offsetHeight}px`);
+      }
+    },
+    [contentHeight]
+  );
 
   if (rules.length === 0) {
     return (
@@ -67,15 +76,7 @@ export function OrganizationRules({organization}: Props) {
         />
       </Header>
       <Content>
-        <Rules
-          rules={rules}
-          ref={rulesRef => {
-            if (!contentHeight && rulesRef) {
-              setContentHeight(`${rulesRef.offsetHeight}px`);
-            }
-          }}
-          disabled
-        />
+        <Rules rules={rules} ref={measureRulesRef} disabled />
       </Content>
     </Wrapper>
   );
