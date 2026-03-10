@@ -10,11 +10,11 @@ from sentry.integrations.utils.source_context import (
 from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-class FormatContextTest(IntegrationTestCase):
+class FormatContextTest(TestCase):
     def test_format_context_basic(self) -> None:
         pre = [b"line1", b"line2"]
         ctx_line = b"line3"
@@ -41,9 +41,7 @@ class FormatContextTest(IntegrationTestCase):
         assert result == [[1, "héllo"]]
 
 
-class FetchSourceContextTest(IntegrationTestCase):
-    provider = "example"
-
+class FetchSourceContextTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
