@@ -26,7 +26,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigationigate} from 'sentry/utils/useNavigationigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
@@ -130,7 +130,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const organization = useOrganization();
   const isStackedNavigationTourCompleted = useStackedNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
-  const navigationigate = useNavigationigate();
+  const navigate = useNavigate();
   const location = useLocation();
   const activeGroup = useActiveNavigationGroup();
 
@@ -148,13 +148,13 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
     // Restore the initial URL when the tour ends.
     if (initialUrlRef.current) {
-      navigationigate(initialUrlRef.current, {replace: true});
+      navigate(initialUrlRef.current, {replace: true});
     }
     initialUrlRef.current = null;
 
     // Unlock scrolling when the tour ends.
     document.documentElement.style.overflow = '';
-  }, [navigationigate, setShowTourReminder]);
+  }, [navigate, setShowTourReminder]);
 
   const onStepChange = useCallback(
     (stepId: StackedNavigationTour) => {
@@ -166,7 +166,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
               pathname: `/${prefix}/issues/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigationigate(target, {replace: true});
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.EXPLORE:
@@ -175,7 +175,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigationigate(target, {replace: true});
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
@@ -184,7 +184,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
               pathname: `/${prefix}/dashboards/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigationigate(target, {replace: true});
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.INSIGHTS:
@@ -193,7 +193,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
               pathname: `/${prefix}/insights/frontend/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigationigate(target, {replace: true});
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
@@ -202,14 +202,14 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
               pathname: `/settings/${organization.slug}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigationigate(target, {replace: true});
+            navigate(target, {replace: true});
           }
           break;
         default:
           break;
       }
     },
-    [activeGroup, navigationigate, organization]
+    [activeGroup, navigate, organization]
   );
 
   return (

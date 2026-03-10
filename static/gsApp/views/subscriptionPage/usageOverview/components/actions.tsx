@@ -9,14 +9,14 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function UsageOverviewActions({organization}: {organization: Organization}) {
   const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavigationContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+  const isMobile = navLayout === NavigationLayout.MOBILE;
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =
     useMedia(

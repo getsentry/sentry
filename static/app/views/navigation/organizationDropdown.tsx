@@ -16,7 +16,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useNavigationigate} from 'sentry/utils/useNavigationigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -33,7 +33,7 @@ interface OrganizationDropdownProps {
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
-  const navigationigate = useNavigationigate();
+  const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
@@ -115,7 +115,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Projects'),
                     onAction: () => {
                       setReferrer('org-dropdown');
-                      navigationigate(makeProjectsPathname({path: '/', organization}));
+                      navigate(makeProjectsPathname({path: '/', organization}));
                     },
                   },
                   {

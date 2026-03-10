@@ -86,11 +86,11 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navParentRef} = useNavigationContext();
+  const {navigationParentRef} = useNavigationContext();
   // Check if we have a valid nav reference
-  const hasValidNav = Boolean(navParentRef?.current);
+  const hasValidNav = Boolean(navigationParentRef?.current);
 
-  const dimensions = useDimensions({elementRef: navParentRef});
+  const dimensions = useDimensions({elementRef: navigationParentRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));

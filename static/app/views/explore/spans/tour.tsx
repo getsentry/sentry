@@ -8,7 +8,7 @@ import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTo
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import {useIsNavTourActive} from 'sentry/views/navigation/tour/tour';
+import {useIsNavigationTourActive} from 'sentry/views/navigation/tour/tour';
 
 export const enum ExploreSpansTour {
   // Specify keywords to narrow down search
@@ -51,7 +51,7 @@ export function useExploreSpansTourModal() {
     assistantData?.find(item => item.guide === EXPLORE_SPANS_TOUR_GUIDE_KEY)?.seen ===
     false;
 
-  const isNavTourActive = useIsNavTourActive();
+  const isNavTourActive = useIsNavigationTourActive();
 
   useEffect(() => {
     if (

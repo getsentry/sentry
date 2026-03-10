@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withProject from 'sentry/utils/withProject';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import getConfiguration from 'sentry/views/settings/project/navigationConfiguration';
 
@@ -22,7 +22,7 @@ function ProjectSettingsNavigation({organization, project}: Props) {
       features={new Set(organization.features)}
       organization={organization}
       project={project}
-      primaryNavGroup={PrimaryNavGroup.SETTINGS}
+      primaryNavGroup={PrimaryNavigationGroup.SETTINGS}
     />
   );
 }

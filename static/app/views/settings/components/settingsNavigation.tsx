@@ -1,9 +1,9 @@
 import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import type {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
@@ -31,7 +31,7 @@ type Props = DefaultProps &
     /**
      * The primary navigation group for this settings page
      */
-    primaryNavGroup: PrimaryNavGroup;
+    primaryNavGroup: PrimaryNavigationGroup;
   };
 
 function SettingsSecondaryNavigation({
@@ -45,15 +45,15 @@ function SettingsSecondaryNavigation({
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[primaryNavGroup].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[primaryNavGroup].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }

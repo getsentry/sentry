@@ -10,7 +10,7 @@ import {
   SidebarButton,
   SidebarItemUnreadIndicator,
 } from 'sentry/views/navigation/primary/components';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
@@ -56,12 +56,12 @@ function TryBusinessNavigationItem({
         }}
         analyticsKey="try-business"
         buttonProps={{
-          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
+          size: layout === NavigationLayout.MOBILE ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
         }}
       >
         {showIsNew && (
-          <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
+          <SidebarItemUnreadIndicator isMobile={layout === NavigationLayout.MOBILE} />
         )}
       </SidebarButton>
     </TrialStartedSidebarItem>

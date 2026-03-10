@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
@@ -36,7 +36,7 @@ export function AdminNavigation() {
           ],
         },
       ]}
-      primaryNavGroup={PrimaryNavGroup.ADMIN}
+      primaryNavGroup={PrimaryNavigationGroup.ADMIN}
     />
   );
 }
