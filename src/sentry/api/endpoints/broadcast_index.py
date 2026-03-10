@@ -115,9 +115,13 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if organization:
             status = request.GET.get("status")
             if status == "unseen":
-                queryset = queryset.exclude(broadcastseen__user_id=request.user.id)
+                if request.user.is_authenticated:
+                    queryset = queryset.exclude(broadcastseen__user_id=request.user.id)
             elif status == "seen":
-                queryset = queryset.filter(broadcastseen__user_id=request.user.id)
+                if request.user.is_authenticated:
+                    queryset = queryset.filter(broadcastseen__user_id=request.user.id)
+                else:
+                    queryset = queryset.none()
             elif status is not None:
                 return self.respond(
                     {"detail": "Invalid status. Valid values are 'seen' and 'unseen'."},
