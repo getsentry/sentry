@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from sentry_sdk import SiloMode
-
 from sentry.integrations.utils.source_context import (
     _format_context,
     _make_cache_key,
@@ -11,6 +9,7 @@ from sentry.integrations.utils.source_context import (
 )
 from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -125,7 +124,7 @@ class FetchSourceContextTest(IntegrationTestCase):
         # Make mock pass isinstance check
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx(line_no="10")
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
@@ -147,7 +146,7 @@ class FetchSourceContextTest(IntegrationTestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx()
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
@@ -165,7 +164,7 @@ class FetchSourceContextTest(IntegrationTestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx()
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
@@ -183,7 +182,7 @@ class FetchSourceContextTest(IntegrationTestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx()
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
@@ -203,7 +202,7 @@ class FetchSourceContextTest(IntegrationTestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx(line_no="100")
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
@@ -224,7 +223,7 @@ class FetchSourceContextTest(IntegrationTestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         ctx = self._make_ctx(line_no="5")
 
@@ -238,6 +237,22 @@ class FetchSourceContextTest(IntegrationTestCase):
         assert result2["error"] is None
         # get_file should still only have been called once
         assert mock_client.get_file.call_count == 1
+
+    @patch("sentry.integrations.utils.source_context.integration_service")
+    def test_get_client_exception(self, mock_service: MagicMock) -> None:
+        mock_integration = MagicMock()
+        mock_service.get_integration.return_value = mock_integration
+        mock_install = MagicMock()
+        mock_integration.get_installation.return_value = mock_install
+        mock_install.get_client.side_effect = Exception("identity not found")
+
+        from sentry.integrations.source_code_management.repository import RepositoryIntegration
+
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
+
+        ctx = self._make_ctx()
+        result = fetch_source_context_from_scm([self.code_mapping], ctx)
+        assert result["error"] == "integration_error"
 
     def test_cache_key_uniqueness(self) -> None:
         key1 = _make_cache_key(1, 1, "path/a.py", "main")
