@@ -241,6 +241,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
+        # Verify that we don't crash when we don't have a GitHub client.
         mock_get_client.assert_called_once()
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
