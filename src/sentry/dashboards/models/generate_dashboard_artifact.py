@@ -28,9 +28,9 @@ WidgetType = Literal[
 class GeneratedWidgetQuery(BaseModel):
     name: str = ""
     conditions: str = ""
-    fields: list[str] = []
     aggregates: list[str] = []
     columns: list[str] = []
+    fields: list[str] = []
     orderby: str = ""
 
     @validator("fields", always=True)
