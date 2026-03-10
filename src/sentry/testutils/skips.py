@@ -50,6 +50,6 @@ def _requires_objectstore() -> None:
 
 
 requires_snuba = pytest.mark.usefixtures("_requires_snuba")
-requires_symbolicator = pytest.mark.usefixtures("_requires_symbolicator")
+requires_symbolicator = pytest.mark.symbolicator(pytest.mark.usefixtures("_requires_symbolicator"))
 requires_kafka = pytest.mark.usefixtures("_requires_kafka")
 requires_objectstore = pytest.mark.usefixtures("_requires_objectstore")
