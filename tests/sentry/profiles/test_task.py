@@ -587,7 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
-    @pytest.mark.skip(reason="Temporarily skipped")
+    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
@@ -644,6 +644,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
             },
         ]
 
+    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_inline_resolving(self) -> None:
