@@ -37,7 +37,6 @@ import useApi from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 
 import {filterProjects} from './utils';
@@ -233,24 +232,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const copyEnabled = useCopySetupInstructionsEnabled();
-  const [received, setReceived] = useState<boolean>(false);
-
-  const previousProject = usePrevious(currentProject);
-
-  useEffect(() => {
-    if (previousProject.id !== currentProject.id) {
-      setReceived(false);
-    }
-  }, [previousProject.id, currentProject.id]);
-
-  useEventWaiter({
+  const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,
     project: currentProject,
-    onIssueReceived: () => {
-      setReceived(true);
-    },
   });
+  const received = !!firstIssue;
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)

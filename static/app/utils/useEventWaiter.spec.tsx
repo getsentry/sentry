@@ -17,15 +17,12 @@ describe('useEventWaiter', () => {
       body: project,
     });
 
-    const onIssueReceived = jest.fn();
-
     const {result} = renderHookWithProviders(
       () =>
         useEventWaiter({
           eventType: 'error',
           organization: org,
           project,
-          onIssueReceived,
           pollInterval: 100,
         }),
       {organization: org}
@@ -56,8 +53,6 @@ describe('useEventWaiter', () => {
     await waitFor(() => {
       expect(result.current).toEqual(events[0]);
     });
-
-    expect(onIssueReceived).toHaveBeenCalledWith({firstIssue: events[0]});
 
     // Verify polling stops after resolution
     projectApiMock.mockClear();

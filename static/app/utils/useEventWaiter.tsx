@@ -24,7 +24,6 @@ interface UseEventWaiterOptions {
   organization: Organization;
   project: Project;
   disabled?: boolean;
-  onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 
@@ -56,7 +55,6 @@ export function useEventWaiter({
   organization,
   project,
   disabled,
-  onIssueReceived,
   pollInterval = DEFAULT_POLL_INTERVAL,
 }: UseEventWaiterOptions): FirstIssue {
   const [firstIssue, setFirstIssue] = useState<FirstIssue>(null);
@@ -113,14 +111,11 @@ export function useEventWaiter({
       const resolved =
         issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true;
       setFirstIssue(resolved);
-      onIssueReceived?.({firstIssue: resolved});
     } else {
       // transaction, replay, profile, log
-      const resolved = Boolean(firstEvent);
-      setFirstIssue(resolved);
-      onIssueReceived?.({firstIssue: resolved});
+      setFirstIssue(Boolean(firstEvent));
     }
-  }, [firstEvent, eventType, issuesQuery.data, firstIssue, onIssueReceived]);
+  }, [firstEvent, eventType, issuesQuery.data, firstIssue]);
 
   // Report errors to Sentry (matching original behavior)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -420,7 +420,19 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const copyEnabled = useCopySetupInstructionsEnabled();
-  const [received, setReceived] = useState<boolean>(false);
+
+  const doesNotSupportPerformance = project.platform
+    ? withoutPerformanceSupport.has(project.platform)
+    : false;
+
+  const firstIssue = useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project,
+    disabled: doesNotSupportPerformance,
+  });
+  const received = !!firstIssue;
+
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useTraces({
     enabled: received,
@@ -447,10 +459,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
-
   useEffect(() => {
     if (isLoading || !currentPlatform || !dsn || !projectKeyId) {
       return;
@@ -470,16 +478,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
     organization,
     doesNotSupportPerformance,
   ]);
-
-  useEventWaiter({
-    eventType: 'transaction',
-    organization,
-    project,
-    disabled: isLoading || doesNotSupportPerformance,
-    onIssueReceived: () => {
-      setReceived(true);
-    },
-  });
 
   const performanceDocs = docs?.performanceOnboarding;
 
