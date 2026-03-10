@@ -14,7 +14,7 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.registry import entrypoint_registry
+from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
@@ -46,7 +46,7 @@ class SlackEntrypointCachePayload(TypedDict):
     threads: list[SlackThreadDetails]
 
 
-@entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
+@autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
 class SlackEntrypoint(SeerAutofixEntrypoint[SlackEntrypointCachePayload]):
     key = SeerEntrypointKey.SLACK
     autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
