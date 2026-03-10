@@ -314,8 +314,8 @@ def _extract_http(
         if method:
             out["http_method"] = method
 
-        headers = request.get("headers", [])
-        for header_name, header_value in headers:
+        headers = request.get("headers", []) or []
+        for header_name, header_value in [h for h in headers if h is not None]:
             if header_name == "Referer" or header_name == "Referrer":
                 out["http_referrer"] = header_value
 
