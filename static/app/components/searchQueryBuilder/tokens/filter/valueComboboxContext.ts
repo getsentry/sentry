@@ -1,23 +1,11 @@
-import {createContext, useContext, type RefObject} from 'react';
-
-import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {createContext, useContext} from 'react';
 
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 
 type ValueComboboxContextValue = {
-  canSelectMultipleValues: boolean;
-  canUseWildcard: boolean;
   ctrlKeyPressed: boolean;
-  inputValue: string;
-  isFetching: boolean;
-  items: Array<SelectOptionWithKey<string>>;
-  onBackFromAbsoluteDate: () => void;
-  onSaveAbsoluteDate: (newDateTimeValue: string) => void;
-  onSelectAbsoluteDate: (newDateTimeValue: string) => void;
   selectedValueMap: ReadonlyMap<string, boolean>;
-  showDatePicker: boolean;
   token: TokenResult<Token.FILTER>;
-  wrapperRef: RefObject<HTMLDivElement | null>;
 };
 
 export const ValueComboboxContext = createContext<ValueComboboxContextValue | null>(null);

@@ -21,7 +21,6 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {
   SearchQueryBuilderCombobox,
   type CustomComboboxMenu,
-  type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -614,58 +613,6 @@ function ItemCheckbox({
   );
 }
 
-function ValueComboboxCustomMenu(
-  props: CustomComboboxMenuProps<SelectOptionWithKey<string>>
-) {
-  const {
-    canSelectMultipleValues,
-    canUseWildcard,
-    inputValue,
-    isFetching,
-    items,
-    onBackFromAbsoluteDate,
-    onSaveAbsoluteDate,
-    onSelectAbsoluteDate,
-    showDatePicker,
-    token,
-    wrapperRef,
-  } = useValueComboboxContext();
-
-  if (showDatePicker) {
-    return (
-      <SpecificDatePicker
-        {...props}
-        dateString={inputValue || getDefaultAbsoluteDateValue(token)}
-        handleSelectDateTime={onSelectAbsoluteDate}
-        handleBack={onBackFromAbsoluteDate}
-        handleSave={onSaveAbsoluteDate}
-      />
-    );
-  }
-
-  // Remove Ask Seer items from the value listbox since they are not shown here.
-  const hiddenOptions = new Set(props.hiddenOptions);
-  hiddenOptions.delete(ASK_SEER_ITEM_KEY);
-  hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
-
-  return (
-    <ValueListBox
-      {...props}
-      hiddenOptions={hiddenOptions}
-      wrapperRef={wrapperRef}
-      isMultiSelect={canSelectMultipleValues}
-      items={items}
-      isLoading={isFetching}
-      canUseWildcard={canUseWildcard}
-      token={token}
-    />
-  );
-}
-
-const renderValueComboboxCustomMenu: CustomComboboxMenu<
-  SelectOptionWithKey<string>
-> = props => <ValueComboboxCustomMenu {...props} />;
-
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
   canSelectMultipleValues: boolean
@@ -744,6 +691,10 @@ export function SearchQueryBuilderValueCombobox({
     () => new Map(selectedValuesUnescaped.map(v => [v.value, v.selected] as const)),
     [selectedValuesUnescaped]
   );
+  const valueComboboxContextValue = useMemo(
+    () => ({token, ctrlKeyPressed, selectedValueMap}),
+    [token, ctrlKeyPressed, selectedValueMap]
+  );
 
   useEffect(() => {
     if (canSelectMultipleValues) {
@@ -782,70 +733,6 @@ export function SearchQueryBuilderValueCombobox({
       new_experience: true,
     }),
     [organization, recentSearches, searchSource, keyName, token, fieldDefinition]
-  );
-
-  const handleSelectAbsoluteDate = useCallback(
-    (newDateTimeValue: string) => {
-      setInputValue(newDateTimeValue);
-      inputRef.current?.focus();
-      trackAnalytics('search.value_autocompleted', {
-        ...analyticsData,
-        filter_value: newDateTimeValue,
-        filter_value_type: 'absolute_date',
-      });
-    },
-    [analyticsData]
-  );
-
-  const handleBackFromAbsoluteDate = useCallback(() => {
-    setShowDatePicker(false);
-    setInputValue('');
-    inputRef.current?.focus();
-  }, []);
-
-  const handleSaveAbsoluteDate = useCallback(
-    (newDateTimeValue: string) => {
-      dispatch({
-        type: 'UPDATE_TOKEN_VALUE',
-        token,
-        value: newDateTimeValue,
-      });
-      onCommit();
-    },
-    [dispatch, onCommit, token]
-  );
-
-  const valueComboboxContextValue = useMemo(
-    () => ({
-      canSelectMultipleValues,
-      canUseWildcard,
-      ctrlKeyPressed,
-      inputValue,
-      isFetching,
-      items,
-      onBackFromAbsoluteDate: handleBackFromAbsoluteDate,
-      onSaveAbsoluteDate: handleSaveAbsoluteDate,
-      onSelectAbsoluteDate: handleSelectAbsoluteDate,
-      selectedValueMap,
-      showDatePicker,
-      token,
-      wrapperRef: topLevelWrapperRef,
-    }),
-    [
-      canSelectMultipleValues,
-      canUseWildcard,
-      ctrlKeyPressed,
-      inputValue,
-      isFetching,
-      items,
-      handleBackFromAbsoluteDate,
-      handleSaveAbsoluteDate,
-      handleSelectAbsoluteDate,
-      selectedValueMap,
-      showDatePicker,
-      token,
-      topLevelWrapperRef,
-    ]
   );
 
   const updateFilterValue = useCallback(
@@ -1055,6 +942,85 @@ export function SearchQueryBuilderValueCombobox({
     [wrapperRef]
   );
 
+  // Refs for volatile values used in customMenu so the memo stays stable
+  // during checkbox toggles (items, isFetching, token, inputValue all change).
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const isFetchingRef = useRef(isFetching);
+  isFetchingRef.current = isFetching;
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+  const inputValueRef = useRef(inputValue);
+  inputValueRef.current = inputValue;
+  const analyticsDataRef = useRef(analyticsData);
+  analyticsDataRef.current = analyticsData;
+
+  const customMenu: CustomComboboxMenu<SelectOptionWithKey<string>> | undefined =
+    useMemo(() => {
+      if (!showDatePicker) {
+        return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
+          return (
+            <ValueListBox
+              {...props}
+              hiddenOptions={hiddenOptions}
+              wrapperRef={topLevelWrapperRef}
+              isMultiSelect={canSelectMultipleValues}
+              items={itemsRef.current}
+              isLoading={isFetchingRef.current}
+              canUseWildcard={canUseWildcard}
+              token={tokenRef.current}
+            />
+          );
+        };
+      }
+
+      return function (props) {
+        return (
+          <SpecificDatePicker
+            {...props}
+            dateString={
+              inputValueRef.current || getDefaultAbsoluteDateValue(tokenRef.current)
+            }
+            handleSelectDateTime={newDateTimeValue => {
+              setInputValue(newDateTimeValue);
+              inputRef.current?.focus();
+              trackAnalytics('search.value_autocompleted', {
+                ...analyticsDataRef.current,
+                filter_value: newDateTimeValue,
+                filter_value_type: 'absolute_date',
+              });
+            }}
+            handleBack={() => {
+              setShowDatePicker(false);
+              setInputValue('');
+              inputRef.current?.focus();
+            }}
+            handleSave={newDateTimeValue => {
+              dispatch({
+                type: 'UPDATE_TOKEN_VALUE',
+                token: tokenRef.current,
+                value: newDateTimeValue,
+              });
+              onCommit();
+            }}
+          />
+        );
+      };
+    }, [
+      showDatePicker,
+      topLevelWrapperRef,
+      canSelectMultipleValues,
+      canUseWildcard,
+      dispatch,
+      onCommit,
+    ]);
+
   const placeholder =
     token.filter === FilterType.HAS
       ? prettifyTagKey(token.value.text)
@@ -1092,7 +1058,7 @@ export function SearchQueryBuilderValueCombobox({
           autoFocus
           maxOptions={50}
           openOnFocus
-          customMenu={renderValueComboboxCustomMenu}
+          customMenu={customMenu}
           shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
         >
           {suggestionSectionItems.map(section => (
