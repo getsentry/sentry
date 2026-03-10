@@ -287,6 +287,7 @@ type AbuseRegion = {
 
 type AbuseData = {
   intervalMs: number;
+  intervals: number[];
   regions: AbuseRegion[];
   valueByTimestamp: Map<number, number>;
 };
@@ -307,12 +308,14 @@ function getAbuseData(
 
   // Build a map of timestamp → abuse value and contiguous regions where abuse > 0
   const valueByTimestamp = new Map<number, number>();
+  const allTimestamps: number[] = [];
   const regions: AbuseRegion[] = [];
   let regionStart: number | null = null;
   let regionEnd: number | null = null;
 
   for (let i = 0; i < intervals.length; i++) {
     const ts = new Date(intervals[i]!).getTime();
+    allTimestamps.push(ts);
 
     if (abuseByInterval[i]! > 0) {
       valueByTimestamp.set(ts, abuseByInterval[i]!);
@@ -336,7 +339,7 @@ function getAbuseData(
       ? new Date(intervals[1]!).getTime() - new Date(intervals[0]!).getTime()
       : 0;
 
-  return {regions, valueByTimestamp, intervalMs};
+  return {regions, valueByTimestamp, intervals: allTimestamps, intervalMs};
 }
 
 function buildAbuseMarkAreaSeries(
@@ -547,7 +550,12 @@ export const CustomerStats = memo(
       () =>
         abuseStats
           ? getAbuseData(abuseStats.intervals, abuseStats.groups)
-          : {regions: [], valueByTimestamp: new Map<number, number>(), intervalMs: 0},
+          : {
+              regions: [],
+              valueByTimestamp: new Map<number, number>(),
+              intervals: [],
+              intervalMs: 0,
+            },
       [abuseStats]
     );
 
@@ -582,8 +590,9 @@ export const CustomerStats = memo(
 
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
-        const {regions, valueByTimestamp, intervalMs} = abuseDataRef.current;
-        if (!instance || regions.length === 0) {
+        const {intervals: allIntervals, valueByTimestamp} = abuseDataRef.current;
+        if (!instance || allIntervals.length === 0) {
+          hideTooltip();
           return;
         }
 
@@ -603,13 +612,12 @@ export const CustomerStats = memo(
           return;
         }
 
-        // Snap to the closest interval that has abuse data,
-        // but only if within half an interval (i.e., the mouse is over that bar)
+        // Find the closest interval (from all intervals, not just abuse ones)
+        // so we match the same interval the native tooltip is showing
         const timestamp = dataPoint[0]!;
-        const halfInterval = intervalMs / 2;
         let closestTs = 0;
         let closestDist = Infinity;
-        for (const ts of valueByTimestamp.keys()) {
+        for (const ts of allIntervals) {
           const dist = Math.abs(ts - timestamp);
           if (dist < closestDist) {
             closestDist = dist;
@@ -617,11 +625,7 @@ export const CustomerStats = memo(
           }
         }
 
-        if (closestDist > halfInterval) {
-          hideTooltip();
-          return;
-        }
-
+        // Check if this specific interval has abuse data
         const value = valueByTimestamp.get(closestTs);
         if (!value) {
           hideTooltip();
