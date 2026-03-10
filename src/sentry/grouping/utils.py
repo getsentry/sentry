@@ -69,15 +69,7 @@ def normalize_message_for_grouping(
 
     if trim_message:
         # If there are multiple lines, grab the first two non-empty ones
-        trimmed = "\n".join(
-            islice(
-                (x for x in message.splitlines() if x.strip()),
-                2,
-            )
-        )
-        if trimmed != message:
-            trimmed += "..."
-
+        trimmed = _trim_extra_lines(message)
         normalized = parameterizer.parameterize(trimmed)
     else:
         normalized = parameterizer.parameterize(message)
@@ -92,3 +84,20 @@ def normalize_message_for_grouping(
             metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
 
     return normalized
+
+
+def _trim_extra_lines(input_str: str) -> str:
+    """
+    Trim the given string by removing blank lines and then trimming the result to 2 lines.
+
+    This is a no-op for single-line strings and strings containing two non-empty lines.
+    """
+    trimmed = "\n".join(
+        islice(
+            (x for x in input_str.splitlines() if x.strip()),
+            2,
+        )
+    )
+    if trimmed != input_str:
+        trimmed += "..."
+    return trimmed
