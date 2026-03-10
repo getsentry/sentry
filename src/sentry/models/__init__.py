@@ -15,6 +15,7 @@ from .authprovider import *  # NOQA
 from .authproviderreplica import *  # NOQA
 from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
+from .code_review_event import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
 from .commitcomparison import *  # NOQA
@@ -91,7 +92,6 @@ from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectsdk import *  # NOQA
 from .projectteam import *  # NOQA
-from .projecttemplate import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .recentsearch import *  # NOQA

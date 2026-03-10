@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -17,7 +17,6 @@ import ScoreBar from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
@@ -184,20 +183,20 @@ const StyledPanelItem = styled(PanelItem)`
   padding: ${p => p.theme.space.md} 0;
 `;
 
-const columnStyle = css`
+const columnStyle = (theme: Theme) => css`
   flex: 1;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${theme.space.xs} 0;
 `;
 
 const Column = styled('div')`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
 `;
 
 const StyledCount = styled(Count)`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
   font-variant-numeric: tabular-nums;
 `;
 

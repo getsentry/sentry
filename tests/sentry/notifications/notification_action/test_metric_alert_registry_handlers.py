@@ -9,7 +9,12 @@ import pytest
 from django.utils import timezone
 
 from sentry.db.models import NodeData
-from sentry.incidents.grouptype import MetricIssue, MetricIssueEvidenceData
+from sentry.incidents.grouptype import (
+    MetricIssue,
+    MetricIssueEvidenceData,
+    StoredAnomalyDetectionResult,
+    StoredMetricResult,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleSensitivity,
@@ -106,13 +111,14 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             alert_id=self.alert_rule.id,
         )
 
+        anomaly_detection_result = StoredAnomalyDetectionResult(
+            source_id="12345",
+            subscription_id="some-subscription-id-123",
+            timestamp="2025-06-07",
+            value=6789.0,
+        )
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
-            value={
-                "source_id": "12345",
-                "subscription_id": "some-subscription-id-123",
-                "timestamp": "2025-06-07",
-                "value": 6789,
-            },
+            value=anomaly_detection_result,
             detector_id=self.detector.id,
             data_packet_source_id=int(self.data_source.source_id),
             conditions=[
@@ -234,7 +240,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
         title: str,
-        metric_value: float | dict | None = None,
+        metric_value: StoredMetricResult | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
     ):

@@ -12,8 +12,8 @@ import type {Client} from 'sentry/api';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,
@@ -35,6 +35,7 @@ function ImportDashboardFromFileModal({
   api,
   location,
 }: ModalRenderProps & ImportDashboardFromFileModalProps) {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState('');
   const [validated, setValidated] = useState(false);
 
@@ -83,7 +84,7 @@ function ImportDashboardFromFileModal({
   };
 
   const loadDashboard = (dashboardId: string) => {
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
         query: location.query,

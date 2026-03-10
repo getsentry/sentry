@@ -72,15 +72,9 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        performance_trace_explorer = features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        )
-
-        visibility_explore_view = features.has(
+        if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
-        if not performance_trace_explorer and not visibility_explore_view:
+        ):
             return Response(status=404)
 
         try:
@@ -153,15 +147,9 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
-        performance_trace_explorer = features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
-        )
-
-        visibility_explore_view = features.has(
+        if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
-        )
-
-        if not performance_trace_explorer and not visibility_explore_view:
+        ):
             return Response(status=404)
 
         try:

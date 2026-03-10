@@ -29,7 +29,6 @@ import ListItem from 'sentry/components/list/listItem';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -572,7 +571,7 @@ const AlertListItem = styled(ListItem)`
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -580,10 +579,10 @@ const FormRow = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 
   ${FieldWrapper} {
     padding: 0;
@@ -591,14 +590,14 @@ const FormRow = styled('div')`
 `;
 
 const Configuration = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 `;
 
 const ConfigurationPanel = styled(Panel)`
   display: grid;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space.xl};
   grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 

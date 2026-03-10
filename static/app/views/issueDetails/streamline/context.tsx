@@ -101,6 +101,7 @@ export const enum SectionKey {
   INSTRUMENTATION_FIX = 'instrumentation-fix',
 
   PROFILE_PREVIEW = 'profile-preview',
+  STACKTRACE_FLAMEGRAPH = 'stacktrace-flamegraph',
 }
 
 /**

@@ -1,11 +1,11 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Locality, Region, RegionCategory
+from sentry.types.region import Cell, Locality, RegionCategory
 
-us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
-st = Region("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
+us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+st = Cell("acme", 3, "https://acme.testserver", RegionCategory.SINGLE_TENANT)
 region_config = (us, de, st)
 
 us_locality = Locality(name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT)

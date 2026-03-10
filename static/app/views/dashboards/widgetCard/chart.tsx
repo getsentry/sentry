@@ -20,7 +20,6 @@ import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -92,13 +91,14 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 const OTHER = 'Other';
@@ -122,6 +122,7 @@ type WidgetCardChartProps = Pick<GenericWidgetQueriesResult, 'timeseriesResults'
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
     disableZoom?: boolean;
     isMobile?: boolean;
     isSampled?: boolean | null;
@@ -155,6 +156,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     timeseriesResultsTypes,
     shouldResize,
     confidence,
+    dataScanned,
     showConfidenceWarning,
     sampleCount,
     isSampled,
@@ -265,6 +267,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           frameless
         />
       </TableWrapper>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
+      </TransitionChart>
     );
   }
 
@@ -473,20 +484,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
     }
   };
 
-  // Excluding Other uses a slightly altered regex to match the Other series name
-  // because the series names are formatted with widget IDs to avoid conflicts
-  // when deactivating them across widgets
-  const topEventsCountExcludingOther =
-    timeseriesResults?.length && widget.queries[0]?.columns.length
-      ? Math.floor(timeseriesResults.length / widget.queries[0]?.aggregates.length) -
-        (timeseriesResults?.some(
-          ({seriesName}) =>
-            shouldColorOther ||
-            seriesName?.match(new RegExp(`(?:.* : ${OTHER};)|^${OTHER};`))
-        )
-          ? 1
-          : 0)
-      : undefined;
   return (
     <ChartZoom period={period} start={start} end={end} utc={utc} disabled={disableZoom}>
       {zoomRenderProps => {
@@ -553,15 +550,20 @@ function WidgetCardChart(props: WidgetCardChartProps) {
                         fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                       })}
                     </RenderedChartContainer>
-
-                    {showConfidenceWarning && confidence && (
-                      <ConfidenceFooter
+                    {showConfidenceWarning ? (
+                      <WidgetCardConfidenceFooter
                         confidence={confidence}
-                        sampleCount={sampleCount}
-                        topEvents={topEventsCountExcludingOther}
+                        dataScanned={dataScanned}
                         isSampled={isSampled}
+                        loading={loading}
+                        sampleCount={sampleCount}
+                        selection={selection}
+                        series={series}
+                        timeseriesResults={timeseriesResults}
+                        widget={widget}
+                        yAxis={axisLabel}
                       />
-                    )}
+                    ) : null}
                   </ChartWrapper>
                 </TransitionChart>
               );
@@ -632,9 +634,8 @@ function TableComponent({
       }
     }
 
-    const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
     let cellActions = ALLOWED_CELL_ACTIONS;
-    if (disableTableActions || !useCellActionsV2) {
+    if (disableTableActions) {
       cellActions = [];
     } else if (widget.widgetType === WidgetType.SPANS) {
       cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
@@ -756,14 +757,6 @@ function BigNumberComponent({
 function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {widget, tableResults, loading} = props;
 
-  const hasCategoricalBarCharts = useOrganization().features.includes(
-    'dashboards-categorical-bar-charts'
-  );
-
-  if (!hasCategoricalBarCharts) {
-    return null;
-  }
-
   if (loading || !tableResults?.[0]) {
     return <LoadingPlaceholder />;
   }
@@ -864,6 +857,16 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   );
 }
 
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
+  return <TextWidgetVisualization text={props.widget.description} />;
+}
+
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
@@ -956,7 +959,9 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   overflow: hidden;
   position: relative;
   padding: ${p =>
-    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
+    p.noPadding
+      ? `0`
+      : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
 const BigNumber = styled('div')`
@@ -976,7 +981,7 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

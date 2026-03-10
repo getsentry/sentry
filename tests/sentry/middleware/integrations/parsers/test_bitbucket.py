@@ -10,9 +10,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
-region = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
+region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 region_config = (region,)
 
 
@@ -22,7 +22,7 @@ class BitbucketRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     factory = RequestFactory()
-    region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+    region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
     def get_integration(self) -> Integration:
@@ -66,9 +66,7 @@ class BitbucketRequestParserTest(TestCase):
         parser = BitbucketRequestParser(request=request, response_handler=self.get_response)
 
         # Missing region
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="eu"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)

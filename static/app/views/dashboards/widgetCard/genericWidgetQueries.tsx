@@ -42,6 +42,7 @@ export function getReferrer(displayType: DisplayType) {
 
 export type OnDataFetchedProps = {
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -56,6 +57,7 @@ export type OnDataFetchedProps = {
 export type GenericWidgetQueriesResult = {
   loading: boolean;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;

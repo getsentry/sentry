@@ -52,26 +52,3 @@ class PreprodArtifactEndpointTest(APITestCase):
         url = self._get_url(self.organization.slug, self.artifact.id)
         response = self.client.get(url)
         assert response.status_code == 404
-
-
-class PreprodArtifactEndpointProjectSlugValidationTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
-        self.artifact = self.create_preprod_artifact(project=self.project)
-
-    def _get_url(self, org_slug, project_slug, artifact_id):
-        return f"/api/0/projects/{org_slug}/{project_slug}/preprodartifacts/{artifact_id}/build-details/"
-
-    @with_feature("organizations:preprod-frontend-routes")
-    def test_project_slug_validation_matches(self):
-        url = self._get_url(self.organization.slug, self.project.slug, self.artifact.id)
-        response = self.client.get(url)
-        assert response.status_code == 200
-
-    def test_project_slug_validation_mismatch_returns_404(self):
-        other_project = self.create_project(organization=self.organization)
-
-        url = self._get_url(self.organization.slug, other_project.slug, self.artifact.id)
-        response = self.client.get(url)
-        assert response.status_code == 404

@@ -47,7 +47,7 @@ class OrganizationDetectorCountTest(APITestCase):
         # includes 2 default detectors (error and issue stream)
         assert response.data == {
             "active": 3,
-            "deactive": 1,
+            "inactive": 1,
             "total": 4,
         }
 
@@ -93,7 +93,7 @@ class OrganizationDetectorCountTest(APITestCase):
         )
         assert response.data == {
             "active": 1,
-            "deactive": 1,
+            "inactive": 1,
             "total": 2,
         }
 
@@ -104,7 +104,7 @@ class OrganizationDetectorCountTest(APITestCase):
         )
         assert response.data == {
             "active": 2,
-            "deactive": 0,
+            "inactive": 0,
             "total": 2,
         }
 
@@ -112,7 +112,7 @@ class OrganizationDetectorCountTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == {
             "active": 0,
-            "deactive": 0,
+            "inactive": 0,
             "total": 0,
         }
 
@@ -133,6 +133,6 @@ class OrganizationDetectorCountTest(APITestCase):
         response = self.get_success_response(self.organization.slug, qs_params={"project": []})
         assert response.data == {
             "active": 2,
-            "deactive": 0,
+            "inactive": 0,
             "total": 2,
         }

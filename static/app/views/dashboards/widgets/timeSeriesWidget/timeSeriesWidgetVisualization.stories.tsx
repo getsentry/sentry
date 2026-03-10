@@ -32,6 +32,7 @@ import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
+import {Thresholds} from './plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
@@ -554,6 +555,59 @@ export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIRefer
             plottables={[timeSeriesPlottable, samplesPlottable]}
           />
         </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Thresholds', () => {
+    return (
+      <Fragment>
+        <p>
+          Charts can display colored threshold zones using the{' '}
+          <Storybook.JSXNode name="Thresholds" /> plottable. Thresholds divide the Y axis
+          into colored bands (green, yellow, red) to indicate Good, Meh, and Poor ranges.
+          The <code>preferredPolarity</code> controls whether lower or higher values are
+          considered "good".
+        </p>
+
+        <Storybook.SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+                new Thresholds({
+                  thresholds: {
+                    max_values: {max1: 200, max2: 300},
+                    unit: null,
+                    preferredPolarity: '-',
+                  },
+                  dataType: 'duration',
+                  showLabels: true,
+                }),
+              ]}
+              showLegend="always"
+            />
+          </MediumWidget>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+                new Thresholds({
+                  thresholds: {
+                    max_values: {max1: 200, max2: 300},
+                    unit: null,
+                    preferredPolarity: '+',
+                  },
+                  dataType: 'duration',
+                  showLabels: true,
+                }),
+              ]}
+              showLegend="always"
+            />
+          </MediumWidget>
+        </Storybook.SideBySide>
       </Fragment>
     );
   });

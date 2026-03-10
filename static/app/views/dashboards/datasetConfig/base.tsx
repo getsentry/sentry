@@ -340,16 +340,16 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
                 ? typeof MobileAppSizeConfig
                 : typeof ErrorsAndTransactionsConfig;
 
-export function getDatasetConfig(
-  widgetType?: WidgetType
-):
+export function getDatasetConfig(widgetType?: WidgetType):
   | typeof IssuesConfig
   | typeof ReleasesConfig
   | typeof ErrorsAndTransactionsConfig
+  /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
   | typeof SpansConfig
+  /* eslint-enable @typescript-eslint/no-duplicate-type-constituents */
   | typeof TraceMetricsConfig
   | typeof MobileAppSizeConfig {
   switch (widgetType) {

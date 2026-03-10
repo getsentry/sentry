@@ -59,7 +59,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
       // Propagate occurrences to the closest EAP transaction for visibility in the initially collapsed
       // eap-transactions only view, on load
       for (const occurrence of value.occurrences) {
-        closestEAPTransaction.occurrences.add(occurrence);
+        closestEAPTransaction.addOccurrence(occurrence);
       }
     }
 
