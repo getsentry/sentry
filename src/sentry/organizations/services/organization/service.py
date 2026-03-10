@@ -497,8 +497,6 @@ class OrganizationService(RpcService):
         Update all memberships in a cell to reflect changes in user details.
 
         Will sync is_active and email attributes.
-
-        :param cell_name: The cell to update user memberships in
         """
         pass
 
