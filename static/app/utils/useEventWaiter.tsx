@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 
@@ -61,37 +62,48 @@ export function useEventWaiter({
 
   const shouldPoll = !disabled && !firstIssue && !!organization && !!project;
 
-  // Poll the project endpoint to detect when the first event arrives
-  const projectQuery = useApiQuery<Project>(
-    [`/projects/${organization.slug}/${project.slug}/`],
+  const projectUrl = getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+    path: {
+      organizationIdOrSlug: organization.slug,
+      projectIdOrSlug: project.slug,
+    },
+  });
+
+  const issuesUrl = getApiUrl(
+    `/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`,
     {
-      refetchInterval: shouldPoll ? pollInterval : false,
-      enabled: shouldPoll,
-      staleTime: 0,
-      retry: (_, error) => {
-        if (error instanceof RequestError) {
-          // Stop retrying for auth/not-found errors
-          if (error.status && [401, 403, 404, 0].includes(error.status)) {
-            return false;
-          }
-        }
-        return true;
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
       },
     }
   );
+
+  // Poll the project endpoint to detect when the first event arrives
+  const projectQuery = useApiQuery<Project>([projectUrl], {
+    refetchInterval: shouldPoll ? pollInterval : false,
+    enabled: shouldPoll,
+    staleTime: 0,
+    retry: (_, error) => {
+      if (error instanceof RequestError) {
+        // Stop retrying for auth/not-found errors
+        if (error.status && [401, 403, 404, 0].includes(error.status)) {
+          return false;
+        }
+      }
+      return true;
+    },
+  });
 
   const firstEvent = projectQuery.data
     ? getFirstEvent(eventType, projectQuery.data)
     : null;
 
   // For errors, fetch the first issue group once we know the firstEvent exists
-  const issuesQuery = useApiQuery<Group[]>(
-    [`/projects/${organization.slug}/${project.slug}/issues/`],
-    {
-      enabled: eventType === 'error' && !!firstEvent && !firstIssue,
-      staleTime: 0,
-    }
-  );
+  const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
+    enabled: eventType === 'error' && !!firstEvent && !firstIssue,
+    staleTime: 0,
+  });
 
   // Resolve firstIssue from query data
   useEffect(() => {
