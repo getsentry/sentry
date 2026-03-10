@@ -196,7 +196,15 @@ class TestScmRpc(APITestCase):
     def test_invalid_endpoint(self) -> None:
         response = self.call("not_a_method", {"args": {}})
         assert response.status_code == 404
-        assert response.json() == {"errors": [{"details": "Unknown RPC method 'not_a_method'"}]}
+        assert response.json() == {
+            "errors": [
+                {
+                    "status": "404",
+                    "title": "Not found",
+                    "details": "Could not find action not_a_method",
+                }
+            ]
+        }
 
     def test_no_organization_id(self) -> None:
         response = self.call("get_issue_comments_v1", {"args": {"repository_id": 57}, "meta": {}})
@@ -204,9 +212,13 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "organization_id"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "organization_id"],
+                        "msg": "field required",
+                        "type": "value_error.missing",
+                    },
                 }
             ]
         }
@@ -220,9 +232,13 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "organization_id"],
-                    "msg": "value is not a valid integer",
-                    "type": "type_error.integer",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "organization_id"],
+                        "msg": "value is not a valid integer",
+                        "type": "type_error.integer",
+                    },
                 }
             ]
         }
@@ -233,9 +249,13 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "field required",
+                        "type": "value_error.missing",
+                    },
                 }
             ]
         }
@@ -249,14 +269,22 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "value is not a valid integer",
-                    "type": "type_error.integer",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "value is not a valid integer",
+                        "type": "type_error.integer",
+                    },
                 },
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "value is not a valid dict",
-                    "type": "type_error.dict",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "value is not a valid dict",
+                        "type": "type_error.dict",
+                    },
                 },
             ]
         }
@@ -273,14 +301,22 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "value is not a valid integer",
-                    "type": "type_error.integer",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "value is not a valid integer",
+                        "type": "type_error.integer",
+                    },
                 },
                 {
-                    "loc": ["args", "repository_id", "provider"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id", "provider"],
+                        "msg": "field required",
+                        "type": "value_error.missing",
+                    },
                 },
             ]
         }
@@ -294,14 +330,22 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "value is not a valid integer",
-                    "type": "type_error.integer",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "value is not a valid integer",
+                        "type": "type_error.integer",
+                    },
                 },
                 {
-                    "loc": ["args", "repository_id", "external_id"],
-                    "msg": "field required",
-                    "type": "value_error.missing",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id", "external_id"],
+                        "msg": "field required",
+                        "type": "value_error.missing",
+                    },
                 },
             ]
         }
@@ -325,14 +369,22 @@ class TestScmRpc(APITestCase):
         assert response.json() == {
             "errors": [
                 {
-                    "loc": ["args", "repository_id"],
-                    "msg": "value is not a valid integer",
-                    "type": "type_error.integer",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id"],
+                        "msg": "value is not a valid integer",
+                        "type": "type_error.integer",
+                    },
                 },
                 {
-                    "loc": ["args", "repository_id", "extra"],
-                    "msg": "extra fields not permitted",
-                    "type": "value_error.extra",
+                    "status": "400",
+                    "title": "The request could not be deserialized.",
+                    "meta": {
+                        "loc": ["args", "repository_id", "extra"],
+                        "msg": "extra fields not permitted",
+                        "type": "value_error.extra",
+                    },
                 },
             ]
         }
@@ -369,11 +421,13 @@ class TestScmRpc(APITestCase):
                     "meta": {},
                 },
             )
-            assert response.status_code == 400
+            assert response.status_code == 500
             assert response.json() == {
                 "errors": [
                     {
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'"
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
+                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'",
                     }
                 ]
             }
@@ -392,11 +446,13 @@ class TestScmRpc(APITestCase):
                     "meta": {},
                 },
             )
-            assert response.status_code == 400
+            assert response.status_code == 500
             assert response.json() == {
                 "errors": [
                     {
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'"
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
+                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'",
                     }
                 ]
             }
@@ -414,11 +470,13 @@ class TestScmRpc(APITestCase):
                     "meta": {},
                 },
             )
-            assert response.status_code == 400
+            assert response.status_code == 500
             assert response.json() == {
                 "errors": [
                     {
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?"
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
+                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?",
                     }
                 ]
             }
@@ -429,7 +487,15 @@ class TestScmRpc(APITestCase):
             assert response.status_code == 400
             assert response.json() == {
                 "errors": [
-                    {"loc": ["args"], "msg": "field required", "type": "value_error.missing"}
+                    {
+                        "status": "400",
+                        "title": "The request could not be deserialized.",
+                        "meta": {
+                            "loc": ["args"],
+                            "msg": "field required",
+                            "type": "value_error.missing",
+                        },
+                    }
                 ]
             }
 
@@ -439,7 +505,15 @@ class TestScmRpc(APITestCase):
             assert response.status_code == 400
             assert response.json() == {
                 "errors": [
-                    {"loc": ["args"], "msg": "field required", "type": "value_error.missing"}
+                    {
+                        "status": "400",
+                        "title": "The request could not be deserialized.",
+                        "meta": {
+                            "loc": ["args"],
+                            "msg": "field required",
+                            "type": "value_error.missing",
+                        },
+                    }
                 ]
             }
 
@@ -450,14 +524,22 @@ class TestScmRpc(APITestCase):
             assert response.json() == {
                 "errors": [
                     {
-                        "loc": ["args", "organization_id"],
-                        "msg": "field required",
-                        "type": "value_error.missing",
+                        "status": "400",
+                        "title": "The request could not be deserialized.",
+                        "meta": {
+                            "loc": ["args", "organization_id"],
+                            "msg": "field required",
+                            "type": "value_error.missing",
+                        },
                     },
                     {
-                        "loc": ["args", "repository_id"],
-                        "msg": "field required",
-                        "type": "value_error.missing",
+                        "status": "400",
+                        "title": "The request could not be deserialized.",
+                        "meta": {
+                            "loc": ["args", "repository_id"],
+                            "msg": "field required",
+                            "type": "value_error.missing",
+                        },
                     },
                 ]
             }
@@ -469,7 +551,15 @@ class TestScmRpc(APITestCase):
                 {"args": {"organization_id": self.organization.id, "repository_id": self.repo.id}},
             )
             assert response.status_code == 500
-            assert response.json() == {"errors": [{"type": "SCMError", "details": ["Blah", 68]}]}
+            assert response.json() == {
+                "errors": [
+                    {
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
+                        "details": ["Blah", 68],
+                    }
+                ]
+            }
 
     def test_scm_coded_error_in_provider_method(self) -> None:
         with add_raise_scm_error(SCMCodedError("Blah", 68, code="repository_not_found")):
@@ -477,11 +567,12 @@ class TestScmRpc(APITestCase):
                 "raise_scm_error",
                 {"args": {"organization_id": self.organization.id, "repository_id": self.repo.id}},
             )
-            assert response.status_code == 400
+            assert response.status_code == 500
             assert response.json() == {
                 "errors": [
                     {
-                        "type": "SCMCodedError",
+                        "status": "500",
+                        "title": "An unexpected error occurred.",
                         "details": [
                             "repository_not_found",
                             "A repository could not be found.",
@@ -500,5 +591,11 @@ class TestScmRpc(APITestCase):
             )
             assert response.status_code == 503
             assert response.json() == {
-                "errors": [{"type": "SCMProviderException", "details": ["Blah", 68]}]
+                "errors": [
+                    {
+                        "status": "503",
+                        "title": "The service provider raised an error.",
+                        "details": ["Blah", 68],
+                    }
+                ]
             }

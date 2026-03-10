@@ -47,9 +47,10 @@ class SCMProviderNotSupported(SCMError):
 
 
 class SCMRpcActionCallError(SCMError):
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(message)
+    def __init__(self, action_name: str, error_message: str) -> None:
+        self.action_name = action_name
+        self.message = f"Error calling method {action_name}: {error_message}"
+        super().__init__(self.message)
 
 
 class SCMRpcActionNotFound(SCMError):
