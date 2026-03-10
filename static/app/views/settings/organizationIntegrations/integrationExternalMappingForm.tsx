@@ -2,7 +2,12 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {
+  AutoSaveField,
+  defaultFormOptions,
+  setFieldErrors,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -20,6 +25,7 @@ import {
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
 import {fetchMutation, queryOptions, useMutation} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -229,8 +235,8 @@ function ModalMappingForm({
       : '';
 
   const modalSchema = z.object({
-    externalName: z.string().min(1),
-    sentryId: z.string().min(1),
+    externalName: z.string().min(1, 'This field is required'),
+    sentryId: z.string().min(1, 'This field is required'),
   });
 
   const mutation = useMutation({
@@ -262,7 +268,12 @@ function ModalMappingForm({
       sentryId: initialSentryId,
     },
     validators: {onDynamic: modalSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(value).catch(error => {
+        if (error instanceof RequestError) {
+          setFieldErrors(form, error);
+        }
+      }),
   });
 
   return (
