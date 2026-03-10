@@ -73,7 +73,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             limit = int(request.GET.get("limit", 3))
         except (ValueError, TypeError):
             raise ParseError(detail="Invalid limit parameter")
-        if limit < 1:
+        if limit < 1 or limit > 100:
             raise ParseError(detail="Invalid limit parameter")
 
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
