@@ -5,6 +5,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
@@ -704,10 +706,17 @@ export const CustomerStats = memo(
                       {...zoomRenderProps}
                     />
                     {abuseTooltip !== null && (
-                      <AbuseTooltip style={{left: abuseTooltip.x}}>
-                        <AbuseDot />
-                        Abuse: {abuseTooltip.value.toLocaleString()}
-                      </AbuseTooltip>
+                      <Flex align="center" gap="xs" padding="xs md">
+                        {({className}) => (
+                          <AbuseTooltip
+                            className={className}
+                            style={{left: abuseTooltip.x}}
+                          >
+                            <AbuseDot />
+                            Abuse: {abuseTooltip.value.toLocaleString()}
+                          </AbuseTooltip>
+                        )}
+                      </Flex>
                     )}
                   </ChartContainer>
                   <Footer>
@@ -732,10 +741,6 @@ const AbuseTooltip = styled('div')`
   position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
