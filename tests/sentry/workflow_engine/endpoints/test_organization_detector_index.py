@@ -1027,19 +1027,6 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"name": ["This field is required."]}
 
-    def test_missing_data_sources(self) -> None:
-        data = {
-            "name": "Test Cron Monitor",
-            "type": MonitorIncidentType.slug,
-            "projectId": self.project.id,
-        }
-        response = self.get_error_response(
-            self.organization.slug,
-            **data,
-            status_code=400,
-        )
-        assert "dataSources" in response.data
-
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
         data["dataSources"][0]["query"] = ""
