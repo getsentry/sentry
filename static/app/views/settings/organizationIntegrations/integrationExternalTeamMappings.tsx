@@ -1,6 +1,3 @@
-import {Fragment, useState} from 'react';
-import uniqBy from 'lodash/uniqBy';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import LoadingError from 'sentry/components/loadingError';
@@ -31,9 +28,6 @@ function IntegrationExternalTeamMappings(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi({persistInFlight: true});
-  // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
-  // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
-  const [queryResults, setQueryResults] = useState<Record<string, Team[]>>({});
   const ORGANIZATION_TEAMS_ENDPOINT = getApiUrl(
     '/organizations/$organizationIdOrSlug/teams/',
     {
@@ -111,8 +105,6 @@ function IntegrationExternalTeamMappings(props: Props) {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   };
 
-  const modalMappingKey = '__MODAL_RESULTS__';
-
   const sentryNamesMapper = (currTeams: Team[]) => {
     return currTeams.map(({id, slug}) => ({id, name: slug}));
   };
@@ -125,61 +117,23 @@ function IntegrationExternalTeamMappings(props: Props) {
     if (!mapping) {
       return '';
     }
-    const fieldResults =
-      queryResults[mapping.externalName] ?? queryResults[modalMappingKey];
-    const team =
-      // First, search for the team in the query results...
-      fieldResults?.find(item => item.id === mapping.teamId) ??
-      // Then in the initial results, if nothing was found.
-      initialResults?.find(item => item.id === mapping.teamId);
+    const team = initialResults?.find(item => item.id === mapping.teamId);
     return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
   };
 
-  /**
-   * This method combines the results from searches made on a form dropping repeated entries
-   * that have identical 'id's. This is because we need the result of the search query when
-   * the user submits to get the team slug, but it won't always be the last query they've made.
-   *
-   * If they search (but not select) after making a selection, and we didn't keep a running collection of results,
-   * we wouldn't have the team to generate the endpoint from.
-   */
-  const combineResultsById = (resultList1: any, resultList2: any) => {
-    return uniqBy([...resultList1, ...resultList2], 'id');
-  };
-
-  const handleResults = (results: any, mappingKey?: string) => {
-    if (mappingKey) {
-      setQueryResults({
-        ...queryResults,
-        // Ensure we always have a team to pull the slug from
-        [mappingKey]: combineResultsById(results, queryResults[mappingKey] ?? []),
-      });
-    }
-  };
-
   const onCreate = (mapping?: ExternalActorMappingOrSuggestion) => {
-    openModal(({Body, Header, closeModal}) => (
-      <Fragment>
-        <Header closeButton>{t('Configure External Team Mapping')}</Header>
-        <Body>
-          <IntegrationExternalMappingForm
-            type="team"
-            integration={integration}
-            dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
-            getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
-            defaultOptions={defaultTeamOptions()}
-            mapping={mapping}
-            mappingKey={modalMappingKey}
-            sentryNamesMapper={sentryNamesMapper}
-            onCancel={closeModal}
-            onResults={handleResults}
-            onSubmitSuccess={() => {
-              handleSubmitSuccess();
-              closeModal();
-            }}
-          />
-        </Body>
-      </Fragment>
+    openModal(modalProps => (
+      <IntegrationExternalMappingForm
+        {...modalProps}
+        type="team"
+        integration={integration}
+        dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
+        getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
+        defaultOptions={defaultTeamOptions()}
+        mapping={mapping}
+        sentryNamesMapper={sentryNamesMapper}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
     ));
   };
 
@@ -195,7 +149,6 @@ function IntegrationExternalTeamMappings(props: Props) {
       onCreate={onCreate}
       onDelete={handleDelete}
       pageLinks={teamsPageLinks}
-      onResults={handleResults}
     />
   );
 }

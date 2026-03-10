@@ -120,26 +120,18 @@ function IntegrationExternalUserMappings(props: Props) {
   const defaultUserOptions = sentryNamesMapper(initialResults).map(sentryNameToOption);
 
   const openMembersModal = (mapping?: ExternalActorMappingOrSuggestion) => {
-    openModal(({Body, Header, closeModal}) => (
-      <Fragment>
-        <Header closeButton>{t('Configure External User Mapping')}</Header>
-        <Body>
-          <IntegrationExternalMappingForm
-            type="user"
-            integration={integration}
-            dataEndpoint={DATA_ENDPOINT}
-            getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
-            defaultOptions={defaultUserOptions}
-            mapping={mapping}
-            sentryNamesMapper={sentryNamesMapper}
-            onCancel={closeModal}
-            onSubmitSuccess={() => {
-              handleSubmitSuccess();
-              closeModal();
-            }}
-          />
-        </Body>
-      </Fragment>
+    openModal(modalProps => (
+      <IntegrationExternalMappingForm
+        {...modalProps}
+        type="user"
+        integration={integration}
+        dataEndpoint={DATA_ENDPOINT}
+        getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
+        defaultOptions={defaultUserOptions}
+        mapping={mapping}
+        sentryNamesMapper={sentryNamesMapper}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
     ));
   };
 

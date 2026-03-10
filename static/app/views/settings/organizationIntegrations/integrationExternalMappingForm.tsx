@@ -1,169 +1,286 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
+import {z} from 'zod';
 
-import type {SelectAsyncControlProps} from '@sentry/scraps/select';
+import {Button} from '@sentry/scraps/button';
+import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
-import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import type {Field} from 'sentry/components/forms/types';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {
-  ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
 } from 'sentry/types/integrations';
+import apiFetch from 'sentry/utils/api/apiFetch';
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
+import {
+  fetchMutation,
+  queryOptions,
+  useMutation,
+  type ApiQueryKey,
+} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-type Props = Pick<FormProps, 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
-  Pick<SelectAsyncControlProps, 'defaultOptions'> & {
-    dataEndpoint: string;
-    getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
-    integration: Integration;
-    sentryNamesMapper: (v: any) => Array<{id: string; name: string}>;
-    type: 'user' | 'team';
-    isInline?: boolean;
-    mapping?: ExternalActorMappingOrSuggestion;
-    mappingKey?: string;
-    onResults?: (data: any, mappingKey?: string) => void;
+type BaseProps = {
+  dataEndpoint: string;
+  getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
+  integration: Integration;
+  sentryNamesMapper: (v: any) => Array<{id: string; name: string}>;
+  type: 'user' | 'team';
+  defaultOptions?: Array<{label: React.ReactNode; value: string}>;
+  mapping?: ExternalActorMappingOrSuggestion;
+  onSubmitError?: (error: any) => void;
+  onSubmitSuccess?: (data: any) => void;
+};
+
+type InlineProps = BaseProps & {
+  isInline: true;
+};
+
+type ModalProps = BaseProps &
+  ModalRenderProps & {
+    isInline?: false;
   };
 
-export default class IntegrationExternalMappingForm extends Component<Props> {
-  model = new FormModel();
+type Props = InlineProps | ModalProps;
 
-  get initialData() {
-    const {integration, mapping} = this.props;
-    return {
-      provider: integration.provider.key,
-      integrationId: integration.id,
-      ...mapping,
-    };
-  }
+function makeSelectQueryOptions({
+  dataEndpoint,
+  defaultOptions,
+  mapping,
+  type,
+  sentryNamesMapper,
+}: Pick<
+  BaseProps,
+  'dataEndpoint' | 'defaultOptions' | 'mapping' | 'type' | 'sentryNamesMapper'
+>) {
+  return (_debouncedInput: string) =>
+    queryOptions({
+      queryKey: [dataEndpoint as any] as ApiQueryKey,
+      queryFn: apiFetch<any[]>,
+      staleTime: 0,
+      select: response => {
+        const mapped = sentryNamesMapper(response.json);
+        const transformed = (Array.isArray(mapped) ? mapped : []).map(sentryNameToOption);
 
-  getDefaultOptions(mapping?: ExternalActorMappingOrSuggestion) {
-    const {defaultOptions, type} = this.props;
-    if (typeof defaultOptions !== 'object') {
-      return defaultOptions;
-    }
-    const options = [...(defaultOptions ?? [])];
-    if (!mapping || !isExternalActorMapping(mapping) || !mapping.sentryName) {
-      return options;
-    }
-    // For organizations with >100 entries, we want to make sure their
-    // saved mapping gets populated in the results if it wouldn't have
-    // been in the initial 100 API results, which is why we add it here
-    const mappingId = mapping[`${type}Id`];
-    const isMappingInOptionsAlready = options.some(
-      ({value}) => mappingId && value === mappingId
-    );
-    return isMappingInOptionsAlready
-      ? options
-      : [{value: mappingId, label: mapping.sentryName}, ...options];
-  }
-
-  get formFields(): Field[] {
-    const {
-      dataEndpoint,
-      isInline,
-      mapping,
-      mappingKey,
-      onResults,
-      sentryNamesMapper,
-      type,
-    } = this.props;
-    const fields: Field[] = [
-      {
-        flexibleControlStateSize: true,
-        name: `${type}Id`,
-        type: 'select_async',
-        required: true,
-        label: isInline ? undefined : tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t('Select Sentry %s', capitalize(type)),
-        url: dataEndpoint,
-        defaultOptions: this.getDefaultOptions(mapping),
-        onResults: result => {
-          onResults?.(result, isInline ? mapping?.externalName : mappingKey);
-          return sentryNamesMapper(result).map(sentryNameToOption);
-        },
-      },
-    ];
-    // We only add the field for externalName if it's the full (not inline) form
-    if (!isInline) {
-      fields.unshift({
-        name: 'externalName',
-        type: 'string',
-        flexibleControlStateSize: true,
-        required: true,
-        label: isInline ? undefined : tct('External [type]', {type: capitalize(type)}),
-        placeholder: type === 'user' ? t('@username') : t('@org/teamname'),
-      });
-    }
-    return fields;
-  }
-
-  get extraFormFieldProps() {
-    const {isInline} = this.props;
-    return isInline
-      ? {
-          // We need to submit the entire model since it could be a new one or an update
-          getData: () => this.model.getData(),
-          // We need to update the model onBlur for inline forms since the model's 'onPreSubmit' hook
-          // does NOT run when using `saveOnBlur`.
-          onBlur: () => this.updateModel(),
+        // Merge with defaultOptions if provided
+        if (Array.isArray(defaultOptions)) {
+          const seen = new Set(transformed.map(o => o.value));
+          const extras = defaultOptions.filter(o => !seen.has(o.value));
+          transformed.unshift(...extras);
         }
-      : {flexibleControlStateSize: true};
-  }
 
-  // This function is necessary since the endpoint we submit to changes depending on the value selected
-  updateModel() {
-    const {getBaseFormEndpoint, mapping} = this.props;
-    const updatedMapping: ExternalActorMapping = {
-      ...mapping,
-      ...(this.model.getData() as ExternalActorMapping),
-    };
-    if (updatedMapping) {
-      const options = getExternalActorEndpointDetails(
-        getBaseFormEndpoint(updatedMapping),
-        updatedMapping
+        // Ensure current mapping's entry is present
+        if (mapping && isExternalActorMapping(mapping) && mapping.sentryName) {
+          const mappingId = (mapping as any)[`${type}Id`];
+          if (mappingId && !transformed.some(o => o.value === mappingId)) {
+            transformed.unshift({value: mappingId, label: mapping.sentryName});
+          }
+        }
+
+        return transformed;
+      },
+    });
+}
+
+function buildMutationData(
+  mapping: ExternalActorMappingOrSuggestion | undefined,
+  integration: Integration,
+  type: 'user' | 'team',
+  sentryId: string,
+  externalName?: string
+): Record<string, any> {
+  return {
+    ...mapping,
+    ...(externalName === undefined ? {} : {externalName}),
+    provider: integration.provider.key,
+    integrationId: integration.id,
+    [`${type}Id`]: sentryId,
+  };
+}
+
+function InlineMappingForm({
+  dataEndpoint,
+  defaultOptions,
+  getBaseFormEndpoint,
+  integration,
+  mapping,
+  onSubmitError,
+  onSubmitSuccess,
+  sentryNamesMapper,
+  type,
+}: InlineProps) {
+  const selectQueryOptions = makeSelectQueryOptions({
+    dataEndpoint,
+    defaultOptions,
+    mapping,
+    type,
+    sentryNamesMapper,
+  });
+
+  const fieldName = `${type}Id` as const;
+  const initialValue =
+    mapping && isExternalActorMapping(mapping)
+      ? String((mapping as any)[fieldName] ?? '')
+      : '';
+
+  const schema = z.object({sentryId: z.string()});
+
+  return (
+    <FormWrapper>
+      <AutoSaveField
+        name="sentryId"
+        schema={schema}
+        initialValue={initialValue}
+        mutationOptions={{
+          mutationFn: ({sentryId}: {sentryId: string}) => {
+            const fullData = buildMutationData(mapping, integration, type, sentryId);
+            const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
+              getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+              fullData as ExternalActorMappingOrSuggestion
+            );
+            return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
+          },
+          onSuccess: (resp: any) => onSubmitSuccess?.(resp),
+          onError: (err: any) => onSubmitError?.(err),
+        }}
+      >
+        {field => (
+          <field.SelectAsync
+            value={field.state.value}
+            onChange={field.handleChange}
+            placeholder={t('Select Sentry %s', capitalize(type))}
+            queryOptions={selectQueryOptions}
+          />
+        )}
+      </AutoSaveField>
+    </FormWrapper>
+  );
+}
+
+function ModalMappingForm({
+  Body,
+  Footer,
+  Header,
+  closeModal,
+  dataEndpoint,
+  defaultOptions,
+  getBaseFormEndpoint,
+  integration,
+  mapping,
+  onSubmitError,
+  onSubmitSuccess,
+  sentryNamesMapper,
+  type,
+}: ModalProps) {
+  const selectQueryOptions = makeSelectQueryOptions({
+    dataEndpoint,
+    defaultOptions,
+    mapping,
+    type,
+    sentryNamesMapper,
+  });
+
+  const fieldName = `${type}Id` as const;
+  const initialSentryId =
+    mapping && isExternalActorMapping(mapping)
+      ? String((mapping as any)[fieldName] ?? '')
+      : '';
+
+  const modalSchema = z.object({
+    externalName: z.string().min(1),
+    sentryId: z.string().min(1),
+  });
+
+  const mutation = useMutation({
+    mutationFn: ({externalName, sentryId}: {externalName: string; sentryId: string}) => {
+      const fullData = buildMutationData(
+        mapping,
+        integration,
+        type,
+        sentryId,
+        externalName
       );
-      this.model.setFormOptions(options);
-    }
-  }
+      const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
+        getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+        fullData as ExternalActorMappingOrSuggestion
+      );
+      return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
+    },
+    onSuccess: (resp: any) => {
+      onSubmitSuccess?.(resp);
+      closeModal();
+    },
+    onError: (err: any) => onSubmitError?.(err),
+  });
 
-  render() {
-    const {isInline, onCancel, onSubmitError, onSubmitSuccess} = this.props;
-    return (
-      <FormWrapper>
-        <Form
-          requireChanges
-          model={this.model}
-          initialData={this.initialData}
-          onCancel={onCancel}
-          onSubmitSuccess={onSubmitSuccess}
-          onSubmitError={onSubmitError}
-          saveOnBlur={isInline}
-          allowUndo={isInline}
-          onPreSubmit={() => this.updateModel()}
-        >
-          {this.formFields.map(field => (
-            <FieldFromConfig
-              key={field.name}
-              field={field}
-              inline={false}
-              stacked
-              {...this.extraFormFieldProps}
-            />
-          ))}
-        </Form>
-      </FormWrapper>
-    );
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      externalName: mapping?.externalName ?? '',
+      sentryId: initialSentryId,
+    },
+    validators: {onDynamic: modalSchema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <Header closeButton>
+        {tct('Configure External [type] Mapping', {type: capitalize(type)})}
+      </Header>
+      <Body>
+        <Stack gap="xl">
+          <form.AppField name="externalName">
+            {field => (
+              <field.Layout.Stack
+                label={tct('External [type]', {type: capitalize(type)})}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={type === 'user' ? t('@username') : t('@org/teamname')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="sentryId">
+            {field => (
+              <field.Layout.Stack
+                label={tct('Sentry [type]', {type: capitalize(type)})}
+                required
+              >
+                <field.SelectAsync
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('Select Sentry %s', capitalize(type))}
+                  queryOptions={selectQueryOptions}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex justify="end" gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
+}
+
+export default function IntegrationExternalMappingForm(props: Props) {
+  if (props.isInline) {
+    return <InlineMappingForm {...props} />;
   }
+  return <ModalMappingForm {...props} />;
 }
 
 // Prevents errors from appearing off the modal
