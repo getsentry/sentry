@@ -90,7 +90,7 @@ export default function RepositoryProjectPathConfigModal({
       });
 
   const mutation = useMutation({
-    mutationFn: (data: z.infer<typeof schema>) =>
+    mutationFn: (data: Partial<RepositoryProjectPathConfig>) =>
       fetchMutation({
         method: existingConfig ? 'PUT' : 'POST',
         url: endpoint,
