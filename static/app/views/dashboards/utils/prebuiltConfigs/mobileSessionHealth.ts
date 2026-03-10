@@ -2,7 +2,6 @@ import {t} from 'sentry/locale';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {ModuleName} from 'sentry/views/insights/types';
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -202,8 +201,8 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
     RELEASE_TABLE,
   ],
   onboarding: {
-    type: 'module',
-    moduleName: ModuleName.SESSIONS,
+    type: 'overview',
     requiredProjectFlags: ['hasSessions'],
+    description: 'Get started with mobile session health',
   },
 };
