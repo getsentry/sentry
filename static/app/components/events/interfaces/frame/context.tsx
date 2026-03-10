@@ -213,7 +213,7 @@ function Context({
           <pre className={prismClassName}>
             <code className={prismClassName}>
               {lines.map((line, i) => {
-                const contextLine = contextLines[i]!;
+                const contextLine = contextLines![i]!;
                 const isActive = activeLineNumber === contextLine[0];
 
                 return (
