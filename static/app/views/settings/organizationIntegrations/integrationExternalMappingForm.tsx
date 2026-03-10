@@ -8,6 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {
+  ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
 } from 'sentry/types/integrations';
@@ -29,7 +30,7 @@ type BaseProps = {
   defaultOptions?: Array<{label: React.ReactNode; value: string}>;
   mapping?: ExternalActorMappingOrSuggestion;
   onSubmitError?: () => void;
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (data: ExternalActorMapping) => void;
 };
 
 type InlineProps = BaseProps & {
@@ -122,7 +123,7 @@ function buildMutationData(
   type: 'user' | 'team',
   sentryId: string,
   externalName?: string
-): Record<string, any> {
+): Record<string, unknown> {
   return {
     ...mapping,
     ...(externalName === undefined ? {} : {externalName}),
@@ -166,7 +167,7 @@ function InlineMappingForm({
             );
             return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
           },
-          onSuccess: () => onSubmitSuccess?.(),
+          onSuccess: data => onSubmitSuccess?.(data as ExternalActorMapping),
           onError: () => onSubmitError?.(),
         }}
       >
@@ -176,6 +177,7 @@ function InlineMappingForm({
               value={field.state.value}
               onChange={field.handleChange}
               placeholder={t('Select Sentry Team')}
+              defaultOptions={defaultOptions}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
@@ -183,6 +185,7 @@ function InlineMappingForm({
               value={field.state.value}
               onChange={field.handleChange}
               placeholder={t('Select Sentry User')}
+              defaultOptions={defaultOptions}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
                 defaultOptions,
@@ -245,8 +248,8 @@ function ModalMappingForm({
       );
       return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
     },
-    onSuccess: () => {
-      onSubmitSuccess?.();
+    onSuccess: data => {
+      onSubmitSuccess?.(data as ExternalActorMapping);
       closeModal();
     },
     onError: () => onSubmitError?.(),
@@ -293,6 +296,7 @@ function ModalMappingForm({
                   value={field.state.value}
                   onChange={field.handleChange}
                   placeholder={t('Select Sentry %s', capitalize(type))}
+                  defaultOptions={defaultOptions}
                   queryOptions={selectQueryOptions}
                 />
               </field.Layout.Stack>
