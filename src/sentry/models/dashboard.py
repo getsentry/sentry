@@ -45,6 +45,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             self.filter(
                 organization=organization,
                 user_id=user_id,
+                favorited=True,
                 position__isnull=False,
             )
             .order_by("-position")
@@ -60,7 +61,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         Returns all favorited dashboards for a user in an organization.
         """
-        return self.filter(organization=organization, user_id=user_id).order_by(
+        return self.filter(organization=organization, user_id=user_id, favorited=True).order_by(
             "position", "dashboard__title"
         )
 
@@ -70,7 +71,9 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         Returns the favorite dashboard if it exists, otherwise None.
         """
-        return self.filter(organization=organization, user_id=user_id, dashboard=dashboard).first()
+        return self.filter(
+            organization=organization, user_id=user_id, dashboard=dashboard, favorited=True
+        ).first()
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
@@ -90,6 +93,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         existing_favorite_dashboards = self.filter(
             organization=organization,
             user_id=user_id,
+            favorited=True,
         )
 
         existing_dashboard_ids = {
@@ -141,33 +145,52 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             True if the dashboard was favorited, False if the dashboard was already favorited
         """
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            if self.get_favorite_dashboard(organization, user_id, dashboard):
+            # Lock any existing row to prevent concurrent insert races
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
                 return False
 
-            if self.count() == 0:
+            existing_favorites = self.filter(
+                organization=organization, user_id=user_id, favorited=True
+            )
+            if not existing_favorites.exists():
                 position = 0
             else:
                 position = self.get_last_position(organization, user_id) + 1
 
-            self.create(
-                organization=organization,
-                user_id=user_id,
-                dashboard=dashboard,
-                position=position,
-            )
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
             return True
 
-    def delete_favorite_dashboard(
+    def unfavorite_dashboard(
         self, organization: Organization, user_id: int, dashboard: Dashboard
     ) -> bool:
         """
-        Deletes a favorited dashboard from the list.
-        Decrements the position of all dashboards after the deletion point.
+        Unfavorites a dashboard by setting favorited=False and clearing its position.
+        Decrements the position of all remaining favorited dashboards after the removal point.
 
         Args:
             organization: The organization the dashboards belong to
             user_id: The ID of the user whose favorited dashboards are being updated
-            dashboard: The dashboard to delete
+            dashboard: The dashboard to unfavorite
 
         Returns:
             True if the dashboard was unfavorited, False if the dashboard was already unfavorited
@@ -177,10 +200,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 return False
 
             deleted_position = favorite.position
-            favorite.delete()
+            favorite.favorited = False
+            favorite.position = None
+            favorite.save(update_fields=["favorited", "position"])
 
             self.filter(
-                organization=organization, user_id=user_id, position__gt=deleted_position
+                organization=organization,
+                user_id=user_id,
+                favorited=True,
+                position__gt=deleted_position,
             ).update(position=models.F("position") - 1)
             return True
 
@@ -194,6 +222,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(null=True)
+    favorited = models.BooleanField(db_default=True)
 
     objects: ClassVar[DashboardFavoriteUserManager] = DashboardFavoriteUserManager()
 
@@ -264,7 +293,7 @@ class Dashboard(Model):
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
-        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self, favorited=True).values_list(
             "user_id", flat=True
         )
         return user_ids
@@ -276,20 +305,38 @@ class Dashboard(Model):
         """
         from django.db import router, transaction
 
-        existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
-            "user_id", flat=True
-        )
+        existing_favorites = DashboardFavoriteUser.objects.filter(dashboard=self)
+        existing_user_ids = set(existing_favorites.values_list("user_id", flat=True))
+        new_user_ids = set(user_ids)
+
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            newly_favourited = [
-                DashboardFavoriteUser(
-                    dashboard=self, user_id=user_id, organization=self.organization
-                )
-                for user_id in set(user_ids) - set(existing_user_ids)
-            ]
-            DashboardFavoriteUser.objects.filter(
-                dashboard=self, user_id__in=set(existing_user_ids) - set(user_ids)
-            ).delete()
-            DashboardFavoriteUser.objects.bulk_create(newly_favourited)
+            existing_favorites.filter(
+                user_id__in=existing_user_ids - new_user_ids, favorited=True
+            ).update(favorited=False, position=None)
+
+            users_to_add = new_user_ids - existing_user_ids
+            users_to_refavorite = new_user_ids & existing_user_ids
+
+            for user_id in users_to_refavorite:
+                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()
+                if fav:
+                    last_position = DashboardFavoriteUser.objects.get_last_position(
+                        self.organization, user_id
+                    )
+                    has_any = DashboardFavoriteUser.objects.filter(
+                        organization=self.organization, user_id=user_id, favorited=True
+                    ).exists()
+                    fav.favorited = True
+                    fav.position = 0 if not has_any else last_position + 1
+                    fav.save(update_fields=["favorited", "position"])
+            DashboardFavoriteUser.objects.bulk_create(
+                [
+                    DashboardFavoriteUser(
+                        dashboard=self, user_id=user_id, organization=self.organization
+                    )
+                    for user_id in users_to_add
+                ]
+            )
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
@@ -586,12 +633,21 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
+                            "fields": ["equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": [],
+                            "conditions": "is_transaction:true",
+                            "orderby": "",
+                        }
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
+                        {
+                            "name": "",
                             "fields": ["user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": [],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
+                            "conditions": "",
                             "orderby": "",
                         },
                     ],
@@ -638,12 +694,21 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
                     "queries": [
                         {
                             "name": "",
+                            "fields": ["transaction", "equation|user_misery(span.duration,300)"],
+                            "aggregates": ["equation|user_misery(span.duration,300)"],
+                            "columns": ["transaction"],
+                            "conditions": "is_transaction:true",
+                            "orderby": "-equation|user_misery(span.duration,300)",
+                        },
+                    ]
+                    if is_transactions_deprecation_enabled
+                    else [
+                        {
+                            "name": "",
                             "fields": ["transaction", "user_misery(300)"],
                             "aggregates": ["user_misery(300)"],
                             "columns": ["transaction"],
-                            "conditions": "is_transaction:true"
-                            if is_transactions_deprecation_enabled
-                            else "",
+                            "conditions": "",
                             "orderby": "-user_misery(300)",
                         },
                     ],

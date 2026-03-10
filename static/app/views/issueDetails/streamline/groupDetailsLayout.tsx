@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -135,7 +134,7 @@ const NavigationSidebarWrapper = styled('div')<{
 }>`
   position: relative;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
       ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`

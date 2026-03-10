@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -22,7 +22,6 @@ import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -252,6 +251,7 @@ export function SourceMapsList({project}: Props) {
 }
 
 function ReactNativeCallOut() {
+  const theme = useTheme();
   const [selectedTab, setSelectedTab] = useState('expo');
 
   return (
@@ -259,7 +259,7 @@ function ReactNativeCallOut() {
       css={css`
         text-align: left;
         display: grid;
-        gap: ${space(1)};
+        gap: ${theme.space.md};
       `}
     >
       <div>
@@ -496,7 +496,7 @@ const StyledKeyValueList = styled(KeyValueList)`
 const List = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const Item = styled(Panel)`
@@ -510,19 +510,19 @@ const ItemHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   line-height: 1;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ItemContent = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

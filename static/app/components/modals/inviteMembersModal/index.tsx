@@ -18,7 +18,6 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -139,11 +138,11 @@ const Heading = styled('h1')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const StyledInviteRow = styled(InviteRowControl)`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 export default InviteMembersModal;

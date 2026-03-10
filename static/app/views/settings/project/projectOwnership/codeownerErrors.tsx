@@ -5,7 +5,6 @@ import uniqBy from 'lodash/uniqBy';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {space} from 'sentry/styles/space';
 import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
@@ -193,12 +192,12 @@ const ErrorContainer = styled('div')`
   display: grid;
   grid-template-areas: 'message cta';
   grid-template-columns: 2fr 1fr;
-  gap: ${space(2)};
-  padding: ${space(1.5)} 0;
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.lg} 0;
 `;
 
 const ErrorInlineContainer = styled(ErrorContainer)`
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   grid-template-columns: 1fr 2fr;
   align-items: center;
   padding: 0;
@@ -207,12 +206,12 @@ const ErrorInlineContainer = styled(ErrorContainer)`
 const ErrorMessageContainer = styled('div')`
   grid-area: message;
   display: grid;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorMessageListContainer = styled('div')`
   grid-column: message / cta-end;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorCtaContainer = styled('div')`

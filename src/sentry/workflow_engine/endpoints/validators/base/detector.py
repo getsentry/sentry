@@ -26,6 +26,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
+    log_alerting_quota_hit,
     toggle_detector,
 )
 from sentry.workflow_engine.models import (
@@ -50,6 +51,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     """
     Set to True in subclasses to enforce that only a single data source can be configured.
     This prevents invalid configurations for detector types that don't support multiple data sources.
+    """
+
+    data_source_required = True
+    """
+    Set to False in subclasses if data sources are not required for this detector type.
+    By default, data sources are required when creating a new detector.
     """
 
     name = serializers.CharField(
@@ -136,6 +143,17 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
         return value
 
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate detector data, enforcing data source requirements if configured.
+        """
+        # Check if data sources are missing when creating a new detector
+        if self.data_source_required and not self.instance and not attrs.get("data_sources"):
+            raise serializers.ValidationError(
+                {"data_sources": ["This field is required when creating a detector."]}
+            )
+        return attrs
+
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
@@ -148,6 +166,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         """
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type=f"detector:{validated_data['type'].slug}",
+                organization=self.context["organization"],
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
             )

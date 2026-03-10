@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry import tagstore
-from sentry.rules import MatchType, match_values
+from sentry.rules import MATCH_CHOICES, MatchType, match_values
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -15,6 +15,7 @@ logger = log_context.get_logger(__name__)
 class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
+    label_template = "The event's tags match {key} {match} {value}"
 
     comparison_json_schema = {
         "type": "object",
@@ -107,3 +108,12 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
         )
 
         return result
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        data = {
+            "key": condition_data["key"],
+            "value": condition_data["value"],
+            "match": MATCH_CHOICES[condition_data["match"]],
+        }
+        return cls.label_template.format(**data)

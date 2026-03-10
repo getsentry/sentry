@@ -1853,9 +1853,11 @@ EAP_FUNCTIONS = [
     "min",
     "sum",
     "epm",
+    "failure_count",
     "failure_rate",
     "eps",
     "apdex",
+    "user_misery",
 ]
 
 

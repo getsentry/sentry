@@ -41,7 +41,7 @@ function Measurements({
 }) {
   const theme = useTheme();
   const {measurements} = node.value;
-  const measurementNames: string[] = useMemo(() => {
+  const measurementNames = useMemo(() => {
     return Object.keys(measurements ?? {})
       .filter(name => isCustomMeasurement(`measurements.${name}`))
       .filter(isNotMarkMeasurement)

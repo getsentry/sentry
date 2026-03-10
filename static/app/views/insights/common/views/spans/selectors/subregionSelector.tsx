@@ -56,7 +56,7 @@ export default function SubregionSelector({size}: Props) {
   return (
     <CompactSelect
       size={size}
-      searchable
+      search
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Geo region')}>
           {value.length === 0 ? t('All') : triggerProps.children}

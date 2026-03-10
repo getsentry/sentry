@@ -14,7 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
 from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
@@ -43,14 +43,14 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 "path": "",
             },
         )
-        url = absolute_uri(path, generate_region_url())
+        url = absolute_uri(path, generate_locality_url())
 
         options = ObjectstoreUploadOptions(
             url=url,
-            scopes={
-                "org": str(organization.id),
-                "project": str(project.id),
-            },
+            scopes=[
+                ("org", str(organization.id)),
+                ("project", str(project.id)),
+            ],
             expirationPolicy=format_expiration(
                 TimeToLive(timedelta(days=396))
             ),  # Hardcoded for now

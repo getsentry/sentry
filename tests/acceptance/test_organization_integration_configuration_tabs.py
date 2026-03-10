@@ -76,7 +76,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             externalName = self.browser.find_element(by=By.NAME, value="externalName")
             externalName.send_keys("@user2")
             self.browser.click("#userId:first-child div")
-            self.browser.click('[id="react-select-2-option-1"]')
+            self.browser.click('[id$="-option-1"]')
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')
@@ -102,7 +102,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             externalName = self.browser.find_element(by=By.NAME, value="externalName")
             externalName.send_keys("@getsentry/ecosystem")
             self.browser.click("#teamId:first-child div")
-            self.browser.click('[id="react-select-2-option-0"]')
+            self.browser.click('[id$="-option-0"]')
 
             # List View
             self.browser.click('[aria-label="Save Changes"]')

@@ -62,38 +62,34 @@ def get_new_model_version() -> GroupingVersion | None:
     return SEER_GROUPING_NEW_VERSION
 
 
-def should_send_new_model_embeddings(
+def should_send_to_seer_for_training(
     project: Project,
-    grouphash_seer_model: str | None,
+    grouphash_seer_latest_training_model: str | None,
 ) -> bool:
     """
-    Check if we should send training_mode=true request to build embeddings
-    for the new model version for an existing group.
+    Check if we should send a training_mode=true request to Seer for the new model version.
 
     This is true when:
     1. A new version is being rolled out
     2. The project has the rollout feature enabled
-    3. The grouphash hasn't been sent to the new version yet
+    3. The grouphash hasn't already been sent to the new version
 
     Args:
         project: The project
-        grouphash_seer_model: The seer_model value from grouphash metadata
+        grouphash_seer_latest_training_model: The seer_latest_training_model value
+            from grouphash metadata
 
     Returns:
         True if we should send a training_mode=true request
     """
     new_version = get_new_model_version()
     if new_version is None:
-        # No rollout in progress
         return False
 
     if not is_new_model_rolled_out(project):
-        # Rollout not enabled for this project
         return False
 
-    if grouphash_seer_model is None:
-        # Never sent to Seer at all
-        return True
+    if grouphash_seer_latest_training_model == new_version.value:
+        return False
 
-    # Check if it was sent to the new version
-    return grouphash_seer_model != new_version.value
+    return True

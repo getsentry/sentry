@@ -23,7 +23,7 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 
 - **Container**: Docker (via devservices)
 - **Package Management**: pnpm (Node.js), pip (Python)
-- **Node Version**: 22 (managed by Volta)
+- **Node Version**: 24.14.0 LTS (from `.node-version`, installed by `devenv/sync.py`)
 
 ## Project Structure
 

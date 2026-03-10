@@ -1,3 +1,4 @@
+import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -9,6 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
@@ -87,7 +89,17 @@ function MetricIssueChartContent({
   openPeriods: GroupOpenPeriod[];
 }) {
   const {selection} = usePageFilters();
-  const {openPeriod} = useEventOpenPeriod({groupId: group.id, eventId: event?.id});
+  const {openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
+    groupId: group.id,
+    eventId: event?.id,
+  });
+  const dateTimeParams = normalizeDateTimeParams(selection.datetime);
+  const intervalSeconds = detector.dataSources[0]?.queryObj?.snubaQuery?.timeWindow;
+  const {dateTimeParams: cappedDateTimeParams, isRangeLimited} =
+    limitDateTimeParamsToMaxPoints({
+      ...dateTimeParams,
+      intervalSeconds,
+    });
 
   const {
     chartProps,
@@ -98,10 +110,11 @@ function MetricIssueChartContent({
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
     height: CHART_HEIGHT,
-    ...normalizeDateTimeParams(selection.datetime),
+    enabled: !isOpenPeriodPending,
+    ...cappedDateTimeParams,
   });
 
-  if (isLoading) {
+  if (isOpenPeriodPending || isLoading) {
     return <MetricIssueChartPlaceholder />;
   }
 
@@ -117,7 +130,16 @@ function MetricIssueChartContent({
 
   return (
     <MetricChartSection>
-      <AreaChart {...chartProps} />
+      <Flex direction="column" paddingTop="md">
+        {isRangeLimited ? (
+          <Alert variant="warning">
+            {t(
+              'The selected time range contains too many data points. Narrow the range to view all data.'
+            )}
+          </Alert>
+        ) : null}
+        <AreaChart {...chartProps} />
+      </Flex>
     </MetricChartSection>
   );
 }

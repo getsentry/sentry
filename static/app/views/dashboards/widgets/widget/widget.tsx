@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   MIN_HEIGHT,
@@ -124,7 +123,7 @@ const HEADER_HEIGHT = '26px';
 const TitleHoverItems = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin-left: auto;
 
   opacity: 1;
@@ -168,7 +167,7 @@ export const Header = styled('div')<{noPadding?: boolean}>`
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
   flex-shrink: 0;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   padding: ${p => (p.noPadding ? 0 : `${Y_GUTTER} ${X_GUTTER} 0 ${X_GUTTER}`)};
 `;
 
@@ -184,5 +183,6 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
 export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};
+  padding: ${p =>
+    p.noPadding ? 0 : `${p.theme.space.md} ${X_GUTTER} ${p.theme.space.md} ${X_GUTTER}`};
 `;

@@ -105,7 +105,7 @@ export async function loadPrismLanguage(
   }
 ) {
   try {
-    const language: string | undefined = getPrismLanguage(lang);
+    const language = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
     if (Prism.languages[language!]) {

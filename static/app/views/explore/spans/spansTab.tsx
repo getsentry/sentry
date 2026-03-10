@@ -6,7 +6,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -22,6 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -34,7 +34,6 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useCrossEventQueries} from 'sentry/views/explore/hooks/useCrossEventQueries';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -114,7 +113,6 @@ interface SpanTabProps {
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
-  const organization = useOrganization();
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
@@ -124,10 +122,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
           <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
         </ExploreBodySearch>
         <ExploreBodyContent>
-          <SpanTabControlSection
-            organization={organization}
-            controlSectionExpanded={controlSectionExpanded}
-          />
+          <SpanTabControlSection controlSectionExpanded={controlSectionExpanded} />
           <SpanTabContentSection
             setControlSectionExpanded={setControlSectionExpanded}
             controlSectionExpanded={controlSectionExpanded}
@@ -150,18 +145,10 @@ function useVisitExplore() {
 
 interface SpanTabControlSectionProps {
   controlSectionExpanded: boolean;
-  organization: Organization;
 }
 
-function SpanTabControlSection({
-  controlSectionExpanded,
-  organization,
-}: SpanTabControlSectionProps) {
-  const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-equations')
-      ? ['equations' as const]
-      : []),
-  ];
+function SpanTabControlSection({controlSectionExpanded}: SpanTabControlSectionProps) {
+  const toolbarExtras: Array<'equations'> = ['equations'];
 
   return (
     <ExploreControlSection expanded={controlSectionExpanded}>
@@ -316,12 +303,10 @@ function SpanTabContentSection({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <Feature features="organizations:tracing-export-csv">
-            <SpansExport
-              aggregatesTableResult={aggregatesTableResult}
-              spansTableResult={spansTableResult}
-            />
-          </Feature>
+          <SpansExport
+            aggregatesTableResult={aggregatesTableResult}
+            spansTableResult={spansTableResult}
+          />
           <SettingsDropdown />
         </Flex>
       </OverChartButtonGroup>

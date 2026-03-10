@@ -7,8 +7,6 @@ import {useReducedMotion} from 'framer-motion';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
-
 import type {ParseResult, TokenResult} from './parser';
 import {Token} from './parser';
 import {isWithinToken} from './utils';
@@ -353,10 +351,10 @@ const FreeTextTokenGroup = styled(TokenGroup)`
     `}
 `;
 
-const filterCss = css`
+const filterCss = (p: {theme: Theme}) => css`
   background: var(--token-bg);
   border: 0.5px solid var(--token-border);
-  padding: ${space(0.25)} 0;
+  padding: ${p.theme.space['2xs']} 0;
 `;
 
 const Negation = styled('span')`

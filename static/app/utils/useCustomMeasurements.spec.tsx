@@ -34,7 +34,7 @@ function mockMeasurementsMeta() {
 describe('useCustomMeasurements', () => {
   it('provides customMeasurements from the custom measurements context', async () => {
     const {organization} = initializeOrg({
-      organization: {features: ['dashboards-mep']},
+      organization: {features: []},
       projects: [],
     });
     const measurementsMetaMock = mockMeasurementsMeta();

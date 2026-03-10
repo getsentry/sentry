@@ -12,6 +12,7 @@ type MobileAppSizeWidgetQueriesProps = {
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   selection?: PageFilters;
+  widgetInterval?: string;
 };
 
 function MobileAppSizeWidgetQueries({
@@ -19,6 +20,7 @@ function MobileAppSizeWidgetQueries({
   widget,
   dashboardFilters,
   selection: propsSelection,
+  widgetInterval,
 }: MobileAppSizeWidgetQueriesProps) {
   const organization = useOrganization();
   const hookPageFilters = usePageFilters();
@@ -30,6 +32,7 @@ function MobileAppSizeWidgetQueries({
     pageFilters,
     dashboardFilters,
     enabled: true,
+    widgetInterval,
   });
 
   return getDynamicText({

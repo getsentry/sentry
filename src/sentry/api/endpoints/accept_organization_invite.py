@@ -23,7 +23,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
-from sentry.types.region import RegionResolutionError, get_region_by_name
+from sentry.types.region import RegionResolutionError, get_cell_by_name
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def handle_empty_organization_id_or_slug(
     )
     for mapping in org_mappings:
         try:
-            if get_region_by_name(mapping.region_name).is_historic_monolith_region():
+            if get_cell_by_name(mapping.cell_name).is_historic_monolith_region():
                 member_mapping = member_mappings.get(mapping.organization_id)
                 break
         except RegionResolutionError:

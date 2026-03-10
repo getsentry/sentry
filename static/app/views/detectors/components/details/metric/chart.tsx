@@ -98,6 +98,7 @@ const CHART_HEIGHT = 180;
 interface UseMetricDetectorChartProps {
   detector: MetricDetector;
   openPeriods: GroupOpenPeriod[];
+  enabled?: boolean;
   /**
    * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
    */
@@ -178,6 +179,7 @@ export function useMetricDetectorChart({
   start,
   end,
   detector,
+  enabled = true,
   openPeriods,
   highlightedOpenPeriodId,
   height = CHART_HEIGHT,
@@ -192,7 +194,14 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
@@ -206,6 +215,7 @@ export function useMetricDetectorChart({
     statsPeriod,
     start,
     end,
+    options: {enabled},
   });
 
   const metricTimestamps = useMetricTimestamps(series);
@@ -253,14 +263,14 @@ export function useMetricDetectorChart({
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
       const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
   });
@@ -310,6 +320,8 @@ export function useMetricDetectorChart({
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
     const isPercentage = outputType === 'percentage';
@@ -358,6 +370,8 @@ export function useMetricDetectorChart({
     maxValue,
     minValue,
     openPeriodMarkerResult.incidentMarkerYAxis,
+    serverOutputType,
+    unit,
   ]);
 
   const grid = useMemo(() => {
@@ -388,6 +402,8 @@ export function useMetricDetectorChart({
         valueFormatter: getDetectorChartFormatters({
           detectionType,
           aggregate,
+          unit,
+          serverOutputType,
         }).formatTooltipValue,
       },
       ...chartZoomProps,
@@ -407,6 +423,8 @@ export function useMetricDetectorChart({
     isLoading,
     openPeriodMarkerResult,
     series,
+    serverOutputType,
+    unit,
     yAxes,
   ]);
 

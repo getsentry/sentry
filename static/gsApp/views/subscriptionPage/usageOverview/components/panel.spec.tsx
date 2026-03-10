@@ -539,7 +539,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
     expect(screen.getByText('Gifted')).toBeInTheDocument();
@@ -619,7 +619,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.getByText('Enterprise (Business) plan')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();

@@ -74,7 +74,7 @@ describe('Subscription > Overview', () => {
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        planDetails: PlanDetailsLookupFixture('mm2_a_100k')!,
+        planDetails: PlanDetailsLookupFixture('mm2_a_100k'),
       }),
     });
 

@@ -3159,7 +3159,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3215,7 +3214,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
                     on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
@@ -3268,7 +3266,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3314,7 +3311,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,
@@ -3343,7 +3339,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We set here the skipping of conditions, since this is true for alert subscriptions, but we want to verify
@@ -3370,7 +3365,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is not supplied, which is the case for alert
@@ -3429,7 +3423,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 # We want to test the snql generation when a time range is supplied.
@@ -3491,8 +3484,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             offset=None,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=True,
-                insights_metrics_override_metric_layer=True,
             ),
         )
 
@@ -3553,7 +3544,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
                 config=QueryBuilderConfig(
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=True,
                     on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                     skip_time_conditions=False,
@@ -3623,7 +3613,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
             config=QueryBuilderConfig(
-                use_metrics_layer=False,
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_time_conditions=False,

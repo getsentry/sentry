@@ -16,7 +16,6 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -235,8 +234,8 @@ const StyledSearchBar = styled(SearchBar)`
 const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -248,7 +247,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1.5)} ${space(2)};
+        padding: ${p.theme.space.lg} ${p.theme.space.xl};
       }
     `}
 `;
@@ -256,7 +255,7 @@ const StyledPanelTable = styled(PanelTable)`
 const RowRule = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;

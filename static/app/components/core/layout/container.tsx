@@ -52,6 +52,8 @@ interface ContainerLayoutProps {
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
+  overscrollBehavior?: Responsive<'contain' | 'auto' | 'none'>;
+
   pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
@@ -122,6 +124,7 @@ export type ContainerElement =
   | 'aside'
   | 'blockquote'
   | 'div'
+  | 'fieldset'
   | 'figure'
   | 'footer'
   | 'header'
@@ -210,6 +213,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'overflow',
   'overflowX',
   'overflowY',
+  'overscrollBehavior',
   'pointerEvents',
   'padding',
   'paddingTop',
@@ -259,6 +263,8 @@ export const Container = styled(
   ${p => rc('overflow', p.overflow, p.theme)};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
+
+  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
 
   ${p => rc('pointer-events', p.pointerEvents, p.theme)};
 

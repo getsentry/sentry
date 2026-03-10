@@ -3,9 +3,9 @@ import {useCallback, useReducer} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
@@ -59,9 +59,7 @@ export function canUseMetricsData(organization: Organization) {
   const isInternalViewOn = organization.features.includes(
     'performance-transaction-name-only-search'
   );
-  const samplingFeatureFlag = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
-  const isRollingOut =
-    samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
+  const isRollingOut = organization.features.includes('dynamic-sampling'); // Exists on AM2 plans only.
 
   // For plans transitioning from AM2 to AM3, we still want to show metrics
   // until 90d after 100% transaction ingestion to avoid spikes in charts
@@ -85,6 +83,7 @@ export function MEPSettingProvider({
   location?: Location;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const canUseMEP = canUseMetricsData(organization);
 
@@ -113,16 +112,19 @@ export function MEPSettingProvider({
       if (!location) {
         return;
       }
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          [METRIC_SETTING_PARAM]: settingState,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            [METRIC_SETTING_PARAM]: settingState,
+          },
         },
-      });
+        {replace: true}
+      );
       _setMetricSettingState(settingState);
     },
-    [location, _setMetricSettingState]
+    [location, navigate, _setMetricSettingState]
   );
 
   const [autoSampleState, setAutoSampleState] = useReducer(

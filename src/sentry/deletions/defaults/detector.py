@@ -1,5 +1,9 @@
+import logging
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.workflow_engine.models.detector import Detector
+
+logger = logging.getLogger(__name__)
 
 
 class DetectorDeletionTask(ModelDeletionTask[Detector]):
@@ -28,3 +32,19 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
             )
 
         return model_relations
+
+    def delete_instance(self, instance: Detector) -> None:
+        from sentry.uptime.subscriptions.subscriptions import remove_uptime_seat
+        from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+
+        if instance.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
+            try:
+                remove_uptime_seat(instance)
+            except Exception:
+                logger.warning(
+                    "detector.deletion.remove_uptime_seat_failed",
+                    extra={"detector_id": instance.id},
+                    exc_info=True,
+                )
+
+        super().delete_instance(instance)

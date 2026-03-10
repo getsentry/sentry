@@ -121,14 +121,15 @@ def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
         return
 
     batch_size = 50
-    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
-        status=IncidentStatus.CLOSED.value
-    )[: batch_size + 1]
-    has_more = incidents.count() > batch_size
+    incidents = list(
+        Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED.value)[
+            : batch_size + 1
+        ]
+    )
+    has_more = len(incidents) > batch_size
     if incidents:
-        incidents = incidents[:batch_size]
         with transaction.atomic(router.db_for_write(Incident)):
-            for incident in incidents:
+            for incident in incidents[:batch_size]:
                 update_incident_status(
                     incident,
                     IncidentStatus.CLOSED,

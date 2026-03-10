@@ -20,7 +20,6 @@ import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   DataCategory,
   DataCategoryExact,
@@ -145,7 +144,6 @@ export function getChartProps({
     | 'chartDateStartDisplay'
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
-    | 'chartStats'
     | 'cardStats'
   >;
   dataCategory: DataCategory;
@@ -171,7 +169,7 @@ export function getChartProps({
   footer: React.ReactNode;
   title: React.ReactNode;
 } {
-  const errors: Record<string, Error> | undefined =
+  const errors =
     error || dataError
       ? {
           ...(error ? {error} : {}),
@@ -325,7 +323,7 @@ export interface UsageStatsOrganizationProps {
     ) => void;
     orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
     usageChart: React.ReactNode;
-  }) => React.ReactNode | React.ReactNode;
+  }) => React.ReactNode;
   clientDiscard?: boolean;
   clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
@@ -413,7 +411,7 @@ function UsageStatsOrganization({
     [router, organization]
   );
 
-  const chartDataTransform: {chartTransform: ChartDataTransform} = useMemo(() => {
+  const chartDataTransform = useMemo(() => {
     switch (chartTransform) {
       case ChartDataTransform.CUMULATIVE:
       case ChartDataTransform.PERIODIC:
@@ -482,28 +480,7 @@ function UsageStatsOrganization({
     };
   }, [orgStatsReponse.data, dataDatetime]);
 
-  const chartData: {
-    cardStats: {
-      accepted?: string;
-      accepted_stored?: string;
-      clientDiscard?: string;
-      filtered?: string;
-      invalid?: string;
-      rateLimited?: string;
-      total?: string;
-    };
-    chartDateEnd: string;
-    chartDateEndDisplay: string;
-    chartDateInterval: IntervalPeriod;
-    chartDateStart: string;
-    chartDateStartDisplay: string;
-    chartDateTimezoneDisplay: string;
-    chartDateUtc: boolean;
-    chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
-    chartTransform: ChartDataTransform;
-    dataError?: Error;
-  } = useMemo(() => {
+  const chartData = useMemo(() => {
     return {
       ...mapSeriesToChart({
         orgStats: orgStatsReponse.data,
@@ -665,7 +642,7 @@ export default UsageStatsOrganization;
 const PageGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
@@ -689,8 +666,8 @@ const Footer = styled('div')`
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1.5)};
-  padding: ${space(1)} ${space(3)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   > *:first-child {
     flex-grow: 1;
@@ -703,7 +680,7 @@ const FooterDate = styled('div')`
   align-items: center;
 
   > ${SectionHeading} {
-    margin-right: ${space(1.5)};
+    margin-right: ${p => p.theme.space.lg};
   }
 
   > span:last-child {

@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -12,7 +13,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -35,6 +35,7 @@ type Props = {
 
 // No longer a modal anymore but yea :)
 export default function SentryAppDetailsModal(props: Props) {
+  const theme = useTheme();
   const {closeModal, organization, sentryApp, isInstalled, onInstall} = props;
 
   useEffect(() => {
@@ -194,7 +195,7 @@ export default function SentryAppDetailsModal(props: Props) {
                         priority="primary"
                         disabled={isInstalled || disabled}
                         onClick={() => installMutation.mutate()}
-                        style={{marginLeft: space(1)}}
+                        style={{marginLeft: theme.space.md}}
                         data-test-id="install"
                       >
                         {t('Accept & Install')}
@@ -214,9 +215,9 @@ export default function SentryAppDetailsModal(props: Props) {
 const Heading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Name = styled('div')`
@@ -225,7 +226,7 @@ const Name = styled('div')`
 `;
 
 const Description = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   white-space: pre-wrap;
 `;
 
@@ -261,7 +262,7 @@ const Footer = styled('div')`
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -271,9 +272,9 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 `;
 
 const Features = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

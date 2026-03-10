@@ -1186,7 +1186,6 @@ describe('GSBanner', () => {
       },
     });
     // Modal does the navigation
-    // @ts-expect-error renderGlobalModal not currently returning correct types
     const {router} = renderGlobalModal();
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();

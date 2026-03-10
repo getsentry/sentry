@@ -1,5 +1,6 @@
-import type {ReactNode} from 'react';
 import {duration} from 'moment-timezone';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayConsoleEventFixture,
@@ -8,34 +9,15 @@ import {
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-const {organization, project} = initializeOrg();
-
-ProjectsStore.loadInitialData([project]);
-
-const mockInvalidateQueries = jest.fn();
-
-function wrapper({children}: {children?: ReactNode}) {
-  const queryClient = makeTestQueryClient();
-
-  queryClient.invalidateQueries = mockInvalidateQueries;
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <OrganizationContext value={organization}>{children}</OrganizationContext>
-    </QueryClientProvider>
-  );
-}
+const organization = OrganizationFixture();
+const project = ProjectFixture();
 
 function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
   const HYDRATED_REPLAY = ReplayRecordFixture({
@@ -57,8 +39,8 @@ function getMockReplayRecord(replayRecord?: Partial<HydratedReplayRecord>) {
 
 describe('useReplayData', () => {
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
-    mockInvalidateQueries.mockClear();
   });
 
   it('should hydrate the replayRecord', async () => {
@@ -89,8 +71,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -165,8 +146,7 @@ describe('useReplayData', () => {
       match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -237,8 +217,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -371,8 +350,7 @@ describe('useReplayData', () => {
       ],
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -450,8 +428,7 @@ describe('useReplayData', () => {
       body: {data: mockErrorResponse},
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -529,12 +506,12 @@ describe('useReplayData', () => {
 
     const replayId = mockReplayResponse.id;
 
-    MockApiClient.addMockResponse({
+    const mockedReplayCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayId}/`,
       body: {data: mockReplayResponse},
     });
 
-    MockApiClient.addMockResponse({
+    const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {
         data: [],
@@ -547,8 +524,7 @@ describe('useReplayData', () => {
       },
     });
 
-    const {result} = renderHook(useReplayData, {
-      wrapper,
+    const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId,
         orgSlug: organization.slug,
@@ -560,20 +536,20 @@ describe('useReplayData', () => {
       expect(result.current).toBeTruthy();
     });
 
+    await waitFor(() => {
+      expect(mockedReplayCall).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
+    });
+
     result.current.onRetry();
 
     await waitFor(() => {
-      expect(mockInvalidateQueries).toHaveBeenCalledWith({
-        queryKey: [`/organizations/${organization.slug}/replays/${replayId}/`],
-      });
+      expect(mockedReplayCall).toHaveBeenCalledTimes(2);
     });
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: [
-        `/projects/${organization.slug}/${project.slug}/replays/${replayId}/recording-segments/`,
-      ],
-    });
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: [`/organizations/${organization.slug}/replays-events-meta/`],
+    await waitFor(() => {
+      expect(mockedErrorEventsMetaCall).toHaveBeenCalledTimes(2);
     });
   });
 });

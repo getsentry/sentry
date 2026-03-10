@@ -1,3 +1,18 @@
+FROM scratch AS odiff-amd64
+ADD --chmod=755 \
+    --checksum=sha256:2c17e6bcf92a58e6668f19f17f4a27fa4b1d70840994f31bd837b55bb6b297d7 \
+    https://github.com/dmtrKovalenko/odiff/releases/download/v4.3.2/odiff-linux-x64 \
+    /odiff
+
+FROM scratch AS odiff-arm64
+ADD --chmod=755 \
+    --checksum=sha256:d65f748c463a6aa78fa7bcdd31acd797eaed5160867e7769a3b291cfea42c9a0 \
+    https://github.com/dmtrKovalenko/odiff/releases/download/v4.3.2/odiff-linux-arm64 \
+    /odiff
+
+ARG TARGETARCH
+FROM odiff-${TARGETARCH} AS odiff
+
 FROM python:3.13.1-slim-bookworm
 
 LABEL maintainer="oss@sentry.io"
@@ -19,6 +34,8 @@ RUN : \
         tini \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=odiff /odiff /usr/local/bin/odiff
 
 WORKDIR /usr/src/sentry
 
@@ -45,7 +62,6 @@ RUN set -x \
   && buildDeps=" \
   gcc \
   libpcre2-dev \
-  wget \
   zlib1g-dev \
   " \
   && apt-get update \

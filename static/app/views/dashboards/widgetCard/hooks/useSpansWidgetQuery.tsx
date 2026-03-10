@@ -67,6 +67,7 @@ export function useSpansSeriesQuery(
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -89,7 +90,8 @@ export function useSpansSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.SPANS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       // Add sampling mode if provided
@@ -133,7 +135,7 @@ export function useSpansSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   // Create stable queryFn that uses queue from ref
   const createQueryFn = useCallback(
@@ -242,7 +244,7 @@ export function useSpansSeriesQuery(
     // Check if rawData is the same as before to prevent unnecessary rerenders
     // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -461,7 +463,7 @@ export function useSpansTableQuery(
     // Check if rawData is the same as before to prevent unnecessary rerenders
     // Compare each data object reference - if they're all the same, reuse previous array
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

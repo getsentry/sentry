@@ -140,12 +140,12 @@ export declare namespace TraceTree {
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
+    issue_type: number;
     level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    type: number;
     short_id?: string;
   };
 
@@ -365,7 +365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: RootNode = new RootNode(null, null, null);
 
-  vital_types: Set<'web' | 'mobile'> = new Set();
+  vital_types = new Set<'web' | 'mobile'>();
   vitals = new Map<BaseNode, TraceTree.CollectedVital[]>();
 
   profiled_events = new Set<BaseNode>();
@@ -529,7 +529,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       for (const occurrence of c.occurrences) {
-        traceNode.occurrences.add(occurrence);
+        traceNode.addOccurrence(occurrence);
       }
 
       if (c.value && 'measurements' in c.value) {
@@ -670,7 +670,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     for (const occurrence of additionalTraceNode.occurrences) {
-      baseTraceNode.occurrences.add(occurrence);
+      baseTraceNode.addOccurrence(occurrence);
     }
 
     for (const profiledEvent of tree.profiled_events) {
@@ -819,8 +819,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let end = head.space[0] + head.space[1];
 
       while (
-        tail &&
-        tail.children.length === 1 &&
+        tail?.children.length === 1 &&
         tail.children[0]!.canAutogroup &&
         // skip `op: default` spans as `default` is added to op-less spans:
         tail.children[0]!.op !== 'default' &&
@@ -1023,7 +1022,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
             if (node.children[j]!.occurrences.size > 0) {
               for (const occurrence of node.children[j]!.occurrences) {
-                autoGroupedNode.occurrences.add(occurrence);
+                autoGroupedNode.addOccurrence(occurrence);
               }
             }
 
@@ -1234,7 +1233,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start: BaseNode | null = node.parent;
+    let start = node.parent;
 
     if (start?.isRootNodeChild() && !node.isLastChild()) {
       node.connectors = [-TraceTree.Depth(node)];

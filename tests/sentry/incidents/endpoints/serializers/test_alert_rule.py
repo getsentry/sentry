@@ -19,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.models.rule import Rule
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import ExtrapolationMode, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
@@ -175,6 +176,15 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(environment=self.environment)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
+
+    def test_eap_user_misery_aggregate(self) -> None:
+        alert_rule = self.create_alert_rule(
+            aggregate="user_misery(span.duration,300)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
+        assert result["aggregate"] == "user_misery(span.duration,300)"
 
     def test_created_by(self) -> None:
         user = self.create_user("foo@example.com")

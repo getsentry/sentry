@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {
   CanvasPoolManager,
@@ -270,7 +269,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       {props.profileGroup.type === 'transaction' ? (
         <ProfileDetails
           transaction={
-            props.profileTransaction && props.profileTransaction.type === 'resolved'
+            props.profileTransaction?.type === 'resolved'
               ? props.profileTransaction.data
               : null
           }
@@ -304,7 +303,7 @@ const ResizableVerticalDrawer = styled('div')`
 
 const InvisibleHandler = styled('div')`
   opacity: 0;
-  width: ${space(1)};
+  width: ${p => p.theme.space.md};
   position: absolute;
   inset: 0;
   cursor: ew-resize;
@@ -319,7 +318,7 @@ const FrameDrawerLabel = styled('label')`
   margin-bottom: 0;
   height: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 // Linter produces a false positive for the grid layout. I did not manage to find out
@@ -353,7 +352,7 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translateY(29%);
 `;
@@ -361,7 +360,7 @@ const Separator = styled('li')`
 export const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
   background-color: ${props => props.theme.tokens.background.tertiary};
@@ -377,7 +376,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
-  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
+  margin-right: ${p => (p.margin === 'none' ? 0 : p.theme.space.md)};
 
   button {
     height: 100%;

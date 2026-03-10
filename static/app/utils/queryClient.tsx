@@ -26,7 +26,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-const QUERY_API_CLIENT = new Client();
+export const QUERY_API_CLIENT = new Client();
 
 export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
@@ -96,11 +96,7 @@ function isInfiniteQueryKey(
   return queryKey[0] === 'infinite';
 }
 
-export function parseQueryKey(queryKey: undefined | ApiQueryKey | InfiniteApiQueryKey) {
-  if (!queryKey) {
-    return {isInfinite: false, url: undefined, options: undefined};
-  }
-
+export function parseQueryKey(queryKey: ApiQueryKey | InfiniteApiQueryKey) {
   if (isInfiniteQueryKey(queryKey)) {
     return {
       isInfinite: true,

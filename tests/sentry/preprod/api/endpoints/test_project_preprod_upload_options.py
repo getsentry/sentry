@@ -25,8 +25,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert f"/api/0/organizations/{self.org.id}/objectstore/" in data["url"]
 
-        assert data["scopes"]["org"] == str(self.org.id)
-        assert data["scopes"]["project"] == str(self.project.id)
+        assert data["scopes"] == [("org", str(self.org.id)), ("project", str(self.project.id))]
 
         assert data["expirationPolicy"] == "ttl:396 days"
 

@@ -68,7 +68,7 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -99,8 +99,7 @@ export function SpanDescription({
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
-  const averageSpanDuration: number | undefined =
-    span['span.averageResults']?.['avg(span.duration)'];
+  const averageSpanDuration = span['span.averageResults']?.['avg(span.duration)'];
 
   const actions = showAction ? (
     <BodyContentWrapper
@@ -318,7 +317,7 @@ const ImageWrapper = styled('div')`
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.padding};
 `;
 
@@ -335,19 +334,19 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   word-break: break-word;
   line-height: 1.4;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   justify-content: center;
 `;
 
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;

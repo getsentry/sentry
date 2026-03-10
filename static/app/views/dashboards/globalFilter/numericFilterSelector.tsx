@@ -2,7 +2,11 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -330,28 +334,19 @@ function NumericFilterSelector({
       )}
       menuFooter={
         hasStagedChanges
-          ? ({closeOverlay}: any) => (
-              <FooterWrap>
-                <FooterInnerWrap>
-                  <Button priority="transparent" size="xs" onClick={closeOverlay}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={!filter.isValidValue}
-                    onClick={() => {
-                      onUpdateFilter({
-                        ...globalFilter,
-                        value: filter.buildFilterQuery(),
-                      });
-                      closeOverlay();
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              </FooterWrap>
+          ? () => (
+              <Flex gap="md" justify="end">
+                <MenuComponents.CancelButton />
+                <MenuComponents.ApplyButton
+                  disabled={!filter.isValidValue}
+                  onClick={() => {
+                    onUpdateFilter({
+                      ...globalFilter,
+                      value: filter.buildFilterQuery(),
+                    });
+                  }}
+                />
+              </Flex>
             )
           : null
       }
@@ -363,29 +358,6 @@ export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};
-`;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.xl};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  justify-self: end;
-  justify-items: end;
-
-  &:empty {
-    display: none;
-  }
 `;
 
 const StyledOperatorButton = styled(Button)`

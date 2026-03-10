@@ -17,7 +17,6 @@ import {TransactionSearchQueryBuilder} from 'sentry/components/performance/trans
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -110,7 +109,6 @@ function EAPSummaryContentInner({
 }: Props) {
   const theme = useTheme();
   const navigate = useNavigate();
-  const domainViewFilters = useDomainViewFilters();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
@@ -270,18 +268,10 @@ function EAPSummaryContentInner({
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
+            query={query}
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
-        <TagExplorer
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          projects={projects}
-          transactionName={transactionName}
-          currentFilter={spanOperationBreakdownFilter}
-          domainViewFilters={domainViewFilters}
-        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"
@@ -777,8 +767,8 @@ function MetricsWarningIcon() {
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, min-content);
@@ -807,7 +797,7 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EAPChartsWidgetContainer = styled('div')`
   height: 300px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default withProjects(SummaryContent);

@@ -24,7 +24,6 @@ import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,7 +35,11 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
+import AxisRangeSection from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -62,6 +65,7 @@ import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useI
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
 type WidgetBuilderSlideoutProps = {
@@ -74,7 +78,7 @@ type WidgetBuilderSlideoutProps = {
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
 
@@ -387,6 +391,7 @@ function WidgetBuilderSlideout({
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      {isTimeSeriesWidget && <AxisRangeSection />}
                     </Section>
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
@@ -429,7 +434,7 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {state.displayType === DisplayType.BIG_NUMBER && (
+                    {doesDisplayTypeSupportThresholds(state.displayType) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}

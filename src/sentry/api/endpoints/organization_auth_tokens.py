@@ -17,7 +17,7 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
@@ -26,6 +26,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.security.utils import capture_security_activity
+from sentry.types.region import get_locality_name_for_cell
 from sentry.users.models.user import User
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
@@ -73,7 +74,8 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         try:
             org_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
             token_str = generate_token(
-                organization.slug, generate_region_url(region_name=org_mapping.region_name)
+                organization.slug,
+                generate_locality_url(get_locality_name_for_cell(org_mapping.cell_name)),
             )
         except SystemUrlPrefixMissingException:
             return Response(

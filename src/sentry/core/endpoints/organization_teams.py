@@ -214,7 +214,17 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 except OrganizationMember.DoesNotExist:
                     pass
                 else:
-                    OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+                    omt = OrganizationMemberTeam.objects.create(
+                        team=team, organizationmember=member
+                    )
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=omt.id,
+                        target_user_id=member.user_id,
+                        event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+                        data={"email": member.get_email(), "team_slug": team.slug},
+                    )
 
             self.create_audit_entry(
                 request=request,

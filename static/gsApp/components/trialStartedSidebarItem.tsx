@@ -1,8 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
-import type {Theme} from '@emotion/react';
-import {withTheme} from '@emotion/react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -11,9 +8,7 @@ import type {Client} from 'sentry/api';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import testableTransition from 'sentry/utils/testableTransition';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import withApi from 'sentry/utils/withApi';
 
@@ -29,17 +24,10 @@ type Props = {
   children: React.ReactNode;
   organization: Organization;
   subscription: Subscription;
-  theme: Theme;
   className?: string;
 };
 
-function TrialStartedSidebarItem({
-  className,
-  theme,
-  subscription,
-  organization,
-  children,
-}: Props) {
+function TrialStartedSidebarItem({subscription, organization, children}: Props) {
   const [animationComplete, setAnimationComplete] = useState<boolean>(
     !!hasJustStartedPlanTrial(subscription)
   );
@@ -125,12 +113,13 @@ function TrialStartedSidebarItem({
     return hasJustStartedPlanTrial(subscription) || trialRequested;
   }, [subscription, trialRequested]);
 
-  const animate =
-    animationComplete && !trialRequestedOrStarted
-      ? 'dismissed'
-      : trialRequestedOrStarted
-        ? 'started'
-        : 'initial';
+  useEffect(() => {
+    if (trialRequestedOrStarted && !animationComplete) {
+      const timer = setTimeout(() => setAnimationComplete(true), 1850);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [trialRequestedOrStarted, animationComplete]);
 
   let wrappedChildren = children;
 
@@ -142,54 +131,8 @@ function TrialStartedSidebarItem({
     }
   }
 
-  return (
-    <Wrapper
-      className={className}
-      initial={animate}
-      onAnimationComplete={() => setTimeout(() => setAnimationComplete(true), 500)}
-      animate={animate}
-      variants={{
-        initial: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 0%, transparent 0%)`,
-        },
-        started: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 100%, transparent 0%)`,
-
-          // We flip the gradient direction so that on dismiss we can animate in the
-          // opposite direction.
-          transitionEnd: {
-            backgroundImage: `linear-gradient(45deg, ${theme.tokens.background.accent.vibrant} 100%, transparent 0%)`,
-          },
-
-          color: theme.colors.white,
-
-          transition: testableTransition({
-            duration: 0.35,
-            delay: 1,
-          }),
-        },
-        dismissed: {
-          backgroundImage: `linear-gradient(-45deg, ${theme.tokens.background.accent.vibrant} 0%, transparent 0%)`,
-        },
-      }}
-    >
-      {wrappedChildren}
-    </Wrapper>
-  );
+  return <Fragment>{wrappedChildren}</Fragment>;
 }
-
-const Wrapper = styled(motion.div)`
-  margin: 0 -20px 0 -5px;
-  padding: 0 20px 0 5px;
-  border-radius: 4px 0 0 4px;
-
-  /* This is needed to fix positioning of the hovercard, since it wraps a
-   * inline span, the span has no size and the position is incorrectly
-   * computed, causing the hovercard to appear far from the nav item */
-  span[aria-describedby] {
-    display: block;
-  }
-`;
 
 // We specifically set the z-index lower than the modal here, since it will be
 // common to start a trial with the upsell modal open.
@@ -201,7 +144,7 @@ const StyledHovercard = styled(Hovercard)`
 const HovercardBody = styled('div')`
   h1 {
     font-size: ${p => p.theme.font.size.lg};
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
   p {
     font-size: ${p => p.theme.font.size.md};
@@ -212,16 +155,16 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const HovercardHeader = styled('h1')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
-export default withApi(withTheme(TrialStartedSidebarItem));
+export default withApi(TrialStartedSidebarItem);

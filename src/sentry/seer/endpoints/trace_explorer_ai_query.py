@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,35 +15,35 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    TranslateQueryRequest,
+    make_translate_query_request,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def send_translate_request(
-    org_id: int, org_slug: str, project_ids: list[int], natural_language_query: str
+    org_id: int,
+    org_slug: str,
+    project_ids: list[int],
+    natural_language_query: str,
+    viewer_context: SeerViewerContext | None = None,
 ) -> Any:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
-    body = orjson.dumps(
-        {
-            "org_id": org_id,
-            "org_slug": org_slug,
-            "project_ids": project_ids,
-            "natural_language_query": natural_language_query,
-        }
+    body = TranslateQueryRequest(
+        org_id=org_id,
+        org_slug=org_slug,
+        project_ids=project_ids,
+        natural_language_query=natural_language_query,
     )
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/translate",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-    )
-    response.raise_for_status()
+    response = make_translate_query_request(body, timeout=30, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
@@ -112,8 +110,13 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         data = send_translate_request(
-            organization.id, organization.slug, project_ids, natural_language_query
+            organization.id,
+            organization.slug,
+            project_ids,
+            natural_language_query,
+            viewer_context=viewer_context,
         )
 
         responses = data.get("responses", [])[:limit]

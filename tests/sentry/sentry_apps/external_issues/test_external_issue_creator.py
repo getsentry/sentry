@@ -31,7 +31,7 @@ class TextExternalIssueCreator(TestCase):
             identifier="issue-1",
         ).run()
 
-        external_issue = PlatformExternalIssue.objects.all()[0]
+        external_issue = PlatformExternalIssue.objects.order_by("id")[0]
         assert result == external_issue
         assert external_issue.group_id == self.group.id
         assert external_issue.project_id == self.group.project.id
@@ -56,7 +56,7 @@ class TextExternalIssueCreator(TestCase):
             identifier="issue-2",
         ).run()
 
-        new_issue = PlatformExternalIssue.objects.all()[0]
+        new_issue = PlatformExternalIssue.objects.order_by("id")[0]
 
         # assert issue has been updated
         assert result1.id == new_issue.id

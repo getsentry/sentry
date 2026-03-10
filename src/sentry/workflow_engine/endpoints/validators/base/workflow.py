@@ -1,10 +1,9 @@
 from typing import Any, TypeVar
 
-from django.conf import settings
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry import audit_log, features
+from sentry import audit_log, features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
@@ -20,6 +19,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    log_alerting_quota_hit,
     remove_items_by_api_input,
     validate_json_schema,
 )
@@ -257,11 +257,17 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         assert isinstance(org, Organization)
         workflow_count = Workflow.objects.filter(organization_id=org.id).count()
         if features.has("organizations:more-workflows", org):
-            max_workflows = settings.MAX_MORE_WORKFLOWS_PER_ORG
+            max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:
-            max_workflows = settings.MAX_WORKFLOWS_PER_ORG
+            max_workflows = options.get("workflow_engine.max_workflows_per_org")
 
         if workflow_count >= max_workflows:
+            request = self.context["request"]
+            log_alerting_quota_hit(
+                object_type="workflow",
+                organization=org,
+                actor=request.user if request.user.is_authenticated else None,
+            )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
             )

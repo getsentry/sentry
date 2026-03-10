@@ -37,7 +37,6 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -192,18 +191,18 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    const options = getHiddenOptions(
+  const hiddenOptions = useMemo(() => {
+    const {hidden} = getHiddenOptions(
       items,
       shouldFilterResults ? filterValue : '',
       maxOptions
     );
 
     if (showAskSeerOption) {
-      options.add(ASK_SEER_ITEM_KEY);
+      hidden.add(ASK_SEER_ITEM_KEY);
     }
 
-    return options;
+    return hidden;
   }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
@@ -321,15 +320,17 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : (
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            overlayIsOpen={isOpen}
-            size="sm"
-          />
+          <ListBoxPane>
+            <ListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!!filterValue}
+              hiddenOptions={hiddenOptions}
+              overlayIsOpen={isOpen}
+              size="sm"
+            />
+          </ListBoxPane>
         )}
         {isLoading && anyItemsShowing ? (
           <Flex justify="center" align="center" height="32px" width="100%">
@@ -673,12 +674,20 @@ const ListBoxOverlay = styled(Overlay)`
   min-width: 200px;
   width: 600px;
   max-width: fit-content;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ListBoxPane = styled('div')`
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 `;
 
 const DescriptionOverlay = styled(Overlay)`
   min-width: 200px;
   max-width: 400px;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   line-height: 1.2;
 `;

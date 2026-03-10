@@ -2,8 +2,6 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import RRWebPlayer from '@sentry-internal/rrweb-player';
 
-import {space} from 'sentry/styles/space';
-
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
 interface Props {
@@ -158,7 +156,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .rr-controller {
     width: 100%;
     display: block;
-    padding: ${space(2)} 0;
+    padding: ${p => p.theme.space.xl} 0;
     background: ${p => p.theme.tokens.background.primary};
     border-radius: 0 0 3px 3px;
     border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -226,7 +224,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
-    gap: ${space(0.75)};
+    gap: ${p => p.theme.space.sm};
     align-items: center;
     justify-content: center;
     font-size: ${p => p.theme.font.size.sm};

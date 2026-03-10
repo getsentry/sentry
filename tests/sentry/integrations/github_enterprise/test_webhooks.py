@@ -22,7 +22,6 @@ from sentry.models.repository import Repository
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
 
 
 class WebhookTest(APITestCase):
@@ -723,7 +722,6 @@ class PullRequestEventWebhook(APITestCase):
         mock_preflight.assert_not_called()
 
 
-@with_feature("organizations:integrations-github-project-management")
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class IssuesEventWebhookTest(APITestCase):
     def setUp(self) -> None:

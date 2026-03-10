@@ -12,7 +12,6 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -47,6 +46,7 @@ type Props = {
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
+  query?: string;
   showViewSampledEventsButton?: boolean;
 };
 
@@ -55,6 +55,7 @@ export function SegmentSpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
+  query = '',
   showViewSampledEventsButton,
 }: Props) {
   const theme = useTheme();
@@ -68,7 +69,9 @@ export function SegmentSpansTable({
   const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch('');
+  const eventViewQuery = new MutableSearch(query);
+  eventViewQuery.addFilterValue('is_transaction', 'true');
+  eventViewQuery.addFilterValue('transaction', transactionName);
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -82,7 +85,6 @@ export function SegmentSpansTable({
   } = useSegmentSpansQuery({
     query: eventViewQuery.formatString(),
     sort: selected.sort,
-    transactionName,
     p95,
     limit: LIMIT,
   });
@@ -96,10 +98,10 @@ export function SegmentSpansTable({
     };
   });
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+  const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
     navigate({
       pathname,
-      query: {...query, [SEGMENT_SPANS_CURSOR]: _cursor},
+      query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -276,10 +278,10 @@ function CustomPagination({
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

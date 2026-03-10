@@ -27,18 +27,17 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
@@ -67,6 +66,7 @@ export default function ProfilingContent() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(
@@ -124,7 +124,7 @@ export default function ProfilingContent() {
         organization,
         tab: newTab,
       });
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -132,7 +132,7 @@ export default function ProfilingContent() {
         },
       });
     },
-    [dispatchDataState, location, organization]
+    [dispatchDataState, location, navigate, organization]
   );
 
   const maxPickableDays = useMaxPickableDays({
@@ -259,10 +259,11 @@ interface TabbedContentProps extends ProfilingTabProps {
 }
 
 function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -271,7 +272,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const fields = ALL_FIELDS;
@@ -422,8 +423,8 @@ const LayoutMain = styled(Layout.Main)`
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
-  margin-bottom: ${space(2)};
-  margin-top: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const LandingAggregateFlamegraphContainer = styled('div')`
@@ -446,23 +447,23 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: min-content auto;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WidgetsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
 `;
 
 const SearchbarContainer = styled('div')`
-  margin-top: ${space(3)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`
@@ -470,5 +471,5 @@ const StyledPagination = styled(Pagination)`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

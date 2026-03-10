@@ -85,17 +85,29 @@ def format_status_check_messages(
     parts = []
     if analyzed_count > 0 and not triggered_rules:
         parts.append(
-            ngettext("%(count)d app analyzed", "%(count)d apps analyzed", analyzed_count)
+            ngettext(
+                "%(count)d component analyzed",
+                "%(count)d components analyzed",
+                analyzed_count,
+            )
             % {"count": analyzed_count}
         )
     if processing_count > 0:
         parts.append(
-            ngettext("%(count)d app processing", "%(count)d apps processing", processing_count)
+            ngettext(
+                "%(count)d component processing",
+                "%(count)d components processing",
+                processing_count,
+            )
             % {"count": processing_count}
         )
     if errored_count > 0:
         parts.append(
-            ngettext("%(count)d app errored", "%(count)d apps errored", errored_count)
+            ngettext(
+                "%(count)d component errored",
+                "%(count)d components errored",
+                errored_count,
+            )
             % {"count": errored_count}
         )
 
@@ -201,7 +213,7 @@ def _format_artifact_summary(
         if metric_type_display:
             qualifiers.append(metric_type_display)
 
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
+        mobile_app_info = artifact.get_mobile_app_info()
         artifact_app_name = mobile_app_info.app_name if mobile_app_info else None
         app_name = (
             f"{artifact_app_name or '--'}{' (' + ', '.join(qualifiers) + ')' if qualifiers else ''}"
@@ -325,10 +337,10 @@ def _format_failed_checks_details(
     if not triggered_rules:
         return ""
 
-    # Group rules by app_id
-    rules_by_app: dict[str, list[TriggeredRule]] = {}
+    # Group rules by (app_id, build_configuration_name, platform)
+    rules_by_app: dict[tuple[str, str | None, str | None], list[TriggeredRule]] = {}
     for tr in triggered_rules:
-        app_key = tr.app_id or "Unknown"
+        app_key = (tr.app_id or "Unknown", tr.build_configuration_name, tr.platform)
         if app_key not in rules_by_app:
             rules_by_app[app_key] = []
         rules_by_app[app_key].append(tr)
@@ -341,10 +353,10 @@ def _format_failed_checks_details(
     ) % {"count": total_failed}
 
     details_content = []
-    for app_id, app_rules in rules_by_app.items():
-        platform = app_rules[0].platform if app_rules else None
+    for (app_id, config_name, platform), app_rules in rules_by_app.items():
         platform_text = f" ({platform})" if platform else ""
-        details_content.append(f"`{app_id}`{platform_text}")
+        config_text = f" | {config_name}" if config_name else ""
+        details_content.append(f"`{app_id}`{config_text}{platform_text}")
 
         for tr in app_rules:
             metric_display = _get_metric_display_name(tr.rule.metric)
@@ -456,15 +468,10 @@ def _get_size_metric_display_data(
 
 def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str:
     """Format version string from build_version and build_number."""
-    version_parts = []
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
-    build_version = mobile_app_info.build_version if mobile_app_info else None
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    if build_version:
-        version_parts.append(build_version)
-    if build_number:
-        version_parts.append(f"({build_number})")
-    return " ".join(version_parts) if version_parts else default
+    mobile_app_info = artifact.get_mobile_app_info()
+    if mobile_app_info is None:
+        return default
+    return mobile_app_info.format_version_string(default=default)
 
 
 def _get_size_metric_type_display_name(
@@ -478,6 +485,8 @@ def _get_size_metric_type_display_name(
             return "Watch"
         case PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE:
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return None
 
@@ -495,6 +504,8 @@ def _get_triggered_metric_type_display_name(
             if identifier:
                 return f"Dynamic Feature ({identifier})"
             return "Dynamic Feature"
+        case PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT:
+            return "App Clip"
         case _:
             return ""
 

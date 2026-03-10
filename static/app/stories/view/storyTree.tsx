@@ -7,7 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {fzf} from 'sentry/utils/search/fzf';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -113,6 +113,7 @@ type ComponentSubcategory =
   | 'typography'
   | 'layout'
   | 'buttons'
+  | 'controls'
   | 'forms'
   | 'navigation'
   | 'status'
@@ -129,12 +130,15 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   product: {label: 'Shared'},
 };
 
+interface SubcategoryConfig {
+  components: string[];
+  label: string;
+  subgroups?: Array<{components: string[]; label: string}>;
+}
+
 export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   ComponentSubcategory,
-  {
-    components: string[];
-    label: string;
-  }
+  SubcategoryConfig
 > = {
   layout: {
     label: 'Layout',
@@ -154,24 +158,31 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   buttons: {
     label: 'Buttons',
-    components: ['button', 'linkbutton', 'buttonbar'],
+    components: ['button', 'linkbutton'],
+  },
+  controls: {
+    label: 'Controls',
+    components: ['buttonbar', 'compactselect', 'composite', 'segmentedcontrol'],
   },
   forms: {
     label: 'Forms',
-    components: [
-      'input',
-      'inputgroup',
-      'numberinput',
-      'numberdraginput',
-      'checkbox',
-      'radio',
-      'switch',
-      'slider',
-      'select',
-      'multiselect',
-      'compactselect',
-      'composite',
-      'segmentedcontrol',
+    components: ['form', 'fields', 'autosavefield'],
+    subgroups: [
+      {
+        label: 'Primitives',
+        components: [
+          'input',
+          'inputgroup',
+          'numberinput',
+          'numberdraginput',
+          'checkbox',
+          'radio',
+          'switch',
+          'slider',
+          'select',
+          'multiselect',
+        ],
+      },
     ],
   },
   navigation: {
@@ -212,6 +223,7 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'layout',
   'typography',
   'buttons',
+  'controls',
   'forms',
   'navigation',
   'status',
@@ -281,10 +293,31 @@ export function useFlatStoryList(): StoryTreeNode[] {
             continue;
           }
 
+          const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
+          const allConfigured = [
+            ...config.components,
+            ...(config.subgroups?.flatMap(sg => sg.components) ?? []),
+          ];
+          const added = new Set<string>();
+
+          // Add configured components in config order
+          for (const componentName of allConfigured) {
+            const file = subcategoryFiles.find(
+              f => inferComponentName(f).toLowerCase() === componentName
+            );
+            if (file) {
+              const name = inferComponentName(file);
+              result.push(new StoryTreeNode(formatName(name), 'core', file));
+              added.add(file);
+            }
+          }
+
+          // Add remaining files not in config (sorted)
           for (const file of subcategoryFiles.sort()) {
-            const name = inferComponentName(file);
-            const node = new StoryTreeNode(formatName(name), 'core', file);
-            result.push(node);
+            if (!added.has(file)) {
+              const name = inferComponentName(file);
+              result.push(new StoryTreeNode(formatName(name), 'core', file));
+            }
           }
         }
       }
@@ -421,6 +454,9 @@ export function inferComponentSubcategory(componentName: string): ComponentSubca
     if (config.components.includes(componentName)) {
       return subcategory as ComponentSubcategory;
     }
+    if (config.subgroups?.some(subgroup => subgroup.components.includes(componentName))) {
+      return subcategory as ComponentSubcategory;
+    }
   }
   return 'shared';
 }
@@ -542,6 +578,7 @@ function sortTreeRecursively(node: StoryTreeNode) {
 /**
  * Builds a nested tree structure from component files grouped by subcategory.
  * Creates folder nodes for each subcategory (Typography, Buttons, Layout, etc.).
+ * Supports optional subgroups within a subcategory (e.g., "Primitives" inside "Forms").
  */
 function buildComponentTree(
   filesBySubcategory: Map<ComponentSubcategory, string[]>
@@ -555,19 +592,76 @@ function buildComponentTree(
       continue;
     }
 
-    // Create folder node for subcategory
-    const label = COMPONENT_SUBCATEGORY_CONFIG[subcategory].label;
-    if (files[0]) {
-      const folderNode = new StoryTreeNode(label, subcategory, files[0]);
+    const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
+    if (!files[0]) {
+      continue;
+    }
 
-      // Add component stories as children
-      for (const file of files.sort()) {
+    const folderNode = new StoryTreeNode(config.label, subcategory, files[0]);
+
+    // Collect subgroup component names for filtering
+    const subgroupComponents = new Set(
+      config.subgroups?.flatMap(sg => sg.components) ?? []
+    );
+
+    // Add top-level components in config order
+    for (const componentName of config.components) {
+      const file = files.find(f => inferComponentName(f).toLowerCase() === componentName);
+      if (file) {
         const name = inferComponentName(file);
+        folderNode.children[componentName] = new StoryTreeNode(
+          formatName(name),
+          'core',
+          file
+        );
+      }
+    }
+
+    // Add remaining top-level files not in config.components or subgroups (sorted)
+    for (const file of files.sort()) {
+      const name = inferComponentName(file);
+      const lowerName = name.toLowerCase();
+      if (
+        !config.components.includes(lowerName) &&
+        !subgroupComponents.has(lowerName) &&
+        !folderNode.children[name]
+      ) {
         folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
       }
-
-      roots.push(folderNode);
     }
+
+    // Add subgroup folder nodes
+    if (config.subgroups) {
+      for (const subgroup of config.subgroups) {
+        const subgroupFiles = files.filter(f =>
+          subgroup.components.includes(inferComponentName(f).toLowerCase())
+        );
+        if (subgroupFiles.length > 0 && subgroupFiles[0]) {
+          const subgroupNode = new StoryTreeNode(
+            subgroup.label,
+            subcategory,
+            subgroupFiles[0]
+          );
+          // Add subgroup components in config order (not alphabetically)
+          for (const componentName of subgroup.components) {
+            const file = subgroupFiles.find(
+              f => inferComponentName(f).toLowerCase() === componentName
+            );
+            if (file) {
+              const name = inferComponentName(file);
+              subgroupNode.children[componentName] = new StoryTreeNode(
+                formatName(name),
+                'core',
+                file
+              );
+            }
+          }
+          folderNode.children[`_subgroup_${subgroup.label}`] = subgroupNode;
+        }
+      }
+    }
+
+    roots.push(folderNode);
   }
 
   return roots;

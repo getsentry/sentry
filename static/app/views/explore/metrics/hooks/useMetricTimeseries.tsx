@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
   useProgressiveQuery,

@@ -4,7 +4,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
-const formatMetricValue = (metric: MetricValue, field?: string | undefined): string => {
+const formatMetricValue = (metric: MetricValue, field?: string): string => {
   if (metric.value === undefined || metric.value === null) {
     return '-';
   }
@@ -54,7 +54,7 @@ type GenericVitalItem<T extends 'spansMetrics' | 'metrics'> = {
   description: string;
   docs: React.ReactNode;
   field: SpanProperty;
-  getStatus: (value: MetricValue, field?: string | undefined) => VitalStatus;
+  getStatus: (value: MetricValue, field?: string) => VitalStatus;
   platformDocLinks: Record<string, string>;
   sdkDocLinks: Record<string, string>;
   setup: React.ReactNode | undefined;
@@ -139,7 +139,7 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
 
 export function getDefaultMetricPerformance(
   metric: MetricValue,
-  field?: string | undefined
+  field?: string
 ): VitalStatus {
   return {
     description: undefined,
