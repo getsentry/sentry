@@ -164,7 +164,7 @@ export function useMutateSelectedAgent({project}: {project: Project}) {
             Promise.all([
               updateProject({autofixAutomationTuning: tuning}),
               updateProjectSeerPreferences({
-                repositories: preference.repositories,
+                repositories: preference?.repositories ?? [],
                 automated_run_stopping_point: preference?.automated_run_stopping_point,
                 automation_handoff: undefined,
               }),
@@ -195,7 +195,7 @@ export function useMutateSelectedAgent({project}: {project: Project}) {
             return Promise.all([
               updateProject({autofixAutomationTuning: 'medium'}),
               updateProjectSeerPreferences({
-                repositories: preference.repositories,
+                repositories: preference?.repositories ?? [],
                 automated_run_stopping_point: preference?.automated_run_stopping_point,
                 automation_handoff: handoff,
               }),
@@ -227,7 +227,7 @@ export function useMutateCreatePr({project}: {project: Project}) {
         fetchPreferences()
           .then(preference =>
             updateProjectSeerPreferences({
-              repositories: preference.repositories,
+              repositories: preference?.repositories ?? [],
               automated_run_stopping_point: stoppingPoint,
               automation_handoff: preference?.automation_handoff,
             })
@@ -241,13 +241,13 @@ export function useMutateCreatePr({project}: {project: Project}) {
               handoff_point: 'root_cause' as const,
               target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
               integration_id: Number(autofixAgent.id),
-              ...preference.automation_handoff,
+              ...preference?.automation_handoff,
               auto_create_pr: value,
             };
             applyOptimisticUpdate({automationHandoff: updatedHandoff});
             return updateProjectSeerPreferences({
-              repositories: preference.repositories,
-              automated_run_stopping_point: preference.automated_run_stopping_point,
+              repositories: preference?.repositories ?? [],
+              automated_run_stopping_point: preference?.automated_run_stopping_point,
               automation_handoff: updatedHandoff,
             });
           })
