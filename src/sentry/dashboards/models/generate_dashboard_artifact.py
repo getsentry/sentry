@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
 
@@ -33,8 +33,9 @@ class GeneratedWidgetQuery(BaseModel):
     fields: list[str] = []
     orderby: str = ""
 
+    # Fields must include all columns and aggregates
     @validator("fields", always=True)
-    def populate_fields(cls, v: list[str], values: dict) -> list[str]:
+    def populate_fields(cls, v: list[str], values: dict[str, Any]) -> list[str]:
         return [*values.get("columns", []), *values.get("aggregates", [])]
 
 
@@ -70,7 +71,7 @@ class GeneratedWidgetLayout(BaseModel):
         return max(1, v)
 
     @validator("w", always=True)
-    def fit_within_grid(cls, w: int, values: dict) -> int:
+    def fit_within_grid(cls, w: int, values: dict[str, Any]) -> int:
         x = values.get("x", 0)
         if x + w > GRID_WIDTH:
             return GRID_WIDTH - x

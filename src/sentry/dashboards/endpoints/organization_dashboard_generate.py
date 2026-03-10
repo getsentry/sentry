@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -23,7 +24,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-class DashboardGenerateSerializer(serializers.Serializer):
+class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
     prompt = serializers.CharField(
         required=True,
         allow_blank=False,
