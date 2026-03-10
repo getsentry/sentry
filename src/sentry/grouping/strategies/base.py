@@ -163,38 +163,6 @@ class GroupingContext:
         """
         return _get_grouping_components_for_interface(interface, event, self, **kwargs)
 
-    @overload
-    def get_single_grouping_component(
-        self, interface: Frame, *, event: Event, **kwargs: Any
-    ) -> FrameGroupingComponent: ...
-
-    @overload
-    def get_single_grouping_component(
-        self, interface: SingleException, *, event: Event, **kwargs: Any
-    ) -> ExceptionGroupingComponent: ...
-
-    @overload
-    def get_single_grouping_component(
-        self, interface: Stacktrace, *, event: Event, **kwargs: Any
-    ) -> StacktraceGroupingComponent: ...
-
-    def get_single_grouping_component(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
-        """
-        Invoke the delegate grouping strategy corresponding to the given interface, returning the
-        grouping component for the variant set on the context.
-        """
-        variant_name = self["variant_name"]
-        assert variant_name is not None
-
-        components_by_variant = _get_grouping_components_for_interface(
-            interface, event, self, **kwargs
-        )
-
-        assert len(components_by_variant) == 1
-        return components_by_variant[variant_name]
-
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
     """Looks up a strategy by id."""
@@ -512,3 +480,39 @@ def _get_grouping_components_for_interface(
     assert isinstance(components_by_variant, dict)
 
     return components_by_variant
+
+
+@overload
+def get_single_grouping_component(
+    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
+) -> FrameGroupingComponent: ...
+
+
+@overload
+def get_single_grouping_component(
+    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
+) -> ExceptionGroupingComponent: ...
+
+
+@overload
+def get_single_grouping_component(
+    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
+) -> StacktraceGroupingComponent: ...
+
+
+def get_single_grouping_component(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
+    """
+    Invoke the delegate grouping strategy corresponding to the given interface, returning the
+    grouping component for the variant set on the context.
+    """
+    variant_name = context["variant_name"]
+    assert variant_name is not None
+
+    components_by_variant = _get_grouping_components_for_interface(
+        interface, event, context, **kwargs
+    )
+
+    assert len(components_by_variant) == 1
+    return components_by_variant[variant_name]

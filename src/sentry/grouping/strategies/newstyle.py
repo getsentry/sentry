@@ -28,6 +28,7 @@ from sentry.grouping.strategies.base import (
     ComponentsByVariant,
     GroupingContext,
     call_with_variants,
+    get_single_grouping_component,
     strategy,
 )
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
@@ -490,7 +491,7 @@ def _single_stacktrace_variant(
     raw_frames = []
 
     for frame in frames:
-        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = get_single_grouping_component(frame, event, context, **kwargs)
         if _is_recursive_frame(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
 
