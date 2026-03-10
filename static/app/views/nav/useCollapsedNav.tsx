@@ -5,7 +5,7 @@ import {
   NAV_SIDEBAR_COLLAPSE_DELAY_MS,
   NAV_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close
@@ -32,7 +32,7 @@ export function useCollapsedNav() {
     setActivePrimaryNavGroup,
     collapsedNavIsOpen,
     setCollapsedNavIsOpen,
-  } = useNavContext();
+  } = useNavigationContext();
 
   const isHoveredRef = useRef(false);
 

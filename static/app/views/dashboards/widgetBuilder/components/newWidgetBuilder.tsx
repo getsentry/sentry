@@ -44,7 +44,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -86,7 +86,7 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navParentRef} = useNavContext();
+  const {navParentRef} = useNavigationContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
 

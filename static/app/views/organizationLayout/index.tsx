@@ -1,7 +1,6 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
-import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -19,8 +18,8 @@ import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
-import Nav from 'sentry/views/nav';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {Navigation} from 'sentry/views/nav';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
@@ -68,9 +67,14 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   return (
-    <NavContextProvider>
-      <AppContainer>
-        <Nav />
+    <NavigationContextProvider>
+      <Flex
+        flex="1"
+        minWidth="0"
+        direction={{sm: 'column', md: 'row'}}
+        position="relative"
+      >
+        <Navigation />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
         <Stack flex="1" minWidth="0" id="main">
           <DemoHeader />
@@ -82,9 +86,9 @@ function AppLayout({organization}: LayoutProps) {
           </AppBodyContent>
           <Footer />
         </Stack>
-      </AppContainer>
+      </Flex>
       {organization ? <AppDrawers /> : null}
-    </NavContextProvider>
+    </NavigationContextProvider>
   );
 }
 
@@ -99,15 +103,15 @@ function GlobalAnalytics() {
   return null;
 }
 
-const AppContainer = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
+// const AppContainer = styled('div')`
+//   position: relative;
+//   display: flex;
+//   flex-direction: column;
+//   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
+//   @media (min-width: ${p => p.theme.breakpoints.md}) {
+//     flex-direction: row;
+//   }
+// `;
 
 export default OrganizationLayout;

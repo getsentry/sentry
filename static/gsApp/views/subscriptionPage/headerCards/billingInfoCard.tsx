@@ -6,7 +6,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -56,7 +56,7 @@ function BillingInfoCard({
 }
 
 function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const isMobile = layout === NavLayout.MOBILE;
   const {data: billingDetails, isLoading} = useBillingDetails();
 

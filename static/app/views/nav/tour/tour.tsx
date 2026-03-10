@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
@@ -22,7 +30,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavContext} from 'sentry/views/nav/context';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
@@ -91,7 +98,7 @@ export function useStackedNavigationTour(): TourContextType<StackedNavigationTou
   return tourContext;
 }
 
-export function NavTourElement({
+export function NavigationTourElement({
   children,
   ...props
 }: Omit<TourElementProps<StackedNavigationTour>, 'tourContext'>) {
@@ -119,11 +126,11 @@ function useStackedNavigationTourCompleted() {
 }
 
 export function NavigationTourProvider({children}: {children: React.ReactNode}) {
+  const {setShowTourReminder} = useNavigationTourContext();
   const organization = useOrganization();
   const isStackedNavigationTourCompleted = useStackedNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
-  const {setShowTourReminder} = useNavContext();
   const location = useLocation();
   const activeGroup = useActiveNavGroup();
 
@@ -157,7 +164,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           if (activeGroup !== PrimaryNavGroup.ISSUES) {
             const target = normalizeUrl({
               pathname: `/${prefix}/issues/`,
-              query: {referrer: NAV_REFERRER},
+              query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});
           }
@@ -166,7 +173,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           if (activeGroup !== PrimaryNavGroup.EXPLORE) {
             const target = normalizeUrl({
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
-              query: {referrer: NAV_REFERRER},
+              query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});
           }
@@ -175,7 +182,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           if (activeGroup !== PrimaryNavGroup.DASHBOARDS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/dashboards/`,
-              query: {referrer: NAV_REFERRER},
+              query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});
           }
@@ -184,7 +191,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/insights/frontend/`,
-              query: {referrer: NAV_REFERRER},
+              query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});
           }
@@ -193,7 +200,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
             const target = normalizeUrl({
               pathname: `/settings/${organization.slug}/`,
-              query: {referrer: NAV_REFERRER},
+              query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});
           }
@@ -223,8 +230,32 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   );
 }
 
+const NavigationTourContext = createContext<{
+  setShowTourReminder: (value: boolean) => void;
+  showTourReminder: boolean;
+}>({
+  showTourReminder: false,
+  setShowTourReminder: () => {},
+});
+
+export function useNavigationTourContext(): {
+  setShowTourReminder: (value: boolean) => void;
+  showTourReminder: boolean;
+} {
+  return useContext(NavigationTourContext);
+}
+
+export function NavigationTourContextProvider({children}: {children: React.ReactNode}) {
+  const [showTourReminder, setShowTourReminder] = useState(false);
+  return (
+    <NavigationTourContext.Provider value={{showTourReminder, setShowTourReminder}}>
+      {children}
+    </NavigationTourContext.Provider>
+  );
+}
+
 export function StackedNavigationTourReminder({children}: {children: React.ReactNode}) {
-  const {showTourReminder, setShowTourReminder} = useNavContext();
+  const {showTourReminder, setShowTourReminder} = useNavigationTourContext();
 
   if (!showTourReminder) {
     return children;
@@ -254,7 +285,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 }
 
 // Displays the introductory tour modal when a user is entering the experience for the first time.
-export function useTourModal() {
+export function useNavigationTourModal() {
   const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
@@ -328,9 +359,9 @@ export function useTourModal() {
   ]);
 }
 
-const NAV_REFERRER = 'nav-tour';
+const NAVIGATION_TOUR_REFERRER = 'navigation-tour';
 
 export function useIsNavTourActive() {
   const location = useLocation();
-  return location.query.referrer === NAV_REFERRER;
+  return location.query.referrer === NAVIGATION_TOUR_REFERRER;
 }

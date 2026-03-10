@@ -15,7 +15,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
@@ -27,7 +27,7 @@ export function UserDropdown() {
   const api = useApi();
   const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const isMobile = layout === NavLayout.MOBILE;
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();

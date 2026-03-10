@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {useMouseMovement} from 'sentry/views/nav/primary/useMouseMovement';
 import {useWindowHeight} from 'sentry/views/nav/primary/useWindowHeight';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -25,13 +25,14 @@ export function useActivateNavGroupOnHover({
 }: {
   ref: React.RefObject<HTMLElement | null>;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const mouseAccelerationRef = useMouseMovement({
     ref,
     disabled: layout !== NavLayout.SIDEBAR,
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
+  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} =
+    useNavigationContext();
   const windowHeight = useWindowHeight();
 
   return function makeNavItemProps(group: PrimaryNavGroup) {

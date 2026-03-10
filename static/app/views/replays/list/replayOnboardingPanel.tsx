@@ -19,7 +19,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
@@ -47,7 +47,7 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {isCollapsed} = useNavContext();
+  const {isCollapsed} = useNavigationContext();
 
   const supportedPlatforms = replayPlatforms;
 

@@ -2,9 +2,11 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import MobileTopbar from 'sentry/views/nav/mobileTopbar';
 import {Sidebar} from 'sentry/views/nav/sidebar';
 import {
@@ -16,9 +18,9 @@ import {useCommandPalette} from 'sentry/views/nav/useCommandPalette';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 import {useResetActiveNavGroup} from 'sentry/views/nav/useResetActiveNavGroup';
 
-function NavContent() {
+export function UserAndOrganizationNavigation() {
   useCommandPalette();
-  const {layout, navParentRef} = useNavContext();
+  const {layout, navParentRef} = useNavigationContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavGroup();
@@ -43,20 +45,26 @@ function NavContent() {
   );
 }
 
-function Nav() {
+export function UserOnlyNavigation() {
+  return (
+    <NoOrganizationSidebar data-test-id="no-organization-sidebar">
+      <Flex direction="column" gap="md" justify="between">
+        <UserDropdown />
+      </Flex>
+    </NoOrganizationSidebar>
+  );
+}
+
+export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
-    return (
-      <NoOrganizationSidebar data-test-id="no-organization-sidebar">
-        <UserDropdown />
-      </NoOrganizationSidebar>
-    );
+    return <UserOnlyNavigation />;
   }
 
   return (
     <NavigationTourProvider>
-      <NavContent />
+      <UserAndOrganizationNavigation />
     </NavigationTourProvider>
   );
 }
@@ -92,5 +100,3 @@ const NoOrganizationSidebar = styled('div')`
   align-items: center;
   flex-direction: column;
 `;
-
-export default Nav;

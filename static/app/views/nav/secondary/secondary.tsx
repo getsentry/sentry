@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/nav/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
@@ -58,7 +58,7 @@ export function SecondaryNav({children, className}: SecondaryNavProps) {
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
-  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+  const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -86,7 +86,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
 };
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   return <Body layout={layout}>{children}</Body>;
 };
@@ -104,7 +104,7 @@ function SectionTitle({
   title: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   if (canCollapse) {
     return (
@@ -164,7 +164,7 @@ SecondaryNav.Section = function SecondaryNavSection({
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
@@ -208,7 +208,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   const location = useLocation();
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const {reset: closeCollapsedNavHovercard} = useHovercardContext();
 
   return (
@@ -245,7 +245,7 @@ SecondaryNav.Item = function SecondaryNavItem({
 };
 
 SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   return <Footer layout={layout}>{children}</Footer>;
 };

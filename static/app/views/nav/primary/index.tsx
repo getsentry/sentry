@@ -20,7 +20,7 @@ import {
 } from 'sentry/icons';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
   SidebarLink,
@@ -31,7 +31,7 @@ import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
 import {useActivateNavGroupOnHover} from 'sentry/views/nav/primary/useActivateNavGroupOnHover';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew/whatsNew';
-import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
+import {NavigationTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
@@ -42,7 +42,7 @@ function SidebarBody({
   children: React.ReactNode;
   ref: React.RefObject<HTMLUListElement | null>;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   return (
     <SidebarList
       isMobile={layout === NavLayout.MOBILE}
@@ -55,7 +55,7 @@ function SidebarBody({
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const isMobile = layout === NavLayout.MOBILE;
 
   if (!children) {
@@ -96,7 +96,11 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody ref={ref}>
-        <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
+        <NavigationTourElement
+          id={StackedNavigationTour.ISSUES}
+          title={null}
+          description={null}
+        >
           {tourProps => (
             <SidebarLink
               to={`/${prefix}/issues/`}
@@ -107,9 +111,9 @@ export function PrimaryNavigationItems() {
               <IconIssues />
             </SidebarLink>
           )}
-        </NavTourElement>
+        </NavigationTourElement>
 
-        <NavTourElement
+        <NavigationTourElement
           id={StackedNavigationTour.EXPLORE}
           title={null}
           description={null}
@@ -125,14 +129,14 @@ export function PrimaryNavigationItems() {
               <IconCompass />
             </SidebarLink>
           )}
-        </NavTourElement>
+        </NavigationTourElement>
 
         <Feature
           features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
           hookName="feature-disabled:dashboards-sidebar-item"
           requireAll={false}
         >
-          <NavTourElement
+          <NavigationTourElement
             id={StackedNavigationTour.DASHBOARDS}
             title={null}
             description={null}
@@ -148,11 +152,11 @@ export function PrimaryNavigationItems() {
                 <IconDashboard />
               </SidebarLink>
             )}
-          </NavTourElement>
+          </NavigationTourElement>
         </Feature>
 
         <Feature features={['performance-view']}>
-          <NavTourElement
+          <NavigationTourElement
             id={StackedNavigationTour.INSIGHTS}
             title={null}
             description={null}
@@ -168,7 +172,7 @@ export function PrimaryNavigationItems() {
                 <IconGraph type="area" />
               </SidebarLink>
             )}
-          </NavTourElement>
+          </NavigationTourElement>
         </Feature>
 
         {showPreventNav() ? (
@@ -202,7 +206,7 @@ export function PrimaryNavigationItems() {
           </Container>
         </Feature>
 
-        <NavTourElement
+        <NavigationTourElement
           id={StackedNavigationTour.SETTINGS}
           title={null}
           description={null}
@@ -218,7 +222,7 @@ export function PrimaryNavigationItems() {
               <IconSettings />
             </SidebarLink>
           )}
-        </NavTourElement>
+        </NavigationTourElement>
       </SidebarBody>
 
       <Stack gap="md" marginTop="auto" paddingBottom="md">
