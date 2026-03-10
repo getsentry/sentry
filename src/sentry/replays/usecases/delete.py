@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 from typing import TypedDict
 
-from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -208,7 +207,7 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
     try:
         response = make_replay_delete_request(
             seer_request,
-            timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+            timeout=5,
             retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
             viewer_context=viewer_context,
         )
