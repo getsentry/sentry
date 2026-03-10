@@ -119,47 +119,42 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in ids
         assert str(broadcast2.id) in ids
 
-    def test_organization_limit_backfills_when_below_minimum(self) -> None:
+    def test_organization_limit_slices_results(self) -> None:
         for i in range(5):
             Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
 
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
 
-        # Mark all as seen so status=unseen returns 0, then limit=3 should backfill
-        for broadcast in Broadcast.objects.filter(is_active=True):
-            BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
-
-        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        response = self.client.get(url, {"limit": "3"})
         assert response.status_code == 200
         assert len(response.data) == 3
 
-    def test_organization_limit_does_not_exceed_available_broadcasts(self) -> None:
-        Broadcast.objects.create(message="only one", is_active=True)
+    def test_organization_limit_respects_status_filter(self) -> None:
+        for i in range(5):
+            broadcast = Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
+            if i < 2:
+                BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
 
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
 
-        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        # 3 unseen broadcasts exist; limit=2 should return only 2 of them
+        response = self.client.get(url, {"status": "unseen", "limit": "2"})
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data) == 2
 
-    def test_organization_limit_backfill_excludes_inactive_broadcasts(self) -> None:
-        Broadcast.objects.create(message="active", is_active=True)
-        Broadcast.objects.create(message="inactive 1", is_active=False)
-        Broadcast.objects.create(message="inactive 2", is_active=False)
+    def test_organization_limit_without_params_is_backwards_compatible(self) -> None:
+        for i in range(5):
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
 
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
 
-        # Mark active as seen so unseen returns 0, limit=3 should only backfill active
-        for broadcast in Broadcast.objects.filter(is_active=True):
-            BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
-
-        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        # No params — returns all results, same as before
+        response = self.client.get(url)
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["message"] == "active"
+        assert len(response.data) == 5
 
 
 @control_silo_test
