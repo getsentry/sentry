@@ -475,8 +475,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0(date-fns@2.17.0)(react@19.2.3)
       react-docgen-typescript:
-        specifier: ^2.2.2
-        version: 2.2.2(typescript@5.9.3)
+        specifier: 2.4.0
+        version: 2.4.0(typescript@5.9.3)
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
@@ -7890,8 +7890,8 @@ packages:
       date-fns: 2.0.0-alpha.7 || >=2.0.0
       react: ^0.14 || ^15.0.0-rc || >=15.0
 
-  react-docgen-typescript@2.2.2:
-    resolution: {integrity: sha512-tvg2ZtOpOi6QDwsb3GZhOjDkkX0h8Z2gipvTg6OVMUyoYoURhEiRNePT8NZItTVCDh39JJHnLdfCOkzoLbFnTg==}
+  react-docgen-typescript@2.4.0:
+    resolution: {integrity: sha512-ZtAp5XTO5HRzQctjPU0ybY0RRCQO19X/8fxn3w7y2VVTUbGHDKULPTL4ky3vB05euSgG5NpALhEhDPvQ56wvXg==}
     peerDependencies:
       typescript: '>= 4.3.x'
 
@@ -18331,7 +18331,7 @@ snapshots:
       react-list: 0.8.16(react@19.2.3)
       shallow-equal: 1.2.1
 
-  react-docgen-typescript@2.2.2(typescript@5.9.3):
+  react-docgen-typescript@2.4.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
 
