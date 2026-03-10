@@ -58,14 +58,34 @@ def timeout_alarm(
     To prevent tasks from consuming a worker forever, we set a timeout
     alarm that will interrupt tasks that run longer than
     their processing_deadline.
+
+    When nested, the inner timeout must be strictly less than the outer alarm's
+    remaining time. This ensures both handlers fire sequentially with correct
+    semantics: the inner fires first, then the outer is restored and can fire
+    later if execution continues. The outer alarm's remaining time is restored
+    on exit, adjusted for elapsed time.
     """
-    original = signal.signal(signal.SIGALRM, handler)
+    original_handler = signal.signal(signal.SIGALRM, handler)
+    previous_remaining = signal.alarm(seconds)
+
+    if 0 < previous_remaining <= seconds:
+        # Undo: restore original outer alarm and handler before raising
+        signal.alarm(previous_remaining)
+        signal.signal(signal.SIGALRM, original_handler)
+        raise ValueError(
+            f"Inner timeout ({seconds}s) must be less than outer alarm remaining ({previous_remaining}s)"
+        )
+    start = time.monotonic()
     try:
-        signal.alarm(seconds)
         yield
     finally:
+        elapsed = int(time.monotonic() - start)
         signal.alarm(0)
-        signal.signal(signal.SIGALRM, original)
+        signal.signal(signal.SIGALRM, original_handler)
+
+        if previous_remaining > 0:
+            # Restore original outer alarm adjusted for elapsed time.
+            signal.alarm(previous_remaining - elapsed)
 
 
 def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:
