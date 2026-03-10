@@ -6,18 +6,11 @@ import path from 'node:path';
 import {createElement, type ReactElement} from 'react';
 import {renderToString} from 'react-dom/server';
 import createCache from '@emotion/cache';
-import {CacheProvider, ThemeProvider} from '@emotion/react';
+import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
 import {chromium, type Browser} from 'playwright';
 
 import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
-
-// eslint-disable-next-line no-restricted-imports -- SSR rendering needs direct theme access
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-export interface SnapshotOptions {
-  theme?: 'light' | 'dark';
-}
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
@@ -45,20 +38,12 @@ function getFontFaceCSS(): string {
   `;
 }
 
-function renderToHTML(element: ReactElement, themeName: 'light' | 'dark'): string {
+function renderToHTML(element: ReactElement): string {
   const cache = createCache({key: 'snap'});
   const {extractCriticalToChunks, constructStyleTagsFromChunks} =
     createEmotionServer(cache);
 
-  const theme = themeName === 'dark' ? darkTheme : lightTheme;
-
-  const wrapped = createElement(
-    CacheProvider,
-    {value: cache},
-    // @ts-expect-error -- ThemeProvider types require children in props, but createElement accepts children as the third arg
-    createElement(ThemeProvider, {theme}, element)
-  );
-
+  const wrapped = createElement(CacheProvider, {value: cache}, element);
   const html = renderToString(wrapped);
   const chunks = extractCriticalToChunks(html);
   const styleTags = constructStyleTagsFromChunks(chunks);
@@ -115,12 +100,10 @@ export async function closeBrowser(): Promise<void> {
 export async function takeSnapshot(
   name: string,
   renderFn: () => ReactElement,
-  options: SnapshotOptions,
   testFilePath: string
 ): Promise<void> {
-  const themeName = options.theme ?? 'light';
   const element = renderFn();
-  const fullHTML = renderToHTML(element, themeName);
+  const fullHTML = renderToHTML(element);
 
   const browser = await getBrowser();
   const context = await browser.newContext({
@@ -140,7 +123,7 @@ export async function takeSnapshot(
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
     const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '-');
-    const coreFilename = `${sanitizedName}-${themeName}`;
+    const coreFilename = `${sanitizedName}`;
     const imageFilename = `${coreFilename}.png`;
 
     const outputDir = path.join(getOutputDir(), dirOfTestFile);
@@ -150,8 +133,6 @@ export async function takeSnapshot(
 
     const metadata: SnapshotImageMetadata = {
       display_name: name,
-      // Dump additional options as metadata
-      ...options,
     };
 
     await Promise.all([

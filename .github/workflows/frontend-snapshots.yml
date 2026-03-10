@@ -80,7 +80,6 @@ jobs:
            snapshots \
            .artifacts/snapshots \
            --app-id sentry-frontend
-           --project sentry-frontend \
            --head-sha ${{ github.event.pull_request.head.sha }} \
            --base-sha ${{ github.event.pull_request.base.sha }} \
            --vcs-provider github \
@@ -88,11 +87,4 @@ jobs:
            --base-repo-name ${{ github.repository }} \
            --head-ref ${{ github.head_ref }} \
            --base-ref ${{ github.base_ref }} \
-           --pr-number ${{ github.event.number }} \
-
-      - name: Upload snapshot artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
-        if: ${{ !cancelled() }}
-        with:
-          name: snapshots
-          path: .artifacts/snapshots/
+           --pr-number ${{ github.event.number }}

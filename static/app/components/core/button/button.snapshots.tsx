@@ -1,37 +1,28 @@
-import {Button} from '@sentry/scraps/button';
+import {ThemeProvider} from '@emotion/react';
 
-// Buttons need a bit of padding as rootElement.screenshot() clips to the element's CSS border-box.
-// For buttons, box-shadows/outlines/focus rings extending outside #root get cut off.
-function Wrapper({children}: {children: React.ReactNode}) {
-  return <div style={{padding: 8}}>{children}</div>;
-}
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
+// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 describe('Button', () => {
-  it.snapshot('Default', () => (
-    <Wrapper>
-      <Button>Default</Button>
-    </Wrapper>
-  ));
-
-  it.snapshot('Primary', () => (
-    <Wrapper>
-      <Button priority="primary">Primary</Button>
-    </Wrapper>
-  ));
-
-  it.snapshot(
-    'Primary (dark)',
-    () => (
-      <Wrapper>
-        <Button priority="primary">Primary</Button>
-      </Wrapper>
-    ),
-    {theme: 'dark'}
-  );
-
-  it.snapshot('Danger', () => (
-    <Wrapper>
-      <Button priority="danger">Danger</Button>
-    </Wrapper>
-  ));
+  describe.each([lightTheme, darkTheme])('theme: %s', theme => {
+    it.snapshot.each<ButtonProps['priority']>([
+      'default',
+      'primary',
+      'danger',
+      'warning',
+      'link',
+      'transparent',
+    ])('priority: %s', priority => (
+      <ThemeProvider theme={theme}>
+        {/* Buttons need a bit of padding as rootElement.screenshot() clips to the
+          element's CSS border-box. For buttons, box-shadows/outlines/focus rings
+          extending outside #root get cut off. */}
+        <div style={{padding: 8}}>
+          <Button priority={priority}>{priority}</Button>
+        </div>
+      </ThemeProvider>
+    ));
+  });
 });
