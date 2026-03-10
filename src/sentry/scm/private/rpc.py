@@ -17,7 +17,7 @@ def dispatch(action_name: str, raw_request_data: dict[str, Any]):
     Dispatch an RPC request.
 
     Action arguments are yolo'd for now. Better type-safety and error messages will be introduced
-    later. Our dedicated client should make this less of a concern.
+    later. Our dedicated client should make this less of a practical concern.
     """
     if action_name not in scm_action_registry:
         raise SCMRpcActionNotFound(action_name)
