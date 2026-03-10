@@ -71,7 +71,6 @@ describe('makeSwatch', () => {
         TEST_PALETTE.salmon,
         TEST_PALETTE.orange,
         TEST_PALETTE.yellow,
-        TEST_PALETTE.lime,
         TEST_PALETTE.green,
       ]);
 
