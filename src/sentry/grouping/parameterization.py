@@ -317,3 +317,7 @@ class Parameterizer:
             metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
 
         return parameterized
+
+
+parameterizer = Parameterizer(use_experimental_regexes=False)
+experimental_parameterizer = Parameterizer(use_experimental_regexes=True)
