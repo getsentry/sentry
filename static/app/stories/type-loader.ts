@@ -93,10 +93,12 @@ function extractComponentProps(
  */
 function prodTypeloader(this: LoaderContext<any>, _source: string) {
   const callback = this.async();
+
   const program = typescript.createProgram([this.resourcePath], {});
   const sourceFile = program.getSourceFile(this.resourcePath);
 
   const module = extractRequest(this._module);
+
   const moduleProps = extractComponentProps(this._module, this.resourcePath);
   const moduleExports = extractModuleExports(program, sourceFile);
 
@@ -110,8 +112,18 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
   return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
 }
 
+function noopTypeLoader(this: LoaderContext<any>, _source: string) {
+  const callback = this.async();
+  return callback(null, 'export default {props: {},exports: {}}');
+}
+
 export default function typeLoader(this: LoaderContext<any>, _source: string) {
-  return prodTypeloader.call(this, _source);
+  // Allow acceptance tests to opt out of type-loader for performance reasons
+  const STORYBOOK_TYPES = process.env.IS_ACCEPTANCE_TEST !== '1';
+
+  return STORYBOOK_TYPES
+    ? prodTypeloader.call(this, _source)
+    : noopTypeLoader.call(this, _source);
 }
 
 function extractRequest(module: LoaderContext<any>['_module']) {
