@@ -38,7 +38,7 @@ export function Button({
       disabled={!tooltipProps?.title}
     >
       <StyledButton
-        aria-label={busy ? 'Busy' : accessibleLabel}
+        aria-label={accessibleLabel}
         aria-disabled={disabled}
         aria-busy={busy}
         disabled={disabled}
