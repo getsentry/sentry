@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting.types import FingerprintInfo
-from sentry.grouping.utils import normalize_message_for_grouping
+from sentry.grouping.utils import get_canonical_message_from_event, normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -226,11 +226,7 @@ def resolve_fingerprint_variable(
         return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
-        message = (
-            get_path(event.data, "logentry", "formatted")
-            or get_path(event.data, "logentry", "message")
-            or get_path(event.data, "exception", "values", -1, "value")
-        )
+        message = get_canonical_message_from_event(event)
 
         # Fingerprint variables can be used in custom titles, and there we want the original message
         if not parameterize_message:

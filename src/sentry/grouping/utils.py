@@ -11,6 +11,7 @@ from django.utils.encoding import force_bytes
 from sentry.grouping.parameterization import Parameterizer
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
@@ -101,3 +102,16 @@ def _trim_extra_lines(input_str: str) -> str:
     if trimmed != input_str:
         trimmed += "..."
     return trimmed
+
+
+def get_canonical_message_from_event(event: Event) -> str:
+    """
+    Get the event's message for purposes of grouping, i.e., what would be used as the value for
+    the `{{ message }}` variable. Returns an empty string if no message can be found.
+    """
+    return (
+        get_path(event.data, "logentry", "formatted")
+        or get_path(event.data, "logentry", "message")
+        or get_path(event.data, "exception", "values", -1, "value")
+        or ""
+    )
