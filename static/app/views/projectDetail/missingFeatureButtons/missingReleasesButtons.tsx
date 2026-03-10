@@ -69,7 +69,12 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
           doneUrl={health ? DOCS_HEALTH_URL : DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button
+              size="sm"
+              onClick={showModal}
+              analyticsEventKey="project_detail.releases_tour_clicked"
+              analyticsEventName="Project Detail: Releases Get Tour Clicked"
+            >
               {t('Get Tour')}
             </Button>
           )}

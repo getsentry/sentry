@@ -77,7 +77,12 @@ function MissingPerformanceButtons({organization}: Props) {
           doneUrl={DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button
+              size="sm"
+              onClick={showModal}
+              analyticsEventKey="project_detail.performance_tour_clicked"
+              analyticsEventName="Project Detail: Performance Get Tour Clicked"
+            >
               {t('Get Tour')}
             </Button>
           )}
