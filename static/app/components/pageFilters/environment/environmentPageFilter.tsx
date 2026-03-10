@@ -141,7 +141,8 @@ export function EnvironmentPageFilter({
         {
           location,
           push: (path: Parameters<typeof navigate>[0]) => navigate(path),
-          replace: (path: Parameters<typeof navigate>[0]) => navigate(path, {replace: true}),
+          replace: (path: Parameters<typeof navigate>[0]) =>
+            navigate(path, {replace: true}),
         } as any,
         {
           save: true,
@@ -273,11 +274,11 @@ export function EnvironmentPageFilter({
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
               disabled={!hasStagedChanges}
-              onClick={() => dispatch({type: 'remove staged'})}
+              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
               onClick={() => {
-                dispatch({type: 'remove staged'});
+                stagedSelect.dispatch({type: 'remove staged'});
                 handleChange(stagedSelect.value);
               }}
             />
