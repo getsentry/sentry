@@ -39,6 +39,7 @@ function makeBroadcastsQueryKey({
     getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
       path: {organizationIdOrSlug: organization.slug},
     }),
+    {query: {limit: 3}},
   ];
 }
 

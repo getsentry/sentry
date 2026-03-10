@@ -17,6 +17,7 @@ describe('WhatsNew', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [],
     });
     jest.useRealTimers();
@@ -33,6 +34,7 @@ describe('WhatsNew', () => {
   it('does not show the unread indicator when all broadcasts are seen', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({id: '1', hasSeen: true}),
         BroadcastFixture({id: '2', hasSeen: true}),
@@ -50,6 +52,7 @@ describe('WhatsNew', () => {
   it('renders broadcasts even when all have been seen', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
         BroadcastFixture({id: '2', title: 'Seen Broadcast 2', hasSeen: true}),
@@ -72,6 +75,7 @@ describe('WhatsNew', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({
           id: '1',
@@ -104,6 +108,7 @@ describe('WhatsNew', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Seen Broadcast 1', hasSeen: true}),
         BroadcastFixture({id: '2', title: 'Seen Broadcast 2', hasSeen: true}),
@@ -136,6 +141,7 @@ describe('WhatsNew', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({
           id: '1',
@@ -190,6 +196,7 @@ describe('WhatsNew', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({
           id: '1',
@@ -232,6 +239,7 @@ describe('WhatsNew', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [broadcast],
     });
 
@@ -257,6 +265,7 @@ describe('WhatsNew', () => {
   it('renders broadcast items for each category type', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      match: [MockApiClient.matchQuery({limit: '3'})],
       body: [
         BroadcastFixture({id: '1', title: 'Broadcast 1', category: 'announcement'}),
         BroadcastFixture({id: '2', title: 'Broadcast 2', category: 'feature'}),
