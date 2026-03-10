@@ -95,13 +95,13 @@ class ReleaseActivityNotification(ActivityNotification):
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: Actor) -> list[Project]:
+    def get_projects(self, recipient: Actor) -> set[Project]:
         if not self.release:
-            return []
+            return set()
 
         if recipient.is_user:
             if self.organization.flags.allow_joinleave:
-                return sorted(self.projects, key=lambda project: project.slug)
+                return self.projects
             team_ids = self.get_users_by_teams()[recipient.id]
         else:
             team_ids = [recipient.id]
@@ -109,7 +109,7 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = Project.objects.get_for_team_ids(team_ids).filter(
             id__in={p.id for p in self.projects}
         )
-        return sorted(projects, key=lambda project: project.slug)
+        return set(projects)
 
     def get_subject_project_text(self, project_slugs: Sequence[str]) -> str:
         visible_project_slugs = list(project_slugs[: self.max_subject_projects])
@@ -122,7 +122,7 @@ class ReleaseActivityNotification(ActivityNotification):
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        projects = self.get_projects(recipient)
+        projects = sorted(self.get_projects(recipient), key=lambda project: project.slug)
         release_links = [
             self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
