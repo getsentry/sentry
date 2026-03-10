@@ -41,4 +41,22 @@ class SCMProviderException(SCMError):
 
 
 class SCMProviderNotSupported(SCMError):
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
+
+
+class SCMRpcActionCallError(SCMError):
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
+
+
+class SCMRpcActionNotFound(SCMError):
+    def __init__(self, action_name: str) -> None:
+        self.action_name = action_name
+        super().__init__(action_name)
+
+
+class SCMRpcCouldNotDeserializeRequest(SCMError):
     pass

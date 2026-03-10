@@ -1,19 +1,14 @@
 import hashlib
 import hmac
 import logging
-import typing
-from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
-import pydantic
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import (
     AuthenticationFailed,
-    NotFound,
     PermissionDenied,
-    ValidationError,
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,9 +18,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_region_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
-from sentry.scm.actions import SourceCodeManager
-from sentry.scm.errors import SCMCodedError, SCMError, SCMProviderException
-from sentry.scm.types import PROVIDER_SET, ProviderName
+from sentry.scm.errors import (
+    SCMError,
+    SCMProviderException,
+    SCMProviderNotSupported,
+    SCMRpcActionCallError,
+    SCMRpcActionNotFound,
+    SCMRpcCouldNotDeserializeRequest,
+)
+from sentry.scm.private.rpc import dispatch
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -116,22 +117,6 @@ def get_signature_validation_error(url: str, body: bytes, signature: str) -> str
     return "wrong secret"
 
 
-class RequestData(pydantic.BaseModel, extra=pydantic.Extra.allow):
-    class Args(pydantic.BaseModel, extra=pydantic.Extra.allow):
-        organization_id: int
-
-        class CompositeRepositoryId(pydantic.BaseModel, extra=pydantic.Extra.forbid):
-            provider: str
-            external_id: str
-
-        repository_id: int | CompositeRepositoryId
-
-        def get_extra_fields(self) -> dict[str, Any]:
-            return {k: v for k, v in self.__dict__.items() if k not in self.__fields__}
-
-    args: Args
-
-
 @internal_region_silo_endpoint
 class ScmRpcServiceEndpoint(Endpoint):
     """
@@ -156,44 +141,6 @@ class ScmRpcServiceEndpoint(Endpoint):
             return True
         return False
 
-    @staticmethod
-    @sentry_sdk.trace
-    def _dispatch_to_source_code_manager(method_name: str, raw_request_data: dict[str, Any]) -> Any:
-        method = scm_method_registry.get(method_name)
-        if method is None:
-            raise NotFound({"errors": [{"details": f"Unknown RPC method {method_name!r}"}]})
-
-        try:
-            request = RequestData.parse_obj(raw_request_data)
-        except pydantic.ValidationError as ex:
-            # 'typing.cast' required because Pydantic V1 still uses typing_extensions.TypeDict, which MyPy does not recognize as a dict.
-            raise ValidationError(
-                {"errors": typing.cast(list[dict[str, Any]], ex.errors())}
-            ) from ex
-
-        organization_id = request.args.organization_id
-
-        repository_id: int | tuple[str, str]
-        if isinstance(request.args.repository_id, RequestData.Args.CompositeRepositoryId):
-            if request.args.repository_id.provider not in PROVIDER_SET:
-                raise SCMCodedError(code="unknown_provider")
-
-            repository_id = (
-                cast(ProviderName, request.args.repository_id.provider),
-                request.args.repository_id.external_id,
-            )
-        else:
-            repository_id = request.args.repository_id
-
-        scm = SourceCodeManager.make_from_repository_id(organization_id, repository_id)
-
-        try:
-            return method(scm, **request.args.get_extra_fields())
-        except TypeError as e:
-            raise ValidationError(
-                {"errors": [{"details": f"Error calling method {method_name}: {str(e)}"}]}
-            ) from e
-
     @sentry_sdk.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
@@ -202,25 +149,83 @@ class ScmRpcServiceEndpoint(Endpoint):
             raise PermissionDenied()
 
         try:
-            result = self._dispatch_to_source_code_manager(method_name, request.data)
-        except SCMCodedError as e:
+            result = dispatch(method_name, request.data)
+        except SCMRpcActionNotFound as e:
+            return Response(
+                {
+                    "errors": [
+                        {
+                            "status": "404",
+                            "title": "Not found",
+                            "details": f"Could not find action {e.action_name}",
+                        }
+                    ]
+                },
+                status=404,
+            )
+        except SCMRpcCouldNotDeserializeRequest as e:
+            return Response(
+                {
+                    "errors": [
+                        {
+                            "status": "400",
+                            "title": "The request could not be deserialized.",
+                            "meta": error,
+                        }
+                        for error in e.args[0]
+                    ]
+                },
+                status=400,
+            )
+        except SCMRpcActionCallError as e:
+            return Response(
+                {
+                    "errors": [
+                        {
+                            "status": "500",
+                            "title": "An unexpected error occurred.",
+                            "details": e.message,
+                        }
+                    ]
+                },
+                status=500,
+            )
+        except SCMProviderNotSupported as e:
             sentry_sdk.capture_exception()
             return Response(
-                data={"errors": [{"type": "SCMCodedError", "details": self._make_details(e)}]},
+                data={
+                    "errors": [
+                        {"status": "400", "title": "Provider not supported.", "details": e.message}
+                    ]
+                },
                 status=400,
             )
         except SCMProviderException as e:
             sentry_sdk.capture_exception()
             return Response(
                 data={
-                    "errors": [{"type": "SCMProviderException", "details": self._make_details(e)}]
+                    "errors": [
+                        {
+                            "status": "503",
+                            "title": "The service provider raised an error.",
+                            "details": self._make_details(e),
+                        }
+                    ]
                 },
                 status=503,
             )
         except SCMError as e:
             sentry_sdk.capture_exception()
             return Response(
-                data={"errors": [{"type": "SCMError", "details": self._make_details(e)}]},
+                data={
+                    "errors": [
+                        {
+                            "status": "500",
+                            "title": "An unexpected error occurred.",
+                            "details": self._make_details(e),
+                        }
+                    ]
+                },
                 status=500,
             )
         except Exception:
@@ -235,64 +240,3 @@ class ScmRpcServiceEndpoint(Endpoint):
             e = e.__cause__
             details.extend(e.args)
         return details
-
-
-scm_method_registry: dict[str, Callable] = {
-    # These callables must accept a SourceCodeManager as their first argument,
-    # and then they are free to accept any other **kwargs they want.
-    # Their return type must be JSON-serializable.
-    #
-    # This dict could be populated dynamically by scanning the SourceCodeManager class for methods.
-    # Explicit listing give us more control: we can rename methods,
-    # delay exposing them as RPC, adapt their interface, etc.
-    #
-    # If a method of SourceCodeManager accepts only JSON-serializable arguments, by names, and
-    # returns a JSON-serializable type, then it can be listed here directly.
-    # Else, an adapter function must be used.
-    "can_v1": SourceCodeManager.can,
-    "get_issue_comments_v1": SourceCodeManager.get_issue_comments,
-    "create_issue_comment_v1": SourceCodeManager.create_issue_comment,
-    "delete_issue_comment_v1": SourceCodeManager.delete_issue_comment,
-    "get_pull_request_v1": SourceCodeManager.get_pull_request,
-    "get_pull_request_comments_v1": SourceCodeManager.get_pull_request_comments,
-    "create_pull_request_comment_v1": SourceCodeManager.create_pull_request_comment,
-    "delete_pull_request_comment_v1": SourceCodeManager.delete_pull_request_comment,
-    "get_issue_comment_reactions_v1": SourceCodeManager.get_issue_comment_reactions,
-    "create_issue_comment_reaction_v1": SourceCodeManager.create_issue_comment_reaction,
-    "delete_issue_comment_reaction_v1": SourceCodeManager.delete_issue_comment_reaction,
-    "get_pull_request_comment_reactions_v1": SourceCodeManager.get_pull_request_comment_reactions,
-    "create_pull_request_comment_reaction_v1": SourceCodeManager.create_pull_request_comment_reaction,
-    "delete_pull_request_comment_reaction_v1": SourceCodeManager.delete_pull_request_comment_reaction,
-    "get_issue_reactions_v1": SourceCodeManager.get_issue_reactions,
-    "create_issue_reaction_v1": SourceCodeManager.create_issue_reaction,
-    "delete_issue_reaction_v1": SourceCodeManager.delete_issue_reaction,
-    "get_pull_request_reactions_v1": SourceCodeManager.get_pull_request_reactions,
-    "create_pull_request_reaction_v1": SourceCodeManager.create_pull_request_reaction,
-    "delete_pull_request_reaction_v1": SourceCodeManager.delete_pull_request_reaction,
-    "get_branch_v1": SourceCodeManager.get_branch,
-    "create_branch_v1": SourceCodeManager.create_branch,
-    "update_branch_v1": SourceCodeManager.update_branch,
-    "create_git_blob_v1": SourceCodeManager.create_git_blob,
-    "get_file_content_v1": SourceCodeManager.get_file_content,
-    "get_commit_v1": SourceCodeManager.get_commit,
-    "get_commits_v1": SourceCodeManager.get_commits,
-    "compare_commits_v1": SourceCodeManager.compare_commits,
-    "get_tree_v1": SourceCodeManager.get_tree,
-    "get_git_commit_v1": SourceCodeManager.get_git_commit,
-    "create_git_tree_v1": SourceCodeManager.create_git_tree,
-    "create_git_commit_v1": SourceCodeManager.create_git_commit,
-    "get_pull_request_files_v1": SourceCodeManager.get_pull_request_files,
-    "get_pull_request_commits_v1": SourceCodeManager.get_pull_request_commits,
-    "get_pull_request_diff_v1": SourceCodeManager.get_pull_request_diff,
-    "get_pull_requests_v1": SourceCodeManager.get_pull_requests,
-    "create_pull_request_v1": SourceCodeManager.create_pull_request,
-    "update_pull_request_v1": SourceCodeManager.update_pull_request,
-    "request_review_v1": SourceCodeManager.request_review,
-    "create_review_comment_file_v1": SourceCodeManager.create_review_comment_file,
-    "create_review_comment_reply_v1": SourceCodeManager.create_review_comment_reply,
-    "create_review_v1": SourceCodeManager.create_review,
-    "create_check_run_v1": SourceCodeManager.create_check_run,
-    "get_check_run_v1": SourceCodeManager.get_check_run,
-    "update_check_run_v1": SourceCodeManager.update_check_run,
-    "minimize_comment_v1": SourceCodeManager.minimize_comment,
-}

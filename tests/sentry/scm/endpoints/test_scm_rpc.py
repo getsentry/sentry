@@ -13,20 +13,21 @@ if TYPE_CHECKING:
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository
 from sentry.scm.actions import SourceCodeManager
-from sentry.scm.endpoints.scm_rpc import generate_request_signature, scm_method_registry
+from sentry.scm.endpoints.scm_rpc import generate_request_signature
 from sentry.scm.errors import SCMCodedError, SCMError, SCMProviderException, SCMUnhandledException
+from sentry.scm.private.rpc import scm_action_registry
 from sentry.testutils.cases import APITestCase
 
 
 @contextlib.contextmanager
 def add_method(method_name: str, method_fn: Any):
     # Inject a test-only RPC method for cases that go beyond common arguments validation
-    assert method_name not in scm_method_registry
-    scm_method_registry[method_name] = method_fn
+    assert method_name not in scm_action_registry
+    scm_action_registry[method_name] = method_fn
     try:
         yield
     finally:
-        del scm_method_registry[method_name]
+        del scm_action_registry[method_name]
 
 
 @contextlib.contextmanager
