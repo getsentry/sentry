@@ -153,12 +153,12 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (issue_id) {
       if (start && end) {
         return isLoading
-          ? `Inspecting recommended event for ${issue_id} between ${start} to ${end}...`
-          : `Inspected recommended event for ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
+          ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`} between ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting recommended event for ${issue_id}...`
-        : `Inspected recommended event for ${resultMetadata?.short_id || issue_id}`;
+        ? `Inspecting recommended event for issue ${issue_id}...`
+        : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
     }
 
     // shouldn't happen (either event_id or issue_id required)
