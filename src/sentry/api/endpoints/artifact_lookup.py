@@ -91,10 +91,12 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
-            # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
-            # be always empty, so using the `organization_id` instead.
             file_m = (
-                ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
+                ReleaseFile.objects.filter(
+                    id=ty_id,
+                    organization_id=project.organization.id,
+                    release__projects=project,
+                )
                 .select_related("file")
                 .first()
             )
