@@ -820,6 +820,42 @@ describe('TraceTree', () => {
       );
     });
 
+    it('standalone LCP span indicator takes priority over pageload LCP indicator', () => {
+      const standaloneStart = start + 1.5;
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'pageload-span',
+            op: 'pageload',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [
+              makeEAPSpan({
+                event_id: 'standalone-lcp-span',
+                op: 'ui.webvital.lcp',
+                start_timestamp: standaloneStart,
+                end_timestamp: standaloneStart + 0.1,
+                is_transaction: false,
+                measurements: {
+                  'measurements.lcp': 500,
+                },
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null, organization}
+      );
+
+      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+      expect(lcpIndicators).toHaveLength(1);
+      expect(lcpIndicators[0]!.start).toBe(standaloneStart * 1e3);
+    });
+
     it('handles cycles in EAP trace structure without infinite loop', () => {
       const cyclicSpan = makeEAPSpan({
         event_id: 'cyclic-span',
