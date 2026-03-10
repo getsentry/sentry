@@ -280,6 +280,11 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
 
     _set_webhook_delivery_sentry_context(payload)
 
+    skip_on_failure_providers = frozenset(
+        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
+    )
+    skip_on_failure = payload.provider in skip_on_failure_providers
+
     delivered = 0
     failed = 0
     current_id = payload.id
@@ -324,8 +329,13 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 except DeliveryFailed:
                     failed += 1
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
-                    # Continue processing remaining messages instead of stopping.
-                    # Failed messages have already been rescheduled by deliver_message.
+                    if not skip_on_failure:
+                        # For providers that require strict ordering, stop on the
+                        # first failure so subsequent messages are not delivered
+                        # out of order.
+                        return
+                    # For allowlisted providers: skip the failed message and
+                    # continue. It has already been rescheduled by deliver_message.
                     continue
 
             # No more messages to deliver

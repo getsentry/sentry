@@ -121,18 +121,19 @@ class ScheduleWebhooksTest(TestCase):
         with self.tasks():
             schedule_webhook_delivery()
 
-        # All messages are attempted but all fail due to timeout, so all are rescheduled.
-        assert len(responses.calls) == num_records
+        # First attempt fails. provider=None is not in the skip-on-failure allowlist
+        # so processing stops after the first message, preserving mailbox ordering.
+        assert len(responses.calls) == 1
         assert WebhookPayload.objects.count() == num_records
         head = WebhookPayload.objects.all().order_by("id").first()
         assert head
         assert head.schedule_for > timezone.now()
 
         # Do another scheduled run. This should not make any forwarding requests
-        # because all messages have schedule_for in the future.
+        # because the head is still in backoff.
         with self.tasks():
             schedule_webhook_delivery()
-        assert len(responses.calls) == num_records
+        assert len(responses.calls) == 1
         # Head doesn't move.
         new_head = WebhookPayload.objects.all().order_by("id").first()
         assert new_head
@@ -262,12 +263,13 @@ class ScheduleWebhooksTest(TestCase):
         assert call_args_list[1] == null_provider_webhook.id
 
 
-def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
+def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
             region_name="us",
+            provider=provider,
         )
         created.append(hook)
     return created
@@ -313,11 +315,11 @@ class DrainMailboxTest(TestCase):
         responses.add(responses.POST, url, status=200, body="")
         responses.add(responses.POST, url, status=200, body="")
         responses.add(responses.POST, url, status=200, body="")
-        records = create_payloads(5, "github:123")
+        records = create_payloads(5, "github:123", provider="github")
         drain_mailbox(records[0].id)
 
-        # Failed messages are skipped and processing continues.
-        # All 5 messages are attempted despite the failure.
+        # github is in the skip-on-failure allowlist: failed messages are skipped
+        # and processing continues. All 5 messages are attempted.
         assert len(responses.calls) == 5
 
         # Only the failed message remains in the mailbox.
@@ -331,10 +333,31 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "jira:123", provider="jira")
+        drain_mailbox(records[0].id)
+
+        # jira is not in the allowlist: processing stops on the first failure
+        # to preserve strict mailbox ordering.
+        assert len(responses.calls) == 2
+
+        # The failed message and all subsequent messages remain.
+        assert WebhookPayload.objects.count() == 4
+
+        first = WebhookPayload.objects.order_by("id").first()
+        assert first
+        assert first.attempts == 1
+        assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
     def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=500, body="")
-        records = create_payloads(5, "github:123")
+        records = create_payloads(5, "github:123", provider="github")
         drain_mailbox(records[0].id)
 
         # All 5 messages are attempted even though all fail.
