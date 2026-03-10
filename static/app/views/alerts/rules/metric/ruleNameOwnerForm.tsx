@@ -91,5 +91,5 @@ const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
     width: 100%;
   }
 
-  margin-bottom: ${p => p.extraMargin ? '60px' : p.theme.space.md};
+  margin-bottom: ${p => (p.extraMargin ? '60px' : p.theme.space.md)};
 `;
