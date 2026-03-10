@@ -13,7 +13,6 @@ import type {
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,16 +106,15 @@ function IntegrationExternalUserMappings(props: Props) {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   };
 
-  const sentryNamesMapper = (membersList: Member[]) => {
-    return membersList
-      .filter(member => member.user)
-      .map(({user, email, name}) => {
-        const label = email === name ? `${email}` : `${name} - ${email}`;
-        return {id: user?.id!, name: label};
-      });
-  };
-
-  const defaultUserOptions = sentryNamesMapper(initialResults).map(sentryNameToOption);
+  const defaultUserOptions = initialResults
+    .filter(member => member.user)
+    .map(({user, email, name}) => {
+      const label = email === name ? `${email}` : `${name} - ${email}`;
+      return {
+        value: {id: user?.id!, name: label},
+        label,
+      };
+    });
 
   const openMembersModal = (mapping?: ExternalActorMappingOrSuggestion) => {
     openModal(modalProps => (

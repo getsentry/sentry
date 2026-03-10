@@ -449,6 +449,25 @@ export interface ControlProps<
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
+/**
+ * Compare two option values. For objects with an `id` property, compare by `id`
+ * only — this allows the select to match an initial value (e.g. from a saved
+ * mapping) against option objects whose other fields may differ.
+ */
+function optionValuesMatch(a: unknown, b: unknown): boolean {
+  if (
+    a !== null &&
+    b !== null &&
+    typeof a === 'object' &&
+    typeof b === 'object' &&
+    'id' in a &&
+    'id' in b
+  ) {
+    return (a as {id: unknown}).id === (b as {id: unknown}).id;
+  }
+  return a === b;
+}
+
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: ControlProps<OptionType>
 ) {
@@ -518,8 +537,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     }
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => option.value === val))
-        : flatOptions.find(opt => opt.value === value) || value;
+        ? value.map(val =>
+            flatOptions.find(option => optionValuesMatch(option.value, val))
+          )
+        : flatOptions.find(opt => optionValuesMatch(opt.value, value)) || value;
   }
 
   // Override the default style with in-field labels if they are provided

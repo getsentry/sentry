@@ -10,7 +10,6 @@ import type {
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -104,12 +103,11 @@ function IntegrationExternalTeamMappings(props: Props) {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   };
 
-  const sentryNamesMapper = (currTeams: Team[]) => {
-    return currTeams.map(({id, slug}) => ({id, name: slug}));
-  };
-
   const defaultTeamOptions = () => {
-    return sentryNamesMapper(initialResults).map(sentryNameToOption);
+    return initialResults.map(({id, slug}) => ({
+      value: {id, name: slug},
+      label: slug,
+    }));
   };
 
   const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {

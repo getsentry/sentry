@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
@@ -23,18 +22,19 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,
-  sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
 import {fetchMutation, queryOptions, useMutation} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useOrganization from 'sentry/utils/useOrganization';
 
+type SentrySelection = {id: string; name: string};
+
 type BaseProps = {
   getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
   integration: Integration;
   type: 'user' | 'team';
-  defaultOptions?: Array<{label: React.ReactNode; value: string}>;
+  defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>;
   mapping?: ExternalActorMappingOrSuggestion;
   onSubmitError?: () => void;
   onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
@@ -52,7 +52,11 @@ type ModalProps = BaseProps &
 type Props = InlineProps | ModalProps;
 
 function mapTeams(teams: Team[]) {
-  return teams.map(({id, slug}) => sentryNameToOption({id, name: slug}));
+  return teams.map(({id, slug}) => ({
+    value: {id, name: slug},
+    label: slug,
+    textValue: slug,
+  }));
 }
 
 function mapMembers(members: Member[]) {
@@ -60,15 +64,18 @@ function mapMembers(members: Member[]) {
     .filter(member => member.user)
     .map(({user, email, name}) => {
       const label = email === name ? `${email}` : `${name} - ${email}`;
-      return sentryNameToOption({id: user?.id!, name: label});
+      return {
+        value: {id: user?.id!, name: label},
+        label,
+        textValue: label,
+      };
     });
 }
 
 function makeTeamSelectQueryOptions(
   orgSlug: string,
-  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
-  mapping?: ExternalActorMappingOrSuggestion,
-  slugByIdRef?: React.RefObject<Map<string, string>>
+  defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>,
+  mapping?: ExternalActorMappingOrSuggestion
 ) {
   return (debouncedInput: string) =>
     queryOptions({
@@ -78,11 +85,6 @@ function makeTeamSelectQueryOptions(
         staleTime: 0,
       }),
       select: ({json: teams}) => {
-        if (slugByIdRef) {
-          for (const team of teams) {
-            slugByIdRef.current.set(team.id, team.slug);
-          }
-        }
         return mergeOptions(mapTeams(teams), defaultOptions, mapping, 'team');
       },
     });
@@ -90,7 +92,7 @@ function makeTeamSelectQueryOptions(
 
 function makeMemberSelectQueryOptions(
   orgSlug: string,
-  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
+  defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>,
   mapping?: ExternalActorMappingOrSuggestion
 ) {
   return (debouncedInput: string) =>
@@ -106,8 +108,8 @@ function makeMemberSelectQueryOptions(
 }
 
 function mergeOptions(
-  transformed: ReadonlyArray<{label: React.ReactNode; value: string}>,
-  defaultOptions?: ReadonlyArray<{label: React.ReactNode; value: string}>,
+  transformed: ReadonlyArray<{label: React.ReactNode; value: SentrySelection}>,
+  defaultOptions?: ReadonlyArray<{label: React.ReactNode; value: SentrySelection}>,
   mapping?: ExternalActorMappingOrSuggestion,
   type?: 'user' | 'team'
 ) {
@@ -115,16 +117,19 @@ function mergeOptions(
 
   // Merge with defaultOptions if provided
   if (Array.isArray(defaultOptions)) {
-    const seen = new Set(result.map(o => o.value));
-    const extras = defaultOptions.filter(o => !seen.has(o.value));
+    const seen = new Set(result.map(o => o.value.id));
+    const extras = defaultOptions.filter(o => !seen.has(o.value.id));
     result.unshift(...extras);
   }
 
   // Ensure current mapping's entry is present
   if (mapping && type && isExternalActorMapping(mapping) && mapping.sentryName) {
     const mappingId = mapping[`${type}Id`];
-    if (mappingId && !result.some(o => o.value === mappingId)) {
-      result.unshift({value: mappingId, label: mapping.sentryName});
+    if (mappingId && !result.some(o => o.value.id === mappingId)) {
+      result.unshift({
+        value: {id: mappingId, name: mapping.sentryName},
+        label: mapping.sentryName,
+      });
     }
   }
 
@@ -132,29 +137,27 @@ function mergeOptions(
 }
 
 /**
- * Track team id→slug mappings so we can resolve slugs for teams found via
- * search that aren't in the parent component's initial team lists.
- * Populated from query results in makeTeamSelectQueryOptions's select callback.
+ * Custom getOptionValue for react-select that extracts `.id` from our
+ * SentrySelection objects.  Also handles the case where react-select
+ * receives the raw form value (before option resolution) instead of an
+ * option wrapper — we fall back through opt.value.id → opt.id → ''.
  */
-function useSlugByIdRef() {
-  return useRef(new Map<string, string>());
-}
+const getOptionValue = (opt: any) => opt?.value?.id ?? opt?.id ?? '';
 
 function buildMutationData(
   mapping: ExternalActorMappingOrSuggestion | undefined,
   integration: Integration,
   type: 'user' | 'team',
-  sentryId: string,
-  externalName?: string,
-  sentryName?: string
+  sentrySelection: SentrySelection,
+  externalName?: string
 ): Record<string, unknown> {
   return {
     ...mapping,
     ...(externalName === undefined ? {} : {externalName}),
-    ...(sentryName === undefined ? {} : {sentryName}),
     provider: integration.provider.key,
     integrationId: integration.id,
-    [`${type}Id`]: sentryId,
+    [`${type}Id`]: sentrySelection.id,
+    sentryName: sentrySelection.name,
   };
 }
 
@@ -168,12 +171,15 @@ function InlineMappingForm({
   type,
 }: InlineProps) {
   const {slug: orgSlug} = useOrganization();
-  const slugByIdRef = useSlugByIdRef();
 
   const initialValue =
-    mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
+    mapping && isExternalActorMapping(mapping)
+      ? {id: String(mapping[`${type}Id`] ?? ''), name: mapping.sentryName ?? ''}
+      : null;
 
-  const schema = z.object({sentryId: z.string()});
+  const schema = z.object({
+    sentryId: z.any().refine((val): val is SentrySelection => val !== null),
+  });
 
   return (
     <FormWrapper>
@@ -182,16 +188,8 @@ function InlineMappingForm({
         schema={schema}
         initialValue={initialValue}
         mutationOptions={{
-          mutationFn: ({sentryId}: {sentryId: string}) => {
-            const sentryName = slugByIdRef.current.get(sentryId);
-            const fullData = buildMutationData(
-              mapping,
-              integration,
-              type,
-              sentryId,
-              undefined,
-              sentryName
-            );
+          mutationFn: ({sentryId}: {sentryId: SentrySelection}) => {
+            const fullData = buildMutationData(mapping, integration, type, sentryId);
             const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
               getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
               fullData as ExternalActorMappingOrSuggestion
@@ -211,19 +209,16 @@ function InlineMappingForm({
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
+              getOptionValue={getOptionValue}
               placeholder={t('Select Sentry Team')}
               defaultOptions={defaultOptions}
-              queryOptions={makeTeamSelectQueryOptions(
-                orgSlug,
-                defaultOptions,
-                mapping,
-                slugByIdRef
-              )}
+              queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
+              getOptionValue={getOptionValue}
               placeholder={t('Select Sentry User')}
               defaultOptions={defaultOptions}
               queryOptions={makeMemberSelectQueryOptions(
@@ -253,26 +248,33 @@ function ModalMappingForm({
   type,
 }: ModalProps) {
   const {slug: orgSlug} = useOrganization();
-  const slugByIdRef = useSlugByIdRef();
 
   const initialSentryId =
-    mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
+    mapping && isExternalActorMapping(mapping)
+      ? {id: String(mapping[`${type}Id`] ?? ''), name: mapping.sentryName ?? ''}
+      : null;
 
   const modalSchema = z.object({
     externalName: z.string().min(1, 'This field is required'),
-    sentryId: z.string().min(1, 'This field is required'),
+    sentryId: z
+      .any()
+      .refine((val): val is SentrySelection => val !== null, 'This field is required'),
   });
 
   const mutation = useMutation({
-    mutationFn: ({externalName, sentryId}: {externalName: string; sentryId: string}) => {
-      const sentryName = slugByIdRef.current.get(sentryId);
+    mutationFn: ({
+      externalName,
+      sentryId,
+    }: {
+      externalName: string;
+      sentryId: SentrySelection;
+    }) => {
       const fullData = buildMutationData(
         mapping,
         integration,
         type,
         sentryId,
-        externalName,
-        sentryName
+        externalName
       );
       const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
         getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
@@ -295,7 +297,7 @@ function ModalMappingForm({
     ...defaultFormOptions,
     defaultValues: {
       externalName: mapping?.externalName ?? '',
-      sentryId: initialSentryId,
+      sentryId: initialSentryId!,
     },
     validators: {onDynamic: modalSchema},
     onSubmit: ({value}) =>
@@ -334,13 +336,13 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
+                    getOptionValue={getOptionValue}
                     placeholder={t('Select Sentry Team')}
                     defaultOptions={defaultOptions}
                     queryOptions={makeTeamSelectQueryOptions(
                       orgSlug,
                       defaultOptions,
-                      mapping,
-                      slugByIdRef
+                      mapping
                     )}
                   />
                 </field.Layout.Stack>
@@ -349,6 +351,7 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
+                    getOptionValue={getOptionValue}
                     placeholder={t('Select Sentry User')}
                     defaultOptions={defaultOptions}
                     queryOptions={makeMemberSelectQueryOptions(

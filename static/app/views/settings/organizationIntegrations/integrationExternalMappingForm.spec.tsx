@@ -33,13 +33,11 @@ describe('IntegrationExternalMappingForm', () => {
     id: '1',
     userId: '1',
     externalName: '@gwen',
-    sentryName: 'gwen@mcu.org',
   };
   const MOCK_TEAM_MAPPING = {
     id: '1',
     teamId: '1',
     externalName: '@getsentry/animals',
-    sentryName: '#zoo',
   };
 
   // Member data with email === name so labels are just 'option1', 'option2', etc.
@@ -228,7 +226,6 @@ describe('IntegrationExternalMappingForm', () => {
           integrationId: baseProps.integration.id,
           provider: baseProps.integration.provider.key,
           teamId: '3',
-          sentryName: 'option3',
         })
       );
     });
@@ -311,7 +308,10 @@ describe('IntegrationExternalMappingForm', () => {
   });
 
   it('allows defaultOptions to be provided', async () => {
-    const defaultOptions = MOCK_MEMBERS.map(m => ({value: m.user.id, label: m.name}));
+    const defaultOptions = MOCK_MEMBERS.map(m => ({
+      value: {id: m.user.id, name: m.name},
+      label: m.name,
+    }));
     render(
       <IntegrationExternalMappingForm
         type="user"
@@ -335,7 +335,10 @@ describe('IntegrationExternalMappingForm', () => {
   });
 
   it('shows mapped value immediately without waiting for fetch when defaultOptions are provided', () => {
-    const defaultOptions = MOCK_MEMBERS.map(m => ({value: m.user.id, label: m.name}));
+    const defaultOptions = MOCK_MEMBERS.map(m => ({
+      value: {id: m.user.id, name: m.name},
+      label: m.name,
+    }));
     render(
       <IntegrationExternalMappingForm
         isInline
