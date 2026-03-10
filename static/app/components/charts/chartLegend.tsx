@@ -36,23 +36,6 @@ const INNER_GAP: SpaceSize = 'md';
 const MAX_LABEL_WIDTH = 180;
 
 /**
- * Renders a leading checkbox for a legend item inside the overflow dropdown.
- * Stateless — only depends on its arguments, so it lives outside the component.
- */
-function renderLeadingCheckbox(item: LegendItem) {
-  return function LeadingCheckbox({isSelected}: {isSelected: boolean}) {
-    return (
-      <LegendCheckbox
-        color={item.color}
-        checked={isSelected}
-        onChange={() => {}}
-        aria-label={item.label}
-      />
-    );
-  };
-}
-
-/**
  * Interactive chart legend with overflow handling.
  *
  * All items are always rendered in the DOM, but items that don't fit are
@@ -60,6 +43,11 @@ function renderLeadingCheckbox(item: LegendItem) {
  * measurement. A `ResizeObserver` on the wrapper re-measures whenever the
  * available space changes, and items that overflow are shown in a dropdown
  * instead.
+ *
+ * The overflow trigger button is always present in the DOM (hidden when not
+ * needed) so its width is always measurable. This avoids a feedback loop where
+ * the trigger's appearance changes the layout, which changes the overflow
+ * calculation, which toggles the trigger, ad infinitum.
  */
 export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
   const theme = useTheme();
@@ -84,49 +72,54 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       return;
     }
 
+    const children = Array.from(container.children);
+
     // Read trigger width directly from the DOM ref instead of from React state.
-    //
     // Reading from state (via useDimensions) introduced a 1-render lag: the
     // useDimensions layout effect and this effect run in the same commit, but
     // React queues state updates from layout effects rather than applying them
-    // immediately. This effect would therefore read the triggerWidth from the
-    // *previous* render — one step behind — causing the trigger to oscillate
-    // between shown and hidden when items are near the overflow boundary.
-    //
-    // React guarantees that refs are attached before layout effects run, so
-    // reading from the ref here always reflects the current DOM state.
+    // immediately. React guarantees that refs are attached before layout effects
+    // run, so reading from the ref here always reflects the current DOM state.
     const triggerWidth = triggerRef.current?.getBoundingClientRect().width ?? 0;
 
-    const children = Array.from(container.children);
+    // Single pass: walk children left-to-right, accumulating width.
+    // At each step, check whether the remaining items would need an overflow
+    // trigger. If so, reserve space for it and stop as soon as we exceed
+    // the available width. The trigger is always in the DOM (hidden via CSS
+    // when there's no overflow) so triggerRef is always valid.
     let usedWidth = 0;
-    let index: number | null = null;
+    let overflowIndex: number | null = null;
 
     for (let i = 0; i < children.length; i++) {
-      const childWidth = children[i]!.getBoundingClientRect().width;
       if (i > 0) {
         usedWidth += innerGap;
       }
-      usedWidth += childWidth;
+      usedWidth += children[i]!.getBoundingClientRect().width;
 
       // Reserve space for the trigger + the gap between wrapper children
       const remainingItems = children.length - i - 1;
       const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
 
       if (usedWidth > wrapperWidth - reservedSpace) {
-        index = i;
+        overflowIndex = i;
         break;
       }
     }
 
-    setFirstOverflowIndex(index);
-    // `firstOverflowIndex` is included as a dep so this effect re-runs whenever
-    // the trigger appears or disappears (changing what triggerRef.current points
-    // to), allowing the effect to verify and stabilize the new state.
-  }, [wrapperWidth, firstOverflowIndex, items, innerGap, outerGap]);
+    setFirstOverflowIndex(overflowIndex);
+
+    // `firstOverflowIndex` is intentionally NOT a dependency. Including it
+    // created a feedback loop: the effect sets the index → trigger appears →
+    // effect re-runs → trigger width changes → index changes → repeat.
+    // Instead the trigger is always in the DOM so its width is always readable,
+    // and the effect only re-runs on genuine external changes (resize, items).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wrapperWidth, items, innerGap, outerGap]);
 
   const overflowItems =
     firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex);
 
+  const hasOverflow = overflowItems.length > 0;
   const overflowSet = new Set(overflowItems.map(item => item.name));
 
   const toggleItem = (name: string) => {
@@ -204,28 +197,51 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
         ))}
       </Flex>
 
-      {overflowItems.length > 0 && (
-        <CompactSelect
-          multiple
-          options={overflowOptions}
-          value={overflowValues}
-          onChange={handleOverflowSelectChange}
-          position="bottom-end"
-          size="xs"
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              ref={mergeRefs(triggerRef, triggerProps.ref)}
-              size="xs"
-            >
-              {t('+%s more', overflowItems.length)}
-            </OverlayTrigger.Button>
-          )}
-        />
-      )}
+      <CompactSelect
+        multiple
+        options={overflowOptions}
+        value={overflowValues}
+        onChange={handleOverflowSelectChange}
+        position="bottom-end"
+        size="xs"
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            ref={mergeRefs(triggerRef, triggerProps.ref)}
+            size="xs"
+            aria-hidden={!hasOverflow}
+            style={hasOverflow ? undefined : HIDDEN_TRIGGER_STYLE}
+          >
+            {t('+%s more', Math.max(overflowItems.length, 1))}
+          </OverlayTrigger.Button>
+        )}
+      />
     </Flex>
   );
 }
+
+/**
+ * Renders a leading checkbox for a legend item inside the overflow dropdown.
+ * Stateless — only depends on its arguments, so it lives outside the component.
+ */
+function renderLeadingCheckbox(item: LegendItem) {
+  return function LeadingCheckbox({isSelected}: {isSelected: boolean}) {
+    return (
+      <LegendCheckbox
+        color={item.color}
+        checked={isSelected}
+        onChange={() => {}}
+        aria-label={item.label}
+      />
+    );
+  };
+}
+
+const HIDDEN_TRIGGER_STYLE: React.CSSProperties = {
+  visibility: 'hidden',
+  position: 'absolute',
+  pointerEvents: 'none',
+};
 
 const LegendItemButton = styled(Flex)`
   cursor: pointer;
