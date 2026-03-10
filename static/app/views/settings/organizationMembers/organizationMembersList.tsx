@@ -285,7 +285,6 @@ function OrganizationMembersList() {
 
   const handleQueryChange = (query: string) => {
     navigate({
-      pathname: location.pathname,
       query: {...location.query, query, cursor: undefined},
     });
   };

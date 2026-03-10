@@ -122,7 +122,7 @@ const commonFields = {
   availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
 };
 
-const AM1_PLANS: Record<string, Plan> = {
+const AM1_PLANS = {
   am1_f: {
     ...commonFields,
     allowAdditionalReservedEvents: false,
@@ -2765,6 +2765,6 @@ const AM1_PLANS: Record<string, Plan> = {
     dashboardLimit: -1,
     metricDetectorLimit: -1,
   },
-};
+} as const satisfies Record<string, Plan>;
 
 export default AM1_PLANS;

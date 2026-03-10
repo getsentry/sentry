@@ -216,7 +216,7 @@ class SentryAppUpdater:
         if installations := SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id):
             org_ids_and_region_names = OrganizationMapping.objects.filter(
                 organization_id__in=installations.values_list("organization_id", flat=True)
-            ).values_list("organization_id", "region_name")
+            ).values_list("organization_id", "cell_name")
 
             installation_org_id_to_region_name = {
                 org_id: region_name for org_id, region_name in org_ids_and_region_names

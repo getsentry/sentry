@@ -246,9 +246,10 @@ export default class ThresholdsChart extends PureComponent<Props> {
     // to inferring from the aggregate string when not available.
     const outputType =
       timeseriesResultsTypes?.[aggregate] ?? aggregateOutputType(aggregate);
+    const dataUnit = timeseriesResultsUnits?.[aggregate];
     const isDurationChart = outputType === 'duration';
     const durationUnit = isDurationChart
-      ? getDurationUnit(dataWithoutRecentBucket)
+      ? getDurationUnit(dataWithoutRecentBucket, undefined, dataUnit)
       : undefined;
     const rateUnit = Object.values(RateUnit).includes(
       timeseriesResultsUnits?.[aggregate] as RateUnit
@@ -345,7 +346,9 @@ export default class ThresholdsChart extends PureComponent<Props> {
                 outputType,
                 true,
                 durationUnit,
-                rateUnit
+                rateUnit,
+                0,
+                dataUnit
               );
             }
             return alertAxisFormatter(value, data[0]!.seriesName, aggregate);

@@ -24,7 +24,7 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 
 logger = logging.getLogger("sentry.oauth")
 
@@ -132,7 +132,7 @@ class ApiApplication(Model):
                 category=OutboxCategory.API_APPLICATION_UPDATE,
                 region_name=region_name,
             )
-            for region_name in find_all_region_names()
+            for region_name in find_all_cell_names()
         ]
 
     @property

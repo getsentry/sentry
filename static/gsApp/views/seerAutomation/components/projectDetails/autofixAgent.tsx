@@ -21,13 +21,13 @@ import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import CursorAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/cursorAgentSettings';
+import CodingAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
 import SeerAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
 import {
   useAgentOptions,
   useMutateSelectedAgent,
-  useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+  useSelectedAgentFromProjectSettings,
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 interface Props {
   canWrite: boolean;
@@ -47,8 +47,8 @@ function AgentSpecificFields({
   if (integration === 'none') {
     return null;
   }
-  if (integration.provider === 'cursor') {
-    return <CursorAgentSettings integration={integration} {...props} />;
+  if (integration.provider === 'cursor' || integration.provider === 'claude_code') {
+    return <CodingAgentSettings integration={integration} {...props} />;
   }
   return null;
 }
@@ -64,7 +64,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
     select: data => data.json.integrations ?? [],
   });
   const options = useAgentOptions({integrations: integrations ?? []});
-  const selected = useSelectedAgent({
+  const selected = useSelectedAgentFromProjectSettings({
     preference,
     project,
     integrations: integrations ?? [],

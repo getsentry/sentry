@@ -31,6 +31,7 @@ server.listen(3000, "127.0.0.1");
 `;
 
 export const onboarding: OnboardingConfig = {
+  hideInstructionsCopy: true,
   introduction: () =>
     tct("In this quick guide you'll use [strong:npm] or [strong:yarn] to set up:", {
       strong: <strong />,

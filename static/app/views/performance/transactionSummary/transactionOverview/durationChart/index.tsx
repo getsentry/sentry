@@ -14,7 +14,6 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useRouter from 'sentry/utils/useRouter';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,
@@ -49,7 +48,6 @@ function DurationChart({
   queryExtras,
 }: Props) {
   const navigate = useNavigate();
-  const router = useRouter();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -83,7 +81,6 @@ function DurationChart({
 
   const contentCommonProps = {
     theme,
-    router,
     start,
     end,
     utc,

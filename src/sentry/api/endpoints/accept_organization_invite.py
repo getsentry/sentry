@@ -42,7 +42,7 @@ def handle_empty_organization_id_or_slug(
     )
     for mapping in org_mappings:
         try:
-            if get_cell_by_name(mapping.region_name).is_historic_monolith_region():
+            if get_cell_by_name(mapping.cell_name).is_historic_monolith_region():
                 member_mapping = member_mappings.get(mapping.organization_id)
                 break
         except RegionResolutionError:

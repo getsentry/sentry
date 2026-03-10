@@ -157,7 +157,7 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes categories displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
-      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+      PlanDetailsLookupFixture('am2_business').checkoutCategories.length + 2 // +2 for audit fields
     );
     expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();

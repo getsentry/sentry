@@ -349,11 +349,7 @@ describe('AggregateColumnEditorModal', () => {
   });
 
   it('allows adding an equation', async () => {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['visibility-explore-equations'],
-      },
-    });
+    const {organization} = initializeOrg();
 
     const onColumnsChange = jest.fn();
 

@@ -629,7 +629,11 @@ function WidgetViewerModal(props: Props) {
               }}
               noPadding
               widgetLegendState={widgetLegendState}
-              showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
               widgetInterval={widgetInterval}
             />
           </Container>
@@ -1043,13 +1047,10 @@ function ViewerTableV2({
     );
   }
 
-  let cellActions: Actions[] = [];
-  if (organization.features.includes('discover-cell-actions-v2')) {
-    cellActions =
-      tableWidget.widgetType === WidgetType.SPANS
-        ? [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE]
-        : ALLOWED_CELL_ACTIONS;
-  }
+  const cellActions =
+    tableWidget.widgetType === WidgetType.SPANS
+      ? [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE]
+      : ALLOWED_CELL_ACTIONS;
 
   return (
     <Fragment>
