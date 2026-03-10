@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
+import {CustomerAbuseStats} from 'admin/components/customers/customerAbuseStats';
 import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import DetailLabel from 'admin/components/detailLabel';
@@ -172,6 +173,16 @@ function ProjectDetails() {
             name: 'Usage Stats',
             content: (
               <CustomerStats
+                dataType={activeDataType()}
+                orgSlug={orgId}
+                projectId={data.id}
+              />
+            ),
+          },
+          {
+            name: 'Abuse Stats',
+            content: (
+              <CustomerAbuseStats
                 dataType={activeDataType()}
                 orgSlug={orgId}
                 projectId={data.id}
