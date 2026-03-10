@@ -77,7 +77,15 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 limit = int(request.GET.get("limit", 3))
             except (ValueError, TypeError):
                 raise ParseError(detail="Invalid limit parameter")
-            queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")[:limit]
+            if limit < 1:
+                raise ParseError(detail="Invalid limit parameter")
+            results = list(
+                Broadcast.objects.filter(
+                    Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now()),
+                    is_active=True,
+                ).order_by("-date_added")[:limit]
+            )
+            return self.respond(self._serialize_objects(results, request))
         else:
             # only allow active broadcasts if they're not a superuser
             queryset = Broadcast.objects.filter(

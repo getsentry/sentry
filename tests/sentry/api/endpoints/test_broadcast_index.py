@@ -100,6 +100,33 @@ class BroadcastListTest(APITestCase):
         response = self.client.get("/api/0/broadcasts/?show=latest&limit=abc")
         assert response.status_code == 400
 
+    def test_show_latest_negative_limit(self) -> None:
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest&limit=-1")
+        assert response.status_code == 400
+
+    def test_show_latest_excludes_expired(self) -> None:
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        active_broadcast = Broadcast.objects.create(
+            message="active", is_active=True, date_expires=None
+        )
+        Broadcast.objects.create(
+            message="expired",
+            is_active=True,
+            date_expires=timezone.now() - timedelta(days=1),
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get("/api/0/broadcasts/?show=latest")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(active_broadcast.id)
+
     def test_show_latest_does_not_require_admin(self) -> None:
         Broadcast.objects.create(message="active", is_active=True)
 
