@@ -8,7 +8,7 @@ import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTo
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
-import {useIsNavTourActive} from 'sentry/views/nav/tour/tour';
+import {useIsNavTourActive} from 'sentry/views/navigation/tour/tour';
 
 export const enum ExploreSpansTour {
   // Specify keywords to narrow down search

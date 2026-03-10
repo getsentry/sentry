@@ -6,8 +6,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useNavigationContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import {useNavigationContext} from 'sentry/views/navigation/context';
+import {NavLayout} from 'sentry/views/navigation/types';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';

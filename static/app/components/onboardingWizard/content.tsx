@@ -26,7 +26,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
+import {useStackedNavigationTour} from 'sentry/views/navigation/tour/tour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete

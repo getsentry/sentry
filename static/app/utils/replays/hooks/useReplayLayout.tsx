@@ -10,8 +10,8 @@ import {
   NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
-} from 'sentry/views/nav/constants';
-import {useNavigationContext} from 'sentry/views/nav/context';
+} from 'sentry/views/navigation/constants';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 
 export enum LayoutKey {
   /**

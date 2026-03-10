@@ -1,9 +1,9 @@
 import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
-import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import type {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import type {PrimaryNavGroup} from 'sentry/views/navigation/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 

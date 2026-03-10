@@ -15,7 +15,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
+import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {

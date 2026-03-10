@@ -5,12 +5,12 @@ import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavigationContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/components';
+import {NavLayout} from 'sentry/views/navigation/types';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';

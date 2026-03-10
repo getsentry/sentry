@@ -17,8 +17,8 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
-import {UserDropdown} from 'sentry/views/nav/userDropdown';
+import {OrganizationDropdown} from 'sentry/views/navigation/organizationDropdown';
+import {UserDropdown} from 'sentry/views/navigation/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import DeactivatedMember from 'getsentry/components/features/illustrations/deactivatedMember';
