@@ -32,8 +32,8 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
@@ -49,7 +49,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatRate} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
@@ -303,7 +303,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
+        {typeof data[field] === 'number'
+          ? Number.isInteger(data[field])
+            ? formatAbbreviatedNumber(data[field])
+            : formatFloat(data[field], 4)
+          : emptyValue}
       </NumberContainer>
     ),
   },
