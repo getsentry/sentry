@@ -4,13 +4,8 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 
 import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
+import {REPO_FILTER_OPTIONS} from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
 import {t} from 'sentry/locale';
-
-const REPO_FILTER_OPTIONS: Array<SelectOption<RepoFilter>> = [
-  {value: 'all' as const, label: t('All repos')},
-  {value: 'connected' as const, label: t('Connected Repos')},
-  {value: 'not-connected' as const, label: t('Disconnected Repos')},
-];
 
 interface Props {
   repoFilter: RepoFilter;
