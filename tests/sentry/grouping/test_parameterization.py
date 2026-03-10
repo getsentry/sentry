@@ -9,12 +9,12 @@ from sentry.grouping.parameterization import (
 
 @pytest.fixture
 def parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=False)
+    return Parameterizer(use_experimental_regexes=False)
 
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=True)
+    return Parameterizer(use_experimental_regexes=True)
 
 
 standard_cases = [

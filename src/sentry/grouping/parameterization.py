@@ -276,9 +276,9 @@ class Parameterizer:
         regex_pattern_keys: Sequence[str] | None = None,
         # Whether to use experimental patterns, if available. (Pattern types without an experimental
         # pattern will fall back to the standard pattern.)
-        experimental: bool = False,
+        use_experimental_regexes: bool = False,
     ):
-        self._experimental = experimental
+        self._experimental = use_experimental_regexes
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )

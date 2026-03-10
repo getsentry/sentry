@@ -62,7 +62,9 @@ def normalize_message_for_grouping(
     `trim_message` is True, trim the message to at most 2 lines.
     """
     parameterizer = Parameterizer(
-        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+        use_experimental_regexes=in_rollout_group(
+            "grouping.experimental_parameterization", event.project_id
+        ),
     )
 
     if trim_message:
