@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {To} from '@remix-run/router';
+import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
@@ -516,7 +516,7 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
 `;
 
 export function isSidebarLinkActive(
-  to: To,
+  to: LocationDescriptor | string,
   pathname: string,
   options: {end?: boolean} = {end: false}
 ): boolean {
