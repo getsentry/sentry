@@ -169,16 +169,12 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     rule_ids: string[];
   };
-  'project_detail.alerts_create_alert_clicked': Record<string, unknown>;
-  'project_detail.alerts_learn_more_clicked': Record<string, unknown>;
   'project_detail.change_chart': {chart_index: number; metric: string};
   'project_detail.open_anr_issues': Record<string, unknown>;
   'project_detail.open_discover': Record<string, unknown>;
   'project_detail.open_issues': Record<string, unknown>;
-  'project_detail.performance_setup_clicked': Record<string, unknown>;
   'project_detail.performance_tour.advance': BaseTour;
   'project_detail.performance_tour.close': BaseTour;
-  'project_detail.releases_setup_clicked': Record<string, unknown>;
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
   'release_detail.pagination': {direction: string};
@@ -255,14 +251,8 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
   'project_detail.open_anr_issues': 'Project Detail: Open issues from ANR rate scorecard',
   'project_detail.change_chart': 'Project Detail: Change Chart',
-  'project_detail.alerts_create_alert_clicked':
-    'Project Detail: Alerts Create Alert Clicked',
-  'project_detail.alerts_learn_more_clicked': 'Project Detail: Alerts Learn More Clicked',
-  'project_detail.performance_setup_clicked':
-    'Project Detail: Performance Start Setup Clicked',
   'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
-  'project_detail.releases_setup_clicked': 'Project Detail: Releases Start Setup Clicked',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
