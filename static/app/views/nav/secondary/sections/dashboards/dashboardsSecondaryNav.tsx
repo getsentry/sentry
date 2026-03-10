@@ -22,6 +22,9 @@ export function DashboardsSecondaryNav() {
 
   const {data: starredDashboards = []} = useGetStarredDashboards();
 
+  const prebuiltDashboards = starredDashboards.filter(d => defined(d.prebuiltId));
+  const customDashboards = starredDashboards.filter(d => !defined(d.prebuiltId));
+
   return (
     <Fragment>
       <SecondaryNav.Header>
@@ -33,13 +36,13 @@ export function DashboardsSecondaryNav() {
             {t('All Dashboards')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        {starredDashboards.length > 0 ? (
+        {customDashboards.length > 0 ? (
           <SecondaryNav.Section id="dashboards-starred" title={t('Starred Dashboards')}>
             <ErrorBoundary mini>
               {organization.features.includes('dashboards-starred-reordering') ? (
-                <DashboardsNavItems initialDashboards={starredDashboards} />
+                <DashboardsNavItems initialDashboards={customDashboards} />
               ) : (
-                starredDashboards.map(dashboard => {
+                customDashboards.map(dashboard => {
                   const dashboardProjects = new Set(
                     (dashboard?.projects ?? []).map(String)
                   );
@@ -78,6 +81,52 @@ export function DashboardsSecondaryNav() {
                   );
                 })
               )}
+            </ErrorBoundary>
+          </SecondaryNav.Section>
+        ) : null}
+        {prebuiltDashboards.length > 0 ? (
+          <SecondaryNav.Section
+            id="dashboards-starred-sentry"
+            title={t('Starred Sentry Built Dashboards')}
+          >
+            <ErrorBoundary mini>
+              {prebuiltDashboards.map(dashboard => {
+                const dashboardProjects = new Set(
+                  (dashboard?.projects ?? []).map(String)
+                );
+                if (!defined(dashboard?.projects)) {
+                  Sentry.setTag('organization', organization.id);
+                  Sentry.setTag('dashboard.id', dashboard.id);
+                  Sentry.setTag('user.id', user.id);
+                  Sentry.captureMessage(
+                    'dashboard.projects is undefined in starred sidebar',
+                    {
+                      level: 'warning',
+                    }
+                  );
+                }
+                const dashboardProjectPlatforms = projects
+                  .filter(p => dashboardProjects.has(p.id))
+                  .map(p => p.platform)
+                  .filter(defined);
+                return (
+                  <SecondaryNav.Item
+                    key={dashboard.id}
+                    to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
+                    analyticsItemName="dashboard_starred_item"
+                    leadingItems={
+                      <ProjectIcon
+                        projectPlatforms={dashboardProjectPlatforms}
+                        allProjects={
+                          dashboard.projects.length === 1 && dashboard.projects[0] === -1
+                        }
+                      />
+                    }
+                  >
+                    {dashboard.title}
+                  </SecondaryNav.Item>
+                );
+              })}
             </ErrorBoundary>
           </SecondaryNav.Section>
         ) : null}
