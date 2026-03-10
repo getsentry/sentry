@@ -219,6 +219,8 @@ test-symbolicator:
 	python3 -b -m pytest tests/symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
 	python3 -b -m pytest tests/relay_integration/lang/javascript/ --reuse-db -vv -m symbolicator
 	python3 -b -m pytest tests/relay_integration/lang/java/ --reuse-db -vv -m symbolicator
+	# All Sentry tests tagged with Symbolicator
+	python3 -b -m pytest tests/sentry/ --reuse-db -vv -m symbolicator
 	@echo ""
 
 test-acceptance:
