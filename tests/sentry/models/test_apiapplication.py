@@ -290,6 +290,11 @@ class ApiApplicationTest(TestCase):
         assert "%EF%BF%BD" not in result
         assert "%2580" in result.lower()
 
+        # Uppercase hex: %25AB must behave the same as %25ab
+        result = app.normalize_url("http://example.com/%25AB/")
+        assert "%EF%BF%BD" not in result
+        assert "%25ab" in result.lower()
+
     def _assert_no_bypass(self, app, attack_uri, registered_path):
         """Verify an attack URI cannot redirect outside the registered path.
 
