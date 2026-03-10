@@ -43,16 +43,26 @@ export function hasAssembly(frame: Frame, platform?: string) {
   );
 }
 
+/**
+ * Returns true if the frame has enough information to potentially fetch
+ * source context from an SCM integration (filename + line number + in-app).
+ */
+export function hasPotentialSourceContext(frame: Frame) {
+  return !!frame.inApp && !!frame.lineNo && !!(frame.filename || frame.absPath);
+}
+
 export function isExpandable({
   frame,
   registers,
   emptySourceNotation,
   platform,
   isOnlyFrame,
+  hasScmSourceContext,
 }: {
   frame: Frame;
   registers: StacktraceType['registers'];
   emptySourceNotation?: boolean;
+  hasScmSourceContext?: boolean;
   isOnlyFrame?: boolean;
   platform?: string;
 }) {
@@ -61,7 +71,8 @@ export function isExpandable({
     hasContextSource(frame) ||
     hasContextVars(frame) ||
     hasContextRegisters(registers) ||
-    hasAssembly(frame, platform)
+    hasAssembly(frame, platform) ||
+    (hasScmSourceContext && hasPotentialSourceContext(frame))
   );
 }
 
