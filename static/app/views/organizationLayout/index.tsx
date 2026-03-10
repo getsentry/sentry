@@ -103,15 +103,4 @@ function GlobalAnalytics() {
   return null;
 }
 
-// const AppContainer = styled('div')`
-//   position: relative;
-//   display: flex;
-//   flex-direction: column;
-//   flex-grow: 1;
-
-//   @media (min-width: ${p => p.theme.breakpoints.md}) {
-//     flex-direction: row;
-//   }
-// `;
-
 export default OrganizationLayout;

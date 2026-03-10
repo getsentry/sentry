@@ -247,8 +247,14 @@ export function useNavigationTourContext(): {
 
 export function NavigationTourContextProvider({children}: {children: React.ReactNode}) {
   const [showTourReminder, setShowTourReminder] = useState(false);
+
+  const contextValue = useMemo(
+    () => ({showTourReminder, setShowTourReminder}),
+    [showTourReminder, setShowTourReminder]
+  );
+
   return (
-    <NavigationTourContext.Provider value={{showTourReminder, setShowTourReminder}}>
+    <NavigationTourContext.Provider value={contextValue}>
       {children}
     </NavigationTourContext.Provider>
   );
