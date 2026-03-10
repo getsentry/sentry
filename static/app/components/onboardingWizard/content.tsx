@@ -26,7 +26,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {useStackedNavigationTour} from 'sentry/views/navigation/tour/tour';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -181,7 +181,7 @@ function Task({task, hidePanel}: TaskProps) {
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
-  const sidebarTour = useStackedNavigationTour();
+  const sidebarTour = useNavigationTour();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

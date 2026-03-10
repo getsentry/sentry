@@ -8,20 +8,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
 import MobileTopbar from 'sentry/views/navigation/mobileTopbar';
-import {Sidebar} from 'sentry/views/navigation/sidebar';
 import {
   NavigationTourProvider,
-  useStackedNavigationTour,
-} from 'sentry/views/navigation/tour/tour';
+  useNavigationTour,
+} from 'sentry/views/navigation/navigationTour';
+import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
+import {Sidebar} from 'sentry/views/navigation/sidebar';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useCommandPalette} from 'sentry/views/navigation/useCommandPalette';
-import {UserDropdown} from 'sentry/views/navigation/userDropdown';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
   useCommandPalette();
   const {layout, navigationParentRef} = useNavigationContext();
-  const {currentStepId, endTour} = useStackedNavigationTour();
+  const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
 

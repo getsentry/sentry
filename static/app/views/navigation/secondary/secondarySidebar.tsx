@@ -12,19 +12,19 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
+import {
+  NAVIGATION_TOUR_CONTENT,
+  NavigationTour,
+  NavigationTourElement,
+  useNavigationTour,
+} from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
-import {
-  NavigationTourElement,
-  STACKED_NAVIGATION_TOUR_CONTENT,
-  StackedNavigationTour,
-  useStackedNavigationTour,
-} from 'sentry/views/navigation/tour/tour';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export function SecondarySidebar() {
-  const {currentStepId} = useStackedNavigationTour();
-  const stepId = currentStepId ?? StackedNavigationTour.ISSUES;
+  const {currentStepId} = useNavigationTour();
+  const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
 
@@ -52,8 +52,8 @@ export function SecondarySidebar() {
   return (
     <SecondarySidebarWrapper
       id={stepId}
-      description={STACKED_NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={STACKED_NAVIGATION_TOUR_CONTENT[stepId].title}
+      description={NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={NAVIGATION_TOUR_CONTENT[stepId].title}
     >
       {({ref, ...props}) => (
         <ResizeWrapper

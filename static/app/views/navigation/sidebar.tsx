@@ -15,13 +15,13 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {OrganizationDropdown} from 'sentry/views/navigation/organizationDropdown';
-import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
-import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
 import {
+  useNavigationTour,
   useNavigationTourModal,
-  useStackedNavigationTour,
-} from 'sentry/views/navigation/tour/tour';
+} from 'sentry/views/navigation/navigationTour';
+import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
 export function Sidebar() {
@@ -35,7 +35,7 @@ export function Sidebar() {
   const showSuperuserWarning =
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
-  const {currentStepId: currentStepId} = useStackedNavigationTour();
+  const {currentStepId: currentStepId} = useNavigationTour();
 
   const tourIsActive = currentStepId !== null;
   const forceExpanded = tourIsActive;
