@@ -266,8 +266,10 @@ class WorkflowEngineDetectorSerializer(Serializer):
         )
 
         # add trigger and action data
+        # Evaluate queryset once and reuse for both serialization and lookup dict
+        detector_trigger_data_conditions_list = list(detector_trigger_data_conditions)
         serialized_data_conditions = serialize(
-            list(detector_trigger_data_conditions),
+            detector_trigger_data_conditions_list,
             user,
             WorkflowEngineDataConditionSerializer(),
             **kwargs,
@@ -279,10 +281,14 @@ class WorkflowEngineDetectorSerializer(Serializer):
             serialized_data_conditions,
         )
         # derive thresholdType and sensitivity/seasonality from trigger data conditions
+        # Build a dict to avoid N queries when looking up by condition_group_id
+        trigger_dc_by_condition_group_id = {
+            dc.condition_group_id: dc for dc in detector_trigger_data_conditions_list
+        }
         for detector in detectors.values():
             wcg = detector.workflow_condition_group
             if wcg:
-                trigger_dc = detector_trigger_data_conditions.filter(condition_group=wcg).first()
+                trigger_dc = trigger_dc_by_condition_group_id.get(wcg.id)
                 if trigger_dc:
                     if trigger_dc.type == Condition.ANOMALY_DETECTION:
                         result[detector]["thresholdType"] = trigger_dc.comparison.get(
@@ -340,14 +346,14 @@ class WorkflowEngineDetectorSerializer(Serializer):
         dsd_by_detector_id = {dsd.detector_id: dsd for dsd in data_source_detectors}
 
         query_subscriptions = QuerySubscription.objects.filter(
-            id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
+            id__in=[int(dsd.data_source.source_id) for dsd in data_source_detectors]
         ).select_related("snuba_query__environment")
         qs_by_id = {qs.id: qs for qs in query_subscriptions}
 
         snuba_query_ids = []
         for detector in detectors.values():
             data_source_detector = dsd_by_detector_id[detector.id]
-            query_subscription = qs_by_id[data_source_detector.data_source.source_id]
+            query_subscription = qs_by_id[int(data_source_detector.data_source.source_id)]
             snuba_query = query_subscription.snuba_query
             snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
