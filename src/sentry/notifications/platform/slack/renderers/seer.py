@@ -11,6 +11,7 @@ from slack_sdk.models.blocks import (
     ContextBlock,
     InteractiveElement,
     LinkButtonElement,
+    MarkdownBlock,
     MarkdownTextObject,
     PlainTextObject,
     RichTextBlock,
@@ -195,7 +196,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         summary = data.summary or "I've finished analyzing your question."
         text = f"{summary}\n\n<{data.explorer_link}|View in Sentry>"
 
-        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text))]
+        blocks: list[Block] = [MarkdownBlock(text=text)]
 
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 

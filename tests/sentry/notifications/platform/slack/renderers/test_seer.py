@@ -6,6 +6,7 @@ from slack_sdk.models.blocks import (
     ButtonElement,
     ContextBlock,
     LinkButtonElement,
+    MarkdownBlock,
     PlainTextObject,
     SectionBlock,
 )
@@ -202,34 +203,22 @@ class SeerSlackRendererExplorerTest(TestCase):
 
         assert renderable["text"] == "Seer Explorer has finished"
         blocks = renderable["blocks"]
-        assert len(blocks) == 2
+        assert len(blocks) == 1
 
-        assert isinstance(blocks[0], SectionBlock)
-        assert blocks[0].text is not None
-        assert "Found a spike in 500 errors from the auth service." in blocks[0].text.text
-
-        assert isinstance(blocks[1], ActionsBlock)
-        assert len(blocks[1].elements) == 1
-        button = blocks[1].elements[0]
-        assert isinstance(button, LinkButtonElement)
-        assert button.url == data.explorer_link
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert "Found a spike in 500 errors from the auth service." in blocks[0].text
+        assert f"<{data.explorer_link}|View in Sentry>" in blocks[0].text
 
     def test_render_explorer_response_without_summary(self) -> None:
         data = self._create_explorer_response()
         renderable = SeerSlackRenderer._render_explorer_response(data)
 
         blocks = renderable["blocks"]
-        assert len(blocks) == 2
+        assert len(blocks) == 1
 
-        assert isinstance(blocks[0], SectionBlock)
-        assert blocks[0].text is not None
-        assert "I've finished analyzing your question." in blocks[0].text.text
-
-        assert isinstance(blocks[1], ActionsBlock)
-        assert len(blocks[1].elements) == 1
-        button = blocks[1].elements[0]
-        assert isinstance(button, LinkButtonElement)
-        assert button.url == data.explorer_link
+        assert isinstance(blocks[0], MarkdownBlock)
+        assert "I've finished analyzing your question." in blocks[0].text
+        assert f"<{data.explorer_link}|View in Sentry>" in blocks[0].text
 
     def test_render_dispatches_to_explorer_response(self) -> None:
         data = self._create_explorer_response(summary="Test")
