@@ -2506,6 +2506,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
+    type=Sequence,
+    default=["github"],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
