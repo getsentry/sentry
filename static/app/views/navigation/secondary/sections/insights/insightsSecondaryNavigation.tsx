@@ -29,7 +29,6 @@ import {
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import ProjectIcon from 'sentry/views/navigation/projectIcon';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
@@ -135,7 +134,7 @@ export function InsightsSecondaryNavigation() {
                 key={project.id}
                 to={`${baseUrl}/projects/${project.slug}/`}
                 leadingItems={
-                  <ProjectIcon
+                  <SecondaryNavigation.ProjectIcon
                     projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 }
