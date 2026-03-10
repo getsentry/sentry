@@ -94,7 +94,7 @@ const TOOLS_TABLE = {
 export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Tools',
+  title: 'AI Agents Tool Details',
   filters: {
     globalFilter: [
       {

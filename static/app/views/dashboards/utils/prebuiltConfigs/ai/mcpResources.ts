@@ -123,7 +123,7 @@ const RESOURCES_TABLE = {
 export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Resources',
+  title: 'MCP Resource Details',
   filters: {
     globalFilter: [
       {

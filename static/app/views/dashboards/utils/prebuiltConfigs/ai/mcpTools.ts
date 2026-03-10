@@ -123,7 +123,7 @@ const TOOLS_TABLE = {
 export const MCP_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Tools',
+  title: 'MCP Tool Details',
   filters: {
     globalFilter: [
       {

@@ -157,7 +157,7 @@ const MODELS_TABLE = {
 export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Models',
+  title: 'AI Agents Model Details',
   filters: {
     globalFilter: [
       {
