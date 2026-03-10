@@ -174,23 +174,23 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
-        "title": "AI Agents Models",
+        "title": "AI Agents Model Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
-        "title": "AI Agents Tools",
+        "title": "AI Agents Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
-        "title": "MCP Tools",
+        "title": "MCP Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
-        "title": "MCP Resources",
+        "title": "MCP Resource Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
-        "title": "MCP Prompts",
+        "title": "MCP Prompt Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
