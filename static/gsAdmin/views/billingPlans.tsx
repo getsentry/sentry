@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -6,7 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 
 import Panel from 'sentry/components/panels/panel';
-import {IconChevron, IconDownload} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconDownload} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -15,11 +15,18 @@ import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+interface SeatCosts {
+  ondemand?: number | null;
+  prepaid?: number | null;
+  standard?: number | null;
+}
+
 interface CategoryInfo {
   billed_category: string;
   is_add_on: boolean;
   name: string;
   tally_type: string;
+  seat_costs?: SeatCosts;
 }
 
 export interface BillingPlansResponse {
@@ -35,6 +42,9 @@ interface PlanDetails {
   data_categories_disabled: DataCategory[];
   price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
   pricing: Record<string, Price>;
+  allow_reserved_budgets?: boolean;
+  has_custom_dynamic_sampling?: boolean;
+  has_ondemand_modes?: boolean;
   id?: string;
 }
 
@@ -366,6 +376,45 @@ function PlanDetailsSection({
         </h3>
       </div>
 
+      {/* Plan Features */}
+      <h4>Plan Features</h4>
+      <Panel>
+        <StyledResultTable>
+          <thead>
+            <tr>
+              <th>Has Custom Dynamic Sampling</th>
+              <th>Has Ondemand Modes</th>
+              <th>Allow Reserved Budgets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                {planDetails.has_custom_dynamic_sampling ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+              <td>
+                {planDetails.has_ondemand_modes ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+              <td>
+                {planDetails.allow_reserved_budgets ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </StyledResultTable>
+      </Panel>
+
       {/* Pricing Table */}
       <h4>Pricing</h4>
       <PricingTable pricing={planDetails.pricing} />
@@ -412,6 +461,7 @@ interface TierGroup {
   dataCategory: DataCategory;
   dataCategoryFormatted: string;
   dataCategoryId: string;
+  disabled: boolean;
   groupKey: string;
   isFirstForCategory: boolean;
   tierNumber: number;
@@ -423,7 +473,7 @@ function getCategoryInfo(
   categories: Record<string, CategoryInfo | string> | undefined,
   dataCategory: string,
   dataCategoryFormatted: string
-): {categoryCode?: string; tallyType?: string} {
+): {categoryCode?: string; seatCosts?: SeatCosts; tallyType?: string} {
   if (!categories) return {};
   const entry =
     categories[dataCategory] ??
@@ -435,6 +485,7 @@ function getCategoryInfo(
   }
   return {
     categoryCode: entry.billed_category?.toLowerCase(),
+    seatCosts: entry.seat_costs,
     tallyType: entry.tally_type,
   };
 }
@@ -499,6 +550,7 @@ function MergedPriceTiersTable({
           dataCategoryFormatted,
           dataCategoryId,
           categoryLabel,
+          disabled,
           isFirstForCategory,
         });
         isFirstForCategory = false;
@@ -514,6 +566,7 @@ function MergedPriceTiersTable({
           dataCategoryFormatted,
           dataCategoryId,
           categoryLabel,
+          disabled,
           isFirstForCategory,
         });
         isFirstForCategory = false;
@@ -525,7 +578,28 @@ function MergedPriceTiersTable({
   const usageGroups = groups.filter(
     g => !g.tallyType || g.tallyType.toUpperCase() === 'USAGE'
   );
-  const seatGroups = groups.filter(g => g.tallyType?.toUpperCase() === 'SEAT');
+
+  const seatPricingRows = (
+    Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+  )
+    .filter(([, tiers]) => tiers?.length)
+    .map(([dataCategory]) => {
+      const dataCategoryFormatted = formatDataCategory(dataCategory);
+      const disabled = planDetails.data_categories_disabled.includes(dataCategory);
+      const categoryLabel = disabled
+        ? `${dataCategoryFormatted} (DISABLED)`
+        : dataCategoryFormatted;
+      const info = getCategoryInfo(categories, dataCategory, dataCategoryFormatted);
+      if (info.tallyType?.toUpperCase() !== 'SEAT' || !info.seatCosts) return null;
+      return {
+        categoryLabel,
+        categoryCode: info.categoryCode,
+        seatCosts: info.seatCosts,
+        disabled,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
 
   const toggleExpanded = (key: string) => {
     setExpandedKeys(prev => {
@@ -538,7 +612,7 @@ function MergedPriceTiersTable({
 
   const renderBandCells = (tier: PriceTier) => (
     <Fragment>
-      <td>{formatVolume(tier.volume)}</td>
+      <td>{renderVolume(tier.volume)}</td>
       <td>{formatCurrency(tier.monthly)}</td>
       <td>{formatCurrency(tier.annual)}</td>
       <td>
@@ -587,6 +661,7 @@ function MergedPriceTiersTable({
                 <tr
                   key={expandKey}
                   id={group.isFirstForCategory ? dataCategoryId : undefined}
+                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
                 >
                   <td />
                   <td style={{textAlign: 'left'}}>
@@ -605,15 +680,21 @@ function MergedPriceTiersTable({
 
             const [first, ...rest] = bands;
             const volumeRange =
-              bands.length > 0
-                ? `${formatVolume(bands[0]!.volume)} – ${formatVolume(
-                    bands[bands.length - 1]!.volume
-                  )}`
-                : '—';
+              bands.length > 0 ? (
+                <Fragment>
+                  {renderVolume(bands[0]!.volume)} –{' '}
+                  {renderVolume(bands[bands.length - 1]!.volume)}
+                </Fragment>
+              ) : (
+                '—'
+              );
 
             return (
               <Fragment key={expandKey}>
-                <tr id={group.isFirstForCategory ? dataCategoryId : undefined}>
+                <tr
+                  id={group.isFirstForCategory ? dataCategoryId : undefined}
+                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                >
                   <td>
                     <button
                       type="button"
@@ -655,7 +736,10 @@ function MergedPriceTiersTable({
                 {isExpanded &&
                   first &&
                   rest.map((tier, index) => (
-                    <tr key={`${expandKey}-band-${index}`}>
+                    <tr
+                      key={`${expandKey}-band-${index}`}
+                      style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                    >
                       <td />
                       <td />
                       <td />
@@ -687,7 +771,7 @@ function MergedPriceTiersTable({
           {renderTiersTable(usageGroups)}
         </Fragment>
       )}
-      {seatGroups.length > 0 && (
+      {seatPricingRows.length > 0 && (
         <Fragment>
           <div
             style={{
@@ -699,7 +783,62 @@ function MergedPriceTiersTable({
           >
             <h4 style={{margin: 0}}>Seat Pricing</h4>
           </div>
-          {renderTiersTable(seatGroups)}
+          <Panel>
+            <StyledResultTable>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Standard</th>
+                  <th>Prepaid</th>
+                  <th>Ondemand</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seatPricingRows.map(row => (
+                  <tr
+                    key={row.categoryCode ?? row.categoryLabel}
+                    style={row.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                  >
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{row.categoryLabel}</span>
+                      {row.categoryCode && (
+                        <code style={{display: 'block', textAlign: 'left'}}>
+                          {row.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.standard === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.standard,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.prepaid === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.prepaid,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.ondemand === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.ondemand,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </StyledResultTable>
+          </Panel>
         </Fragment>
       )}
     </div>
@@ -713,7 +852,7 @@ const BillingPlansContainer = styled('div')`
 const StyledResultTable = styled(ResultTable)`
   margin-bottom: ${p => p.theme.space.md};
   thead th {
-    background-color: #f6f6ff;
+    background-color: #f0f0ff;
     padding: 12px 2px;
   }
   td {
@@ -722,7 +861,7 @@ const StyledResultTable = styled(ResultTable)`
   td code {
     padding: 0.45em 0 0 0;
     font-size: 12px;
-    background: white;
+    background: #f6f6f6;
   }
 `;
 
@@ -744,6 +883,8 @@ const TOCContainer = styled('nav')`
   }
 `;
 
+const VOLUME_CONSTANTS = ['RESERVED_BUDGET_QUOTA', 'UNLIMITED_ONDEMAND'] as const;
+
 function formatVolume(volume: number): string {
   const n = Number(volume);
   if (n === -2) return 'RESERVED_BUDGET_QUOTA';
@@ -753,6 +894,14 @@ function formatVolume(volume: number): string {
     return n.toFixed(15).replace(/\.?0+$/, '');
   }
   return n.toLocaleString('en-US', {maximumFractionDigits: 10});
+}
+
+function renderVolume(volume: number): ReactNode {
+  const formatted = formatVolume(volume);
+  if (VOLUME_CONSTANTS.includes(formatted as (typeof VOLUME_CONSTANTS)[number])) {
+    return <code>{formatted}</code>;
+  }
+  return formatted;
 }
 
 function formatPlanTierId(planTierId: string): string {
