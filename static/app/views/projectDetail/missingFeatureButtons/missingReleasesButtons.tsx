@@ -55,6 +55,8 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}
         tooltipProps={{title: setupDisabled ? setupDisabledTooltip : undefined}}
+        analyticsEventKey="project_detail.releases_setup_clicked"
+        analyticsEventName="Project Detail: Releases Start Setup Clicked"
       >
         {t('Start Setup')}
       </LinkButton>

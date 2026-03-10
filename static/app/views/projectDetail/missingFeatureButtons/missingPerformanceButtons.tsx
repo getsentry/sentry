@@ -56,9 +56,10 @@ function MissingPerformanceButtons({organization}: Props) {
         <Button
           size="sm"
           priority="primary"
+          analyticsEventKey="project_detail.performance_setup_clicked"
+          analyticsEventName="Project Detail: Performance Start Setup Clicked"
           onClick={event => {
             event.preventDefault();
-            // TODO: add analytics here for this specific action.
             navigateTo(
               `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
               router
