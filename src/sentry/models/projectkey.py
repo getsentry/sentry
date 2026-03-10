@@ -207,13 +207,16 @@ class ProjectKey(ReplicatedRegionModel):
             )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
         from sentry.hybridcloud.services.replica import control_replica_service
         from sentry.types.region import get_local_region
 
         control_replica_service.upsert_project_key_mapping(
-            project_key_id=self.id,
-            public_key=self.public_key,
-            cell_name=get_local_region().name,
+            project_key=RpcProjectKey(
+                id=self.id,
+                public_key=self.public_key,
+                cell_name=get_local_region().name,
+            ),
         )
 
     def save(self, *args, **kwargs):
