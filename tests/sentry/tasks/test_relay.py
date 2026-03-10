@@ -291,9 +291,9 @@ def test_projectkeys(
     # should be cached as disabled.
 
     # XXX: there should only be one hook triggered, regardless of debouncing
-    # Callbacks: _delete_project_key_mapping, schedule_invalidate_project_config (delete),
-    # ProjectKey.save outbox, schedule_invalidate_project_config (save)
-    with emulate_transactions(assert_num_callbacks=4):
+    # Callbacks: schedule_invalidate_project_config (delete), ProjectKey.save outbox,
+    # schedule_invalidate_project_config (save)
+    with emulate_transactions(assert_num_callbacks=3):
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
             key.delete()
@@ -313,7 +313,7 @@ def test_projectkeys(
 
     assert redis_cache.get(pk.public_key)["disabled"]
 
-    with emulate_transactions(assert_num_callbacks=2):
+    with emulate_transactions():
         pk.delete()
 
     assert redis_cache.get(pk.public_key)["disabled"]
