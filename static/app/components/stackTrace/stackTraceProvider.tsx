@@ -23,8 +23,6 @@ import {
   useStackTraceViewState,
 } from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
-import {StackTraceFrames} from './stackTraceFrames';
-import {CopyButton, DisplayOptions, DownloadButton, Toolbar} from './toolbar';
 import type {StackTraceProviderProps} from './types';
 
 function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformKey {
@@ -32,13 +30,12 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
   return event.platform ?? framePlatform ?? 'other';
 }
 
-function Root({
+export function StackTraceProvider({
   children,
   components: componentsProp,
   event,
   frameBadge,
   frameSourceMapDebuggerData,
-  getFrameLineCoverage,
   hideSourceMapDebugger = false,
   minifiedStacktrace,
   stacktrace,
@@ -143,7 +140,6 @@ function Root({
       stacktrace: activeStacktrace,
       frameSourceMapDebuggerData,
       frames,
-      getFrameLineCoverage,
       hideSourceMapDebugger,
       rows,
       meta,
@@ -162,7 +158,6 @@ function Root({
       frameBadge,
       frameSourceMapDebuggerData,
       frames,
-      getFrameLineCoverage,
       hasAnyExpandableFrames,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
@@ -179,13 +174,5 @@ function Root({
     <StackTraceContext.Provider value={value}>{children}</StackTraceContext.Provider>
   );
 }
-
-export const StackTraceProvider = Object.assign(Root, {
-  Frames: StackTraceFrames,
-  DisplayOptions,
-  CopyButton,
-  DownloadButton,
-  Toolbar,
-});
 
 export {useStackTraceContext};

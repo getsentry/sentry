@@ -11,7 +11,6 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import type {
   FrameBadge,
-  FrameLineCoverageResolver,
   Row,
   StackTraceMeta,
   StackTraceView,
@@ -83,8 +82,6 @@ export interface StackTraceContextValue {
   frameBadge?: FrameBadge;
   /** Optional per-frame source map debugger resolution data. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
-  /** Optional resolver for per-line test coverage in frame source context. */
-  getFrameLineCoverage?: FrameLineCoverageResolver;
   /** Optional redaction metadata used by variable/register renderers. */
   meta?: StackTraceMeta;
   /** Active project from ProjectsStore, used by frame source-link actions. */

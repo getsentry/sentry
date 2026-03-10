@@ -7,15 +7,20 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Assembly} from 'sentry/components/events/interfaces/frame/assembly';
 import {FrameRegisters} from 'sentry/components/events/interfaces/frame/frameRegisters';
+import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
+import {
+  hasAssembly,
+  hasContextRegisters,
+} from 'sentry/components/events/interfaces/frame/utils';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
+import {
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types/event';
 import {Coverage} from 'sentry/types/integrations';
-import type {PlatformKey} from 'sentry/types/project';
-import type {StacktraceType} from 'sentry/types/stacktrace';
-import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
+import {getFileExtension} from 'sentry/utils/fileExtension';
 
 const SOURCE_LINE_NUMBER_DIGITS = 4;
 
@@ -27,41 +32,37 @@ const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
 };
 
 export interface FrameContentProps {
-  contextLines: Array<[number, string | null]>;
-  event: Event;
-  fileExtension: string;
-  frame: Frame;
-  frameContextId: string;
-  frameIndex: number;
-  meta: StackTraceMeta | undefined;
-  platform: PlatformKey;
-  prismLines: SyntaxHighlightLine[];
-  shouldShowNoDetails: boolean;
-  sourceLineCoverage: Array<Coverage | undefined>;
-  expandedFrameRegisters?: StacktraceType['registers'];
-  frameVariables?: Frame['vars'];
-  hasFrameAssembly?: boolean;
+  sourceLineCoverage?: Array<Coverage | undefined>;
 }
 
-export function FrameContent({
-  contextLines,
-  event,
-  expandedFrameRegisters,
-  fileExtension,
-  frame,
-  frameContextId,
-  frameIndex,
-  frameVariables,
-  hasFrameAssembly,
-  meta,
-  platform,
-  prismLines,
-  shouldShowNoDetails,
-  sourceLineCoverage,
-}: FrameContentProps) {
+export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
+  const {event, frame, frameContextId, frameIndex, isExpanded, platform} =
+    useStackTraceFrameContext();
+  const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
+
+  const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
+  const prismLines = usePrismTokensSourceContext({
+    contextLines,
+    lineNo: frame.lineNo,
+    fileExtension,
+  });
+  const frameRegisters = frameIndex === frames.length - 1 ? stacktrace.registers : null;
+  const expandedFrameRegisters =
+    frameRegisters && hasContextRegisters(frameRegisters) ? frameRegisters : null;
+  const frameVariables = frame.vars;
+  const hasFrameAssembly = hasAssembly(frame, platform);
   const hasSourceContext = contextLines.length > 0;
   const hasFrameVariables = !!frameVariables && Object.keys(frameVariables).length > 0;
   const hasFrameRegisters = !!expandedFrameRegisters;
+  const hasAnyFrameDetails =
+    hasSourceContext || hasFrameVariables || hasFrameRegisters || hasFrameAssembly;
+  const shouldShowNoDetails =
+    frameIndex === lastFrameIndex && frameIndex === 0 && !hasAnyFrameDetails;
+
+  if (!isExpanded) {
+    return null;
+  }
 
   return (
     <Container

@@ -13,14 +13,15 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import {
   DisplayOptions,
   IssueStackTrace,
+  StackTraceFrames,
   StackTraceProvider,
   StackTraceViewStateProvider,
+  Toolbar,
 } from 'sentry/components/stackTrace';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Coverage} from 'sentry/types/integrations';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {
-  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
@@ -96,8 +97,8 @@ function renderStackTrace() {
 
   render(
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-      <StackTraceProvider.Toolbar />
-      <StackTraceProvider.Frames />
+      <Toolbar />
+      <StackTraceFrames />
     </TestStackTraceProvider>
   );
 }
@@ -203,8 +204,8 @@ describe('Core StackTrace', () => {
         stacktrace={stacktrace}
         minifiedStacktrace={minifiedStacktrace}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -285,27 +286,48 @@ describe('Core StackTrace', () => {
     expect(screen.getByText('dsn')).toBeInTheDocument();
   });
 
-  it('renders coverage tooltip from injected frame coverage resolver', async () => {
+  it('renders coverage tooltip from issue-level coverage request', async () => {
     const {event, stacktrace} = makeStackTraceData();
+    const organization = OrganizationFixture({slug: 'org-slug', codecovAccess: true});
+    const project = ProjectFixture({
+      id: event.projectID,
+      slug: 'project-slug',
+    });
+    ProjectsStore.loadInitialData([project]);
+    const coverageRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-coverage/`,
+      body: {
+        status: CodecovStatusCode.COVERAGE_EXISTS,
+        lineCoverage: [
+          [110, Coverage.COVERED],
+          [111, Coverage.PARTIAL],
+          [112, Coverage.NOT_COVERED],
+        ],
+      },
+    });
 
     render(
-      <TestStackTraceProvider
+      <IssueStackTrace
         event={event}
-        stacktrace={stacktrace}
-        getFrameLineCoverage={({frameIndex}): LineCoverage[] | undefined =>
-          frameIndex === stacktrace.frames.length - 1
-            ? [
-                [110, Coverage.COVERED],
-                [111, Coverage.PARTIAL],
-                [112, Coverage.NOT_COVERED],
-              ]
-            : undefined
-        }
-      >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
-      </TestStackTraceProvider>
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />,
+      {organization}
     );
+
+    expect(
+      await screen.findByTestId('core-stacktrace-frame-context')
+    ).toBeInTheDocument();
+    expect(coverageRequest).toHaveBeenCalled();
 
     await userEvent.hover(screen.getByLabelText('Line 112'));
 
@@ -373,8 +395,8 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>,
       {
         organization,
@@ -395,6 +417,24 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders custom frame context via StackTraceFrames slot', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    function CustomFrameContext() {
+      return <div data-test-id="custom-stacktrace-frame-context" />;
+    }
+
+    render(
+      <TestStackTraceProvider event={event} stacktrace={stacktrace}>
+        <StackTraceFrames frameContextComponent={CustomFrameContext} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findAllByTestId('custom-stacktrace-frame-context')).toHaveLength(
+      4
+    );
+  });
+
   it('renders lead hint when non-app frame leads to app frame', async () => {
     renderStackTrace();
 
@@ -413,8 +453,8 @@ describe('Core StackTrace', () => {
           frames: [singleNonAppFrame],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -440,8 +480,8 @@ describe('Core StackTrace', () => {
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -473,8 +513,8 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -509,8 +549,8 @@ describe('Core StackTrace', () => {
           {frameIsResolved: false} as FrameSourceMapDebuggerData,
         ]}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -527,8 +567,8 @@ describe('Core StackTrace', () => {
         stacktrace={stacktrace}
         frameBadge={() => <span>Custom Badge</span>}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -561,8 +601,8 @@ describe('Core StackTrace', () => {
         stacktrace={stacktrace}
         components={components}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -592,8 +632,8 @@ describe('Core StackTrace', () => {
           frames: [frameWithAbsolutePath],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -632,8 +672,8 @@ describe('Core StackTrace', () => {
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -674,8 +714,8 @@ describe('Core StackTrace', () => {
           frames: [{...recursiveFrame}, {...recursiveFrame}, {...recursiveFrame}],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -709,14 +749,14 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
     expect(await screen.findByText('raw_runner_entrypoint')).toBeInTheDocument();
     expect(screen.getByText('within')).toBeInTheDocument();
-    expect(screen.getByText('libpipeline')).toBeInTheDocument();
+    expect(screen.getByText('/opt/service/releases/libpipeline.so')).toBeInTheDocument();
   });
 
   it('renders registers and .NET assembly details in expanded frame context', async () => {
@@ -748,8 +788,8 @@ describe('Core StackTrace', () => {
           },
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 
@@ -781,8 +821,8 @@ describe('Core StackTrace', () => {
           registers: {},
         }}
       >
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </TestStackTraceProvider>
     );
 

@@ -1,5 +1,7 @@
 import {StackTraceViewStateProvider} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
 import {StackTraceProvider} from './stackTraceProvider';
+import {Toolbar} from './toolbar';
 import type {StackTraceProviderProps, StackTraceViewStateProviderProps} from './types';
 
 type StackTraceProps = Omit<StackTraceProviderProps, 'children'> &
@@ -27,8 +29,8 @@ export function StackTrace({
       platform={providerProps.platform ?? event.platform}
     >
       <StackTraceProvider event={event} stacktrace={stacktrace} {...providerProps}>
-        <StackTraceProvider.Toolbar />
-        <StackTraceProvider.Frames />
+        <Toolbar />
+        <StackTraceFrames />
       </StackTraceProvider>
     </StackTraceViewStateProvider>
   );

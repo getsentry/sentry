@@ -18,9 +18,9 @@ interface ToolbarProps {
  *
  * ```tsx
  * <Flex justify="flex-end" gap="sm">
- *   <StackTraceProvider.DownloadButton projectSlug={slug} />
- *   <StackTraceProvider.DisplayOptions />
- *   <StackTraceProvider.CopyButton />
+ *   <DownloadButton projectSlug={slug} />
+ *   <DisplayOptions />
+ *   <CopyButton />
  * </Flex>
  * ```
  */

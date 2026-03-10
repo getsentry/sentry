@@ -8,16 +8,18 @@ import {Text} from '@sentry/scraps/text';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import {ExceptionHeader} from 'sentry/components/stackTrace/exceptionHeader';
+import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import {CopyButton, DisplayOptions} from 'sentry/components/stackTrace/toolbar';
+import type {FrameBadge} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue, Frame} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {ExceptionHeader} from './exceptionHeader';
-import {StackTraceViewStateProvider} from './stackTraceContext';
-import {StackTraceProvider} from './stackTraceProvider';
-import {CopyButton, DisplayOptions} from './toolbar';
-import type {FrameBadge} from './types';
+import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 
 interface IssueStackTraceProps {
   event: Event;
@@ -106,7 +108,7 @@ export function IssueStackTrace({
               module={exc.module}
               mechanism={exc.mechanism}
             />
-            <StackTraceProvider.Frames />
+            <StackTraceFrames frameContextComponent={IssueStackTraceFrameContext} />
           </InterimSection>
         </StackTraceProvider>
       </StackTraceViewStateProvider>
@@ -168,7 +170,9 @@ export function IssueStackTrace({
                     frameBadge={frameBadge}
                     stacktrace={exc.stacktrace!}
                   >
-                    <StackTraceProvider.Frames />
+                    <StackTraceFrames
+                      frameContextComponent={IssueStackTraceFrameContext}
+                    />
                   </StackTraceProvider>
                 </Flex>
               </Disclosure.Content>

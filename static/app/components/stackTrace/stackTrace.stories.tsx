@@ -6,13 +6,18 @@ import {Flex} from '@sentry/scraps/layout';
 import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import {
+  DisplayOptions,
+  DownloadButton,
   IssueStackTrace,
   StackTrace,
   StackTraceFrameRow,
+  StackTraceFrames,
   StackTraceProvider,
   StackTraceViewStateProvider,
+  Toolbar,
   useStackTraceContext,
 } from 'sentry/components/stackTrace';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import * as Storybook from 'sentry/stories';
 import {
@@ -22,12 +27,11 @@ import {
   type ExceptionValue,
   type Frame,
 } from 'sentry/types/event';
-import {Coverage} from 'sentry/types/integrations';
 import type {
-  LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
+import {Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 type StacktraceWithFrames = StacktraceType & {
@@ -370,34 +374,6 @@ function makeRegistersAndAssemblyStackTraceData(): StackTraceStoryData {
   };
 }
 
-function makeCoverageStackTraceData(): StackTraceStoryData {
-  const {event, stacktrace} = makeStackTraceData();
-
-  return {
-    event,
-    stacktrace: {
-      ...stacktrace,
-      frames: stacktrace.frames.map((frame, frameIndex) => {
-        const activeLineNo = frame.lineNo ?? 100 + frameIndex * 10;
-        const context = Array.from({length: 9}, (_value, contextIndex) => {
-          const lineNo = activeLineNo - 4 + contextIndex;
-          const isActiveLine = lineNo === activeLineNo;
-          const lineText = isActiveLine
-            ? `    // frame ${frameIndex + 1} active line`
-            : `    // frame ${frameIndex + 1} context line ${contextIndex + 1}`;
-          return [lineNo, lineText] as [number, string];
-        });
-
-        return {
-          ...frame,
-          context,
-          lineNo: activeLineNo,
-        };
-      }),
-    } as StacktraceWithFrames,
-  };
-}
-
 function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
   return {
     event: makeEvent({
@@ -437,28 +413,6 @@ function makeMixedExpandabilityStackTraceData(): StackTraceStoryData {
         }),
       ],
     } as StacktraceWithFrames,
-  };
-}
-
-function makeFrameCoverageResolver(
-  stacktrace: StacktraceWithFrames
-): ({frameIndex}: {frameIndex: number}) => LineCoverage[] | undefined {
-  const coveragePattern = [Coverage.COVERED, Coverage.PARTIAL, Coverage.NOT_COVERED];
-
-  return ({frameIndex}: {frameIndex: number}) => {
-    const frame = stacktrace.frames[frameIndex];
-    const context = frame?.context ?? [];
-
-    if (context.length === 0) {
-      return undefined;
-    }
-
-    return context.map(
-      ([lineNo], index): LineCoverage => [
-        lineNo,
-        coveragePattern[index % coveragePattern.length]!,
-      ]
-    );
   };
 }
 
@@ -690,7 +644,7 @@ export default Storybook.story('StackTrace', story => {
             framesOmitted: [1, 3],
           }}
         >
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -710,7 +664,7 @@ export default Storybook.story('StackTrace', story => {
           stacktrace={stacktrace}
           components={makeStacktraceLinkComponents()}
         >
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -726,7 +680,7 @@ export default Storybook.story('StackTrace', story => {
           and collapsed into a single row with a repeat count badge.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -742,7 +696,7 @@ export default Storybook.story('StackTrace', story => {
           the most specific (rightmost) segments.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -757,7 +711,7 @@ export default Storybook.story('StackTrace', story => {
           Both the file path and function name are long here, testing two-column overflow.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -775,7 +729,7 @@ export default Storybook.story('StackTrace', story => {
           appears as a secondary label.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -792,29 +746,44 @@ export default Storybook.story('StackTrace', story => {
           are shown below the last frame.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
   });
 
-  story('StackTraceProvider - With Coverage (Multiple Frames)', () => {
-    const {event, stacktrace} = makeCoverageStackTraceData();
+  story('StackTraceFrames - Single Frame Source Coverage', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const sourceLineCoverage = [
+      Coverage.NOT_APPLICABLE,
+      Coverage.COVERED,
+      Coverage.NOT_COVERED,
+      Coverage.PARTIAL,
+      Coverage.COVERED,
+      Coverage.COVERED,
+      Coverage.NOT_APPLICABLE,
+    ];
+
+    const firstFrame = stacktrace.frames[0];
+    if (!firstFrame) {
+      return null;
+    }
+
+    const singleFrameStacktrace = {
+      ...stacktrace,
+      frames: [firstFrame],
+    };
+
+    function CoveredFrameContext() {
+      return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
+    }
 
     return (
-      <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="getFrameLineCoverage" value={Function} /> to
-          annotate context lines with covered / partial / not-covered indicators.
-        </p>
-        <StoryStackTraceProvider
-          event={event}
-          stacktrace={stacktrace}
-          getFrameLineCoverage={makeFrameCoverageResolver(stacktrace)}
-        >
-          <StackTraceProvider.Frames />
+      <div>
+        <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
+          <StackTraceFrames frameContextComponent={CoveredFrameContext} />
         </StoryStackTraceProvider>
-      </Fragment>
+      </div>
     );
   });
 
@@ -828,7 +797,7 @@ export default Storybook.story('StackTrace', story => {
           stay aligned while still showing a chevron only on expandable rows.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -876,7 +845,7 @@ export default Storybook.story('StackTrace', story => {
           complete control over layout.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceProvider.Toolbar />
+          <Toolbar />
           <ComposedContent />
         </StoryStackTraceProvider>
       </Fragment>
@@ -985,10 +954,10 @@ export default Storybook.story('StackTrace', story => {
           defaultView="raw"
         >
           <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
-            <StackTraceProvider.DownloadButton projectSlug="my-project" />
-            <StackTraceProvider.DisplayOptions />
+            <DownloadButton projectSlug="my-project" />
+            <DisplayOptions />
           </Flex>
-          <StackTraceProvider.Frames />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -1002,7 +971,7 @@ export default Storybook.story('StackTrace', story => {
         <WideHovercard
           body={
             <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceProvider.Frames />
+              <StackTraceFrames />
             </StoryStackTraceProvider>
           }
         >
@@ -1039,8 +1008,8 @@ export default Storybook.story('StackTrace', story => {
           minifiedStacktrace={minifiedStacktrace}
           defaultIsMinified
         >
-          <StackTraceProvider.Toolbar />
-          <StackTraceProvider.Frames />
+          <Toolbar />
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </Fragment>
     );

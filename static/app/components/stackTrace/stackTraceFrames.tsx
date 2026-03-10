@@ -1,3 +1,4 @@
+import type {ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -7,6 +8,7 @@ import rawStacktraceContent from 'sentry/components/events/interfaces/crashConte
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
+import {FrameContext} from './frame/frameContext';
 import {StackTraceFrameRow} from './frame/frameRow';
 import {useStackTraceContext, useStackTraceViewState} from './stackTraceContext';
 
@@ -21,7 +23,14 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
   );
 }
 
-export function StackTraceFrames() {
+export interface StackTraceFramesProps {
+  /** Optional slot to override per-row frame details rendering. */
+  frameContextComponent?: ComponentType;
+}
+
+export function StackTraceFrames({
+  frameContextComponent: FrameContextComponent = FrameContext,
+}: StackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
 
@@ -53,7 +62,16 @@ export function StackTraceFrames() {
             );
           }
 
-          return <StackTraceFrameRow key={row.frameIndex} row={row} />;
+          return (
+            <StackTraceFrameRow key={row.frameIndex} row={row}>
+              <StackTraceFrameRow.Header
+                actions={({isHovering}) => (
+                  <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
+                )}
+              />
+              <FrameContextComponent />
+            </StackTraceFrameRow>
+          );
         })}
       </div>
     </FramesPanel>

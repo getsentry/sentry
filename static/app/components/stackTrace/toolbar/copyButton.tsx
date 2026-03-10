@@ -11,9 +11,9 @@ interface CopyButtonProps {
 
 /**
  * Copy-as dropdown for the raw stack trace content.
- * Reads stacktrace and event from the nearest StackTraceProvider context.
+ * Reads stacktrace and event from the nearest StackTraceContext.
  * Pass getCopyText to override the default raw content.
- * Returns null when used outside a StackTraceProvider and no getCopyText is provided.
+ * Returns null when used outside stack trace context and no getCopyText is provided.
  */
 export function CopyButton({getCopyText}: CopyButtonProps) {
   const stackTraceContext = useContext(StackTraceContext);

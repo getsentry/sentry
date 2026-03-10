@@ -25,12 +25,12 @@ export interface ExceptionHeaderProps {
  * Renders the header area above a stack trace: exception type heading (with optional
  * module tooltip), exception value text, and mechanism pills.
  *
- * Designed to be composed alongside StackTraceProvider.Frames:
+ * Designed to be composed alongside StackTraceFrames:
  *
  * ```tsx
  * <StackTraceProvider event={event} stacktrace={stacktrace}>
  *   <ExceptionHeader type={exc.type} value={exc.value} module={exc.module} mechanism={exc.mechanism} />
- *   <StackTraceProvider.Frames />
+ *   <StackTraceFrames />
  * </StackTraceProvider>
  * ```
  */
