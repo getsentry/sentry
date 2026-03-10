@@ -370,13 +370,33 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
             )
 
 
+def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
+    """Extract GitHub event type and action from payload for delivery_time_ms metric tags."""
+    if payload.provider != "github":
+        return {}
+    tags: dict[str, str] = {}
+    try:
+        headers = orjson.loads(payload.request_headers)
+    except orjson.JSONDecodeError:
+        return {}
+    if isinstance(headers, dict):
+        for key, value in headers.items():
+            if key.upper() == "X-GITHUB-EVENT" and isinstance(value, str) and value:
+                tags["github_event_type"] = value
+                break
+    try:
+        body = orjson.loads(payload.request_body)
+    except orjson.JSONDecodeError:
+        return tags
+    if isinstance(body, dict):
+        action = body.get("action")
+        if isinstance(action, str) and action:
+            tags["github_action"] = action
+    return tags
+
+
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
-    exclude_mailboxes = set(
-        options.get("hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes") or ()
-    )
-    if payload.mailbox_name in exclude_mailboxes:
-        return
     duration = timezone.now() - payload.date_added
     region_sent_to = (
         payload.region_name
@@ -384,6 +404,8 @@ def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
         else "codecov"
     )
     tags = {"region_sent_to": region_sent_to}
+    if options.get("hybridcloud.deliver_webhooks.delivery_time_include_github_tags"):
+        tags |= _get_github_delivery_time_tags(payload)
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
         # e.g. 0.123 seconds → 123 milliseconds

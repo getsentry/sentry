@@ -1336,3 +1336,30 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             just_under_30_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
         )  # Still processing
         assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
+
+    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self):
+        from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)
+
+        snapshot_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=snapshot_artifact.id).update(date_updated=old_time)
+        PreprodSnapshotMetrics.objects.create(preprod_artifact=snapshot_artifact)
+
+        regular_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=regular_artifact.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        snapshot_artifact.refresh_from_db()
+        regular_artifact.refresh_from_db()
+
+        assert snapshot_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        assert regular_artifact.state == PreprodArtifact.ArtifactState.FAILED

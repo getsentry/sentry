@@ -28,14 +28,17 @@ logger = logging.getLogger(__name__)
 
 seer_summarization_default_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 seer_autofix_default_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 seer_anomaly_detection_default_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
@@ -156,12 +159,14 @@ def make_org_project_knowledge_index_request(
 
 def make_remove_repository_request(
     body: RemoveRepositoryRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/remove-repository",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -379,12 +384,14 @@ def make_service_map_update_request(
 
 def make_unit_test_generation_request(
     body: UnitTestGenerationRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/codegen/unit-tests",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -447,24 +454,28 @@ def make_translate_agentic_request(
 
 def make_create_cache_request(
     body: CreateCacheRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/create-cache",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
 
 def make_compare_distributions_request(
     body: CompareDistributionsRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_anomaly_detection_default_connection_pool,
         "/v1/workflows/compare/cohort",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 

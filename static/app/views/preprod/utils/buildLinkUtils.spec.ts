@@ -2,7 +2,6 @@ import {
   getBaseBuildPath,
   getCompareBuildPath,
   getInstallBuildPath,
-  getListBuildPath,
   getSizeBuildPath,
 } from './buildLinkUtils';
 
@@ -62,16 +61,6 @@ describe('buildLinkUtils', () => {
           baseArtifactId: 'base-456',
         })
       ).toBe('/organizations/test-org/preprod/size/compare/head-123/base-456/');
-    });
-  });
-
-  describe('getListBuildPath', () => {
-    it('generates correct list path', () => {
-      expect(
-        getListBuildPath({
-          organizationSlug: 'test-org',
-        })
-      ).toBe('/organizations/test-org/preprod/');
     });
   });
 
