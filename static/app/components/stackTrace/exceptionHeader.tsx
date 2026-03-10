@@ -8,50 +8,36 @@ import {Mechanism} from 'sentry/components/events/interfaces/crashContent/except
 import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 
-export interface ExceptionHeaderProps {
-  /** Exception class name, e.g. "TypeError" */
+interface ExceptionHeaderProps {
+  module: string | null;
   type: string;
-  /** Mechanism data for the mechanism pills row */
-  mechanism?: StackTraceMechanism | null;
-  /** Annotated-text metadata for mechanism pills */
-  meta?: Record<string, any>;
-  /** Module/namespace – rendered as a tooltip on the heading */
-  module?: string | null;
-  /** Exception message/value */
-  value?: string | null;
 }
 
-/**
- * Renders the header area above a stack trace: exception type heading (with optional
- * module tooltip), exception value text, and mechanism pills.
- *
- * Designed to be composed alongside StackTraceFrames:
- *
- * ```tsx
- * <StackTraceProvider event={event} stacktrace={stacktrace}>
- *   <ExceptionHeader type={exc.type} value={exc.value} module={exc.module} mechanism={exc.mechanism} />
- *   <StackTraceFrames />
- * </StackTraceProvider>
- * ```
- */
-export function ExceptionHeader({
-  type,
-  value,
-  module: mod,
-  mechanism,
-  meta,
-}: ExceptionHeaderProps) {
+export function ExceptionHeader({type, module}: ExceptionHeaderProps) {
   return (
-    <Flex direction="column" gap="sm">
-      <div>
-        <Tooltip title={t('from %s', mod)} disabled={!mod}>
-          <Heading as="h5" size="lg">
-            {type}
-          </Heading>
-        </Tooltip>
-      </div>
+    <Tooltip title={t('from %s', module)} disabled={!module}>
+      <Heading as="h5" size="xl">
+        {type}
+      </Heading>
+    </Tooltip>
+  );
+}
+
+interface ExceptionDescriptionProps {
+  mechanism: StackTraceMechanism | null;
+  value: string | null;
+  gap?: 'sm' | 'md' | 'lg';
+}
+
+export function ExceptionDescription({
+  value,
+  mechanism,
+  gap = 'sm',
+}: ExceptionDescriptionProps) {
+  return (
+    <Flex direction="column" gap={gap}>
       {value && <ExceptionValue>{value}</ExceptionValue>}
-      {mechanism && <Mechanism data={mechanism} meta={meta} />}
+      {mechanism && <Mechanism data={mechanism} />}
     </Flex>
   );
 }

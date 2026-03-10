@@ -87,7 +87,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <MainContent noWrap={!isExpanded}>
+      <MainContent noWrap={!isExpanded && hasLeadHint}>
         <FrameLocation
           frame={frame}
           nextFrame={nextFrame}

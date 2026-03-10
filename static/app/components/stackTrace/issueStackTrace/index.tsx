@@ -4,12 +4,16 @@ import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import {ExceptionHeader} from 'sentry/components/stackTrace/exceptionHeader';
+import {
+  ExceptionDescription,
+  ExceptionHeader,
+} from 'sentry/components/stackTrace/exceptionHeader';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
@@ -107,12 +111,10 @@ export function IssueStackTrace({
             title="Stack Trace"
             actions={actions}
           >
-            <ExceptionHeader
-              type={exc.type}
-              value={exc.value}
-              module={exc.module}
-              mechanism={exc.mechanism}
-            />
+            <Flex direction="column" gap="sm">
+              <ExceptionHeader type={exc.type} module={exc.module} />
+              <ExceptionDescription value={exc.value} mechanism={exc.mechanism} />
+            </Flex>
             <StackTraceFrames frameContextComponent={IssueStackTraceFrameContext} />
           </InterimSection>
         </StackTraceProvider>
@@ -161,15 +163,14 @@ export function IssueStackTrace({
               defaultExpanded={idx === 0}
             >
               <Disclosure.Title>
-                {exc.type}: {exc.value}
+                <ExceptionHeader type={exc.type} module={exc.module} />
               </Disclosure.Title>
               <Disclosure.Content>
-                <Flex direction="column" gap="md">
-                  <ExceptionHeader
-                    type={exc.type}
+                <Flex direction="column" gap="sm">
+                  <ExceptionDescription
                     value={exc.value}
-                    module={exc.module}
                     mechanism={exc.mechanism}
+                    gap="lg"
                   />
                   <StackTraceProvider
                     event={event}

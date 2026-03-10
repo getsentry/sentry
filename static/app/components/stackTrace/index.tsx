@@ -1,6 +1,4 @@
-export {ExceptionHeader} from './exceptionHeader';
 export {IssueStackTrace} from './issueStackTrace';
-export type {ExceptionHeaderProps} from './exceptionHeader';
 export {StackTraceFrameRow} from './frame/frameRow';
 export {StackTraceFrames} from './stackTraceFrames';
 export {StackTraceProvider, useStackTraceContext} from './stackTraceProvider';

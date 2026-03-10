@@ -11,7 +11,7 @@ import {
 
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
 
-const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(80px, 10vw, 140px)';
+const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(160px, 18vw, 220px)';
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
 interface SourceLinkActionProps {
