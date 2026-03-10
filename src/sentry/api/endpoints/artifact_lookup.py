@@ -29,6 +29,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -95,7 +96,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 ReleaseFile.objects.filter(
                     id=ty_id,
                     organization_id=project.organization.id,
-                    release__projects=project,
+                    release_id__in=ReleaseProject.objects.filter(
+                        project=project,
+                    ).values("release_id"),
                 )
                 .select_related("file")
                 .first()
