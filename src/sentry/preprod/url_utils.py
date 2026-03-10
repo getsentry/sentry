@@ -25,5 +25,9 @@ def get_preprod_artifact_comparison_url(
     organization: Organization = Organization.objects.get_from_cache(
         id=preprod_artifact.project.organization_id
     )
-    path = f"/organizations/{organization.slug}/preprod/{comparison_type}/compare/{preprod_artifact.id}/{base_artifact.id}"
+    if comparison_type == "snapshots":
+        path = f"/organizations/{organization.slug}/preprod/{comparison_type}/compare/{preprod_artifact.id}"
+    else:
+        path = f"/organizations/{organization.slug}/preprod/{comparison_type}/compare/{preprod_artifact.id}/{base_artifact.id}"
+
     return organization.absolute_url(path)

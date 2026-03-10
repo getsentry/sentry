@@ -560,7 +560,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             base_artifact_map,
         )
 
-        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/compare/{head_artifact.id}/{base_artifact.id}"
+        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/compare/{head_artifact.id}"
         assert expected_url in summary
 
     def test_summary_uses_artifact_url_when_no_base(self):
