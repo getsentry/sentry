@@ -3,7 +3,8 @@ from __future__ import annotations
 import enum
 import re
 import secrets
-from typing import ClassVar
+from collections.abc import Mapping
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -26,9 +27,9 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.base import Model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
-from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.base import RegionOutboxProducingManager, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -42,7 +43,7 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(BaseManager["ProjectKey"]):
+class ProjectKeyManager(RegionOutboxProducingManager["ProjectKey"]):
     def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
@@ -78,8 +79,10 @@ class UseCase(enum.Enum):
 
 
 @region_silo_model
-class ProjectKey(Model):
+class ProjectKey(ReplicatedRegionModel):
     __relocation_scope__ = RelocationScope.Organization
+
+    category = OutboxCategory.PROJECT_KEY_UPDATE
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
@@ -189,12 +192,31 @@ class ProjectKey(Model):
             return (self.rate_limit_count, self.rate_limit_window)
         return (0, 0)
 
-    def save(self, *args, **kwargs):
-        from django.db import router, transaction
+    def payload_for_update(self) -> dict[str, Any] | None:
+        return {"public_key": self.public_key}
 
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        from sentry.hybridcloud.services.replica import control_replica_service
+
+        if payload and payload.get("public_key"):
+            control_replica_service.delete_project_key_mapping(
+                public_key=payload["public_key"],
+            )
+
+    def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import control_replica_service
         from sentry.types.region import get_local_region
 
+        control_replica_service.upsert_project_key_mapping(
+            project_key_id=self.id,
+            public_key=self.public_key,
+            cell_name=get_local_region().name,
+        )
+
+    def save(self, *args, **kwargs):
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
@@ -202,18 +224,6 @@ class ProjectKey(Model):
         if not self.label:
             self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
-
-        public_key = self.public_key
-        project_key_id = self.id
-        cell_name = get_local_region().name
-        transaction.on_commit(
-            lambda: control_replica_service.upsert_project_key_mapping(
-                project_key_id=project_key_id,
-                public_key=public_key,
-                cell_name=cell_name,
-            ),
-            using=router.db_for_write(ProjectKey),
-        )
 
     def get_dsn(self, domain=None, secure=True, public=False):
         urlparts = urlparse(self.get_endpoint())
@@ -387,19 +397,9 @@ class ProjectKey(Model):
         return (self.pk, ImportKind.Inserted)
 
 
-def _delete_project_key_mapping(instance: ProjectKey, **kwargs: object) -> None:
-    from django.db import router, transaction
-
-    from sentry.hybridcloud.services.replica import control_replica_service
-
-    if not instance.public_key:
-        return
-
-    public_key = instance.public_key
-    transaction.on_commit(
-        lambda: control_replica_service.delete_project_key_mapping(public_key=public_key),
-        using=router.db_for_write(ProjectKey),
-    )
-
-
-pre_delete.connect(_delete_project_key_mapping, sender=ProjectKey, weak=False)
+# Also handle cascade deletes — Django's collector bypasses model delete().
+pre_delete.connect(
+    lambda instance, **k: instance.outbox_for_update().save(),
+    sender=ProjectKey,
+    weak=False,
+)

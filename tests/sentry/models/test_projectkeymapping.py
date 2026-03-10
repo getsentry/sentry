@@ -1,6 +1,7 @@
 from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 
@@ -26,7 +27,8 @@ def test_project_key_mappings_deleted_on_project_delete() -> None:
     key = Factories.create_project_key(project=project)
     public_key = key.public_key
 
-    project.delete()
+    with outbox_runner():
+        project.delete()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert not ProjectKeyMapping.objects.filter(public_key=public_key).exists()
@@ -40,7 +42,8 @@ def test_project_key_mapping_deleted_on_key_delete() -> None:
     key = Factories.create_project_key(project=project)
     public_key = key.public_key
 
-    key.delete()
+    with outbox_runner():
+        key.delete()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert not ProjectKeyMapping.objects.filter(public_key=public_key).exists()
