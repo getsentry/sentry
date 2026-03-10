@@ -1228,10 +1228,10 @@ class DashboardDetail extends Component<Props, State> {
                           />
 
                           <Fragment>
-                            <PrebuiltDashboardOnboardingGate
-                              prebuiltId={dashboard.prebuiltId}
-                            >
-                              <WidgetQueryQueueProvider>
+                            <WidgetQueryQueueProvider>
+                              <PrebuiltDashboardOnboardingGate
+                                prebuiltId={dashboard.prebuiltId}
+                              >
                                 <Dashboard
                                   dashboard={modifiedDashboard ?? dashboard}
                                   isEditingDashboard={this.isEditingDashboard}
@@ -1250,25 +1250,22 @@ class DashboardDetail extends Component<Props, State> {
                                   }
                                   widgetInterval={this.props.widgetInterval}
                                 />
-                              </WidgetQueryQueueProvider>
+                              </PrebuiltDashboardOnboardingGate>
+                            </WidgetQueryQueueProvider>
 
-                              <WidgetBuilderV2
-                                isOpen={this.state.isWidgetBuilderOpen}
-                                openWidgetTemplates={
-                                  this.state.openWidgetTemplates ?? false
-                                }
-                                setOpenWidgetTemplates={
-                                  this.handleChangeWidgetBuilderView
-                                }
-                                onClose={this.handleCloseWidgetBuilder}
-                                dashboardFilters={
-                                  getDashboardFiltersFromURL(location) ??
-                                  dashboard.filters
-                                }
-                                dashboard={modifiedDashboard ?? dashboard}
-                                onSave={this.handleSaveWidget}
-                              />
-                            </PrebuiltDashboardOnboardingGate>
+                            <WidgetBuilderV2
+                              isOpen={this.state.isWidgetBuilderOpen}
+                              openWidgetTemplates={
+                                this.state.openWidgetTemplates ?? false
+                              }
+                              setOpenWidgetTemplates={this.handleChangeWidgetBuilderView}
+                              onClose={this.handleCloseWidgetBuilder}
+                              dashboardFilters={
+                                getDashboardFiltersFromURL(location) ?? dashboard.filters
+                              }
+                              dashboard={modifiedDashboard ?? dashboard}
+                              onSave={this.handleSaveWidget}
+                            />
                           </Fragment>
                         </MEPSettingProvider>
                       )}
