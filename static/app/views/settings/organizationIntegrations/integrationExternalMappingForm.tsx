@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {z} from 'zod';
 
@@ -66,7 +67,8 @@ function mapMembers(members: Member[]) {
 function makeTeamSelectQueryOptions(
   orgSlug: string,
   defaultOptions?: Array<{label: React.ReactNode; value: string}>,
-  mapping?: ExternalActorMappingOrSuggestion
+  mapping?: ExternalActorMappingOrSuggestion,
+  slugByIdRef?: React.RefObject<Map<string, string>>
 ) {
   return (debouncedInput: string) =>
     queryOptions({
@@ -75,8 +77,14 @@ function makeTeamSelectQueryOptions(
         ...(debouncedInput ? {query: {query: debouncedInput}} : {}),
         staleTime: 0,
       }),
-      select: ({json: teams}) =>
-        mergeOptions(mapTeams(teams), defaultOptions, mapping, 'team'),
+      select: ({json: teams}) => {
+        if (slugByIdRef) {
+          for (const team of teams) {
+            slugByIdRef.current.set(team.id, team.slug);
+          }
+        }
+        return mergeOptions(mapTeams(teams), defaultOptions, mapping, 'team');
+      },
     });
 }
 
@@ -123,16 +131,27 @@ function mergeOptions(
   return result;
 }
 
+/**
+ * Track team id→slug mappings so we can resolve slugs for teams found via
+ * search that aren't in the parent component's initial team lists.
+ * Populated from query results in makeTeamSelectQueryOptions's select callback.
+ */
+function useSlugByIdRef() {
+  return useRef(new Map<string, string>());
+}
+
 function buildMutationData(
   mapping: ExternalActorMappingOrSuggestion | undefined,
   integration: Integration,
   type: 'user' | 'team',
   sentryId: string,
-  externalName?: string
+  externalName?: string,
+  sentryName?: string
 ): Record<string, unknown> {
   return {
     ...mapping,
     ...(externalName === undefined ? {} : {externalName}),
+    ...(sentryName === undefined ? {} : {sentryName}),
     provider: integration.provider.key,
     integrationId: integration.id,
     [`${type}Id`]: sentryId,
@@ -149,6 +168,7 @@ function InlineMappingForm({
   type,
 }: InlineProps) {
   const {slug: orgSlug} = useOrganization();
+  const slugByIdRef = useSlugByIdRef();
 
   const initialValue =
     mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
@@ -163,7 +183,15 @@ function InlineMappingForm({
         initialValue={initialValue}
         mutationOptions={{
           mutationFn: ({sentryId}: {sentryId: string}) => {
-            const fullData = buildMutationData(mapping, integration, type, sentryId);
+            const sentryName = slugByIdRef.current.get(sentryId);
+            const fullData = buildMutationData(
+              mapping,
+              integration,
+              type,
+              sentryId,
+              undefined,
+              sentryName
+            );
             const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
               getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
               fullData as ExternalActorMappingOrSuggestion
@@ -185,7 +213,12 @@ function InlineMappingForm({
               onChange={field.handleChange}
               placeholder={t('Select Sentry Team')}
               defaultOptions={defaultOptions}
-              queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
+              queryOptions={makeTeamSelectQueryOptions(
+                orgSlug,
+                defaultOptions,
+                mapping,
+                slugByIdRef
+              )}
             />
           ) : (
             <field.SelectAsync
@@ -220,6 +253,7 @@ function ModalMappingForm({
   type,
 }: ModalProps) {
   const {slug: orgSlug} = useOrganization();
+  const slugByIdRef = useSlugByIdRef();
 
   const initialSentryId =
     mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
@@ -231,12 +265,14 @@ function ModalMappingForm({
 
   const mutation = useMutation({
     mutationFn: ({externalName, sentryId}: {externalName: string; sentryId: string}) => {
+      const sentryName = slugByIdRef.current.get(sentryId);
       const fullData = buildMutationData(
         mapping,
         integration,
         type,
         sentryId,
-        externalName
+        externalName,
+        sentryName
       );
       const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
         getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
@@ -303,7 +339,8 @@ function ModalMappingForm({
                     queryOptions={makeTeamSelectQueryOptions(
                       orgSlug,
                       defaultOptions,
-                      mapping
+                      mapping,
+                      slugByIdRef
                     )}
                   />
                 </field.Layout.Stack>

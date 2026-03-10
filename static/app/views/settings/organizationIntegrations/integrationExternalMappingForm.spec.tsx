@@ -228,6 +228,7 @@ describe('IntegrationExternalMappingForm', () => {
           integrationId: baseProps.integration.id,
           provider: baseProps.integration.provider.key,
           teamId: '3',
+          sentryName: 'option3',
         })
       );
     });

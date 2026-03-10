@@ -116,8 +116,14 @@ function IntegrationExternalTeamMappings(props: Props) {
     if (!mapping) {
       return '';
     }
-    const team = initialResults?.find(item => item.id === mapping.teamId);
-    return `/teams/${organization.slug}/${team?.slug ?? ''}/external-teams/`;
+    // Search both initialResults and teams (filtered by hasExternalTeams).
+    // Fall back to sentryName from the mutation data for teams found via search
+    // that aren't in either list.
+    const team =
+      initialResults?.find(item => item.id === mapping.teamId) ??
+      teams.find(item => item.id === mapping.teamId);
+    const teamSlug = team?.slug ?? ('sentryName' in mapping ? mapping.sentryName : '');
+    return `/teams/${organization.slug}/${teamSlug}/external-teams/`;
   };
 
   const onCreate = (mapping?: ExternalActorMappingOrSuggestion) => {
