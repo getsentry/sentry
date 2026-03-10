@@ -14,7 +14,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -239,7 +238,7 @@ const StyledPanelTable = styled(PanelTable)`
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;

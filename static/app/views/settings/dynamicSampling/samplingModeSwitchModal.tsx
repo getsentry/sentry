@@ -1,5 +1,5 @@
 import {useId} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,7 +14,6 @@ import {
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
@@ -147,6 +146,7 @@ function SamplingModeSwitchModal({
 }
 
 function TargetRateInput({disabled}: {disabled?: boolean}) {
+  const theme = useTheme();
   const id = useId();
   const {value, onChange, error} = useFormField('targetSampleRate');
 
@@ -154,7 +154,7 @@ function TargetRateInput({disabled}: {disabled?: boolean}) {
     <FieldGroup
       label={t('Global Target Sample Rate')}
       css={css`
-        padding-bottom: ${space(0.5)};
+        padding-bottom: ${theme.space.xs};
       `}
       inline={false}
       showHelpInTooltip

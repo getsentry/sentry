@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +16,6 @@ import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
@@ -177,10 +177,10 @@ function TeamRow({
   );
 }
 
-const GRID_TEMPLATE = `
+const GRID_TEMPLATE = (p: {theme: Theme}) => `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
-  gap: ${space(1)};
+  gap: ${p.theme.space.md};
 
   > div:last-child {
     margin-left: auto;

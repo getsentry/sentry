@@ -25,7 +25,6 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -33,9 +32,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   DisplayModes,
@@ -92,7 +91,7 @@ function ReleaseOverview() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const api = useApi();
 
   const {commitCount, version} = release;
@@ -237,7 +236,7 @@ function ReleaseOverview() {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
-    browserHistory.push(target);
+    navigate(target);
   };
 
   const handleDateChange = (datetime: ChangeData) => {
@@ -246,7 +245,7 @@ function ReleaseOverview() {
     if (start && end) {
       const parser = utc ? moment.utc : moment;
 
-      router.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -259,7 +258,7 @@ function ReleaseOverview() {
       return;
     }
 
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,

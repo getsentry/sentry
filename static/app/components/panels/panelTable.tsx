@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
@@ -158,8 +157,7 @@ const Wrapper = styled(Panel, {
   grid-template-columns: repeat(${p => p.columns}, auto);
 
   > * {
-    ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
-
+    padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)};
     ${p =>
       p.disableHeaderBorderBottom
         ? ''

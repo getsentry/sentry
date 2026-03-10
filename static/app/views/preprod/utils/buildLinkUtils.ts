@@ -40,11 +40,6 @@ export function getCompareBuildPath(params: {
   return `/organizations/${organizationSlug}/preprod/size/compare/${headArtifactId}/`;
 }
 
-export function getListBuildPath(params: {organizationSlug: string}): string {
-  const {organizationSlug} = params;
-  return `/organizations/${organizationSlug}/preprod/`;
-}
-
 export function getCompareApiUrl(params: {
   baseArtifactId: string;
   headArtifactId: string;

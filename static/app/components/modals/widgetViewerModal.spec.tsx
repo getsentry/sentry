@@ -21,7 +21,6 @@ import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
@@ -85,20 +84,18 @@ async function renderModal({
     navigate: jest.fn(),
   });
   const rendered = render(
-    <div style={{padding: space(4)}}>
-      <WidgetViewerModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => undefined}
-        organization={organization}
-        widget={widget}
-        onEdit={() => undefined}
-        dashboardFilters={dashboardFilters}
-        widgetLegendState={widgetLegendState}
-      />
-    </div>,
+    <WidgetViewerModal
+      Header={stubEl}
+      Footer={stubEl as ModalRenderProps['Footer']}
+      Body={stubEl as ModalRenderProps['Body']}
+      CloseButton={stubEl}
+      closeModal={() => undefined}
+      organization={organization}
+      widget={widget}
+      onEdit={() => undefined}
+      dashboardFilters={dashboardFilters}
+      widgetLegendState={widgetLegendState}
+    />,
     {
       organization,
       initialRouterConfig: routerConfig,
@@ -1336,9 +1333,7 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       const projects = [ProjectFixture()];
       initialData = {
-        organization: OrganizationFixture({
-          features: ['discover-cell-actions-v2'],
-        }),
+        organization: OrganizationFixture(),
         projects,
         initialRouterConfig: {
           ...defaultInitialRouterConfig,

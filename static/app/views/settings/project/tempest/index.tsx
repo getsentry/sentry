@@ -60,7 +60,6 @@ export default function TempestSettings() {
     // setupInstructions is only available on the retail tab
     delete newQuery.setupInstructions;
     navigate({
-      pathname: location.pathname,
       query: newQuery,
     });
   };

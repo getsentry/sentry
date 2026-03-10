@@ -17,12 +17,12 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
@@ -37,6 +37,7 @@ type ProjectStats = Record<string, Required<Project['stats']>>;
 function OrganizationProjects() {
   const organization = useOrganization();
 
+  const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
@@ -89,13 +90,15 @@ function OrganizationProjects() {
     () =>
       debounce(
         (searchQuery: string) =>
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {...location.query, query: searchQuery, cursor: undefined},
-          }),
+          navigate(
+            {
+              query: {...location.query, query: searchQuery, cursor: undefined},
+            },
+            {replace: true}
+          ),
         DEFAULT_DEBOUNCE_DURATION
       ),
-    [location.pathname, location.query]
+    [location.query, navigate]
   );
 
   return (

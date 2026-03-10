@@ -259,11 +259,11 @@ export function EnvironmentPageFilter({
           <Flex gap="md" align="center" justify="end">
             <MenuComponents.CancelButton
               disabled={!hasStagedChanges}
-              onClick={() => dispatch({type: 'remove staged'})}
+              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />
             <MenuComponents.ApplyButton
               onClick={() => {
-                dispatch({type: 'remove staged'});
+                stagedSelect.dispatch({type: 'remove staged'});
                 handleChange(stagedSelect.value);
               }}
             />
