@@ -65,10 +65,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
@@ -471,6 +471,16 @@ export function Onboarding({organization, project}: OnboardingProps) {
     doesNotSupportPerformance,
   ]);
 
+  useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project,
+    disabled: isLoading || doesNotSupportPerformance,
+    onIssueReceived: () => {
+      setReceived(true);
+    },
+  });
+
   const performanceDocs = docs?.performanceOnboarding;
 
   if (isLoading) {
@@ -565,20 +575,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
-  const eventWaitingIndicator = (
-    <EventWaiter
-      api={api}
-      organization={organization}
-      project={project}
-      eventType="transaction"
-      onIssueReceived={() => {
-        setReceived(true);
-      }}
-    >
-      {({firstIssue}) =>
-        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
-      }
-    </EventWaiter>
+  const eventWaitingIndicator = received ? (
+    <EventReceivedIndicator />
+  ) : (
+    <EventWaitingIndicator />
   );
 
   return (

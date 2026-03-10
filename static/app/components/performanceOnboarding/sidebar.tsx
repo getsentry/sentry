@@ -33,8 +33,8 @@ import OnboardingDrawerStore, {
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -243,6 +243,15 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     }
   }, [previousProject.id, currentProject.id]);
 
+  useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project: currentProject,
+    onIssueReceived: () => {
+      setReceived(true);
+    },
+  });
+
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
@@ -362,17 +371,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           );
         })}
       </Steps>
-      <EventWaiter
-        api={api}
-        organization={organization}
-        project={currentProject}
-        eventType="transaction"
-        onIssueReceived={() => {
-          setReceived(true);
-        }}
-      >
-        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-      </EventWaiter>
+      {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
     </TabSelectionScope>
   );
 }
