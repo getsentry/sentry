@@ -18,7 +18,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -104,21 +103,6 @@ interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
 }
 
-interface LogsSearchSectionProps {
-  areAiFeaturesAllowed: boolean;
-  booleanAttributes: TagCollection;
-  booleanSecondaryAliases: TagCollection;
-  datePageFilterProps: DatePageFilterProps;
-  numberAttributes: TagCollection;
-  numberSecondaryAliases: TagCollection;
-  stringAttributes: TagCollection;
-  stringSecondaryAliases: TagCollection;
-  booleanAttributesLoading?: boolean;
-  numberAttributesLoading?: boolean;
-  searchBarWidthOffset?: number;
-  stringAttributesLoading?: boolean;
-}
-
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
   const {displayAskSeer} = useSearchQueryBuilder();
 
@@ -129,20 +113,16 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
+interface LogsSearchSectionProps {
+  datePageFilterProps: DatePageFilterProps;
+  searchBarWidthOffset?: number;
+}
+
 const LogsSearchSection = memo(function LogsSearchSection({
-  areAiFeaturesAllowed,
-  booleanAttributes,
-  booleanSecondaryAliases,
-  booleanAttributesLoading,
   datePageFilterProps,
-  numberAttributes,
-  numberSecondaryAliases,
-  numberAttributesLoading,
   searchBarWidthOffset,
-  stringAttributes,
-  stringSecondaryAliases,
-  stringAttributesLoading,
 }: LogsSearchSectionProps) {
+  const organization = useOrganization();
   const logsSearch = useQueryParamsSearch();
   const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
@@ -150,6 +130,12 @@ const LogsSearchSection = memo(function LogsSearchSection({
   const [interval] = useChartInterval();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+
+  // AI search is gated behind the gen-ai-search-agent-translate feature flag
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
 
   const saveAsItems = useSaveAsItems({
     visualizes,
@@ -159,6 +145,22 @@ const LogsSearchSection = memo(function LogsSearchSection({
     search: logsSearch,
     sortBys: aggregateSortBys,
   });
+
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
@@ -238,7 +240,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
 });
 
 export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
-  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
@@ -251,11 +252,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  // AI search is gated behind the gen-ai-search-agent-translate feature flag
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
@@ -292,21 +288,21 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     limit: 50,
   });
 
-  const {
-    attributes: stringAttributes,
-    isLoading: stringAttributesLoading,
-    secondaryAliases: stringSecondaryAliases,
-  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
-  const {
-    attributes: numberAttributes,
-    isLoading: numberAttributesLoading,
-    secondaryAliases: numberSecondaryAliases,
-  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
-  const {
-    attributes: booleanAttributes,
-    isLoading: booleanAttributesLoading,
-    secondaryAliases: booleanSecondaryAliases,
-  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: stringAttributes} = useLogItemAttributes(
+    {},
+    'string',
+    HiddenLogSearchFields
+  );
+  const {attributes: numberAttributes} = useLogItemAttributes(
+    {},
+    'number',
+    HiddenLogSearchFields
+  );
+  const {attributes: booleanAttributes} = useLogItemAttributes(
+    {},
+    'boolean',
+    HiddenLogSearchFields
+  );
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -432,17 +428,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   return (
     <Fragment>
       <LogsSearchSection
-        areAiFeaturesAllowed={areAiFeaturesAllowed}
         datePageFilterProps={datePageFilterProps}
-        booleanAttributes={booleanAttributes}
-        booleanSecondaryAliases={booleanSecondaryAliases}
-        numberAttributes={numberAttributes}
-        numberSecondaryAliases={numberSecondaryAliases}
-        stringAttributes={stringAttributes}
-        stringSecondaryAliases={stringSecondaryAliases}
-        booleanAttributesLoading={booleanAttributesLoading}
-        numberAttributesLoading={numberAttributesLoading}
-        stringAttributesLoading={stringAttributesLoading}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
       <ExploreBodyContent>
