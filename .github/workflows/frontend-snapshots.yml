@@ -12,7 +12,7 @@ concurrency:
 
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
-
+  SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
 jobs:
   files-changed:
     name: detect what files changed
@@ -73,18 +73,25 @@ jobs:
           SENTRY_ORG: emerge-tools
           SENTRY_PROJECT: sentry-frontend
         run: |
-          sentry-cli \
-           --log-level=debug \
-           --auth-token ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }} \
-           build \
-           snapshots \
-           .artifacts/snapshots \
-           --app-id sentry-frontend \
-           --head-sha ${{ github.event.pull_request.head.sha }} \
-           --base-sha ${{ github.event.pull_request.base.sha }} \
-           --vcs-provider github \
-           --head-repo-name ${{ github.repository }} \
-           --base-repo-name ${{ github.repository }} \
-           --head-ref ${{ github.head_ref }} \
-           --base-ref ${{ github.base_ref }} \
-           --pr-number ${{ github.event.number }}
+          ARGS=(
+            --log-level=debug
+            --auth-token "${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}"
+            build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
+            --app-id sentry-frontend
+            --head-sha "${{ github.event.pull_request.head.sha || github.sha }}"
+            --vcs-provider github
+            --head-repo-name "${{ github.repository }}"
+          )
+
+          # PR-only flags: base-sha, base-ref, base-repo-name, head-ref, pr-number
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ARGS+=(
+              --base-sha "${{ github.event.pull_request.base.sha }}"
+              --base-repo-name "${{ github.repository }}"
+              --head-ref "${{ github.head_ref }}"
+              --base-ref "${{ github.base_ref }}"
+              --pr-number "${{ github.event.number }}"
+            )
+          fi
+
+          sentry-cli "${ARGS[@]}"
