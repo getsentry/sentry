@@ -115,7 +115,14 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   },
 
   get_issue_details: (args, isLoading) => {
-    const {short_id, issue_id, start, end} = args;
+    const {short_id, issue_id, start, end, event_id} = args;
+
+    if (event_id) {
+      // event_id only present in some older versions (issue_and_event_details)
+      return isLoading
+        ? `Inspecting event ${event_id.slice(0, 8)}...`
+        : `Inspected event ${event_id.slice(0, 8)}`;
+    }
 
     if (short_id || issue_id) {
       if (start && end) {
@@ -654,13 +661,17 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_issue_details': {
-      const {issue_id, start, end} = toolLink.params;
+      const {issue_id, start, end, event_id} = toolLink.params;
+      const query = {
+        start: validateIso(start),
+        end: validateIso(end),
+      };
 
       if (issue_id) {
-        const query = {
-          start: validateIso(start),
-          end: validateIso(end),
-        };
+        if (event_id) {
+          // Should only be present in older version (get_issue_and_event_details)
+          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+        }
         return {pathname: `/issues/${issue_id}/`, query};
       }
 
