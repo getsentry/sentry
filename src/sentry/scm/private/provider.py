@@ -484,17 +484,17 @@ class CreateReviewProtocol(Protocol):
     ) -> ActionResult[Review]: ...
 
 
-@runtime_checkable
-class ResolveReviewThreadProtocol(Protocol):
-    def resolve_review_thread(self, thread_node_id: str) -> None: ...
-
-
 # Moderation Protocols
 
 
 @runtime_checkable
 class MinimizeCommentProtocol(Protocol):
     def minimize_comment(self, comment_node_id: str, reason: str) -> None: ...
+
+
+@runtime_checkable
+class ResolveReviewThreadProtocol(Protocol):
+    def resolve_review_thread(self, thread_node_id: str) -> None: ...
 
 
 class ActionMap:
