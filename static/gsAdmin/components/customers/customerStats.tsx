@@ -289,7 +289,7 @@ function getAbuseRegions(
   for (const group of groups) {
     if (group.by.outcome === 'abuse') {
       group.series['sum(quantity)']?.forEach((val, i) => {
-        abuseByInterval[i] += val;
+        abuseByInterval[i]! += val;
       });
     }
   }
@@ -341,7 +341,6 @@ function buildAbuseMarkAreaSeries(
   return [
     {
       seriesName: '',
-      type: 'line' as const,
       data: [] as DataPoint[],
       markArea: MarkArea({
         silent: true,
@@ -356,7 +355,7 @@ function buildAbuseMarkAreaSeries(
         },
         data: markAreaData,
       }),
-    },
+    } as SeriesItem,
   ];
 }
 
@@ -552,7 +551,7 @@ export const CustomerStats = memo(
           return;
         }
 
-        const timestamp = dataPoint[0];
+        const timestamp = dataPoint[0]!;
         const inAbuse = abuseRegions.some(
           r => timestamp >= r.start && timestamp <= r.end
         );
