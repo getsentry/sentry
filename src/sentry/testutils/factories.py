@@ -2133,7 +2133,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(
-        mailbox_name: str, cell_name: str | None = None, **kwargs
+        mailbox_name: str, cell_name: str | None, **kwargs
     ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
