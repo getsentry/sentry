@@ -75,6 +75,8 @@ interface EventGraphProps {
    * Enable/disables showing the event and user summary
    */
   showSummary?: boolean;
+
+  style?: React.CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -466,7 +468,7 @@ export function EventGraph({
 
   if (error) {
     return (
-      <Alert variant="danger">
+      <Alert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
       </Alert>
     );
