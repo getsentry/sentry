@@ -1,13 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import {FocusScope} from '@react-aria/focus';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -64,7 +63,7 @@ export function MetricSelector({
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',
-    offset: 4,
+    offset: 6,
     isDismissable: true,
     shouldApplyMinWidth: true,
     onOpenChange: open => {
@@ -237,21 +236,37 @@ export function MetricSelector({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div style={{width: '100%', position: 'relative'}}>
-      <TriggerButton {...triggerProps}>
-        <TriggerLabel>{traceMetric.name || t('Select a metric')}</TriggerLabel>
-      </TriggerButton>
-      <StyledPositionWrapper zIndex={1001} visible={isOpen} {...overlayProps}>
+    <Container width="100%" position="relative">
+      <OverlayTrigger.Button
+        style={{width: '100%', fontWeight: 'bold'}}
+        {...triggerProps}
+      >
+        <Text ellipsis>{traceMetric.name || t('Select a metric')}</Text>
+      </OverlayTrigger.Button>
+      <PositionWrapper
+        zIndex={1001}
+        {...overlayProps}
+        style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
+      >
         {isOpen && (
-          <StyledOverlay>
+          <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
             <FocusScope contain restoreFocus>
-              <PanelLayout>
-                <OptionsPanel onKeyDown={onKeyDown}>
-                  <MenuHeader>
-                    <MenuTitle>{t('Metrics')}</MenuTitle>
-                    {isFetching && <StyledLoadingIndicator size={12} />}
-                  </MenuHeader>
-                  <SearchWrap>
+              <Flex direction={{xs: 'column', sm: 'row'}}>
+                <Flex
+                  direction="column"
+                  minWidth="300px"
+                  minHeight="0"
+                  borderRight={{sm: 'primary'}}
+                  borderBottom={{xs: 'primary', sm: undefined}}
+                  onKeyDown={onKeyDown}
+                >
+                  <Flex align="center" justify="between" padding="sm lg">
+                    <Text size="sm" bold wrap="nowrap">
+                      {t('Metrics')}
+                    </Text>
+                    {isFetching && <LoadingIndicator size={12} style={{margin: 0}} />}
+                  </Flex>
+                  <Container padding="0 xs">
                     <InputGroup>
                       <InputGroup.LeadingItems disablePointerEvents>
                         <Flex
@@ -263,7 +278,7 @@ export function MetricSelector({
                           <IconSearch size="xs" variant="muted" />
                         </Flex>
                       </InputGroup.LeadingItems>
-                      <SearchInput
+                      <InputGroup.Input
                         ref={searchRef}
                         placeholder={t('Search metrics\u2026')}
                         value={searchInputValue}
@@ -271,10 +286,21 @@ export function MetricSelector({
                         size="xs"
                       />
                     </InputGroup>
-                  </SearchWrap>
-                  <OptionsList ref={scrollElementRef} role="listbox">
+                  </Container>
+                  <Container
+                    ref={scrollElementRef}
+                    role="listbox"
+                    overflowY="auto"
+                    flex="1"
+                    minHeight="0"
+                    maxHeight="400px"
+                    padding="xs 0"
+                  >
                     {longestOption && (
-                      <WidthSizer aria-hidden>
+                      <div
+                        aria-hidden
+                        style={{visibility: 'hidden', height: 0, overflow: 'hidden'}}
+                      >
                         <MenuListItem
                           as="div"
                           size="md"
@@ -300,14 +326,14 @@ export function MetricSelector({
                             </Flex>
                           }
                         />
-                      </WidthSizer>
+                      </div>
                     )}
                     {displayedOptions.length === 0 ? (
-                      <EmptyMessage>
+                      <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
                           {t('No metrics found')}
                         </Text>
-                      </EmptyMessage>
+                      </Flex>
                     ) : (
                       <div
                         style={{
@@ -374,20 +400,20 @@ export function MetricSelector({
                         </div>
                       </div>
                     )}
-                  </OptionsList>
-                </OptionsPanel>
-                <DetailPanel>
+                  </Container>
+                </Flex>
+                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
                   <MetricDetailPanel
                     metric={highlightedOption ?? optionFromTraceMetric}
                     hasMetricUnitsUI={hasMetricUnitsUI}
                   />
-                </DetailPanel>
-              </PanelLayout>
+                </Container>
+              </Flex>
             </FocusScope>
-          </StyledOverlay>
+          </Overlay>
         )}
-      </StyledPositionWrapper>
-    </div>
+      </PositionWrapper>
+    </Container>
   );
 }
 
@@ -433,115 +459,3 @@ function MetricDetailPanel({
 function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
-
-const StyledPositionWrapper = styled(PositionWrapper, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean; zIndex?: number}>`
-  display: ${p => (p.visible ? 'block' : 'none')};
-  z-index: ${p => p?.zIndex};
-`;
-
-const TriggerButton = styled(OverlayTrigger.Button)`
-  width: 100%;
-  font-weight: bold;
-`;
-
-const TriggerLabel = styled('span')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-`;
-
-const StyledOverlay = styled(Overlay)`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-const NARROW_BREAKPOINT = '700px';
-
-const PanelLayout = styled('div')`
-  display: flex;
-  flex-direction: row;
-
-  @media (max-width: ${NARROW_BREAKPOINT}) {
-    flex-direction: column;
-  }
-`;
-
-const OptionsPanel = styled('div')`
-  display: flex;
-  flex-direction: column;
-  min-width: 300px;
-  min-height: 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @media (max-width: ${NARROW_BREAKPOINT}) {
-    border-right: none;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const MenuHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-`;
-
-const MenuTitle = styled('span')`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  display: flex;
-  align-items: center;
-  && {
-    margin: 0;
-  }
-`;
-
-const SearchWrap = styled('div')`
-  padding: 0 ${p => p.theme.space.xs};
-`;
-
-const SearchInput = styled(InputGroup.Input)`
-  appearance: none;
-  width: calc(100% - ${p => p.theme.space.xs} * 2);
-  margin: ${p => p.theme.space.xs};
-`;
-
-const OptionsList = styled('div')`
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  max-height: 400px;
-  padding: ${p => p.theme.space.xs} 0;
-`;
-
-const WidthSizer = styled('div')`
-  visibility: hidden;
-  height: 0;
-  overflow: hidden;
-`;
-
-const EmptyMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space.xl};
-`;
-
-const DetailPanel = styled('div')`
-  width: 280px;
-  padding: ${p => p.theme.space.lg};
-  min-height: 200px;
-
-  @media (max-width: ${NARROW_BREAKPOINT}) {
-    width: auto;
-    min-height: auto;
-  }
-`;
