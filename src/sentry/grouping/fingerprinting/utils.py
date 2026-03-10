@@ -206,14 +206,26 @@ def get_fingerprint_type(
     )
 
 
-def get_custom_fingerprint_type(
-    fingerprint_info: FingerprintInfo,
-) -> Literal["built-in", "custom client", "custom server"]:
+def get_custom_fingerprint_description(
+    fingerprint_info: FingerprintInfo, pretty: bool = False
+) -> str:
+    """
+    Get a string describing the type of custom fingerprint as either built-in, from the client, or
+    from the server.
+
+    If `pretty` is true, format the result as separate words (useful for titles, etc.). Otherwise,
+    use underscores so it can be used programmatically, for things like dict keys.
+    """
     matched_server_rule = fingerprint_info.get("matched_rule")
+
     if matched_server_rule:
-        return "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+        fingerprint_type = "built-in" if matched_server_rule.get("is_builtin") else "custom server"
     else:
-        return "custom client"
+        fingerprint_type = "custom client"
+
+    description = f"{fingerprint_type} fingerprint"
+
+    return description if pretty else description.replace("-", "_").replace(" ", "_")
 
 
 def resolve_fingerprint_variable(
