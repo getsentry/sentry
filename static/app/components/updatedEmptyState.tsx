@@ -62,26 +62,26 @@ function WaitingIndicator({project}: {project: Project}) {
     project,
   });
 
-  if (firstIssue) {
-    return (
-      <LinkButton
-        onClick={() =>
-          trackAnalytics('growth.onboarding_take_to_error', {
-            organization,
-            platform: project.platform,
-          })
-        }
-        to={`/organizations/${organization.slug}/issues/${
-          firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-        }?referrer=onboarding-first-event-indicator`}
-        priority="primary"
-      >
-        {t('Take me to my error')}
-      </LinkButton>
-    );
+  if (!firstIssue) {
+    return <EventWaitingIndicator />;
   }
 
-  return <EventWaitingIndicator />;
+  return (
+    <LinkButton
+      onClick={() =>
+        trackAnalytics('growth.onboarding_take_to_error', {
+          organization,
+          platform: project.platform,
+        })
+      }
+      to={`/organizations/${organization.slug}/issues/${
+        firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+      }?referrer=onboarding-first-event-indicator`}
+      priority="primary"
+    >
+      {t('Take me to my error')}
+    </LinkButton>
+  );
 }
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
