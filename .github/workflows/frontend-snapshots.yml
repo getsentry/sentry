@@ -76,6 +76,7 @@ jobs:
             --auth-token "${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}"
             build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
             --app-id sentry-frontend
+            --project sentry-frontend
             --head-sha "${{ github.event.pull_request.head.sha || github.sha }}"
             --vcs-provider github
             --head-repo-name "${{ github.repository }}"
