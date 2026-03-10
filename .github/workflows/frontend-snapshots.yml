@@ -1,0 +1,97 @@
+name: frontend-snapshots
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: '--max-old-space-size=4096'
+  SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for frontend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  snapshots:
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.frontend_all == 'true'
+    needs: files-changed
+    name: snapshot tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version-file: '.node-version'
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+
+      - name: node_modules cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run snapshot tests
+        run: pnpm run snapshots
+
+      - name: Install sentry-cli
+        if: ${{ !cancelled() }}
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.2 sh
+
+      - name: Upload snapshots
+        if: ${{ !cancelled() }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
+          SENTRY_ORG: emerge-tools
+          SENTRY_PROJECT: sentry-frontend
+        run: |
+          ARGS=(
+            --log-level=debug
+            --auth-token "${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}"
+            build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
+            --app-id sentry-frontend
+            --head-sha "${{ github.event.pull_request.head.sha || github.sha }}"
+            --vcs-provider github
+            --head-repo-name "${{ github.repository }}"
+          )
+
+          # PR-only flags: base-sha, base-ref, base-repo-name, head-ref, pr-number
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ARGS+=(
+              --base-sha "${{ github.event.pull_request.base.sha }}"
+              --base-repo-name "${{ github.repository }}"
+              --head-ref "${{ github.head_ref }}"
+              --base-ref "${{ github.base_ref }}"
+              --pr-number "${{ github.event.number }}"
+            )
+          fi
+
+          sentry-cli "${ARGS[@]}"
