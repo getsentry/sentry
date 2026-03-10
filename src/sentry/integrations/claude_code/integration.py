@@ -369,13 +369,3 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
     @property
     def api_key(self) -> str:
         return self._get_metadata().api_key
-
-    @property
-    def environment_id(self) -> str | None:
-        return self._get_metadata().environment_id
-
-    def update_environment_id(self, environment_id: str) -> None:
-        """Update the stored environment ID for this integration."""
-        metadata = self._get_metadata()
-        metadata.environment_id = environment_id
-        self._persist_metadata(metadata)

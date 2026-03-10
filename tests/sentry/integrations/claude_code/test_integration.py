@@ -207,11 +207,11 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         )
 
         assert installation.api_key == "sk-ant-prop-key"
-        assert installation.environment_id == "env-prop-123"
+        assert installation.model.metadata["environment_id"] == "env-prop-123"
 
     def test_environment_id_defaults_to_none(self):
         installation = self._create_installation()
-        assert installation.environment_id is None
+        assert installation.model.metadata.get("environment_id") is None
 
     # ── update_organization_config ───────────────────────────────────
 
@@ -238,17 +238,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         installation.update_organization_config({"workspace_name": ""})
 
         assert installation.model.metadata["workspace_name"] is None
-
-    # ── update_environment_id ────────────────────────────────────────
-
-    def test_update_environment_id(self):
-        installation = self._create_installation(api_key="sk-ant-test-key")
-        assert installation.environment_id is None
-
-        installation.update_environment_id("env-new-789")
-
-        assert installation.model.metadata["environment_id"] == "env-new-789"
-        assert installation.model.metadata["api_key"] == "sk-ant-test-key"
 
     # ── get_config_data ──────────────────────────────────────────────
 
