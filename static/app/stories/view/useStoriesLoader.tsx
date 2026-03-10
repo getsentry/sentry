@@ -59,10 +59,16 @@ export interface StoryResources {
   reference?: Record<string, string>;
 }
 
+export type StoryDocumentationLoader = () => Promise<TypeLoader.TypeLoaderResult>;
+
+export type StoryDocumentationExport =
+  | TypeLoader.TypeLoaderResult
+  | StoryDocumentationLoader;
+
 export interface MDXStoryDescriptor {
   exports: {
     default: React.ComponentType | any;
-    documentation?: TypeLoader.TypeLoaderResult;
+    documentation?: StoryDocumentationExport;
     frontmatter?: {
       description: string;
       title: string;

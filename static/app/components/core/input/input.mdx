@@ -21,9 +21,8 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/input';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/input').then(module => module.default);
 
 `<Input>` is a fundamental form component for capturing text input from users. It provides a consistent, accessible interface for text entry with support for various sizes, states, and behaviors.
 

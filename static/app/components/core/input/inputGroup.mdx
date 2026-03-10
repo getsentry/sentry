@@ -19,9 +19,8 @@ import {InputGroup} from '@sentry/scraps/input';
 import {IconAttachment, IconSearch, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/input';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/input').then(module => module.default);
 
 `<InputGroup>` is a compound component that allows you to add leading or trailing elements to inputs, such as icons, buttons, or other decorative elements. It automatically handles sizing, spacing, and layout coordination between the input and its accompanying elements.
 

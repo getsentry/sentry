@@ -11,9 +11,8 @@ import * as Storybook from 'sentry/stories';
 
 import {Quote} from '@sentry/scraps/quote';
 
-import documentation from '!!type-loader!@sentry/scraps/quote';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/quote').then(module => module.default);
 
 The `Quote` component renders a `<blockquote>` element to indicate that the enclosed text is an extended quotation. It provides semantic HTML with proper styling and optional citation support through the `source` prop.
 

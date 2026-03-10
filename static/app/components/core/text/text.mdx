@@ -19,9 +19,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/text/text';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/text/text').then(module => module.default);
 
 To create basic text, wrap content in a `<Text>` component. For semantic headings, use `<Heading>` with the appropriate `as` prop.
 

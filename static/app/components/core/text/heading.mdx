@@ -20,9 +20,8 @@ import {Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/text/heading';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/text/heading').then(module => module.default);
 
 The `<Heading>` component creates semantic heading elements with appropriate default sizes and styling. It ensures proper heading hierarchy while providing visual consistency.
 

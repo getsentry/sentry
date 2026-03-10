@@ -93,12 +93,10 @@ function extractComponentProps(
  */
 function prodTypeloader(this: LoaderContext<any>, _source: string) {
   const callback = this.async();
-
   const program = typescript.createProgram([this.resourcePath], {});
   const sourceFile = program.getSourceFile(this.resourcePath);
 
   const module = extractRequest(this._module);
-
   const moduleProps = extractComponentProps(this._module, this.resourcePath);
   const moduleExports = extractModuleExports(program, sourceFile);
 

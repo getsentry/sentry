@@ -26,9 +26,8 @@ import {
   UserAvatar,
 } from '@sentry/scraps/avatar';
 
-import AvatarDocumentation from '!!type-loader!@sentry/scraps/avatar';
-
-export const documentation = AvatarDocumentation;
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/avatar').then(module => module.default);
 
 export const PREVIEW_SIZE = 40;
 

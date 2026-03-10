@@ -15,9 +15,8 @@ import {Toast} from '@sentry/scraps/toast';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/toast';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/toast').then(module => module.default);
 
 `<Toast>` is a notification component that displays temporary messages to provide feedback for user actions. Toasts appear briefly to confirm actions, report errors, show loading states, or offer undo functionality.
 

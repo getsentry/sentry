@@ -13,9 +13,8 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/info/infoTip';
-
-export {documentation};
+export const documentation = () =>
+  import('!!type-loader!@sentry/scraps/info/infoTip').then(module => module.default);
 
 `InfoTip` renders an info icon that reveals a tooltip on hover or focus. It's keyboard accessible out of the box and provides a consistent pattern for supplementary help.
 
