@@ -266,7 +266,10 @@ function WidgetCard(props: Props) {
         onClose: () => {
           // Strip widget viewer query params so they don't linger on the host page
           const query = omit(location.query, Object.values(WidgetViewerQueryField));
-          navigate({pathname: location.pathname, query}, {preventScrollReset: true});
+          navigate(
+            {pathname: location.pathname, query},
+            {preventScrollReset: true, replace: true}
+          );
         },
       });
     }
