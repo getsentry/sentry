@@ -25,18 +25,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="controloutbox",
-            name="sentry_cont_region__1c1c72_idx",
-        ),
-        migrations.RemoveIndex(
-            model_name="controloutbox",
-            name="sentry_cont_region__0c4512_idx",
-        ),
-        migrations.RemoveIndex(
-            model_name="controloutbox",
-            name="sentry_cont_region__a95d82_idx",
-        ),
         migrations.AlterField(
             model_name="controloutbox",
             name="region_name",
@@ -47,36 +35,55 @@ class Migration(CheckedMigration):
             old_name="region_name",
             new_name="cell_name",
         ),
-        migrations.AddIndex(
-            model_name="controloutbox",
-            index=models.Index(
-                fields=[
-                    "cell_name",
-                    "shard_scope",
-                    "shard_identifier",
-                    "category",
-                    "object_identifier",
-                ],
-                name="sentry_cont_region__1c1c72_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="controloutbox",
-            index=models.Index(
-                fields=[
-                    "cell_name",
-                    "shard_scope",
-                    "shard_identifier",
-                    "scheduled_for",
-                ],
-                name="sentry_cont_region__0c4512_idx",
-            ),
-        ),
-        migrations.AddIndex(
-            model_name="controloutbox",
-            index=models.Index(
-                fields=["cell_name", "shard_scope", "shard_identifier", "id"],
-                name="sentry_cont_region__a95d82_idx",
-            ),
+        # The indexes reference the same DB column (region_name via db_column), so
+        # the actual SQL is identical before and after — no drop/recreate needed.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveIndex(
+                    model_name="controloutbox",
+                    name="sentry_cont_region__1c1c72_idx",
+                ),
+                migrations.RemoveIndex(
+                    model_name="controloutbox",
+                    name="sentry_cont_region__0c4512_idx",
+                ),
+                migrations.RemoveIndex(
+                    model_name="controloutbox",
+                    name="sentry_cont_region__a95d82_idx",
+                ),
+                migrations.AddIndex(
+                    model_name="controloutbox",
+                    index=models.Index(
+                        fields=[
+                            "cell_name",
+                            "shard_scope",
+                            "shard_identifier",
+                            "category",
+                            "object_identifier",
+                        ],
+                        name="sentry_cont_region__1c1c72_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="controloutbox",
+                    index=models.Index(
+                        fields=[
+                            "cell_name",
+                            "shard_scope",
+                            "shard_identifier",
+                            "scheduled_for",
+                        ],
+                        name="sentry_cont_region__0c4512_idx",
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name="controloutbox",
+                    index=models.Index(
+                        fields=["cell_name", "shard_scope", "shard_identifier", "id"],
+                        name="sentry_cont_region__a95d82_idx",
+                    ),
+                ),
+            ],
+            database_operations=[],
         ),
     ]
