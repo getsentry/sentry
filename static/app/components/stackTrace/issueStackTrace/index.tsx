@@ -1,15 +1,11 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Text} from '@sentry/scraps/text';
 
-import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import {
   ExceptionDescription,
   ExceptionHeader,
@@ -18,9 +14,8 @@ import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTra
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {CopyButton, DisplayOptions} from 'sentry/components/stackTrace/toolbar';
-import type {FrameBadge} from 'sentry/components/stackTrace/types';
-import {t, tn} from 'sentry/locale';
-import type {Event, ExceptionValue, Frame} from 'sentry/types/event';
+import {tn} from 'sentry/locale';
+import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -30,82 +25,34 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 interface IssueStackTraceProps {
   event: Event;
   values: ExceptionValue[];
-  lockAddress?: string;
   newestFirst?: boolean;
-  threadId?: number;
 }
 
-export function IssueStackTrace({
-  event,
-  lockAddress,
-  newestFirst = true,
-  threadId,
-  values,
-}: IssueStackTraceProps) {
-  const mechanism =
-    event.platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
+export function IssueStackTrace({event, values}: IssueStackTraceProps) {
+  const withStacktrace = useMemo(() => {
+    return values
+      .filter(
+        (exc): exc is ExceptionValue & {stacktrace: StacktraceType} =>
+          exc.stacktrace !== null
+      )
+      .reverse();
+  }, [values]);
 
-  const orderedWithStacktrace = useMemo(() => {
-    const withStacktrace = values.filter(
-      (exc): exc is ExceptionValue & {stacktrace: StacktraceType} =>
-        exc.stacktrace !== null
-    );
-    return newestFirst ? withStacktrace.toReversed() : withStacktrace;
-  }, [newestFirst, values]);
-
-  const anrFrameBadge = useCallback<FrameBadge>(
-    (frame: Frame) => {
-      const culprit = analyzeFrameForRootCause(
-        frame,
-        getThreadById(event, threadId),
-        lockAddress
-      );
-      if (!culprit) {
-        return null;
-      }
-
-      return (
-        <Tag
-          variant="warning"
-          onClick={mouseEvent => {
-            mouseEvent.stopPropagation();
-            document
-              .getElementById(SectionKey.SUSPECT_ROOT_CAUSE)
-              ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-          }}
-        >
-          {t('Suspect Frame')}
-        </Tag>
-      );
-    },
-    [event, lockAddress, threadId]
-  );
-
-  const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const frameBadge = isANR ? anrFrameBadge : undefined;
-
-  if (orderedWithStacktrace.length === 0) {
+  if (withStacktrace.length === 0) {
     return null;
   }
 
-  if (orderedWithStacktrace.length === 1) {
+  if (withStacktrace.length === 1) {
     const actions = (
       <Flex align="center" gap="sm">
         <DisplayOptions />
         <CopyButton />
       </Flex>
     );
-    const exc = orderedWithStacktrace[0]!;
+    const exc = withStacktrace[0]!;
     return (
-      <StackTraceViewStateProvider
-        defaultIsNewestFirst={newestFirst}
-        platform={event.platform}
-      >
-        <StackTraceProvider
-          event={event}
-          frameBadge={frameBadge}
-          stacktrace={exc.stacktrace}
-        >
+      <StackTraceViewStateProvider platform={event.platform}>
+        <StackTraceProvider event={event} stacktrace={exc.stacktrace}>
           <InterimSection
             type={SectionKey.EXCEPTION}
             title="Stack Trace"
@@ -123,10 +70,7 @@ export function IssueStackTrace({
   }
 
   return (
-    <StackTraceViewStateProvider
-      defaultIsNewestFirst={newestFirst}
-      platform={event.platform}
-    >
+    <StackTraceViewStateProvider platform={event.platform}>
       <InterimSection
         type={SectionKey.EXCEPTION}
         title="Stack Trace"
@@ -135,7 +79,7 @@ export function IssueStackTrace({
             <DisplayOptions />
             <CopyButton
               getCopyText={() =>
-                orderedWithStacktrace
+                withStacktrace
                   .map(exc =>
                     rawStacktraceContent({
                       data: exc.stacktrace,
@@ -153,11 +97,11 @@ export function IssueStackTrace({
             {tn(
               'There is %s chained exception in this event.',
               'There are %s chained exceptions in this event.',
-              orderedWithStacktrace.length
+              withStacktrace.length
             )}
           </Text>
           <Separator orientation="horizontal" border="primary" />
-          {orderedWithStacktrace.map((exc, idx) => (
+          {withStacktrace.map((exc, idx) => (
             <Disclosure
               key={exc.mechanism?.exception_id ?? idx}
               defaultExpanded={idx === 0}
@@ -172,11 +116,7 @@ export function IssueStackTrace({
                     mechanism={exc.mechanism}
                     gap="lg"
                   />
-                  <StackTraceProvider
-                    event={event}
-                    frameBadge={frameBadge}
-                    stacktrace={exc.stacktrace}
-                  >
+                  <StackTraceProvider event={event} stacktrace={exc.stacktrace}>
                     <StackTraceFrames
                       frameContextComponent={IssueStackTraceFrameContext}
                     />

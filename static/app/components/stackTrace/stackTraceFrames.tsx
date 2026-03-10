@@ -8,7 +8,6 @@ import rawStacktraceContent from 'sentry/components/events/interfaces/crashConte
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-import {FrameContext} from './frame/frameContext';
 import {StackTraceFrameRow} from './frame/frameRow';
 import {useStackTraceContext, useStackTraceViewState} from './stackTraceContext';
 
@@ -24,12 +23,11 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 }
 
 export interface StackTraceFramesProps {
-  /** Optional slot to override per-row frame details rendering. */
-  frameContextComponent?: ComponentType;
+  frameContextComponent: ComponentType;
 }
 
 export function StackTraceFrames({
-  frameContextComponent: FrameContextComponent = FrameContext,
+  frameContextComponent: FrameContextComponent,
 }: StackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();

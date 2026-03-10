@@ -10,7 +10,6 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import type {
-  FrameBadge,
   Row,
   StackTraceMeta,
   StackTraceView,
@@ -78,8 +77,6 @@ export interface StackTraceContextValue {
   stacktrace: StacktraceType;
   /** Toggles hidden system frames adjacent to a visible row. */
   toggleHiddenFrames: (frameIndex: number) => void;
-  /** Optional row badge renderer, used by IssueStackTrace ANR suspect-frame markers. */
-  frameBadge?: FrameBadge;
   /** Optional per-frame source map debugger resolution data. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   /** Optional redaction metadata used by variable/register renderers. */

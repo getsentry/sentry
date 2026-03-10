@@ -1,15 +1,13 @@
 import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import type {Event, Frame} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-
-export type FrameBadge = (frame: Frame) => ReactNode;
 
 export type StackTraceView = 'app' | 'full' | 'raw';
 
@@ -64,8 +62,6 @@ export interface StackTraceProviderProps {
   stacktrace: StacktraceType;
   /** Sentry App integrations that provide "open in X" stacktrace links. */
   components?: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
-  /** Render a badge next to a frame row — used to surface ANR suspect frames. */
-  frameBadge?: FrameBadge;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   /** Hide the source maps debugger button entirely. */

@@ -9,12 +9,8 @@ import {
   getPlatform,
   isDotnet,
 } from 'sentry/components/events/interfaces/frame/utils';
-import {
-  useStackTraceContext,
-  useStackTraceFrameContext,
-} from 'sentry/components/stackTrace/stackTraceContext';
-import {IconRefresh} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -63,10 +59,8 @@ export function FrameHeader({actions}: FrameHeaderProps) {
     isExpanded,
     nextFrame,
     platform,
-    timesRepeated,
     toggleExpansion,
   } = useStackTraceFrameContext();
-  const {frameBadge} = useStackTraceContext();
 
   const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
   const hasLeadHint = !isExpanded && !frame.inApp && (nextFrame?.inApp || !nextFrame);
@@ -87,7 +81,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <MainContent noWrap={!isExpanded && hasLeadHint}>
+      <MainContent>
         <FrameLocation
           frame={frame}
           nextFrame={nextFrame}
@@ -99,8 +93,6 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       </MainContent>
 
       <ActionArea>
-        <RepeatsIndicator timesRepeated={timesRepeated} />
-        {frameBadge?.(frame)}
         <TrailingActions data-test-id="core-stacktrace-frame-trailing">
           {resolvedActions}
         </TrailingActions>
@@ -159,16 +151,15 @@ function FrameLocation({
       <Tooltip
         title={frameInfoTooltip}
         disabled={!frameInfoTooltip}
-        maxWidth={600}
+        maxWidth={450}
         skipWrapper
         delay={1000}
+        isHoverable
       >
         <Path data-test-id="core-stacktrace-frame-location">
           <span>
             <span>{frameDisplayPath}</span>
-            {frameLocationSuffix ? (
-              <LocationSuffix>{frameLocationSuffix}</LocationSuffix>
-            ) : null}
+            {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
           </span>
         </Path>
       </Tooltip>
@@ -208,24 +199,6 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
   );
 }
 
-function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
-  if (timesRepeated <= 0) {
-    return null;
-  }
-
-  return (
-    <RepeatedFrames
-      data-test-id="core-stacktrace-repeats-indicator"
-      title={tn('Frame repeated %s time', 'Frame repeated %s times', timesRepeated)}
-    >
-      <RepeatedContent>
-        <IconRefresh size="xs" />
-        <span>{timesRepeated}</span>
-      </RepeatedContent>
-    </RepeatedFrames>
-  );
-}
-
 function CombinedTooltipContent({
   absPath,
   sourceMapInfo,
@@ -235,7 +208,12 @@ function CombinedTooltipContent({
 }) {
   return (
     <CombinedTooltipContentContainer>
-      {absPath ? <span>{absPath}</span> : null}
+      {absPath ? (
+        <Fragment>
+          <strong>{t('File')}</strong>
+          <span>{absPath}</span>
+        </Fragment>
+      ) : null}
       {sourceMapInfo ? (
         <Fragment>
           <strong>{t('Source Map')}</strong>
@@ -262,9 +240,9 @@ const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>
   }
 `;
 
-const MainContent = styled('div')<{noWrap?: boolean}>`
+const MainContent = styled('div')`
   display: flex;
-  flex-wrap: ${p => (p.noWrap ? 'nowrap' : 'wrap')};
+  flex-wrap: nowrap;
   row-gap: ${p => p.theme.space['2xs']};
   column-gap: ${p => p.theme.space.sm};
   align-items: baseline;
@@ -325,10 +303,6 @@ const Path = styled('span')`
   }
 `;
 
-const LocationSuffix = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 const ContextWrapper = styled('span')`
   display: inline-flex;
   align-items: baseline;
@@ -363,22 +337,12 @@ const PkgName = styled('span')`
   white-space: nowrap;
 `;
 
-const RepeatedFrames = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const RepeatedContent = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
 const CombinedTooltipContentContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xs};
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  column-gap: ${p => p.theme.space.sm};
+  row-gap: ${p => p.theme.space.md};
   word-break: break-all;
+  text-align: left;
 `;

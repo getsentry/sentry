@@ -34,9 +34,8 @@ export function StackTraceProvider({
   children,
   components: componentsProp,
   event,
-  frameBadge,
   frameSourceMapDebuggerData,
-  hideSourceMapDebugger = false,
+  hideSourceMapDebugger,
   minifiedStacktrace,
   stacktrace,
   maxDepth,
@@ -137,14 +136,13 @@ export function StackTraceProvider({
     () => ({
       components,
       event,
-      frameBadge,
       hasAnyExpandableFrames,
       platform,
       project,
       stacktrace: activeStacktrace,
       frameSourceMapDebuggerData,
       frames,
-      hideSourceMapDebugger,
+      hideSourceMapDebugger: hideSourceMapDebugger ?? false,
       rows,
       meta,
       hiddenFrameToggleMap,
@@ -159,7 +157,6 @@ export function StackTraceProvider({
     [
       components,
       event,
-      frameBadge,
       frameSourceMapDebuggerData,
       frames,
       hasAnyExpandableFrames,
@@ -178,5 +175,3 @@ export function StackTraceProvider({
     <StackTraceContext.Provider value={value}>{children}</StackTraceContext.Provider>
   );
 }
-
-export {useStackTraceContext};

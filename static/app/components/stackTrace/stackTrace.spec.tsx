@@ -12,6 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   DisplayOptions,
+  FrameContext,
   IssueStackTrace,
   StackTraceFrames,
   StackTraceProvider,
@@ -98,7 +99,7 @@ function renderStackTrace() {
   render(
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
       <Toolbar />
-      <StackTraceFrames />
+      <StackTraceFrames frameContextComponent={FrameContext} />
     </TestStackTraceProvider>
   );
 }
@@ -205,7 +206,7 @@ describe('Core StackTrace', () => {
         minifiedStacktrace={minifiedStacktrace}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -396,7 +397,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>,
       {
         organization,
@@ -454,7 +455,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -481,7 +482,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -514,7 +515,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -554,29 +555,13 @@ describe('Core StackTrace', () => {
         ]}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
     expect(
       await screen.findByRole('button', {name: 'Unminify Code'})
     ).toBeInTheDocument();
-  });
-
-  it('renders frame badge via frameBadge prop', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        frameBadge={() => <span>Custom Badge</span>}
-      >
-        <Toolbar />
-        <StackTraceFrames />
-      </TestStackTraceProvider>
-    );
-
-    expect((await screen.findAllByText('Custom Badge')).length).toBeGreaterThan(0);
   });
 
   it('renders sentry app frame links with line context', async () => {
@@ -606,7 +591,7 @@ describe('Core StackTrace', () => {
         components={components}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -637,7 +622,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -679,7 +664,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -699,7 +684,7 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders circular frame repeat indicator', async () => {
+  it('renders a repeat tag with tooltip in frame actions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const recursiveFrame = {
       ...stacktrace.frames[stacktrace.frames.length - 1]!,
@@ -721,18 +706,16 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
     expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(1);
-    expect(screen.getByTestId('core-stacktrace-repeats-indicator')).toHaveTextContent(
-      '2'
-    );
-    expect(screen.getByTestId('core-stacktrace-repeats-indicator')).toHaveAttribute(
-      'title',
-      'Frame repeated 2 times'
-    );
+    const repeatsTag = screen.getByTestId('core-stacktrace-repeats-tag');
+    expect(repeatsTag).toHaveTextContent('2');
+
+    await userEvent.hover(repeatsTag);
+    expect(await screen.findByText('Frame repeated 2 times')).toBeInTheDocument();
   });
 
   it('falls back to raw function and renders trimmed package in title metadata', async () => {
@@ -756,7 +739,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -795,7 +778,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 
@@ -828,7 +811,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames />
+        <StackTraceFrames frameContextComponent={FrameContext} />
       </TestStackTraceProvider>
     );
 

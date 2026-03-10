@@ -2,7 +2,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const VIEW_OPTION_VALUES = [
@@ -75,12 +75,14 @@ export function DisplayOptions() {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.IconButton
+        <OverlayTrigger.Button
           {...triggerProps}
           size="xs"
-          icon={<IconEllipsis />}
+          icon={<IconSettings />}
           aria-label={t('Display options')}
-        />
+        >
+          {t('Display')}
+        </OverlayTrigger.Button>
       )}
       multiple
       position="bottom-end"

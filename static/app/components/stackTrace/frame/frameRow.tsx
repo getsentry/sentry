@@ -1,4 +1,4 @@
-import {Fragment, memo, useId, useMemo, useState} from 'react';
+import {memo, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -22,8 +22,8 @@ import {FrameContext} from './frameContext';
 import {FrameHeader} from './frameHeader';
 
 interface StackTraceFrameRowProps {
+  children: React.ReactNode;
   row: FrameRow;
-  children?: React.ReactNode;
 }
 
 const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
@@ -90,14 +90,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   return (
     <StackTraceFrameContext.Provider value={value}>
       <FrameRowContainer data-test-id="core-stacktrace-frame-row">
-        {children ?? (
-          <Fragment>
-            <FrameHeader
-              actions={({isHovering}) => <DefaultFrameActions isHovering={isHovering} />}
-            />
-            <FrameContext />
-          </Fragment>
-        )}
+        {children}
       </FrameRowContainer>
     </StackTraceFrameContext.Provider>
   );

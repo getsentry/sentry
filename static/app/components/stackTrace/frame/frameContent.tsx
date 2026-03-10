@@ -22,8 +22,6 @@ import {t} from 'sentry/locale';
 import {Coverage} from 'sentry/types/integrations';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 
-const SOURCE_LINE_NUMBER_DIGITS = 4;
-
 const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
   [Coverage.NOT_COVERED]: t('Line uncovered by tests'),
   [Coverage.COVERED]: t('Line covered by tests'),
@@ -41,6 +39,11 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
 
   const contextLines = isExpanded ? (frame.context ?? []) : [];
+  const maxLineNumber = contextLines.reduce(
+    (max, [lineNo]) => Math.max(max, lineNo ?? 0),
+    0
+  );
+  const lineNumberDigits = String(maxLineNumber).length;
   const fileExtension = isExpanded ? (getFileExtension(frame.filename ?? '') ?? '') : '';
   const prismLines = usePrismTokensSourceContext({
     contextLines,
@@ -77,8 +80,8 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
           {contextLines.map(([lineNumber, lineValue], lineIndex) => (
             <FrameSourceRow
               key={`${lineNumber}-${lineIndex}`}
-              data-test-id="core-stacktrace-frame-source-row"
               isActive={lineNumber === frame.lineNo}
+              lineNumberDigits={lineNumberDigits}
             >
               <Tooltip
                 skipWrapper
@@ -87,10 +90,6 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
                 }
               >
                 <FrameSourceLineNumber
-                  as="div"
-                  size="sm"
-                  variant="muted"
-                  monospace
                   aria-label={`Line ${lineNumber}`}
                   isActive={lineNumber === frame.lineNo}
                   coverage={sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE}
@@ -152,21 +151,22 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   );
 }
 
-const FrameSourceGrid = styled(Grid)`
+const FrameSourceGrid = styled('div')`
+  display: grid;
   width: 100%;
   min-width: 0;
 `;
 
-const FrameSourceRow = styled(Grid)<{isActive: boolean}>`
+const FrameSourceRow = styled(Grid)<{isActive: boolean; lineNumberDigits: number}>`
   grid-template-columns:
-    calc(${SOURCE_LINE_NUMBER_DIGITS}ch + ${p => p.theme.space.sm})
+    calc(${p => Math.max(p.lineNumberDigits, 3) + 1}ch)
     1fr;
   align-items: start;
   min-width: 0;
   background: ${p => (p.isActive ? p.theme.tokens.background.secondary : 'transparent')};
 `;
 
-const FrameSourceLineNumber = styled(Text)<{
+const FrameSourceLineNumber = styled('div')<{
   coverage: Coverage;
   isActive: boolean;
 }>`
@@ -174,11 +174,12 @@ const FrameSourceLineNumber = styled(Text)<{
   align-items: center;
   justify-content: flex-end;
   min-height: 1.8em;
+  font-family: ${p => p.theme.font.family.mono};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
   line-height: 1.8;
   text-align: right;
   user-select: none;
-  text-box-trim: none;
-  text-box-edge: auto;
   padding-left: ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.xs};
   border-right: 3px solid transparent;
