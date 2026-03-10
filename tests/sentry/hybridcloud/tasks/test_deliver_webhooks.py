@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -120,7 +121,8 @@ class ScheduleWebhooksTest(TestCase):
         with self.tasks():
             schedule_webhook_delivery()
 
-        # First attempt will fail rescheduling messages.
+        # First attempt fails. provider=None is not in the skip-on-failure allowlist
+        # so processing stops after the first message, preserving mailbox ordering.
         assert len(responses.calls) == 1
         assert WebhookPayload.objects.count() == num_records
         head = WebhookPayload.objects.all().order_by("id").first()
@@ -128,6 +130,7 @@ class ScheduleWebhooksTest(TestCase):
         assert head.schedule_for > timezone.now()
 
         # Do another scheduled run. This should not make any forwarding requests
+        # because the head is still in backoff.
         with self.tasks():
             schedule_webhook_delivery()
         assert len(responses.calls) == 1
@@ -260,12 +263,14 @@ class ScheduleWebhooksTest(TestCase):
         assert call_args_list[1] == null_provider_webhook.id
 
 
-def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
+def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
             cell_name="us",
+            region_name="us",
+            provider=provider,
         )
         created.append(hook)
     return created
@@ -305,34 +310,65 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_regions(region_config)
     def test_drain_success_partial(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=500,
-            body="",
-        )
-        records = create_payloads(5, "github:123")
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(5, "github:123", provider="github")
         drain_mailbox(records[0].id)
 
-        # Attempts should stop as soon as the first delivery
-        # fails. This retains mailbox ordering while yielding this
-        # worker for new work
-        assert len(responses.calls) == 2
+        # github is in the skip-on-failure allowlist: failed messages are skipped
+        # and processing continues. All 5 messages are attempted.
+        assert len(responses.calls) == 5
 
-        # Mailbox should have 4 records left
-        assert WebhookPayload.objects.count() == 4
+        # Only the failed message remains in the mailbox.
+        assert WebhookPayload.objects.count() == 1
 
-        # Remaining record should be scheduled to run later.
+        # Failed record should be scheduled to run later.
         first = WebhookPayload.objects.order_by("id").first()
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "jira:123", provider="jira")
+        drain_mailbox(records[0].id)
+
+        # jira is not in the allowlist: processing stops on the first failure
+        # to preserve strict mailbox ordering.
+        assert len(responses.calls) == 2
+
+        # The failed message and all subsequent messages remain.
+        assert WebhookPayload.objects.count() == 4
+
+        first = WebhookPayload.objects.order_by("id").first()
+        assert first
+        assert first.attempts == 1
+        assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "github:123", provider="github")
+        drain_mailbox(records[0].id)
+
+        # All 5 messages are attempted even though all fail.
+        assert len(responses.calls) == 5
+
+        # All 5 messages remain with incremented attempts and a future schedule_for.
+        assert WebhookPayload.objects.count() == 5
+        for record in WebhookPayload.objects.all():
+            assert record.attempts == 1
+            assert record.schedule_for > timezone.now()
 
     @responses.activate
     @override_regions(region_config)
@@ -1039,13 +1075,9 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    @override_options(
-        {"hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes": ["github:123"]}
-    )
+    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_excluded_mailbox_does_not_record(
-        self, mock_metrics: MagicMock
-    ) -> None:
+    def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1055,42 +1087,11 @@ class DeliveryTimeMetricsTest(TestCase):
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
             cell_name="us",
-        )
-        drain_mailbox(webhook.id)
-
-        delivery_time_ms_calls = [
-            c
-            for c in mock_metrics.distribution.call_args_list
-            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
-        ]
-        assert len(delivery_time_ms_calls) == 0
-
-        incr_calls = [
-            c
-            for c in mock_metrics.incr.call_args_list
-            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
-        ]
-        assert len(incr_calls) == 1
-        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
-
-    @responses.activate
-    @override_regions(region_config)
-    @override_options(
-        {"hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes": ["other:mailbox"]}
-    )
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_delivery_time_metrics_non_excluded_mailbox_still_records(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
-            cell_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "pull_request", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"action": "opened", "repository": {}}).decode(),
         )
         drain_mailbox(webhook.id)
 
@@ -1100,7 +1101,71 @@ class DeliveryTimeMetricsTest(TestCase):
             if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
         ]
         assert len(delivery_time_ms_calls) == 1
-        assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_type") == "pull_request"
+        assert tags.get("github_action") == "opened"
+
+    @responses.activate
+    @override_regions(region_config)
+    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            region_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "push", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"repository": {}}).decode(),
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_type") == "push"
+        assert "github_action" not in tags
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            region_name="us",
+            provider="stripe",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert "github_event_type" not in tags
+        assert "github_action" not in tags
 
 
 @control_silo_test

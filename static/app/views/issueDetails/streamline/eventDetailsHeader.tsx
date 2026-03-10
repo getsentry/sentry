@@ -215,12 +215,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         {issueTypeConfig.header.graph.enabled && (
           <GraphSection>
             {issueTypeConfig.header.graph.type === 'discover-events' && (
-              <EventGraph
-                event={event}
-                group={group}
-                showReleasesAs="bubble"
-                style={{flex: 1}}
-              />
+              <EventGraph event={event} group={group} showReleasesAs="bubble" />
             )}
             {issueTypeConfig.header.graph.type === 'detector-history' && (
               <MetricIssueChart group={group} event={event} />
