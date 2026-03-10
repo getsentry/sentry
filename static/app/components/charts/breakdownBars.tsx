@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 type Point = {
@@ -69,8 +68,8 @@ const Percentage = styled('div')`
 `;
 
 const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space[1]};
+  padding-right: ${p => p.theme.space[1]};
   position: relative;
   cursor: ${p => p.cursor};
   display: flex;

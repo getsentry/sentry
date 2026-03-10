@@ -24,7 +24,6 @@ import {
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -480,8 +479,8 @@ function SectionFilterInput(props: InputProps) {
 }
 
 const modalBodyCss = css`
-  margin: 0 -${space(4)};
-  padding: 0 ${space(4)};
+  margin: 0 -${p => p.theme.space[4]};
+  padding: 0 ${p => p.theme.space[4]};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;

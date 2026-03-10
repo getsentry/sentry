@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import type {FieldGroupProps} from './types';
 
 interface FieldDescriptionProps extends Pick<FieldGroupProps, 'inline'> {
@@ -23,7 +21,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
         flex-shrink: 0;
       `
     : css`
-        margin-bottom: ${space(1)};
+        margin-bottom: ${p.theme.space[1]};
       `;
 
 export const FieldDescription = styled('label')<FieldDescriptionProps>`

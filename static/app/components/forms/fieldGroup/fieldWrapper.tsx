@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import type {FieldGroupProps} from './types';
 
 interface FieldWrapperProps extends Pick<
@@ -23,10 +21,10 @@ const inlineStyle = (p: FieldWrapperProps) =>
 const getPadding = (p: FieldWrapperProps) =>
   p.stacked && !p.inline
     ? css`
-        padding: 0 ${space(2)} ${space(2)} 0;
+        padding: 0 ${p.theme.space[2]} ${p.theme.space[2]} 0;
       `
     : css`
-        padding: ${space(2)};
+        padding: ${p.theme.space[2]};
       `;
 
 export const FieldWrapper = styled('div')<FieldWrapperProps>`

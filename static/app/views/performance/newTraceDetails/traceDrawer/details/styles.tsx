@@ -45,7 +45,6 @@ import {
   IconProfiling,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -667,7 +666,7 @@ const HiglightsDurationComparison = styled('div')<
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.font.size.xs};
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space[0.25]} ${p => p.theme.space[1]};
   display: inline-block;
   height: 21px;
 `;
