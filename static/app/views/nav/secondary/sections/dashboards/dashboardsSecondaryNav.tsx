@@ -87,7 +87,7 @@ export function DashboardsSecondaryNav() {
         {prebuiltDashboards.length > 0 ? (
           <SecondaryNav.Section
             id="dashboards-starred-sentry"
-            title={t('Starred Sentry Built Dashboards')}
+            title={t('Starred Sentry Built')}
           >
             <ErrorBoundary mini>
               {prebuiltDashboards.map(dashboard => {
