@@ -516,7 +516,7 @@ class SpansBuffer:
             for segment_key in keys:
                 segment_keys.append((shard, queue_key, segment_key))
 
-        segment_keys = self._apply_per_trace_limit(segment_keys, max_flush_segments_per_trace)
+        segment_keys = self._apply_per_trace_limit(segment_keys, max_flush_segments_per_trace, now)
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
@@ -612,30 +612,41 @@ class SpansBuffer:
         self,
         segment_keys: list[tuple[int, QueueKey, SegmentKey]],
         max_per_trace: int,
+        now: int,
     ) -> list[tuple[int, QueueKey, SegmentKey]]:
         """
         Limits how many segments a single trace can be flushed in one cycle.
         Prevents a trace from monopolizing the cycle and concentrating all
         operations on one Redis node.
+
+        Deferred segments have their score set to ``now`` so they no longer
+        sit at the front of the sorted set.  This avoids head-of-line
+        blocking where a hot trace's overdue segments are re-fetched and
+        re-discarded every cycle.
         """
         if max_per_trace <= 0:
             return segment_keys
         trace_counts: dict[bytes, int] = {}
-        filtered: list[tuple[int, QueueKey, SegmentKey]] = []
-        num_deferred = 0
+        accepted: list[tuple[int, QueueKey, SegmentKey]] = []
+        deferred: list[tuple[int, QueueKey, SegmentKey]] = []
         for shard, queue_key, segment_key in segment_keys:
             _, trace_id, _ = parse_segment_key(segment_key)
             count = trace_counts.get(trace_id, 0)
             if count < max_per_trace:
-                filtered.append((shard, queue_key, segment_key))
+                accepted.append((shard, queue_key, segment_key))
                 trace_counts[trace_id] = count + 1
             else:
-                num_deferred += 1
+                deferred.append((shard, queue_key, segment_key))
 
-        if num_deferred:
+        if deferred:
+            num_deferred = len(deferred)
             metrics.incr("spans.buffer.flush_segments.deferred", amount=num_deferred)
+            with self.client.pipeline(transaction=False) as p:
+                for shard, queue_key, segment_key in deferred:
+                    p.zadd(queue_key, {segment_key: now})
+                p.execute()
 
-        return filtered
+        return accepted
 
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
         """
