@@ -3,6 +3,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 
+from sentry.utils import metrics
+
 
 @dataclasses.dataclass
 class ParameterizationRegex:
@@ -307,4 +309,10 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        return self._parameterization_regex.sub(_handle_regex_match, input_str)
+        parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+
+        for key, value in self.matches_counter.items():
+            # Track the kinds of replacements being made
+            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+
+        return parameterized
