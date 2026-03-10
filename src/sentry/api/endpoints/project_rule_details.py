@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
@@ -12,7 +13,11 @@ from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.endpoints.project_rules import (
+    ProjectRulePostData,
+    find_duplicate_rule,
+    format_request_data,
+)
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
@@ -39,6 +44,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
@@ -193,13 +199,36 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         if isinstance(rule, Workflow):
-            return Response(
-                {
-                    "rule": [
-                        "Passing a workflow through this endpoint is not yet supported",
-                    ]
+            workflow = rule
+            organization = project.organization
+            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            if not request_data.get("config", {}).get("frequency"):
+                request_data["config"] = workflow.config
+
+            validator = WorkflowValidator(
+                data=request_data,
+                context={
+                    "organization": organization,
+                    "request": request,
+                    "workflow": workflow,
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+            )
+            validator.is_valid(raise_exception=True)
+
+            with transaction.atomic(router.db_for_write(Workflow)):
+                validator.update(workflow, validator.validated_data)
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=workflow.id,
+                    event=audit_log.get_event_id("WORKFLOW_EDIT"),
+                    data=workflow.get_audit_log_data(),
+                )
+
+            workflow.refresh_from_db()
+            return Response(
+                serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                status=200,
             )
 
         rule_data_before = dict(rule.data)

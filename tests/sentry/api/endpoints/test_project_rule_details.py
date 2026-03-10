@@ -139,6 +139,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
             organization=self.detector.project.organization,
+            config={"frequency": 1440},
         )
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
@@ -637,8 +638,28 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_passed(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=400
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            }
+        ]
+        payload = {
+            "name": "hello world",
+            "owner": self.user.id,
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+            "conditions": conditions,
+        }
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            self.fake_workflow_id,
+            status_code=200,
+            **payload,
         )
 
     def test_no_owner(self) -> None:
