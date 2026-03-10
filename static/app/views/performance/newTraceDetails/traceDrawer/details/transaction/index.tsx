@@ -12,7 +12,6 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -276,5 +275,5 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

@@ -7,6 +7,7 @@ import {
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -232,7 +233,7 @@ const TRANSACTIONS_TABLE: Widget = {
     y: 7,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 

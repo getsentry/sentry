@@ -151,7 +151,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 slug=slug,
                 organization_id=org_id,
                 user_id=org_provision_args.provision_options.owning_user_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
 
             org_slug_res.save(unsafe_write=True)
@@ -221,7 +221,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                     slug=slug_base,
                     organization_id=organization_id,
                     user_id=-1,
-                    region_name=region_name,
+                    cell_name=region_name,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                 ).save(unsafe_write=True)
 
@@ -302,7 +302,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                     organization_id=org_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,
-                    region_name=region_name,
+                    cell_name=region_name,
                 )
                 slug_reservation.save(unsafe_write=True)
 

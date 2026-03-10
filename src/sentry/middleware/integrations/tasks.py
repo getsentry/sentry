@@ -16,14 +16,14 @@ from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.types.region import Region, get_cell_by_name
+from sentry.types.region import Cell, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class _AsyncResult:
-    region: Region
+    region: Cell
     response: Response
 
     def was_successful(self) -> bool:

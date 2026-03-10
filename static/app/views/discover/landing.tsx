@@ -19,13 +19,13 @@ import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
@@ -131,6 +131,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
 const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 
 function DiscoverLanding() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const location = useLocation();
   const activeSort = useActiveSort();
@@ -158,7 +159,7 @@ function DiscoverLanding() {
 
   const handleSortChange = (value: string) => {
     trackAnalytics('discover_v2.change_sort', {organization, sort: value});
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -169,7 +170,7 @@ function DiscoverLanding() {
   };
 
   const handleSearchQuery = (searchQuery: string) => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,

@@ -1,19 +1,16 @@
 import {t} from 'sentry/locale';
-import type {
-  AttributeResults,
-  Rule,
-} from 'sentry/views/settings/components/dataScrubbing/types';
+import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
-import ModalManager, {type ModalManagerProps} from './modalManager';
+import {DataScrubFormModal, type DataScrubFormModalProps} from './dataScrubFormModal';
 
-type Props = Omit<ModalManagerProps, 'title' | 'initialValues' | 'onGetNewRules'> & {
-  attributeResults: AttributeResults;
+type Props = Omit<DataScrubFormModalProps, 'title' | 'initialState' | 'onGetNewRules'> & {
   rule: Rule;
+  savedRules: Rule[];
 };
 
 function Edit({savedRules, rule, ...props}: Props) {
   const handleGetNewRules = (
-    values: Parameters<ModalManagerProps['onGetNewRules']>[0]
+    values: Parameters<DataScrubFormModalProps['onGetNewRules']>[0]
   ) => {
     const updatedRule = {...values, id: rule.id};
 
@@ -28,9 +25,8 @@ function Edit({savedRules, rule, ...props}: Props) {
   };
 
   return (
-    <ModalManager
+    <DataScrubFormModal
       {...props}
-      savedRules={savedRules}
       title={t('Edit an advanced data scrubbing rule')}
       initialState={rule}
       onGetNewRules={handleGetNewRules}

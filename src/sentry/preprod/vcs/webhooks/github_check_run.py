@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from django.db.models import F, Window
 from django.db.models.functions import RowNumber
@@ -20,6 +20,10 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     APPROVE_SIZE_ACTION_IDENTIFIER,
     create_preprod_status_check_task,
 )
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    APPROVE_SNAPSHOT_ACTION_IDENTIFIER,
+    create_preprod_snapshot_status_check_task,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,7 @@ class Log(StrEnum):
     ARTIFACT_NOT_FOUND = "preprod.webhook.check_run.artifact_not_found"
     APPROVAL_ALREADY_EXISTS = "preprod.webhook.check_run.approval_already_exists"
     APPROVALS_CREATED = "preprod.webhook.check_run.approvals_created"
+    UNKNOWN_IDENTIFIER = "preprod.webhook.check_run.unknown_identifier"
 
 
 class GitHubCheckRunAction(StrEnum):
@@ -68,7 +73,7 @@ def handle_preprod_check_run_event(
     requested_action = event.get("requested_action", {})
     identifier = requested_action.get("identifier")
 
-    if identifier != APPROVE_SIZE_ACTION_IDENTIFIER:
+    if identifier not in (APPROVE_SIZE_ACTION_IDENTIFIER, APPROVE_SNAPSHOT_ACTION_IDENTIFIER):
         return
 
     check_run = event.get("check_run", {})
@@ -119,12 +124,28 @@ def handle_preprod_check_run_event(
     approvals_created = 0
     github_user_info = {"github": {"id": sender.get("id"), "login": sender.get("login")}}
 
+    # Determine feature type based on the action identifier
+    product_name: Literal["size", "snapshots"]
+    if identifier == APPROVE_SIZE_ACTION_IDENTIFIER:
+        feature_type = PreprodComparisonApproval.FeatureType.SIZE
+        product_name = "size"
+    elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
+        feature_type = PreprodComparisonApproval.FeatureType.SNAPSHOTS
+        product_name = "snapshots"
+    else:
+        logger.warning(
+            Log.UNKNOWN_IDENTIFIER,
+            extra={**extra, "identifier": identifier},
+        )
+        metrics.incr(Log.UNKNOWN_IDENTIFIER)
+        return
+
     # Single query: get latest approval per artifact using window function
     sibling_ids = [s.id for s in sibling_artifacts]
     latest_approvals_qs = (
         PreprodComparisonApproval.objects.filter(
             preprod_artifact_id__in=sibling_ids,
-            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            preprod_feature_type=feature_type,
         )
         .annotate(
             row_num=Window(
@@ -154,7 +175,7 @@ def handle_preprod_check_run_event(
 
         PreprodComparisonApproval.objects.create(
             preprod_artifact=sibling,
-            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            preprod_feature_type=feature_type,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
             approved_at=datetime.now(timezone.utc),
             approved_by_id=None,
@@ -182,13 +203,23 @@ def handle_preprod_check_run_event(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
                 artifact_id=artifact.id,
-                product="size",
+                product=product_name,
             )
         )
 
-    create_preprod_status_check_task.apply_async(
-        kwargs={
-            "preprod_artifact_id": artifact.id,
-            "caller": "github_approve_webhook",
-        }
-    )
+    if identifier == APPROVE_SIZE_ACTION_IDENTIFIER:
+        create_preprod_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "github_approve_webhook",
+            }
+        )
+    elif identifier == APPROVE_SNAPSHOT_ACTION_IDENTIFIER:
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "github_approve_webhook",
+            }
+        )
+    else:
+        raise ValueError(f"Unknown identifier: {identifier}")

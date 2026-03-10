@@ -246,13 +246,15 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
+  const searchString = search.formatString();
   const highlightTerms = useMemo(() => {
     const terms = getLogBodySearchTerms(search);
     if (localOnlyItemFilters?.filterText) {
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-  }, [search, localOnlyItemFilters?.filterText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchString, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
@@ -515,7 +517,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}

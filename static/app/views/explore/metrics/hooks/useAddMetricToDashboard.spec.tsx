@@ -85,6 +85,59 @@ describe('useAddMetricToDashboard', () => {
     );
   });
 
+  it('includes all yAxes when multiple visualizes are present', () => {
+    const yAxis1 = 'p50(value,metric.a,counter,-)';
+    const yAxis2 = 'p75(value,metric.a,counter,-)';
+    const visualize1 = new VisualizeFunction(yAxis1, {chartType: ChartType.BAR});
+    const visualize2 = new VisualizeFunction(yAxis2, {chartType: ChartType.LINE});
+    const metricQuery: BaseMetricQuery = {
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        cursor: '',
+        fields: [],
+        sortBys: [],
+        aggregateCursor: '',
+        aggregateFields: [visualize1, visualize2, {groupBy: 'project'}],
+        aggregateSortBys: [{field: yAxis1, kind: 'desc'}],
+      }),
+    };
+
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
+      ...context,
+    });
+
+    act(() => {
+      result.current.addToDashboard(metricQuery);
+    });
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.BAR,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: [
+              {
+                aggregates: [yAxis1, yAxis2],
+                columns: ['project'],
+                fields: ['project'],
+                conditions: 'release:1.2.3',
+                orderby: `-${yAxis1}`,
+                name: '',
+              },
+            ],
+          },
+        ],
+      })
+    );
+  });
+
   it('does not pass an orderby if there are no group bys', () => {
     const yAxis = 'avg(value,metric.a,counter,-)';
     const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.BAR});

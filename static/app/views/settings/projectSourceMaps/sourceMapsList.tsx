@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -22,7 +22,6 @@ import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -252,6 +251,7 @@ export function SourceMapsList({project}: Props) {
 }
 
 function ReactNativeCallOut() {
+  const theme = useTheme();
   const [selectedTab, setSelectedTab] = useState('expo');
 
   return (
@@ -259,7 +259,7 @@ function ReactNativeCallOut() {
       css={css`
         text-align: left;
         display: grid;
-        gap: ${space(1)};
+        gap: ${theme.space.md};
       `}
     >
       <div>

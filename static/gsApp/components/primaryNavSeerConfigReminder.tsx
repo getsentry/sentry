@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -210,24 +209,26 @@ export default function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SeerButton
+      <SidebarButton
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          icon: <IconSeer />,
+        }}
       >
-        <IconSeer />
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavLayout.MOBILE}
         />
-      </SeerButton>
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
-            <Flex justify="end">
+            <Flex justify="start">
               <LinkButton
                 to={copy.pathname}
                 priority="primary"
@@ -244,12 +245,3 @@ export default function PrimaryNavSeerConfigReminder() {
     </Fragment>
   );
 }
-
-const SeerButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
-`;

@@ -194,7 +194,14 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
@@ -313,6 +320,8 @@ export function useMetricDetectorChart({
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
     const isPercentage = outputType === 'percentage';
@@ -361,6 +370,8 @@ export function useMetricDetectorChart({
     maxValue,
     minValue,
     openPeriodMarkerResult.incidentMarkerYAxis,
+    serverOutputType,
+    unit,
   ]);
 
   const grid = useMemo(() => {
@@ -391,6 +402,8 @@ export function useMetricDetectorChart({
         valueFormatter: getDetectorChartFormatters({
           detectionType,
           aggregate,
+          unit,
+          serverOutputType,
         }).formatTooltipValue,
       },
       ...chartZoomProps,
@@ -410,6 +423,8 @@ export function useMetricDetectorChart({
     isLoading,
     openPeriodMarkerResult,
     series,
+    serverOutputType,
+    unit,
     yAxes,
   ]);
 

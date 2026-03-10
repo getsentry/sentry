@@ -214,16 +214,3 @@ class TestCursorWebhook(APITestCase):
 
         response = self._post_with_headers(body, headers)
         assert response.status_code == 204
-
-    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
-    def test_seer_api_error_is_caught(self, mock_update_state):
-        from sentry.seer.models import SeerApiError
-
-        mock_update_state.side_effect = SeerApiError("boom", status=500)
-        payload = self._build_status_payload(status="FINISHED")
-        body = orjson.dumps(payload)
-        headers = self._signed_headers(body)
-
-        response = self._post_with_headers(body, headers)
-        assert response.status_code == 204
-        # Even with exception, endpoint must not raise

@@ -161,6 +161,10 @@ describe('workflowEngineRedirects', () => {
           `/organizations/${organization.slug}/issues/group-1/`
         );
       });
+      expect(router.location.query).toMatchObject({
+        alert: 'alert-1',
+        notification_uuid: 'notification-uuid',
+      });
     });
 
     it('does not redirect without workflow-engine-metric-issue-ui flag', async () => {
@@ -251,6 +255,10 @@ describe('workflowEngineRedirects', () => {
           `/organizations/${organization.slug}/issues/group-1/`
         );
       });
+      expect(router.location.query).toMatchObject({
+        alert: 'alert-1',
+        notification_uuid: 'notification-uuid',
+      });
     });
 
     it('does not redirect without workflow-engine-ui flag', async () => {
@@ -330,6 +338,10 @@ describe('workflowEngineRedirects', () => {
           `/organizations/${organization.slug}/issues/group-1/`
         );
       });
+      expect(router.location.query).toMatchObject({
+        alert: 'alert-1',
+        notification_uuid: 'notification-uuid',
+      });
     });
   });
 
@@ -381,6 +393,7 @@ describe('workflowEngineRedirects', () => {
         route: '/organizations/:orgId/alerts/open-periods/:alertId/',
         location: {
           pathname: `/organizations/${organization.slug}/alerts/open-periods/alert-2/`,
+          query: {notification_uuid: 'notification-uuid'},
         },
       };
 
@@ -390,6 +403,9 @@ describe('workflowEngineRedirects', () => {
         expect(router.location.pathname).toBe(
           `/organizations/${organization.slug}/issues/group-2/`
         );
+      });
+      expect(router.location.query).toMatchObject({
+        notification_uuid: 'notification-uuid',
       });
     });
   });

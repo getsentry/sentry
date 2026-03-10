@@ -9,7 +9,7 @@ import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
 
 describe('CheckoutSuccess', () => {
-  const bizPlan = PlanDetailsLookupFixture('am3_business')!;
+  const bizPlan = PlanDetailsLookupFixture('am3_business');
   const mockDate = new Date('2025-01-01');
 
   beforeEach(() => {

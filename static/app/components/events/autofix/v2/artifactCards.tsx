@@ -11,6 +11,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CommitRow} from 'sentry/components/commitRow';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
+import {
+  CodingAgentProvider,
+  getResultButtonLabel,
+} from 'sentry/components/events/autofix/types';
 import type {
   ImpactAssessmentArtifact,
   ImpactItem,
@@ -736,14 +740,13 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
     <ArtifactCard title={t('Code Changes')} icon={getArtifactIcon('code_changes')}>
       {Array.from(patchesByRepo.entries()).map(([repoName, repoPatches]) => {
         const prState = prStates?.[repoName];
-        const hasPR = prState?.pr_url;
         const isCreatingPR = prState?.pr_creation_status === 'creating';
 
         return (
           <RepoSection key={repoName}>
             <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
-              {hasPR ? (
+              {prState?.pr_url ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
                 </a>
@@ -806,10 +809,27 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
   };
 
   const getProviderDisplayName = (provider: string) => {
-    if (provider === 'cursor_background_agent') {
-      return t('Cursor Cloud Agent');
+    switch (provider) {
+      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
+        return t('Cursor Cloud Agent');
+      case CodingAgentProvider.CLAUDE_CODE_AGENT:
+        return t('Claude Agent');
+      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
+        return t('GitHub Copilot');
+      default:
+        return t('Coding Agent');
     }
-    return t('Coding Agent');
+  };
+
+  const getOpenButtonText = (provider: string) => {
+    switch (provider) {
+      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
+        return t('Open in Cursor');
+      case CodingAgentProvider.CLAUDE_CODE_AGENT:
+        return t('Open in Claude');
+      default:
+        return t('Open Session');
+    }
   };
 
   return (
@@ -839,11 +859,6 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                     <Text size="sm" as="div">
                       <StyledMarkedText text={result.description} inline as="span" />
                     </Text>
-                    {result.branch_name && (
-                      <Text variant="muted" size="sm">
-                        {t('Branch')}: {result.branch_name}
-                      </Text>
-                    )}
                   </CodingAgentResultItem>
                 ))}
               </Flex>
@@ -858,7 +873,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                     window.open(agent.agent_url, '_blank', 'noopener,noreferrer');
                   }}
                 >
-                  {t('Open in Cursor')}
+                  {getOpenButtonText(agent.provider)}
                 </Button>
               )}
               {agent.results
@@ -872,7 +887,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
                       window.open(result.pr_url, '_blank', 'noopener,noreferrer');
                     }}
                   >
-                    {t('View Pull Request')}
+                    {getResultButtonLabel(result.pr_url)}
                   </Button>
                 ))}
             </Flex>
