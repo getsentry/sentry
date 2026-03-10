@@ -66,6 +66,12 @@ def none_if_zero_processor(value: float) -> float | None:
     return value
 
 
+def zero_if_none_processor(value: float | None) -> float:
+    if value is None:
+        return 0
+    return value
+
+
 def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -1070,6 +1076,7 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=failure_rate,
         is_aggregate=True,
+        processor=zero_if_none_processor,
     ),
     "failure_rate_if": FormulaDefinition(
         default_search_type="percentage",
@@ -1234,6 +1241,7 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=failure_count,
         is_aggregate=True,
+        processor=zero_if_none_processor,
     ),
     "eps": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
