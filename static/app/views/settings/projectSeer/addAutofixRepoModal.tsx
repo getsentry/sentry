@@ -13,7 +13,6 @@ import {useOrganizationRepositories} from 'sentry/components/events/autofix/pref
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
@@ -217,7 +216,7 @@ const ModalReposContainer = styled('div')`
 `;
 
 const SearchContainer = styled('div')<{hasAlert: boolean}>`
-  margin-top: ${p => (p.hasAlert ? space(1.5) : 0)};
+  margin-top: ${p => (p.hasAlert ? p.theme.space.lg : 0)};
   margin-bottom: ${p => p.theme.space.lg};
 `;
 

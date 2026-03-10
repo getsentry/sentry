@@ -13,7 +13,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -256,7 +255,7 @@ function TransactionThresholdModal({
 }
 
 const Instruction = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 export const modalCss = css`

@@ -25,7 +25,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -113,6 +112,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
@@ -201,10 +201,10 @@ function TagsHeatMap(
     },
 
     grid: {
-      left: space(3),
-      right: space(3),
+      left: theme.space['2xl'],
+      right: theme.space['2xl'],
       top: '25px', // Need to bump top spacing past space(3) so the chart title doesn't overlap.
-      bottom: space(4),
+      bottom: theme.space['3xl'],
     },
   };
 
@@ -308,7 +308,6 @@ function TagsHeatMap(
     }
   );
 
-  const theme = useTheme();
   const portaledContent =
     !chartElement || !overlayState.isOpen ? null : (
       <PositionWrapper
@@ -443,7 +442,8 @@ function TagsHeatMap(
 }
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(3)} ${space(3)} 0 ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']} 0
+    ${p => p.theme.space['2xl']};
   margin-bottom: 0;
   border-bottom: 0;
   border-bottom-left-radius: 0;

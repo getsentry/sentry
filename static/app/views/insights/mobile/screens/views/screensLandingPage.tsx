@@ -8,7 +8,6 @@ import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -338,7 +337,7 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${p => p.theme.space.md};

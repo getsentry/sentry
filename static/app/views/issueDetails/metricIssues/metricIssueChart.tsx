@@ -18,6 +18,7 @@ import {
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {GraphAlert} from 'sentry/views/issueDetails/streamline/eventGraph';
 
 interface MetricIssueChartProps {
   event: Event | undefined;
@@ -57,7 +58,7 @@ export function MetricIssueChart({group, event}: MetricIssueChartProps) {
   if (isDetectorError) {
     return (
       <Container width="100%">
-        <Alert variant="danger">{getDetectorErrorMessage(detectorError)}</Alert>
+        <GraphAlert variant="danger">{getDetectorErrorMessage(detectorError)}</GraphAlert>
       </Container>
     );
   }
@@ -120,9 +121,9 @@ function MetricIssueChartContent({
   if (chartError) {
     return (
       <Container width="100%">
-        <Alert variant="danger">
+        <GraphAlert variant="danger">
           {t('Error loading metric monitor: %s', chartError?.message)}
-        </Alert>
+        </GraphAlert>
       </Container>
     );
   }
