@@ -304,7 +304,7 @@ class Parameterizer:
 
         return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
-    def parametrize_w_regex(self, input_str: str, parameterization_regex: re.Pattern[str]) -> str:
+    def parameterize(self, input_str: str) -> str:
         """
         Replace all matches of the given regex in the input string with a placeholder.
 
@@ -324,7 +324,4 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        return parameterization_regex.sub(_handle_regex_match, input_str)
-
-    def parameterize(self, input_str: str) -> str:
-        return self.parametrize_w_regex(input_str, self._parameterization_regex)
+        return self._parameterization_regex.sub(_handle_regex_match, input_str)
