@@ -1,11 +1,9 @@
-import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
-
-import {Flex} from '@sentry/scraps/layout';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -529,7 +527,6 @@ export const CustomerStats = memo(
     const theme = useTheme();
     const series = useSeries();
     const chartRef = useRef<ReactEchartsRef>(null);
-    const chartContainerRef = useRef<HTMLDivElement>(null);
     const [abuseTooltipX, setAbuseTooltipX] = useState<number | null>(null);
 
     const abuseRegions = useMemo(
@@ -537,19 +534,25 @@ export const CustomerStats = memo(
       [abuseStats]
     );
 
-    useEffect(() => {
-      const container = chartContainerRef.current;
-      if (!container || abuseRegions.length === 0) {
-        return undefined;
+    const abuseRegionsRef = useRef(abuseRegions);
+    abuseRegionsRef.current = abuseRegions;
+
+    const cleanupRef = useRef<(() => void) | null>(null);
+    const chartContainerRef = useCallback((node: HTMLDivElement | null) => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+
+      if (!node) {
+        return;
       }
 
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
-        if (!instance) {
+        if (!instance || abuseRegionsRef.current.length === 0) {
           return;
         }
 
-        const rect = container.getBoundingClientRect();
+        const rect = node.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
 
         // Convert pixel X to data value (timestamp)
@@ -559,7 +562,7 @@ export const CustomerStats = memo(
         }
 
         const timestamp = dataPoint[0]!;
-        const inAbuse = abuseRegions.some(
+        const inAbuse = abuseRegionsRef.current.some(
           r => timestamp >= r.start && timestamp <= r.end
         );
 
@@ -570,14 +573,14 @@ export const CustomerStats = memo(
         setAbuseTooltipX(null);
       };
 
-      container.addEventListener('mousemove', handleMouseMove);
-      container.addEventListener('mouseleave', handleMouseLeave);
+      node.addEventListener('mousemove', handleMouseMove);
+      node.addEventListener('mouseleave', handleMouseLeave);
 
-      return () => {
-        container.removeEventListener('mousemove', handleMouseMove);
-        container.removeEventListener('mouseleave', handleMouseLeave);
+      cleanupRef.current = () => {
+        node.removeEventListener('mousemove', handleMouseMove);
+        node.removeEventListener('mouseleave', handleMouseLeave);
       };
-    }, [abuseRegions]);
+    }, []);
 
     if (loading) {
       return <LoadingIndicator />;
@@ -669,17 +672,10 @@ export const CustomerStats = memo(
                       {...zoomRenderProps}
                     />
                     {abuseTooltipX !== null && (
-                      <Flex align="center" gap="xs" position="absolute" padding="xs md">
-                        {({className}) => (
-                          <AbuseTooltip
-                            className={className}
-                            style={{left: abuseTooltipX}}
-                          >
-                            <AbuseDot />
-                            Abuse
-                          </AbuseTooltip>
-                        )}
-                      </Flex>
+                      <AbuseTooltip style={{left: abuseTooltipX}}>
+                        <AbuseDot />
+                        Abuse
+                      </AbuseTooltip>
                     )}
                   </ChartContainer>
                   <Footer>
@@ -700,14 +696,21 @@ const ChartContainer = styled('div')`
   position: relative;
 `;
 
-const AbuseTooltip = styled(Flex)`
+const AbuseTooltip = styled('div')`
+  position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   background: ${p => p.theme.tokens.background.primary};
+  pointer-events: none;
+  white-space: nowrap;
   z-index: 1;
 `;
 
