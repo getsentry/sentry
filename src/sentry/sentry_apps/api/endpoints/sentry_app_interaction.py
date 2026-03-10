@@ -11,7 +11,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppStatsPermission,
 )
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
 logger = logging.getLogger(__name__)
 

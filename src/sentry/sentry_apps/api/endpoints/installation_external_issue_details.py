@@ -6,7 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
 

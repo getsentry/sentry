@@ -11,7 +11,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEnd
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 

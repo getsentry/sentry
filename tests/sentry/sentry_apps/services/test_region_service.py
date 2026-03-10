@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.cell import sentry_app_region_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of

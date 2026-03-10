@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
 logger = logging.getLogger("sentry.sentry-apps")
 

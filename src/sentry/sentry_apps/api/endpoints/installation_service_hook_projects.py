@@ -10,7 +10,7 @@ from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.api.serializers.servicehookproject import ServiceHookProjectSerializer
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.users.services.user.serial import serialize_generic_user
 
 

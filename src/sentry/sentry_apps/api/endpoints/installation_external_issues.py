@@ -13,7 +13,7 @@ from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.services.region import sentry_app_cell_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
