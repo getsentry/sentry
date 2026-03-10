@@ -204,6 +204,62 @@ class TestSeerExplorerClient(TestCase):
         assert body["intelligence_level"] == "low"
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    def test_client_init_with_max_iterations(self, mock_access):
+        """Test that max_iterations is stored"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        assert client.max_iterations == 3
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    def test_client_init_default_max_iterations(self, mock_access):
+        """Test that max_iterations defaults to None"""
+        mock_access.return_value = (True, None)
+
+        client = SeerExplorerClient(self.organization, self.user)
+        assert client.max_iterations is None
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_includes_max_iterations(self, mock_collect_context, mock_post, mock_access):
+        """Test that max_iterations is included in the payload when set"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 444}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user, max_iterations=3)
+        run_id = client.start_run("Test query")
+
+        assert run_id == 444
+        body = mock_post.call_args[0][0]
+        assert body["max_iterations"] == 3
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_start_run_excludes_max_iterations_when_none(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        """Test that max_iterations is not included in the payload when None"""
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"run_id": 445}
+        mock_response.status = 200
+        mock_post.return_value = mock_response
+
+        client = SeerExplorerClient(self.organization, self.user)
+        run_id = client.start_run("Test query")
+
+        assert run_id == 445
+        body = mock_post.call_args[0][0]
+        assert "max_iterations" not in body
+
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.make_explorer_chat_request")
     def test_continue_run_basic(self, mock_post, mock_access):
         """Test continuing an existing run"""

@@ -1,5 +1,3 @@
-import snakeCase from 'lodash/snakeCase';
-
 import {LinkButton} from '@sentry/scraps/button';
 
 import {ChartType} from 'sentry/chartcuterie/types';
@@ -21,8 +19,8 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
+import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import Chart from './lineChart';
 
@@ -34,7 +32,8 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
+  const occurrenceEvidenceData = event?.occurrence?.evidenceData;
+  const {transaction, breakpoint} = occurrenceEvidenceData ?? {};
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
@@ -60,7 +59,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     typeof transaction === 'string' && typeof breakpoint === 'number'
       ? getExploreUrl({
           organization,
-          mode: Mode.AGGREGATE,
+          mode: Mode.SAMPLES,
           query: `transaction:"${transaction}" is_transaction:True`,
           visualize: [{yAxes: ['p95(span.duration)']}],
           selection: {
@@ -71,14 +70,11 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
         })
       : undefined;
 
-  // The evidence data keys are returned to us in camelCase, but we need to
-  // convert them to snake_case to match the NormalizedTrendsTransaction type
-  const normalizedOccurrenceEvent = Object.entries(
-    event?.occurrence?.evidenceData ?? {}
-  ).reduce<Record<string, unknown>>((acc, [key, value]) => {
-    acc[snakeCase(key)] = value;
-    return acc;
-  }, {}) as NormalizedTrendsTransaction;
+  const normalizedOccurrenceEvent: BreakpointEvidenceData = {
+    aggregate_range_1: occurrenceEvidenceData?.aggregateRange1,
+    aggregate_range_2: occurrenceEvidenceData?.aggregateRange2,
+    breakpoint: occurrenceEvidenceData?.breakpoint,
+  };
 
   const {data, isPending} = useGenericDiscoverQuery<
     {
