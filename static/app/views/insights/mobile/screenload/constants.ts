@@ -27,7 +27,7 @@ export enum YAxis {
   FRAMES_DELAY = 10,
 }
 
-export const YAXIS_COLUMNS: Readonly<Record<YAxis, SpanProperty | SpanProperty>> = {
+export const YAXIS_COLUMNS: Readonly<Record<YAxis, SpanProperty>> = {
   [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
   [YAxis.COLD_START]: 'avg(measurements.app_start_cold)',
   [YAxis.TTID]: 'avg(measurements.time_to_initial_display)',
