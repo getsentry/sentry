@@ -157,13 +157,13 @@ const Wrapper = styled(Panel, {
   grid-template-columns: repeat(${p => p.columns}, auto);
 
   > * {
-    padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)}
-      ${p =>
-        p.disableHeaderBorderBottom
-          ? ''
-          : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
+    padding: ${p => (p.disablePadding ? '0' : p.theme.space.xl)};
+    ${p =>
+      p.disableHeaderBorderBottom
+        ? ''
+        : `&:nth-last-child(n + ${p.hasRows ? p.columns + 1 : 0}) {
       border-bottom: 1px solid ${p.theme.tokens.border.primary};
-    }`};
+    }`}
   }
 
   > ${TableEmptyStateWarning}, > ${LoadingWrapper} {

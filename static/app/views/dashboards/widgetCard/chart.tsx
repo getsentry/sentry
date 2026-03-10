@@ -961,7 +961,7 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   padding: ${p =>
     p.noPadding
       ? `0`
-      : `0${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
+      : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
 const BigNumber = styled('div')`
