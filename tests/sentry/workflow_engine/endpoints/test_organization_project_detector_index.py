@@ -24,7 +24,7 @@ from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class ProjectDetectorIndexBaseTest(APITestCase):
+class OrganizationProjectDetectorIndexBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-project-detector-index"
     method = "POST"
 
@@ -86,7 +86,7 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 
 @region_silo_test
 @with_feature("organizations:incidents")
-class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
+class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
     def test_missing_group_type(self) -> None:
         data = {**self.valid_data}
         del data["type"]

@@ -30,9 +30,8 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 from sentry.workflow_engine.models import Detector
 
 
-class ProjectDetectorPermission(ProjectPermission):
+class OrganizationProjectDetectorPermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "alerts:read"],
         "POST": ["project:write", "project:admin", "alerts:write"],
     }
 
@@ -41,10 +40,10 @@ class ProjectDetectorPermission(ProjectPermission):
 @extend_schema(tags=["Monitors"])
 class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ISSUES
-    permission_classes = (ProjectDetectorPermission,)
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
+    permission_classes = (OrganizationProjectDetectorPermission,)
 
     @extend_schema(
         operation_id="Create a Monitor for a Project",

@@ -1027,6 +1027,19 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data == {"name": ["This field is required."]}
 
+    def test_missing_data_sources(self) -> None:
+        data = {
+            "name": "Test Cron Monitor",
+            "type": MonitorIncidentType.slug,
+            "projectId": self.project.id,
+        }
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "dataSources" in response.data
+
     def test_empty_query_string(self) -> None:
         data = {**self.valid_data}
         data["dataSources"][0]["query"] = ""
@@ -1045,6 +1058,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert query_sub.snuba_query.query == ""
 
     def test_valid_creation_with_owner(self) -> None:
+        # Test data with owner field
         data_with_owner = {
             **self.valid_data,
             "owner": self.user.get_actor_identifier(),
@@ -1059,11 +1073,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
         detector = Detector.objects.get(id=response.data["id"])
 
+        # Verify owner is set correctly
         assert detector.owner_user_id == self.user.id
         assert detector.owner_team_id is None
         assert detector.owner is not None
         assert detector.owner.identifier == self.user.get_actor_identifier()
 
+        # Verify serialized response includes owner
         assert response.data["owner"] == {
             "email": self.user.email,
             "id": str(self.user.id),
@@ -1072,8 +1088,10 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     def test_valid_creation_with_team_owner(self) -> None:
+        # Create a team for testing
         team = self.create_team(organization=self.organization)
 
+        # Test data with team owner
         data_with_team_owner = {
             **self.valid_data,
             "owner": f"team:{team.id}",
@@ -1088,11 +1106,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
 
         detector = Detector.objects.get(id=response.data["id"])
 
+        # Verify team owner is set correctly
         assert detector.owner_user_id is None
         assert detector.owner_team_id == team.id
         assert detector.owner is not None
         assert detector.owner.identifier == f"team:{team.id}"
 
+        # Verify serialized response includes team owner
         assert response.data["owner"] == {
             "id": str(team.id),
             "name": team.slug,
@@ -1100,6 +1120,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         }
 
     def test_invalid_owner(self) -> None:
+        # Test with invalid owner format
         data_with_invalid_owner = {
             **self.valid_data,
             "owner": "invalid:owner:format",
@@ -1113,10 +1134,12 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert "owner" in response.data
 
     def test_owner_not_in_organization(self) -> None:
+        # Create a user in another organization
         other_org = self.create_organization()
         other_user = self.create_user()
         self.create_member(organization=other_org, user=other_user)
 
+        # Test with owner not in current organization
         data_with_invalid_owner = {
             **self.valid_data,
             "owner": other_user.get_actor_identifier(),
@@ -1132,8 +1155,10 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_detector_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to 2 detectors
         mock_get_limit.return_value = 2
 
+        # Create 2 metric detectors (1 active, 1 to be deleted)
         self.create_detector(
             project=self.project,
             name="Existing Detector 1",
@@ -1147,6 +1172,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status=ObjectStatus.PENDING_DELETION,
         )
 
+        # Create another metric detector, it should succeed
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -1156,6 +1182,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.name == "Test Detector"
 
+        # Create another metric detector, it should fail
         response = self.get_error_response(
             self.organization.slug,
             **self.valid_data,
@@ -1166,8 +1193,10 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     def test_metric_detector_limit_unlimited_plan(self, mock_get_limit: mock.MagicMock) -> None:
+        # Set limit to -1 (unlimited)
         mock_get_limit.return_value = -1
 
+        # Create many metric detectors
         for i in range(5):
             self.create_detector(
                 project=self.project,
@@ -1176,6 +1205,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
                 status=ObjectStatus.ACTIVE,
             )
 
+        # Create another detector, it should succeed
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -1191,10 +1221,13 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     def test_metric_detector_limit_only_applies_to_metric_detectors(
         self, mock_get_limit: mock.MagicMock
     ) -> None:
+        # Set limit to 1 metric detector
         mock_get_limit.return_value = 1
 
+        # Create a not-metric detector
         self.create_uptime_detector()
 
+        # Create 1 metric detector, it should succeed
         response = self.get_success_response(
             self.organization.slug,
             **self.valid_data,
@@ -1203,6 +1236,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.name == "Test Detector"
 
+        # Create another metric detector, it should fail
         response = self.get_error_response(
             self.organization.slug,
             **self.valid_data,
@@ -1210,6 +1244,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.status_code == 400
 
+        # Create another not-metric detector, it should succeed
         data = {
             "name": "Test Uptime Monitor",
             "type": UptimeDomainCheckFailure.slug,
