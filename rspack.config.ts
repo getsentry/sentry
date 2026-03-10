@@ -87,6 +87,8 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
+// Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
+const SHOULD_LAZY_COMPILATION = Boolean(env.LAZY_COMPILATION);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -286,6 +288,20 @@ const appConfig: Configuration = {
     // https://rspack.dev/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
+  },
+  // https://rspack.rs/config/lazy-compilation
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes('type-loader')) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
   },
   module: {
     /**
@@ -510,7 +526,10 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': require.resolve('./static/app/stories/type-loader.ts'),
+      'type-loader': path.resolve(
+        import.meta.dirname,
+        'static/app/stories/type-loader.ts'
+      ),
     },
   },
 

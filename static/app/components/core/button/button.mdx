@@ -37,8 +37,8 @@ import {
 } from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/button').then(module => {
+export const documentation = import('!!type-loader!@sentry/scraps/button').then(
+  module => {
     const buttonDocumentation = module.default;
     return {
       exports: {
@@ -56,7 +56,8 @@ export const documentation = () =>
         ...buttonDocumentation?.props,
       },
     };
-  });
+  }
+);
 
 To create a basic button, wrap text in a `<Button>` and pass an `onClick` callback.
 

@@ -13,8 +13,8 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/button').then(module => {
+export const documentation = import('!!type-loader!@sentry/scraps/button').then(
+  module => {
     const buttonDocumentation = module.default;
     return {
       props: {
@@ -31,7 +31,8 @@ export const documentation = () =>
         },
       },
     };
-  });
+  }
+);
 
 ButtonBar is used to create merged button groups where buttons are visually joined together with shared borders and no gaps between them, creating a cohesive pill-like control unit.
 

@@ -27,8 +27,7 @@ import {
   isMDXStory,
   type MDXStoryDescriptor,
   type StoryDescriptor,
-  type StoryDocumentationExport,
-  type StoryDocumentationLoader,
+  type StoryDocumentation,
 } from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
@@ -47,9 +46,8 @@ function StoryLayout() {
     'tab',
     parseAsString.withOptions({history: 'push'}).withDefault('usage')
   );
-  const {documentation, isLoadingDocumentation} = useStoryDocumentation(
+  const documentation = useStoryDocumentation(
     isMDXStory(story) ? story.exports.documentation : undefined,
-    tab === 'api',
     story.filename
   );
 
@@ -59,10 +57,7 @@ function StoryLayout() {
       <StoryGrid>
         <StoryContainer>
           <Flex flexGrow={1} minWidth="0px">
-            <StoryTabPanels
-              documentation={documentation}
-              isLoadingDocumentation={isLoadingDocumentation}
-            />
+            <StoryTabPanels documentation={documentation} />
           </Flex>
           <ErrorBoundary>
             <StorySourceLinks />
@@ -160,10 +155,7 @@ function StoryTabList() {
   );
 }
 
-function StoryTabPanels(props: {
-  documentation: TypeLoader.TypeLoaderResult | undefined;
-  isLoadingDocumentation: boolean;
-}) {
+function StoryTabPanels(props: {documentation: TypeLoader.TypeLoaderResult | undefined}) {
   const {story} = useStory();
 
   if (!isMDXStory(story)) {
@@ -182,10 +174,7 @@ function StoryTabPanels(props: {
         <StoryUsage />
       </TabPanels.Item>
       <TabPanels.Item key="api">
-        <StoryAPI
-          documentation={props.documentation}
-          isLoadingDocumentation={props.isLoadingDocumentation}
-        />
+        <StoryAPI documentation={props.documentation} />
       </TabPanels.Item>
       <TabPanels.Item key="resources">
         <StoryResources />
@@ -246,14 +235,7 @@ function StoryUsage() {
   );
 }
 
-function StoryAPI(props: {
-  documentation: TypeLoader.TypeLoaderResult | undefined;
-  isLoadingDocumentation: boolean;
-}) {
-  if (props.isLoadingDocumentation) {
-    return <Text>{t('Loading API reference...')}</Text>;
-  }
-
+function StoryAPI(props: {documentation: TypeLoader.TypeLoaderResult | undefined}) {
   if (!props.documentation || !('props' in props.documentation)) {
     return null;
   }
@@ -267,49 +249,30 @@ function StoryAPI(props: {
   );
 }
 
-function isStoryDocumentationLoader(
-  documentation: StoryDocumentationExport | undefined
-): documentation is StoryDocumentationLoader {
-  return typeof documentation === 'function';
-}
-
+/**
+ * Documentation modules are lazy-compiled in development mode so we have to fetch them.
+ */
 function useStoryDocumentation(
-  documentationExport: StoryDocumentationExport | undefined,
-  shouldLoadDocumentation: boolean,
+  documentation: StoryDocumentation | undefined,
   storyFilename: string
-): {
-  documentation: TypeLoader.TypeLoaderResult | undefined;
-  isLoadingDocumentation: boolean;
-} {
-  const documentationLoader = isStoryDocumentationLoader(documentationExport)
-    ? documentationExport
-    : undefined;
-  const staticDocumentation =
-    documentationExport && !isStoryDocumentationLoader(documentationExport)
-      ? documentationExport
-      : undefined;
-
-  const lazyDocumentationQuery = useQuery({
-    queryKey: ['stories-documentation', storyFilename, documentationLoader],
-    queryFn: () => {
-      if (!documentationLoader) {
-        throw new Error('Missing documentation loader');
+): TypeLoader.TypeLoaderResult | undefined {
+  const query = useQuery({
+    queryKey: ['stories-documentation', storyFilename, documentation],
+    queryFn: async () => {
+      if (!documentation) {
+        throw new Error('Missing documentation');
       }
-      return documentationLoader();
+      const result = await documentation;
+      if (result && 'default' in result) {
+        return result.default;
+      }
+      return result;
     },
-    enabled: shouldLoadDocumentation && !!documentationLoader,
-    staleTime: Infinity,
+    enabled: !!documentation,
+    staleTime: 60_000,
   });
 
-  return {
-    documentation: documentationLoader
-      ? lazyDocumentationQuery.data
-      : staticDocumentation,
-    isLoadingDocumentation:
-      shouldLoadDocumentation &&
-      !!documentationLoader &&
-      (lazyDocumentationQuery.isPending || lazyDocumentationQuery.isFetching),
-  };
+  return query.data;
 }
 
 function StoryGrid(props: React.ComponentProps<typeof Grid>) {

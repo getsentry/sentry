@@ -17,8 +17,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/tooltip/index').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/tooltip/index');
 
 ## Prefer Info Patterns
 

@@ -18,8 +18,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/code/codeBlock').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/code/codeBlock');
 
 export const sampleJavaScript = `Sentry.init({
   // Note, Replay is NOT instantiated below:

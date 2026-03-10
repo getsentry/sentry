@@ -25,10 +25,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/disclosure/disclosure').then(
-    module => module.default
-  );
+export const documentation = import('!!type-loader!@sentry/scraps/disclosure/disclosure');
 
 To create a disclosure, wrap content in a `<Disclosure>` component.
 

@@ -16,8 +16,7 @@ import image from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
 import {Image} from '@sentry/scraps/image';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/image').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/image');
 
 The `Image` component is a styled wrapper around the HTML `<img>` element that provides sensible defaults for lazy loading and object-fit behavior. It extends all standard HTML image attributes while adding additional functionality for modern web applications.
 

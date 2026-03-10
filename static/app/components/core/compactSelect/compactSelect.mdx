@@ -19,8 +19,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/compactSelect').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/compactSelect');
 
 `<CompactSelect>` is a general-purpose dropdown select component designed for use outside of forms. It's highly capable, supporting features like sections, search, multi-select, custom triggers, virtualization, and more.
 

@@ -19,8 +19,7 @@ import {Slider} from '@sentry/scraps/slider';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/slider').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/slider');
 
 `<Slider>` is a range slider component that allows users to select a numeric value by dragging a handle along a track. It provides visual and interactive feedback, making it ideal for adjusting continuous values.
 

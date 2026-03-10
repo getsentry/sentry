@@ -13,8 +13,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/separator').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/separator');
 
 The `Separator` component creates visual divisions between content areas. It renders as an HTML `<hr>` element with flexible styling options and supports both horizontal and vertical orientations.
 

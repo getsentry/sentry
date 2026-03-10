@@ -110,19 +110,8 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
   return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
 }
 
-function noopTypeLoader(this: LoaderContext<any>, _source: string) {
-  const callback = this.async();
-  return callback(null, 'export default {props: {},exports: {}}');
-}
-
 export default function typeLoader(this: LoaderContext<any>, _source: string) {
-  const STORYBOOK_TYPES = process.env.STORYBOOK_TYPES
-    ? process.env.STORYBOOK_TYPES === '1'
-    : process.env.NODE_ENV === 'production';
-
-  return STORYBOOK_TYPES
-    ? prodTypeloader.call(this, _source)
-    : noopTypeLoader.call(this, _source);
+  return prodTypeloader.call(this, _source);
 }
 
 function extractRequest(module: LoaderContext<any>['_module']) {

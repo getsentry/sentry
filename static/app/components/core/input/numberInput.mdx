@@ -20,8 +20,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/input').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/input');
 
 `<NumberInput>` is a specialized numeric input field that provides increment and decrement buttons for precise value control. Built with React Aria, it offers full keyboard support, internationalization, and accessibility features out of the box.
 

@@ -18,8 +18,7 @@ import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = () =>
-  import('!!type-loader!@sentry/scraps/menuListItem').then(module => module.default);
+export const documentation = import('!!type-loader!@sentry/scraps/menuListItem');
 
 `<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details.
 
