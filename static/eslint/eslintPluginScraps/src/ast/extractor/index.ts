@@ -1,9 +1,10 @@
 import {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
+import {createThemeTracker} from '../tracker/theme';
+
 import {createCssPropExtractor} from './css-prop';
 import {createStylePropExtractor} from './style-prop';
 import {createStyledExtractor} from './styled';
-import {createThemeTracker} from './theme';
 import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
 
 /**
@@ -103,5 +104,5 @@ export function createStyleCollector(context: TSESLint.RuleContext<string, unkno
 export {createStyledExtractor} from './styled';
 export {createCssPropExtractor} from './css-prop';
 export {createStylePropExtractor} from './style-prop';
-export {createThemeTracker} from './theme';
+export {createThemeTracker} from '../tracker/theme';
 export {decomposeValue} from './value-decomposer';
