@@ -18,8 +18,6 @@ import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
   OrderBy,
-  SORT_BY_OPTIONS,
-  SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
@@ -74,7 +72,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     />
   );
 
-  const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -182,7 +179,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             event={event}
             project={project}
             hydratedFlags={hydratedFlags}
-            initialSortBy={sortBy}
             initialOrderBy={orderBy}
             focusControl={focusControl}
           />
@@ -202,7 +198,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         }
       );
     },
-    [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
+    [openDrawer, event, group, project, hydratedFlags, organization, orderBy]
   );
 
   useEffect(() => {
@@ -239,7 +235,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
-            sortByOptions={SORT_BY_OPTIONS}
             orderByOptions={ORDER_BY_OPTIONS}
             orderBy={orderBy}
             setOrderBy={value => {
@@ -249,14 +244,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
                 sortMethod: value as string,
               });
             }}
-            setSortBy={value => {
-              setSortBy(value);
-              trackAnalytics('flags.sort_flags', {
-                organization,
-                sortMethod: value as string,
-              });
-            }}
-            sortBy={sortBy}
           />
         </Fragment>
       )}

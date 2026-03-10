@@ -10,10 +10,6 @@ export enum OrderBy {
   LOW_TO_HIGH = 'low to high',
 }
 
-export enum SortBy {
-  ALPHABETICAL = 'alphabetical',
-}
-
 const getOrderByLabel = (sort: string) => {
   switch (sort) {
     case OrderBy.A_TO_Z:
@@ -27,13 +23,6 @@ const getOrderByLabel = (sort: string) => {
       return t('Newest First');
   }
 };
-
-export const SORT_BY_OPTIONS = [
-  {
-    label: t('Alphabetical'),
-    value: SortBy.ALPHABETICAL,
-  },
-];
 
 export const ORDER_BY_OPTIONS = [
   {

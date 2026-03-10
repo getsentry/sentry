@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -10,7 +10,6 @@ interface Props {
   group: Group;
   orderBy: OrderBy;
   search: string;
-  sortBy: SortBy;
 }
 
 interface Response {
@@ -26,7 +25,6 @@ export default function useGroupFlagDrawerData({
   group,
   orderBy,
   search,
-  sortBy,
 }: Props): Response {
   // Fetch the base flag data
   const {
@@ -66,12 +64,9 @@ export default function useGroupFlagDrawerData({
   }, [groupFlags, search, tagValues]);
 
   const displayFlags = useMemo(() => {
-    if (sortBy === SortBy.ALPHABETICAL) {
-      const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
-      return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
-    }
-    return filteredFlags;
-  }, [filteredFlags, orderBy, sortBy]);
+    const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
+    return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
+  }, [filteredFlags, orderBy]);
 
   return {
     allGroupFlagCount: groupFlags.length,

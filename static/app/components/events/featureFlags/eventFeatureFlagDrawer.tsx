@@ -22,7 +22,6 @@ import {
   ORDER_BY_OPTIONS,
   sortedFlags,
   type OrderBy,
-  type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {
@@ -43,7 +42,6 @@ interface FlagDrawerProps {
   group: Group;
   hydratedFlags: KeyValueDataContentProps[];
   initialOrderBy: OrderBy;
-  initialSortBy: SortBy;
   project: Project;
   focusControl?: FlagControlOptions;
 }

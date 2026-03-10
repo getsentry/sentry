@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {SortBy, type OrderBy} from 'sentry/components/events/featureFlags/utils';
+import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
@@ -34,7 +34,6 @@ export default function FlagDrawerContent({environments, group, orderBy, search}
       group,
       orderBy,
       search,
-      sortBy: SortBy.ALPHABETICAL,
     });
 
   // CTA logic
