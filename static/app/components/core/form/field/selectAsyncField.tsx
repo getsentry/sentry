@@ -43,20 +43,12 @@ type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> &
     queryOptions: (
       debouncedInput: string
     ) => UseQueryOptions<TData, Error, Array<SelectValue<TValue>>, any>;
-
-    /**
-     * Options to display immediately while the initial query is loading.
-     * Useful to prevent a flash of empty placeholder when the select already
-     * has a value that needs a matching option to render its label.
-     */
-    defaultOptions?: Array<SelectValue<TValue>>;
   };
 
 const DEBOUNCE_MS = 250;
 
 export function SelectAsyncField<TData, TValue = string>({
   queryOptions,
-  defaultOptions,
   multiple,
   onChange,
   value,
@@ -67,10 +59,7 @@ export function SelectAsyncField<TData, TValue = string>({
   const debouncedInput = useDebouncedValue(inputValue, DEBOUNCE_MS);
 
   // Fetch options using the provided queryOptions
-  const {data: fetchedOptions, isPending} = useQuery(queryOptions(debouncedInput));
-
-  // Use defaultOptions while the initial query is loading to avoid a flash of empty placeholder
-  const options = fetchedOptions ?? defaultOptions ?? [];
+  const {data: options = [], isPending} = useQuery(queryOptions(debouncedInput));
 
   return (
     <SelectField

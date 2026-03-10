@@ -211,7 +211,6 @@ function InlineMappingForm({
               onChange={field.handleChange}
               getOptionValue={getOptionValue}
               placeholder={t('Select Sentry Team')}
-              defaultOptions={defaultOptions}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
@@ -220,7 +219,6 @@ function InlineMappingForm({
               onChange={field.handleChange}
               getOptionValue={getOptionValue}
               placeholder={t('Select Sentry User')}
-              defaultOptions={defaultOptions}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
                 defaultOptions,
@@ -338,7 +336,6 @@ function ModalMappingForm({
                     onChange={field.handleChange}
                     getOptionValue={getOptionValue}
                     placeholder={t('Select Sentry Team')}
-                    defaultOptions={defaultOptions}
                     queryOptions={makeTeamSelectQueryOptions(
                       orgSlug,
                       defaultOptions,
@@ -353,7 +350,6 @@ function ModalMappingForm({
                     onChange={field.handleChange}
                     getOptionValue={getOptionValue}
                     placeholder={t('Select Sentry User')}
-                    defaultOptions={defaultOptions}
                     queryOptions={makeMemberSelectQueryOptions(
                       orgSlug,
                       defaultOptions,
