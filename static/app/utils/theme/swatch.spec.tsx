@@ -10,7 +10,6 @@ const TEST_PALETTE = {
   salmon: '#FA6769',
   orange: '#FF9838',
   yellow: '#FFD00E',
-  lime: '#BACE05',
   green: '#67C800',
 };
 
