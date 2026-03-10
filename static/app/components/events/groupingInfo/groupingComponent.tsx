@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponentChildren from './groupingComponentChildren';
@@ -60,11 +59,9 @@ function GroupingComponent({component, showNonContributing}: Props) {
   );
 }
 
-const CHEVRON_COL = space(1.5);
-
 const CollapseButtonWrapper = styled('div')`
   display: grid;
-  grid-template-columns: ${CHEVRON_COL} minmax(auto, max-content);
+  grid-template-columns: ${p => p.theme.space.lg} minmax(auto, max-content);
   align-items: baseline;
 `;
 

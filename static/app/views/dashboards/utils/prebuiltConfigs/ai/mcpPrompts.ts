@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -122,7 +123,19 @@ const PROMPTS_TABLE = {
 export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Prompts',
-  filters: {},
+  title: 'MCP Prompt Details',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'mcp.prompt.name',
+          name: 'mcp.prompt.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, PROMPTS_TABLE],
 };

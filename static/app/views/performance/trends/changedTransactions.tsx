@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import Duration from 'sentry/components/duration';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -47,9 +46,9 @@ export function CompareDurations({
 
 const DurationChange = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const StyledIconArrow = styled(IconArrow)`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
 `;

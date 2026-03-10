@@ -640,7 +640,39 @@ describe('ExploreToolbar', () => {
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
-  it('opens compare queries', async () => {
+  it('disables compare queries when only one chart is available', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    act(() => {
+      render(
+        <Wrapper>
+          <Component />
+        </Wrapper>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/traces/',
+              query: {
+                visualize: encodeURIComponent(
+                  '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+                ),
+              },
+            },
+          },
+        }
+      );
+    });
+
+    const section = screen.getByTestId('section-save-as');
+    await userEvent.hover(within(section).getByText(/Compare Queries/));
+
+    const compareButton = within(section).getByRole('button', {name: 'Compare'});
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('opens compare queries when multiple charts are added and Compare Queries link is clicked', async () => {
     function Component() {
       return <ExploreToolbar />;
     }
@@ -663,9 +695,11 @@ describe('ExploreToolbar', () => {
       }
     );
 
+    await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
+
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Compare/));
+    await userEvent.click(within(section).getByText(/Compare Queries/));
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/explore/traces/compare/'
     );
@@ -673,7 +707,7 @@ describe('ExploreToolbar', () => {
       expect.objectContaining({
         queries: [
           '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       })
     );
