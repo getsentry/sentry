@@ -173,7 +173,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         )
 
     @patch.dict(
-        "sentry.seer.entrypoints.cache.entrypoint_registry.registrations",
+        "sentry.seer.entrypoints.cache.autofix_entrypoint_registry.registrations",
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")
@@ -191,7 +191,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         mock_cache.delete.assert_called_once_with(self.pre_cache_key)
 
     @patch.dict(
-        "sentry.seer.entrypoints.cache.entrypoint_registry.registrations",
+        "sentry.seer.entrypoints.cache.autofix_entrypoint_registry.registrations",
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")
@@ -201,7 +201,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         mock_cache.set.assert_not_called()
 
     @patch.dict(
-        "sentry.seer.entrypoints.cache.entrypoint_registry.registrations",
+        "sentry.seer.entrypoints.cache.autofix_entrypoint_registry.registrations",
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")

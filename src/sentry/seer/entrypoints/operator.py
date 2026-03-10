@@ -24,7 +24,7 @@ from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
-from sentry.seer.entrypoints.registry import entrypoint_registry
+from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
@@ -67,7 +67,7 @@ def has_seer_entrypoint_access(
         return False
 
     if entrypoint_key:
-        if entrypoint_key not in entrypoint_registry.registrations:
+        if entrypoint_key not in autofix_entrypoint_registry.registrations:
             logger.error(
                 "seer.operator.invalid_entrypoint_key",
                 extra={
@@ -76,12 +76,12 @@ def has_seer_entrypoint_access(
                 },
             )
             return False
-        entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
+        entrypoint_cls = autofix_entrypoint_registry.registrations[entrypoint_key]
         return entrypoint_cls.has_access(organization)
 
     return any(
         entrypoint_cls.has_access(organization=organization)
-        for entrypoint_cls in entrypoint_registry.registrations.values()
+        for entrypoint_cls in autofix_entrypoint_registry.registrations.values()
     )
 
 
@@ -479,7 +479,7 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
                 "organization_id": organization.id,
                 "group_id": group_id,
