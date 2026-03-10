@@ -79,6 +79,7 @@ export function Button({
               justify="center"
               position="absolute"
               visibility="visible"
+              inset={0}
             >
               {({className}) => (
                 <BusySpinner className={className} role="status" aria-label="Busy" />
