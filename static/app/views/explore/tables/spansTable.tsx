@@ -167,6 +167,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}
+        scrollRef={tableRef}
       />
     </Fragment>
   );

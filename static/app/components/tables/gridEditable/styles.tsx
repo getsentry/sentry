@@ -86,6 +86,7 @@ export const Grid = styled('table')<{
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
+  scroll-margin-top: ${GRID_HEAD_ROW_HEIGHT}px;
 
   ${p =>
     p.scrollable &&

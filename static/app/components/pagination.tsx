@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -33,6 +33,7 @@ type Props = {
   onCursor?: CursorHandler;
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
+  scrollRef?: React.RefObject<HTMLElement | null>;
   size?: 'zero' | 'xs' | 'sm' | 'md';
   to?: string;
 };
@@ -46,6 +47,7 @@ function Pagination({
   size = 'sm',
   caption,
   disabled = false,
+  scrollRef,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,6 +68,21 @@ function Pagination({
 
   const cursorHandler = onCursor ?? defaultCursorHandler;
 
+  const createHandleClick = (
+    direction: string,
+    delta: number,
+    link: ParsedHeader | undefined
+  ) => {
+    return () => {
+      cursorHandler(link?.cursor, path, query, delta);
+      paginationAnalyticsEvent?.(direction);
+      scrollRef?.current?.scrollIntoView({
+        behavior: 'instant',
+        block: 'start',
+      });
+    };
+  };
+
   return (
     <Flex
       justify="end"
@@ -81,20 +98,14 @@ function Pagination({
           aria-label={t('Previous')}
           size={size}
           disabled={previousDisabled}
-          onClick={() => {
-            cursorHandler(links.previous?.cursor, path, query, -1);
-            paginationAnalyticsEvent?.('Previous');
-          }}
+          onClick={createHandleClick('Previous', -1, links.previous)}
         />
         <Button
           icon={<IconChevron direction="right" />}
           aria-label={t('Next')}
           size={size}
           disabled={nextDisabled}
-          onClick={() => {
-            cursorHandler(links.next?.cursor, path, query, 1);
-            paginationAnalyticsEvent?.('Next');
-          }}
+          onClick={createHandleClick('Next', 1, links.next)}
         />
       </ButtonBar>
     </Flex>
