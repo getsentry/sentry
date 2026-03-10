@@ -326,5 +326,5 @@ class Parameterizer:
 
         return parameterization_regex.sub(_handle_regex_match, input_str)
 
-    def parameterize_all(self, input_str: str) -> str:
+    def parameterize(self, input_str: str) -> str:
         return self.parametrize_w_regex(input_str, self._parameterization_regex)

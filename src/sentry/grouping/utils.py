@@ -78,9 +78,9 @@ def normalize_message_for_grouping(
         if trimmed != message:
             trimmed += "..."
 
-        normalized = parameterizer.parameterize_all(trimmed)
+        normalized = parameterizer.parameterize(trimmed)
     else:
-        normalized = parameterizer.parameterize_all(message)
+        normalized = parameterizer.parameterize(message)
 
     parameterization_counts = parameterizer.matches_counter.items()
     if parameterization_counts:
