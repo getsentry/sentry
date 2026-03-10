@@ -238,7 +238,7 @@ class SentryAppUpdater:
                         shard_identifier=self.sentry_app.id,
                         object_identifier=installation.id,
                         category=OutboxCategory.SERVICE_HOOK_UPDATE,
-                        cell_name=installation_org_id_to_cell_name[installation.organization_id],
+                        region_name=installation_org_id_to_cell_name[installation.organization_id],
                     ).save()
                     logger.info(
                         "_update_service_hooks_via_outbox.created_outbox_entry",
