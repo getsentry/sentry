@@ -1106,6 +1106,7 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
+    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
         responses.add(
