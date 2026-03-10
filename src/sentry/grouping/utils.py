@@ -55,7 +55,7 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, source: str, trim_message: bool
+    message: str, event: Event, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
@@ -84,7 +84,7 @@ def normalize_message_for_grouping(
 
     parameterization_counts = parameterizer.matches_counter.items()
     if parameterization_counts:
-        metrics.incr("grouping.message_parameterized", tags={"source": source})
+        metrics.incr("grouping.message_parameterized", tags={"source": reason})
 
         for key, value in parameterization_counts:
             # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large

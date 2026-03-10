@@ -237,7 +237,7 @@ def resolve_fingerprint_variable(
             return message or "<no-message>"
 
         normalized_message = (
-            normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
+            normalize_message_for_grouping(message, event, reason="fingerprint", trim_message=False)
             if message
             else None
         )
