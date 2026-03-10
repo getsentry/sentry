@@ -86,6 +86,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert metadata["domain_name"] == "anthropic.com"
         assert metadata["environment_id"] is None
         assert metadata["workspace_name"] is None
+        assert metadata["agent_id"] is None
+        assert metadata["agent_version"] is None
 
     def test_build_integration_with_environment_and_workspace(self):
         mock_cls, _ = _mock_client_class()
@@ -158,6 +160,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             api_key="sk-ant-test-api-key-123",
             environment_id=None,
             workspace_name=None,
+            agent_id=None,
+            agent_version=None,
         )
 
     def test_get_client_with_environment_and_workspace(self):
@@ -169,6 +173,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             metadata=self._make_metadata(
                 environment_id="env-456",
                 workspace_name="my-ws",
+                agent_id="agent-123",
+                agent_version="v1",
             ),
         )
         installation = integration.get_installation(organization_id=self.organization.id)
@@ -181,6 +187,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             api_key="sk-ant-test-api-key-123",
             environment_id="env-456",
             workspace_name="my-ws",
+            agent_id="agent-123",
+            agent_version="v1",
         )
 
     def test_get_client_class_not_configured(self):
@@ -263,14 +271,24 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
     # ── launch ───────────────────────────────────────────────────────
 
-    def _setup_launch(self, environment_id=None, client_environment_id=None):
-        """Set up mocks for launch tests. Returns (installation, mock_client)."""
+    def _setup_launch(
+        self,
+        environment_id=None,
+        client_environment_id=None,
+        agent_id=None,
+        agent_version=None,
+        client_agent_id=None,
+        client_agent_version=None,
+    ):
+        """Set up mocks for launch tests. Returns (installation, mock_client, mock_cls, request)."""
         from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
         from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
         from sentry.seer.models import SeerRepoDefinition
 
         mock_cls, mock_client = _mock_client_class()
         mock_client.environment_id = client_environment_id
+        mock_client.agent_id = client_agent_id
+        mock_client.agent_version = client_agent_version
 
         mock_state = MagicMock()
         mock_state.id = "session-456"
@@ -279,9 +297,13 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         mock_state.name = "testorg/testrepo"
         mock_client.launch.return_value = mock_state
 
-        metadata_kwargs = {"api_key": "sk-ant-test-key"}
+        metadata_kwargs: dict[str, Any] = {"api_key": "sk-ant-test-key"}
         if environment_id is not None:
             metadata_kwargs["environment_id"] = environment_id
+        if agent_id is not None:
+            metadata_kwargs["agent_id"] = agent_id
+        if agent_version is not None:
+            metadata_kwargs["agent_version"] = agent_version
 
         integration = self.create_integration(
             organization=self.organization,
@@ -337,28 +359,67 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
 
         assert installation.model.metadata["environment_id"] == "env-resolved-123"
 
-    def test_launch_does_not_update_environment_id_when_unchanged(self):
-        """When client.environment_id matches the stored one, no update should happen."""
+    def test_launch_does_not_update_metadata_when_unchanged(self):
+        """When client IDs match stored ones, metadata should not be persisted."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id="env-same",
             client_environment_id="env-same",
+            agent_id="agent-same",
+            agent_version="v-same",
+            client_agent_id="agent-same",
+            client_agent_version="v-same",
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            with patch.object(installation, "update_environment_id") as mock_update:
+            with patch.object(installation, "_persist_metadata") as mock_persist:
                 installation.launch(request=request)
 
-        mock_update.assert_not_called()
+        mock_persist.assert_not_called()
 
-    def test_launch_does_not_update_when_client_has_no_environment_id(self):
-        """When client.environment_id is None, no update should happen."""
+    def test_launch_does_not_update_when_client_has_no_ids(self):
+        """When client IDs are None, no update should happen."""
         installation, mock_client, mock_cls, request = self._setup_launch(
             environment_id="env-existing",
             client_environment_id=None,
+            agent_id="agent-existing",
+            agent_version="v-existing",
+            client_agent_id=None,
+            client_agent_version=None,
         )
 
         with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            with patch.object(installation, "update_environment_id") as mock_update:
+            with patch.object(installation, "_persist_metadata") as mock_persist:
                 installation.launch(request=request)
 
-        mock_update.assert_not_called()
+        mock_persist.assert_not_called()
+
+    def test_launch_updates_agent_id_when_changed(self):
+        """When the client resolves a new agent, it should be persisted."""
+        installation, mock_client, mock_cls, request = self._setup_launch(
+            agent_id=None,
+            client_agent_id="agent-new-123",
+            client_agent_version="v-new",
+        )
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.launch(request=request)
+
+        assert installation.model.metadata["agent_id"] == "agent-new-123"
+        assert installation.model.metadata["agent_version"] == "v-new"
+
+    def test_launch_updates_both_environment_and_agent_when_changed(self):
+        """When both IDs change, both should be persisted in a single update."""
+        installation, mock_client, mock_cls, request = self._setup_launch(
+            environment_id=None,
+            client_environment_id="env-new",
+            agent_id=None,
+            client_agent_id="agent-new",
+            client_agent_version="v-new",
+        )
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.launch(request=request)
+
+        assert installation.model.metadata["environment_id"] == "env-new"
+        assert installation.model.metadata["agent_id"] == "agent-new"
+        assert installation.model.metadata["agent_version"] == "v-new"
