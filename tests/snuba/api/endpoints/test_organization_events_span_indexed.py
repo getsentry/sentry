@@ -7287,6 +7287,23 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == "spans"
 
+    def test_failure_count_and_rate_none(self):
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "failure_count()", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "failure_rate()": None,
+                "failure_count()": 0,
+                "count()": 0,
+            }
+        ]
+
     def test_failure_count_and_rate_zero(self):
         self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
 
