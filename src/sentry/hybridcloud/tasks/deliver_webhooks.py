@@ -427,7 +427,7 @@ def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
     region_sent_to = (
-        payload.region_name
+        payload.cell_name
         if payload.destination_type == DestinationType.SENTRY_REGION
         else "codecov"
     )
@@ -616,8 +616,8 @@ def perform_request(payload: WebhookPayload) -> None:
 
     match destination_type:
         case DestinationType.SENTRY_REGION:
-            assert payload.region_name is not None
-            region = get_cell_by_name(name=payload.region_name)
+            assert payload.cell_name is not None
+            region = get_cell_by_name(name=payload.cell_name)
             perform_region_request(region, payload)
         case DestinationType.CODECOV:
             perform_codecov_request(payload)
