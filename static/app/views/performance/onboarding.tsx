@@ -479,6 +479,16 @@ export function Onboarding({organization, project}: OnboardingProps) {
     doesNotSupportPerformance,
   ]);
 
+  useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project,
+    disabled: isLoading || doesNotSupportPerformance,
+    onIssueReceived: () => {
+      setReceived(true);
+    },
+  });
+
   const performanceDocs = docs?.performanceOnboarding;
 
   if (isLoading) {
