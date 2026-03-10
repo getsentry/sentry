@@ -653,7 +653,6 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
     if last_event_type == "status_idle":
         new_status = CodingAgentStatus.COMPLETED
 
-        result = None
         result, new_status = build_result_from_events(
             all_events, client, agent_id, agent_state.name, new_status
         )
@@ -750,7 +749,7 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
 def extract_result_url_from_events(events: list[dict[str, Any]]) -> str | None:
     """Extract a GitHub PR or branch URL from session events."""
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
-    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[^\s)]+")
+    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
     for event in reversed(events):
         if event.get("type") != "agent":
