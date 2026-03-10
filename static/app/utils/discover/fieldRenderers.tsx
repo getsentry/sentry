@@ -49,7 +49,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
@@ -305,7 +305,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       <NumberContainer>
         {typeof data[field] === 'number'
           ? Number.isInteger(data[field])
-            ? formatAbbreviatedNumber(data[field])
+            ? data[field].toLocaleString()
             : formatFloat(data[field], 4)
           : emptyValue}
       </NumberContainer>
