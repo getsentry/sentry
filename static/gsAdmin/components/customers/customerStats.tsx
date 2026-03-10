@@ -1,11 +1,9 @@
-import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
-
-import {Flex} from '@sentry/scraps/layout';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -337,8 +335,7 @@ function getAbuseData(
 
 function buildAbuseMarkAreaSeries(
   regions: AbuseRegion[],
-  theme: ReturnType<typeof useTheme>,
-  isHovered: boolean
+  theme: ReturnType<typeof useTheme>
 ) {
   if (regions.length === 0) {
     return [];
@@ -359,10 +356,8 @@ function buildAbuseMarkAreaSeries(
       markArea: MarkArea({
         silent: true,
         itemStyle: {
-          color: isHovered
-            ? theme.tokens.graphics.danger.vibrant
-            : theme.tokens.graphics.danger.muted,
-          opacity: isHovered ? 0.35 : 0.25,
+          color: theme.tokens.graphics.danger.muted,
+          opacity: 0.25,
         },
         label: {
           show: false,
@@ -536,10 +531,7 @@ export const CustomerStats = memo(
     const theme = useTheme();
     const series = useSeries();
     const chartRef = useRef<ReactEchartsRef>(null);
-    const [abuseTooltip, setAbuseTooltip] = useState<{
-      value: number;
-      x: number;
-    } | null>(null);
+    const abuseTooltipRef = useRef<HTMLDivElement>(null);
 
     const abuseData = useMemo(
       () =>
@@ -561,6 +553,23 @@ export const CustomerStats = memo(
         return;
       }
 
+      const showTooltip = (x: number, value: number) => {
+        const el = abuseTooltipRef.current;
+        if (!el) {
+          return;
+        }
+        el.style.left = `${x}px`;
+        el.textContent = `Abuse: ${value.toLocaleString()}`;
+        el.style.display = 'flex';
+      };
+
+      const hideTooltip = () => {
+        const el = abuseTooltipRef.current;
+        if (el) {
+          el.style.display = 'none';
+        }
+      };
+
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
         const {regions, valueByTimestamp} = abuseDataRef.current;
@@ -574,7 +583,7 @@ export const CustomerStats = memo(
 
         // Ensure the mouse is within the chart grid area
         if (!instance.containPixel('grid', [offsetX, offsetY])) {
-          setAbuseTooltip(null);
+          hideTooltip();
           return;
         }
 
@@ -588,7 +597,7 @@ export const CustomerStats = memo(
         const inAbuse = regions.some(r => timestamp >= r.start && timestamp <= r.end);
 
         if (!inAbuse) {
-          setAbuseTooltip(null);
+          hideTooltip();
           return;
         }
 
@@ -603,11 +612,11 @@ export const CustomerStats = memo(
           }
         }
 
-        setAbuseTooltip({x: offsetX, value: valueByTimestamp.get(closestTs) ?? 0});
+        showTooltip(offsetX, valueByTimestamp.get(closestTs) ?? 0);
       };
 
       const handleMouseLeave = () => {
-        setAbuseTooltip(null);
+        hideTooltip();
       };
 
       node.addEventListener('mousemove', handleMouseMove);
@@ -636,12 +645,7 @@ export const CustomerStats = memo(
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
-    const isAbuseHovered = abuseTooltip !== null;
-    const abuseMarkArea = buildAbuseMarkAreaSeries(
-      abuseData.regions,
-      theme,
-      isAbuseHovered
-    );
+    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseData.regions, theme);
 
     const chartSeries = [
       // Abuse markArea first so bars render on top and get mouse events
@@ -712,19 +716,7 @@ export const CustomerStats = memo(
                       grid={{top: 30, bottom: 0, left: 0, right: 0}}
                       {...zoomRenderProps}
                     />
-                    {abuseTooltip !== null && (
-                      <Flex align="center" gap="xs" padding="xs md">
-                        {({className}) => (
-                          <AbuseTooltip
-                            className={className}
-                            style={{left: abuseTooltip.x}}
-                          >
-                            <AbuseDot />
-                            Abuse: {abuseTooltip.value.toLocaleString()}
-                          </AbuseTooltip>
-                        )}
-                      </Flex>
-                    )}
+                    <AbuseTooltip ref={abuseTooltipRef} style={{display: 'none'}} />
                   </ChartContainer>
                   <Footer>
                     <FooterLegend points={stats} />
@@ -748,6 +740,10 @@ const AbuseTooltip = styled('div')`
   position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -755,15 +751,6 @@ const AbuseTooltip = styled('div')`
   pointer-events: none;
   white-space: nowrap;
   z-index: 1;
-`;
-
-const AbuseDot = styled('span')`
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: ${p => p.theme.tokens.graphics.danger.vibrant};
-  opacity: 0.35;
 `;
 
 const Footer = styled('div')`
