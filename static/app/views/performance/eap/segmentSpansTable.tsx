@@ -12,7 +12,6 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -279,10 +278,10 @@ function CustomPagination({
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

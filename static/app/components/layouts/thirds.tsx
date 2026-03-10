@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {space} from 'sentry/styles/space';
-
 /**
  * Main container for a page.
  */
@@ -14,7 +12,7 @@ export const Page = styled('main')<{withPadding?: boolean}>`
   display: flex;
   flex-direction: column;
   flex: 1;
-  ${p => p.withPadding && `padding: ${space(3)} ${space(4)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
 `;
 
 /**
@@ -113,8 +111,8 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
   letter-spacing: -0.01em;
   margin: 0;
   color: ${p => p.theme.tokens.content.primary};
-  margin-bottom: ${p => p.withMargins && space(3)};
-  margin-top: ${p => p.withMargins && space(1)};
+  margin-bottom: ${p => (p.withMargins ? p.theme.space['2xl'] : undefined)};
+  margin-top: ${p => (p.withMargins ? p.theme.space.md : undefined)};
   line-height: 40px;
 
   display: flex;
@@ -139,14 +137,17 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
+    padding: ${p =>
+      p.noRowGap
+        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
+        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${p.theme.space['2xl']}` : `${p.theme.space['2xl']}`)};
   }
 `;
 

@@ -711,7 +711,7 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    "coding_workflows.code_review.seer.use_new_endpoints",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -737,6 +737,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -2502,12 +2503,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    "hybridcloud.deliver_webhooks.delivery_time_include_github_tags",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=[],
+    default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -3217,6 +3222,15 @@ register(
     "spans.buffer.max-flush-segments",
     type=Int,
     default=500,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of segments a single trace can flush per cycle. Prevents a
+# single trace from monopolizing a flush cycle and concentrating SSCAN load
+# on one Redis node. 0 means no limit.
+register(
+    "spans.buffer.max-flush-segments-per-trace",
+    type=Int,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.

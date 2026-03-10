@@ -14,7 +14,6 @@ import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
@@ -604,7 +603,7 @@ const RestOfWordsContainer = styled('span')<{
 }>`
   color: ${p =>
     p.hasSplit ? p.theme.tokens.content.accent : p.theme.tokens.content.primary};
-  margin-left: ${p => (p.isFirstWordHidden ? space(1) : '0px')};
+  margin-left: ${p => (p.isFirstWordHidden ? p.theme.space.md : '0px')};
 `;
 
 const FirstWordWrapper = styled('span')`

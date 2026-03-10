@@ -23,7 +23,7 @@ from sentry.testutils.silo import (
     create_test_regions,
     region_silo_test,
 )
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 
 
 def assert_matching_organization_mapping(
@@ -211,7 +211,7 @@ class OrganizationMappingReplicationTest(TransactionTestCase):
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=update_organization_mapping_from_instance(
-                organization=self.organization, region=get_local_region()
+                organization=self.organization, region=get_local_cell()
             ),
         )
 

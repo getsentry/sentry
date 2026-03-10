@@ -10,6 +10,7 @@ import sentry_sdk
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.component import ContributingComponent, RootGroupingComponent
+from sentry.grouping.context import GroupingContext
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     EnhancementsConfig,
@@ -23,7 +24,6 @@ from sentry.grouping.fingerprinting.utils import (
     is_default_fingerprint_var,
     resolve_fingerprint_values,
 )
-from sentry.grouping.strategies.base import GroupingContext
 from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import (

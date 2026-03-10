@@ -9,12 +9,12 @@ from sentry.grouping.parameterization import (
 
 @pytest.fixture
 def parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=False)
+    return Parameterizer(use_experimental_regexes=False)
 
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=True)
+    return Parameterizer(use_experimental_regexes=True)
 
 
 standard_cases = [
@@ -172,20 +172,20 @@ experimental_cases: list[tuple[str, str, str]] = [
 def test_default_parameterization(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected
-    assert parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") == f"prefix {expected} suffix"
+    assert parameterizer.parameterize(input) == expected
+    assert parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_default_parameterizer_misses_experimental_cases(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) != expected
-    assert parameterizer.parameterize_all(f"prefix {input}") != f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") != f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
+    assert parameterizer.parameterize(input) != expected
+    assert parameterizer.parameterize(f"prefix {input}") != f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") != f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
 @pytest.mark.skipif(
@@ -196,11 +196,11 @@ def test_default_parameterizer_misses_experimental_cases(
 def test_experimental_parameterization(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
-    assert experimental_parameterizer.parameterize_all(input) == expected
-    assert experimental_parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert experimental_parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert experimental_parameterizer.parameterize(input) == expected
+    assert experimental_parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert experimental_parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
     assert (
-        experimental_parameterizer.parameterize_all(f"prefix {input} suffix")
+        experimental_parameterizer.parameterize(f"prefix {input} suffix")
         == f"prefix {expected} suffix"
     )
 
@@ -258,5 +258,5 @@ incorrect_cases = [
 def test_incorrect_parameterization(
     name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) != desired
-    assert parameterizer.parameterize_all(input) == actual
+    assert parameterizer.parameterize(input) != desired
+    assert parameterizer.parameterize(input) == actual

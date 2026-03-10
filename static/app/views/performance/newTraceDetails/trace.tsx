@@ -15,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1379,7 +1378,7 @@ const TraceStylingWrapper = styled('div')`
       align-items: center;
       will-change: transform;
       transform-origin: left center;
-      padding-right: ${space(2)};
+      padding-right: ${p => p.theme.space.xl};
 
       img {
         width: 16px;
