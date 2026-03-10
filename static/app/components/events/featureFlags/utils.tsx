@@ -6,8 +6,6 @@ export enum OrderBy {
   OLDEST = 'oldest',
   A_TO_Z = 'a-z',
   Z_TO_A = 'z-a',
-  HIGH_TO_LOW = 'high to low',
-  LOW_TO_HIGH = 'low to high',
 }
 
 const getOrderByLabel = (sort: string) => {
