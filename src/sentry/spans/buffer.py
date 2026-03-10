@@ -718,6 +718,47 @@ class SpansBuffer:
                         category=DataCategory.SPAN_INDEXED,
                         quantity=dropped,
                     )
+            elif not payloads.get(key):
+                # BUG DETECTION: Segment was in the flush queue but both the data
+                # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
+                # This means the Redis keys expired before the flusher could process
+                # them, resulting in silent data loss. The spans were already committed
+                # from the ingest Kafka topic, so they cannot be recovered.
+                metrics.incr("spans.buffer.segment_expired_before_flush")
+
+                project_id_bytes, _, _ = parse_segment_key(key)
+                project_id = int(project_id_bytes)
+
+                logger.error(
+                    "spans.buffer.segment_expired_before_flush",
+                    extra={
+                        "segment_key": key.decode("utf-8"),
+                        "project_id": project_id,
+                    },
+                )
+
+                # Track outcome with quantity=1 to record that this segment was lost.
+                # Note: quantity=1 represents "one occurrence of data loss", NOT
+                # "one span was dropped". The actual number of dropped spans is unknown
+                # because the metadata key (span-buf:ic:*) also expired. This ensures
+                # we at least record that data loss occurred for monitoring purposes.
+                try:
+                    project = Project.objects.get_from_cache(id=project_id)
+                except Project.DoesNotExist:
+                    logger.warning(
+                        "Project does not exist for expired segment",
+                        extra={"project_id": project_id},
+                    )
+                else:
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project_id,
+                        key_id=None,
+                        outcome=Outcome.INVALID,
+                        reason="segment_expired",
+                        category=DataCategory.SPAN_INDEXED,
+                        quantity=1,  # Represents occurrence, not span count
+                    )
 
         for key, spans in payloads.items():
             if not spans:
