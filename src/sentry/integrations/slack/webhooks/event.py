@@ -15,6 +15,7 @@ from sentry import analytics, features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -309,12 +310,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
         data = slack_request.data.get("event", {})
 
         ois = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id, limit=1
+            integration_id=slack_request.integration.id,
+            status=ObjectStatus.ACTIVE,
+            limit=1,
         )
         if not ois:
             _logger.info(
                 "on_app_mention.no-organization",
-                extra={"integration_id": slack_request.integration.id},
+                extra={
+                    "integration_id": slack_request.integration.id,
+                    "message_ts": data.get("ts"),
+                    "thread_ts": data.get("thread_ts"),
+                },
             )
             return self.respond()
 
