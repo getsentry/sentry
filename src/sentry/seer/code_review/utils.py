@@ -71,10 +71,10 @@ class SeerEndpoint(StrEnum):
     # Legacy; used when coding_workflows.code_review.seer.use_new_endpoints is False
     OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-    PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+    PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
     # New dedicated endpoints (used when use_new_endpoints is True)
-    CODE_REVIEW_REVIEW_REQUEST = "/v1/automation/code_review/review-request"
-    CODE_REVIEW_PR_CLOSED = "/v1/automation/code_review/pr-closed"
+    CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
+    CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
 def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> str:
@@ -336,8 +336,8 @@ def transform_pull_request_to_codegen_request(
     config = payload["data"]["config"]
     trigger_metadata = _get_trigger_metadata_for_pull_request(event_payload)
     # In Seer, used here:
-    # src/seer/automation/codegen/tasks.py
-    # src/seer/automation/codegen/pr_review_step.py
+    # src/code_review/tasks.py
+    # src/code_review/pr_review_step.py
     config["trigger"] = review_request_trigger.value
     config["trigger_user"] = trigger_metadata["trigger_user"]
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]

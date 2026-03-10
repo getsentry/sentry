@@ -432,7 +432,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         assert mock_request.call_count == 1
         check_run_call = mock_request.call_args
-        assert check_run_call[1]["path"] == "/v1/automation/codegen/pr-review/rerun"
+        assert check_run_call[1]["path"] == "/v1/code_review/check/rerun"
 
         mock_request.reset_mock()
 
@@ -515,7 +515,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             )
 
         assert mock_request.call_count == 1
-        assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/review-request"
+        assert mock_request.call_args[1]["path"] == "/v1/code_review/review-request"
 
         mock_request.reset_mock()
         pr_closed_payload = {**pr_review_payload, "request_type": "pr-closed"}
@@ -528,7 +528,7 @@ class ProcessGitHubWebhookEventTest(TestCase):
             )
 
         assert mock_request.call_count == 1
-        assert mock_request.call_args[1]["path"] == "/v1/automation/code_review/pr-closed"
+        assert mock_request.call_args[1]["path"] == "/v1/code_review/pr-closed"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:

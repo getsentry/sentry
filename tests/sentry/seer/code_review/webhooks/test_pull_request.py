@@ -100,7 +100,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
-            assert call_kwargs["path"] == "/v1/automation/code_review/review-request"
+            assert call_kwargs["path"] == "/v1/code_review/review-request"
             payload = call_kwargs["payload"]
             assert "request_type" in payload
             assert "external_owner_id" in payload
@@ -308,7 +308,7 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
-            assert call_kwargs["path"] == "/v1/automation/code_review/pr-closed"
+            assert call_kwargs["path"] == "/v1/code_review/pr-closed"
             payload = call_kwargs["payload"]
             assert "request_type" in payload
             assert "external_owner_id" in payload
