@@ -39,6 +39,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasPotentialSourceContext,
   isPotentiallyThirdPartyFrame,
 } from './utils';
 
@@ -113,15 +114,17 @@ function DeprecatedLine({
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
   const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const hasScmSourceContext = organization.features.includes('scm-source-context');
 
   const isExpandable = useMemo((): boolean => {
     return !!(
       (hasContextSource(data) && data.context) ||
       hasContextVars(data) ||
       hasContextRegisters(registers) ||
-      hasAssembly(data, platform)
+      hasAssembly(data, platform) ||
+      (hasScmSourceContext && hasPotentialSourceContext(data))
     );
-  }, [data, registers, platform]);
+  }, [data, registers, platform, hasScmSourceContext]);
 
   const toggleContext = (evt?: React.MouseEvent) => {
     evt?.preventDefault();
