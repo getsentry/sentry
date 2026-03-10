@@ -42,7 +42,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.DASHBOARDS
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
