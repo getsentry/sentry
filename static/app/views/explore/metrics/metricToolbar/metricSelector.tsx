@@ -179,7 +179,7 @@ export function MetricSelector({
     count: displayedOptions.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => 42,
-    overscan: 5,
+    overscan: 20,
   });
 
   const highlightedOption =
