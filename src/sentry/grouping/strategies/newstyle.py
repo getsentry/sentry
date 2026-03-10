@@ -26,8 +26,9 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.strategies.base import (
     ComponentsByVariant,
-    GroupingContext,
     call_with_variants,
+    get_grouping_components_by_variant,
+    get_single_grouping_component,
     strategy,
 )
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
@@ -40,6 +41,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -490,7 +492,7 @@ def _single_stacktrace_variant(
     raw_frames = []
 
     for frame in frames:
-        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = get_single_grouping_component(frame, event, context, **kwargs)
         if _is_recursive_frame(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
 
@@ -580,9 +582,7 @@ def single_exception(
         with context:
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **kwargs
-                )
+                get_grouping_components_by_variant(exception.stacktrace, event, context, **kwargs)
             )
     else:
         stacktrace_components_by_variant = {
@@ -650,7 +650,7 @@ def chained_exception(
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
-        id(exception): context.get_grouping_components_by_variant(exception, event=event, **kwargs)
+        id(exception): get_grouping_components_by_variant(exception, event, context, **kwargs)
         for exception in all_exceptions
     }
 
@@ -915,8 +915,8 @@ def _get_thread_components(
 
     thread_components_by_variant = {}
 
-    for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
-        stacktrace, event=event, **kwargs
+    for variant_name, stacktrace_component in get_grouping_components_by_variant(
+        stacktrace, event, context, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
             values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts

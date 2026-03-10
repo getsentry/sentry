@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.strategies.base import (
     ComponentsByVariant,
-    GroupingContext,
     produces_variants,
     strategy,
 )
@@ -13,6 +12,7 @@ from sentry.grouping.utils import normalize_message_for_grouping
 from sentry.interfaces.message import Message
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
