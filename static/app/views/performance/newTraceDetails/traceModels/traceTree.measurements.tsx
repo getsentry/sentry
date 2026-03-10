@@ -148,11 +148,11 @@ export function collectTraceMeasurements(
       continue;
     }
 
-    // Standalone span measurements occur at the exact start timestamp of the span.
-    // We pass in 0 as the measurement value to prevent applying any unnecessary offset.
+    // Standalone spans should win over transaction-level measurements, but the
+    // measurement value is still applied relative to the provided timeline origin.
     const timestamp = traceMeasurementToTimestamp(
       start_timestamp,
-      isStandalone ? 0 : measurement.value,
+      measurement.value,
       measurement.unit ?? 'millisecond'
     );
 
