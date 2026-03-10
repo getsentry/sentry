@@ -643,6 +643,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
             },
         ]
 
+    @pytest.mark.skip(reason="flaky: #110315")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_inline_resolving(self) -> None:
