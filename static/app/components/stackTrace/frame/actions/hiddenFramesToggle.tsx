@@ -1,4 +1,5 @@
 import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
@@ -20,9 +21,11 @@ export function HiddenFramesToggleAction() {
         toggleHiddenFrames();
       }}
     >
-      {hiddenFramesExpanded
-        ? t('Hide %s frames', hiddenFrameCount)
-        : t('Show %s more frames', hiddenFrameCount)}
+      <Text variant="muted">
+        {hiddenFramesExpanded
+          ? t('Hide %s frames', hiddenFrameCount)
+          : t('Show %s more frames', hiddenFrameCount)}
+      </Text>
     </Button>
   );
 }

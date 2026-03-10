@@ -11,8 +11,8 @@ import {
 
 import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
 
-const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(160px, 18vw, 220px)';
-const HOVER_ACTIONS_SLOT_HEIGHT = 24;
+const HOVER_ACTIONS_SLOT_WIDTH = 'clamp(80px, 10vw, 140px)';
+const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
 interface SourceLinkActionProps {
   isHovering?: boolean;
@@ -46,30 +46,35 @@ export function SourceLinkAction({isHovering = false}: SourceLinkActionProps) {
     canShowFrameActions && !!project && !shouldShowSourceMapDebuggerButton;
   const showSentryAppStacktraceLink = canShowFrameActions && components.length > 0;
 
+  const wouldShowCodeMappingLink =
+    frameCanShowActions && !!project && !shouldShowSourceMapDebuggerButton;
+  const wouldShowSentryAppStacktraceLink = frameCanShowActions && components.length > 0;
+  const hasContent = wouldShowCodeMappingLink || wouldShowSentryAppStacktraceLink;
+
   return (
     <FrameActionsSlot
-      reserveSpace={frameCanShowActions}
+      reserveSpace={hasContent}
       data-test-id="core-stacktrace-frame-actions-slot"
     >
       {showCodeMappingLink ? (
-        <span onClick={e => e.stopPropagation()}>
+        <Flex as="span" align="center" onClick={e => e.stopPropagation()}>
           <StacktraceLink
             frame={frame}
             line={contextLine?.[1] ?? ''}
             event={event}
             disableSetup={false}
           />
-        </span>
+        </Flex>
       ) : null}
 
       {showSentryAppStacktraceLink ? (
-        <span onClick={e => e.stopPropagation()}>
+        <Flex as="span" align="center" onClick={e => e.stopPropagation()}>
           <OpenInContextLine
             lineNo={frame.lineNo ?? null}
             filename={frame.filename!}
             components={components}
           />
-        </span>
+        </Flex>
       ) : null}
     </FrameActionsSlot>
   );

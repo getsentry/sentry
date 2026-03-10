@@ -67,38 +67,15 @@ export function FrameHeader({actions}: FrameHeaderProps) {
     toggleExpansion,
   } = useStackTraceFrameContext();
   const {frameBadge} = useStackTraceContext();
-  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const frameDisplayPath = getFrameDisplayPath(frame, platform);
-  const frameLocationSuffix =
-    defined(frame.lineNo) && frame.lineNo >= 0
-      ? defined(frame.colNo) && frame.colNo >= 0
-        ? `:${frame.lineNo}:${frame.colNo}`
-        : `:${frame.lineNo}`
-      : '';
-  const frameFunctionName = frame.function ?? frame.rawFunction;
-  const hasFrameFunction = !!frameFunctionName;
-  const framePlatform = getPlatform(frame.platform, platform);
-  const showPackage = !!frame.package && !isDotnet(framePlatform);
-  const shouldShowTitleMeta = hasFrameFunction || showPackage;
-  const framePathTooltip =
-    frame.absPath && frame.absPath !== frameDisplayPath
-      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
-      : undefined;
-  const sourceMapInfoText = frame.mapUrl ?? frame.map;
-  const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
-  const frameInfoTooltip =
-    framePathTooltip || shouldShowSourceMapInfo ? (
-      <CombinedTooltipContent
-        absPath={framePathTooltip}
-        sourceMapInfo={shouldShowSourceMapInfo ? sourceMapInfoText : undefined}
-      />
-    ) : undefined;
+
   const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
+  const hasLeadHint = !isExpanded && !frame.inApp && (nextFrame?.inApp || !nextFrame);
 
   return (
-    <FrameHeaderContainer
+    <HeaderGrid
       data-test-id="core-stacktrace-frame-title"
       isExpandable={isExpandable}
+      hasLeadHint={hasLeadHint}
       aria-expanded={isExpandable ? isExpanded : undefined}
       aria-controls={isExpandable ? frameContextId : undefined}
       onClick={() => {
@@ -110,64 +87,124 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <FrameHeaderMain>
-        <FrameTitle>
-          <FrameTitleLocation>
-            {!isExpanded && leadsToApp ? (
-              <FrameLeadHint>
-                {getLeadHint({event, hasNextFrame: !!nextFrame})}
-                {': '}
-              </FrameLeadHint>
-            ) : null}
-            <Tooltip
-              title={frameInfoTooltip}
-              disabled={!frameInfoTooltip}
-              maxWidth={600}
-              skipWrapper
-              delay={1000}
-            >
-              <FrameTitleFilename data-test-id="core-stacktrace-frame-location">
-                <span>
-                  <span>{frameDisplayPath}</span>
-                  {frameLocationSuffix ? (
-                    <FrameLocationSuffix>{frameLocationSuffix}</FrameLocationSuffix>
-                  ) : null}
-                </span>
-              </FrameTitleFilename>
-            </Tooltip>
-          </FrameTitleLocation>
-          {shouldShowTitleMeta ? (
-            <FrameTitleMeta>
-              {hasFrameFunction ? (
-                <Text as="span" size="xs" variant="muted" monospace>
-                  {t('in')}
-                </Text>
-              ) : null}
-              {hasFrameFunction ? (
-                <FrameTitleFunction>{frameFunctionName}</FrameTitleFunction>
-              ) : null}
-              {showPackage ? (
-                <FrameWithinMeta>
-                  <Text as="span" size="xs" variant="muted" monospace>
-                    {t('within')}
-                  </Text>
-                  <FrameTitleMetaValue>{frame.package}</FrameTitleMetaValue>
-                </FrameWithinMeta>
-              ) : null}
-            </FrameTitleMeta>
-          ) : null}
-        </FrameTitle>
-      </FrameHeaderMain>
+      <MainContent noWrap={!isExpanded}>
+        <FrameLocation
+          frame={frame}
+          nextFrame={nextFrame}
+          event={event}
+          platform={platform}
+          isExpanded={isExpanded}
+        />
+        <FrameContext frame={frame} platform={platform} />
+      </MainContent>
 
-      <FrameHeaderRight>
+      <ActionArea>
         <RepeatsIndicator timesRepeated={timesRepeated} />
         {frameBadge?.(frame)}
-
-        <FrameHeaderTrailing data-test-id="core-stacktrace-frame-trailing">
+        <TrailingActions data-test-id="core-stacktrace-frame-trailing">
           {resolvedActions}
-        </FrameHeaderTrailing>
-      </FrameHeaderRight>
-    </FrameHeaderContainer>
+        </TrailingActions>
+      </ActionArea>
+    </HeaderGrid>
+  );
+}
+
+function FrameLocation({
+  frame,
+  nextFrame,
+  event,
+  platform,
+  isExpanded,
+}: {
+  event: any;
+  frame: Frame;
+  isExpanded: boolean;
+  nextFrame: Frame | undefined;
+  platform: PlatformKey;
+}) {
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
+  const frameDisplayPath = getFrameDisplayPath(frame, platform);
+
+  const frameLocationSuffix =
+    defined(frame.lineNo) && frame.lineNo >= 0
+      ? defined(frame.colNo) && frame.colNo >= 0
+        ? `:${frame.lineNo}:${frame.colNo}`
+        : `:${frame.lineNo}`
+      : '';
+
+  const framePathTooltip =
+    frame.absPath && frame.absPath !== frameDisplayPath
+      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
+      : undefined;
+
+  const sourceMapInfoText = frame.mapUrl ?? frame.map;
+  const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
+
+  const frameInfoTooltip =
+    framePathTooltip || shouldShowSourceMapInfo ? (
+      <CombinedTooltipContent
+        absPath={framePathTooltip}
+        sourceMapInfo={shouldShowSourceMapInfo ? sourceMapInfoText : undefined}
+      />
+    ) : undefined;
+
+  return (
+    <LocationWrapper>
+      {!isExpanded && leadsToApp ? (
+        <LeadHint>
+          {getLeadHint({event, hasNextFrame: !!nextFrame})}
+          {': '}
+        </LeadHint>
+      ) : null}
+      <Tooltip
+        title={frameInfoTooltip}
+        disabled={!frameInfoTooltip}
+        maxWidth={600}
+        skipWrapper
+        delay={1000}
+      >
+        <Path data-test-id="core-stacktrace-frame-location">
+          <span>
+            <span>{frameDisplayPath}</span>
+            {frameLocationSuffix ? (
+              <LocationSuffix>{frameLocationSuffix}</LocationSuffix>
+            ) : null}
+          </span>
+        </Path>
+      </Tooltip>
+    </LocationWrapper>
+  );
+}
+
+function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) {
+  const frameFunctionName = frame.function ?? frame.rawFunction;
+  const hasFrameFunction = !!frameFunctionName;
+  const framePlatform = getPlatform(frame.platform, platform);
+  const showPackage = !!frame.package && !isDotnet(framePlatform);
+
+  if (!hasFrameFunction && !showPackage) {
+    return null;
+  }
+
+  return (
+    <ContextWrapper>
+      {hasFrameFunction ? (
+        <Fragment>
+          <Text as="span" size="xs" variant="muted" monospace>
+            {t('in')}
+          </Text>
+          <FuncName>{frameFunctionName}</FuncName>
+        </Fragment>
+      ) : null}
+      {showPackage ? (
+        <Fragment>
+          <Text as="span" size="xs" variant="muted" monospace>
+            {t('within')}
+          </Text>
+          <PkgName>{frame.package}</PkgName>
+        </Fragment>
+      ) : null}
+    </ContextWrapper>
   );
 }
 
@@ -189,187 +226,6 @@ function RepeatsIndicator({timesRepeated}: {timesRepeated: number}) {
   );
 }
 
-const FrameHeaderContainer = styled('div')<{isExpandable: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.sm};
-  width: 100%;
-  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
-  text-align: left;
-  padding: ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.tertiary};
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-`;
-
-const FrameHeaderMain = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: ${p => p.theme.space['2xs']};
-  flex: 1 1 auto;
-  min-width: 0;
-`;
-
-const FrameHeaderRight = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  flex-shrink: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    width: 100%;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: wrap;
-    row-gap: ${p => p.theme.space.xs};
-  }
-`;
-
-const FrameHeaderTrailing = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  min-width: 0;
-  margin-left: auto;
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    width: 100%;
-    justify-content: flex-end;
-  }
-`;
-
-const RepeatedFrames = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const RepeatedContent = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const FrameTitle = styled('div')`
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  column-gap: ${p => p.theme.space.sm};
-  row-gap: 0;
-  color: ${p => p.theme.tokens.content.primary};
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.3;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  overflow-wrap: normal;
-`;
-
-const FrameTitleLocation = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  min-width: 0;
-  max-width: 100%;
-  flex: 0 1 auto;
-  overflow: hidden;
-`;
-
-const FrameLeadHint = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-style: italic;
-  font-size: inherit;
-  line-height: inherit;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-right: ${p => p.theme.space.xs};
-`;
-
-const FrameTitleMeta = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  flex: 0 1 auto;
-  gap: ${p => p.theme.space.sm};
-  max-width: 100%;
-  min-width: 0;
-  margin-left: 0;
-  overflow: hidden;
-  white-space: nowrap;
-`;
-
-const FrameTitleFunction = styled('span')`
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const FrameLineMeta = styled('span')`
-  display: inline-flex;
-  align-items: baseline;
-  gap: ${p => p.theme.space['2xs']};
-  line-height: inherit;
-  margin-left: 0;
-  white-space: nowrap;
-
-  > * {
-    line-height: inherit;
-  }
-`;
-
-const FrameWithinMeta = styled(FrameLineMeta)`
-  gap: ${p => p.theme.space.xs};
-`;
-
-const FrameTitleFilename = styled('span')`
-  display: inline-block;
-  vertical-align: baseline;
-  flex: 0 1 auto;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  direction: rtl;
-  text-align: left;
-
-  > span {
-    direction: ltr;
-    unicode-bidi: isolate;
-  }
-`;
-
-const FrameTitleMetaValue = styled('span')`
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  display: inline-block;
-  vertical-align: baseline;
-  min-width: 0;
-  max-width: min(45vw, 420px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const FrameLocationSuffix = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 function CombinedTooltipContent({
   absPath,
   sourceMapInfo,
@@ -389,6 +245,136 @@ function CombinedTooltipContent({
     </CombinedTooltipContentContainer>
   );
 }
+
+const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min-content;
+  gap: ${p => p.theme.space.sm};
+  align-items: center;
+  width: 100%;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
+  text-align: left;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  background: ${p => p.theme.tokens.background.tertiary};
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const MainContent = styled('div')<{noWrap?: boolean}>`
+  display: flex;
+  flex-wrap: ${p => (p.noWrap ? 'nowrap' : 'wrap')};
+  row-gap: ${p => p.theme.space['2xs']};
+  column-gap: ${p => p.theme.space.sm};
+  align-items: baseline;
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  line-height: 1.5;
+  min-width: 0;
+`;
+
+const ActionArea = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+`;
+
+const TrailingActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  margin-left: auto;
+`;
+
+const LocationWrapper = styled('span')`
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 999 auto;
+  overflow: hidden;
+`;
+
+const LeadHint = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-style: italic;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: ${p => p.theme.space['2xs']};
+`;
+
+const Path = styled('span')`
+  display: inline-block;
+  vertical-align: baseline;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+
+  > span {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+`;
+
+const LocationSuffix = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const ContextWrapper = styled('span')`
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  gap: ${p => p.theme.space.sm};
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+`;
+
+const FuncName = styled('span')`
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const PkgName = styled('span')`
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  display: inline-block;
+  vertical-align: baseline;
+  min-width: 0;
+  max-width: min(45vw, 420px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const RepeatedFrames = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const RepeatedContent = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.font.size.sm};
+`;
 
 const CombinedTooltipContentContainer = styled('div')`
   display: flex;
