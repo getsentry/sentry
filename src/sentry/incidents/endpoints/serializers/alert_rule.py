@@ -54,6 +54,8 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     weeklyAvg: float | None
     totalThisWeek: int | None
     snooze: bool | None
+    snoozeForEveryone: bool | None
+    snoozeCreatedBy: str | None
     latestIncident: datetime | None
     errors: list[str] | None
     sensitivity: str | None
