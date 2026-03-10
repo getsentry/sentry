@@ -620,6 +620,8 @@ def perform_request(payload: WebhookPayload) -> None:
             region = get_cell_by_name(name=payload.cell_name)
             perform_region_request(region, payload)
         case DestinationType.CODECOV:
+            if options.get("codecov.forward-webhooks.disabled"):
+                return
             perform_codecov_request(payload)
 
 
@@ -739,6 +741,10 @@ def _should_skip_codecov_forward_for_github_owner(payload: WebhookPayload) -> bo
     Return True if this payload should be skipped (not forwarded to Codecov).
     The payload is still deleted by the caller when skipped.
     """
+
+    if options.get("codecov.forward-webhooks.disabled"):
+        return True
+
     skip_github_owners = options.get("codecov.forward-webhooks.skip-github-owners") or ()
     skip_set = (
         frozenset(str(x) for x in skip_github_owners if x) if skip_github_owners else frozenset()
@@ -768,6 +774,9 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     """
     We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
     """
+    if options.get("codecov.forward-webhooks.disabled"):
+        return
+
     with metrics.timer(
         "hybridcloud.deliver_webhooks.send_request_to_codecov",
     ):
