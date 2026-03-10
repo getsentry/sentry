@@ -27,7 +27,7 @@ class OrganizationRepositoryEndpoint(OrganizationEndpoint):
         repo_id = kwargs.pop("repo_id")
         try:
             kwargs["repo"] = Repository.objects.get(id=repo_id, organization_id=organization.id)
-        except Repository.DoesNotExist:
+        except (Repository.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         return args, kwargs
