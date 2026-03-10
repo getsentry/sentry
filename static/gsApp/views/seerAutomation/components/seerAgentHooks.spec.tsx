@@ -4,7 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentProvider,
+  type ProjectSeerPreferences,
+} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -109,7 +112,7 @@ describe('seerAgentHooks', () => {
             repositories: [],
             automation_handoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 99,
             },
           },
@@ -173,7 +176,7 @@ describe('seerAgentHooks', () => {
             automatedRunStoppingPoint: undefined,
             automationHandoff: {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               integration_id: 99,
             },
             reposCount: 0,
@@ -615,7 +618,8 @@ describe('seerAgentHooks', () => {
               {
                 projectId: '1',
                 autofixAutomationTuning: 'medium' as const,
-                automatedRunStoppingPoint: 'code_changes' as const,
+                automatedRunStoppingPoint:
+                  'code_changes' as ProjectSeerPreferences['automated_run_stopping_point'],
                 automationHandoff: undefined,
                 reposCount: 2,
               },
