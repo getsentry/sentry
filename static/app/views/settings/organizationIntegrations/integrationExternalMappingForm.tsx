@@ -91,27 +91,29 @@ function makeMemberSelectQueryOptions(
 }
 
 function mergeOptions(
-  transformed: Array<{label: React.ReactNode; value: string}>,
-  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
+  transformed: ReadonlyArray<{label: React.ReactNode; value: string}>,
+  defaultOptions?: ReadonlyArray<{label: React.ReactNode; value: string}>,
   mapping?: ExternalActorMappingOrSuggestion,
   type?: 'user' | 'team'
 ) {
+  const result = [...transformed];
+
   // Merge with defaultOptions if provided
   if (Array.isArray(defaultOptions)) {
-    const seen = new Set(transformed.map(o => o.value));
+    const seen = new Set(result.map(o => o.value));
     const extras = defaultOptions.filter(o => !seen.has(o.value));
-    transformed.unshift(...extras);
+    result.unshift(...extras);
   }
 
   // Ensure current mapping's entry is present
   if (mapping && type && isExternalActorMapping(mapping) && mapping.sentryName) {
     const mappingId = (mapping as any)[`${type}Id`] as string | undefined;
-    if (mappingId && !transformed.some(o => o.value === mappingId)) {
-      transformed.unshift({value: mappingId, label: mapping.sentryName});
+    if (mappingId && !result.some(o => o.value === mappingId)) {
+      result.unshift({value: mappingId, label: mapping.sentryName});
     }
   }
 
-  return transformed;
+  return result;
 }
 
 function buildMutationData(
