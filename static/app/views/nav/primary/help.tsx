@@ -55,6 +55,7 @@ export function PrimaryNavigationHelp() {
   return (
     <SidebarMenu
       triggerWrap={StackedNavigationTourReminder}
+      size="sm"
       items={[
         {
           key: 'search',

@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -14,7 +14,6 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
@@ -148,6 +147,7 @@ function SchemaHintsList({
   source = SchemaHintsSources.EXPLORE,
   searchBarWidthOffset,
 }: SchemaHintsListProps) {
+  const theme = useTheme();
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
@@ -331,7 +331,7 @@ function SchemaHintsList({
               drawerKey: 'schema-hints-drawer',
               resizable: true,
               drawerCss: css`
-                height: calc(100% - ${space(4)});
+                height: calc(100% - ${theme.space['3xl']});
               `,
               shouldCloseOnLocationChange: newLocation => {
                 return (
@@ -416,6 +416,7 @@ function SchemaHintsList({
       fullFilterTagsSorted,
       location.pathname,
       location.query,
+      theme.space,
     ]
   );
 

@@ -14,7 +14,6 @@ import type {GridColumn, GridColumnOrder} from 'sentry/components/tables/gridEdi
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -513,10 +512,10 @@ const AlignRight = styled('div')`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

@@ -31,6 +31,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
+    "spans.buffer.hdel-redirect-map-batch-size": 100,
 }
 
 
@@ -1261,4 +1262,59 @@ def test_partition_routing_stable_across_rebalance() -> None:
         assert rv[seg_key].queue_key == b"span-buf:q:1"
 
         buf.done_flush_segments(rv)
+        assert_clean(buf.client)
+
+
+@pytest.mark.parametrize("batch_size,expected_batches", [(2, 3), (3, 2), (5, 1)])
+def test_hdel_redirect_map_batch_size(batch_size: int, expected_batches: int) -> None:
+    """
+    Test that done_flush_segments correctly batches HDEL calls
+    """
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.hdel-redirect-map-batch-size": batch_size,
+        }
+    ):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+
+        spans = [
+            Span(
+                payload=_payload(f"{c}" * 16),
+                trace_id="a" * 32,
+                span_id=f"{c}" * 16,
+                parent_span_id="a" * 16 if c != "a" else None,
+                segment_id=None,
+                is_segment_span=(c == "a"),
+                project_id=1,
+                end_timestamp=1700000000.0,
+            )
+            for c in "abcde"
+        ]
+
+        process_spans(spans, buf, now=0)
+
+        rv = buf.flush_segments(now=11)
+        _normalize_output(rv)
+
+        seg_key = _segment_id(1, "a" * 32, "a" * 16)
+        assert seg_key in rv
+        assert len(rv[seg_key].spans) == 5
+
+        batch_sizes_seen: list[int] = []
+        real_batched = itertools.batched
+
+        def tracking_batched(iterable, n):
+            for batch in real_batched(iterable, n):
+                batch_sizes_seen.append(n)
+                yield batch
+
+        with mock.patch("sentry.spans.buffer.itertools.batched", tracking_batched):
+            buf.done_flush_segments(rv)
+
+        assert len(batch_sizes_seen) == expected_batches
+        assert all(n == batch_size for n in batch_sizes_seen)
+
+        assert buf.flush_segments(now=30) == {}
         assert_clean(buf.client)

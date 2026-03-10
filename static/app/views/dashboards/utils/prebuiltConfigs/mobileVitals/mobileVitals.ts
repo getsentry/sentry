@@ -443,7 +443,7 @@ const SECOND_ROW_WIDGETS: Widget[] = [
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: t('Mobile Vitals as a Dashboard'),
+  title: t('Mobile Vitals'),
   projects: [],
   widgets: [
     ...FIRST_ROW_WIDGETS,

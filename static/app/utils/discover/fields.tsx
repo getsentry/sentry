@@ -1401,7 +1401,7 @@ const alignedTypes: ColumnValueType[] = [
 
 export function fieldAlignment(
   columnName: string,
-  columnType?: undefined | ColumnValueType,
+  columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
