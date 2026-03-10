@@ -285,10 +285,15 @@ type AbuseRegion = {
   start: number;
 };
 
-function getAbuseRegions(
+type AbuseData = {
+  regions: AbuseRegion[];
+  valueByTimestamp: Map<number, number>;
+};
+
+function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
-): AbuseRegion[] {
+): AbuseData {
   // Sum abuse quantities per interval
   const abuseByInterval = new Array(intervals.length).fill(0) as number[];
   for (const group of groups) {
@@ -299,7 +304,8 @@ function getAbuseRegions(
     }
   }
 
-  // Build contiguous regions where abuse > 0
+  // Build a map of timestamp → abuse value and contiguous regions where abuse > 0
+  const valueByTimestamp = new Map<number, number>();
   const regions: AbuseRegion[] = [];
   let regionStart: number | null = null;
   let regionEnd: number | null = null;
@@ -308,6 +314,7 @@ function getAbuseRegions(
     const ts = new Date(intervals[i]!).getTime();
 
     if (abuseByInterval[i]! > 0) {
+      valueByTimestamp.set(ts, abuseByInterval[i]!);
       if (regionStart === null) {
         regionStart = ts;
       }
@@ -323,7 +330,7 @@ function getAbuseRegions(
     regions.push({start: regionStart, end: regionEnd});
   }
 
-  return regions;
+  return {regions, valueByTimestamp};
 }
 
 function buildAbuseMarkAreaSeries(
@@ -527,15 +534,21 @@ export const CustomerStats = memo(
     const theme = useTheme();
     const series = useSeries();
     const chartRef = useRef<ReactEchartsRef>(null);
-    const [abuseTooltipX, setAbuseTooltipX] = useState<number | null>(null);
+    const [abuseTooltip, setAbuseTooltip] = useState<{
+      value: number;
+      x: number;
+    } | null>(null);
 
-    const abuseRegions = useMemo(
-      () => (abuseStats ? getAbuseRegions(abuseStats.intervals, abuseStats.groups) : []),
+    const abuseData = useMemo(
+      () =>
+        abuseStats
+          ? getAbuseData(abuseStats.intervals, abuseStats.groups)
+          : {regions: [], valueByTimestamp: new Map<number, number>()},
       [abuseStats]
     );
 
-    const abuseRegionsRef = useRef(abuseRegions);
-    abuseRegionsRef.current = abuseRegions;
+    const abuseDataRef = useRef(abuseData);
+    abuseDataRef.current = abuseData;
 
     const cleanupRef = useRef<(() => void) | null>(null);
     const chartContainerRef = useCallback((node: HTMLDivElement | null) => {
@@ -548,7 +561,8 @@ export const CustomerStats = memo(
 
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
-        if (!instance || abuseRegionsRef.current.length === 0) {
+        const {regions, valueByTimestamp} = abuseDataRef.current;
+        if (!instance || regions.length === 0) {
           return;
         }
 
@@ -562,15 +576,29 @@ export const CustomerStats = memo(
         }
 
         const timestamp = dataPoint[0]!;
-        const inAbuse = abuseRegionsRef.current.some(
-          r => timestamp >= r.start && timestamp <= r.end
-        );
+        const inAbuse = regions.some(r => timestamp >= r.start && timestamp <= r.end);
 
-        setAbuseTooltipX(inAbuse ? offsetX : null);
+        if (!inAbuse) {
+          setAbuseTooltip(null);
+          return;
+        }
+
+        // Find the closest interval timestamp to get the abuse value
+        let closestTs = 0;
+        let closestDist = Infinity;
+        for (const ts of valueByTimestamp.keys()) {
+          const dist = Math.abs(ts - timestamp);
+          if (dist < closestDist) {
+            closestDist = dist;
+            closestTs = ts;
+          }
+        }
+
+        setAbuseTooltip({x: offsetX, value: valueByTimestamp.get(closestTs) ?? 0});
       };
 
       const handleMouseLeave = () => {
-        setAbuseTooltipX(null);
+        setAbuseTooltip(null);
       };
 
       node.addEventListener('mousemove', handleMouseMove);
@@ -599,8 +627,12 @@ export const CustomerStats = memo(
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
-    const isAbuseHovered = abuseTooltipX !== null;
-    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseRegions, theme, isAbuseHovered);
+    const isAbuseHovered = abuseTooltip !== null;
+    const abuseMarkArea = buildAbuseMarkAreaSeries(
+      abuseData.regions,
+      theme,
+      isAbuseHovered
+    );
 
     const chartSeries = [
       // Abuse markArea first so bars render on top and get mouse events
@@ -671,10 +703,10 @@ export const CustomerStats = memo(
                       grid={{top: 30, bottom: 0, left: 0, right: 0}}
                       {...zoomRenderProps}
                     />
-                    {abuseTooltipX !== null && (
-                      <AbuseTooltip style={{left: abuseTooltipX}}>
+                    {abuseTooltip !== null && (
+                      <AbuseTooltip style={{left: abuseTooltip.x}}>
                         <AbuseDot />
-                        Abuse
+                        Abuse: {abuseTooltip.value.toLocaleString()}
                       </AbuseTooltip>
                     )}
                   </ChartContainer>
