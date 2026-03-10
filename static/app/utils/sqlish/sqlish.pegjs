@@ -36,10 +36,11 @@ Whitespace
   = Whitespace:[\n\t\r ]+ { return { type: 'Whitespace', content: Whitespace.join("") } }
 
 // \u0000-\u001F are C0 Unicode control characters which sometimes sneak into
-// strings, especially \u0000 which is Unicode null.
+// strings, especially \u0000 which is Unicode null. I added support for a few
+// just to prevent exceptions.
 // \u00A0-\uFFFF is the entire Unicode BMP _including_ surrogate pairs and
 // unassigned code points, which aren't parse-able naively. A more precise
 // approach would be to define all valid Unicode ranges exactly but for
 // permissive parsing we don't mind the lack of precision.
 GenericToken
-  = GenericToken:[a-zA-Z0-9\u0000-\u001F\u00A0-\uFFFF"'`_\-.=><:,*;!\[\]?$%|/\\@#&~^+{}]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
+  = GenericToken:[a-zA-Z0-9\u0000-\u0006\u00A0-\uFFFF"'`_\-.=><:,*;!\[\]?$%|/\\@#&~^+{}]+ { return { type: 'GenericToken', content: GenericToken.join('') } }
