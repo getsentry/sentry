@@ -17,7 +17,7 @@ from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashbo
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -83,3 +83,5 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
             return Response({"run_id": run_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError:
+            return Response({"detail": "Seer request failed"}, status=502)
