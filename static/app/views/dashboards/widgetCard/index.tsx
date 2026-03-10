@@ -264,7 +264,7 @@ function WidgetCard(props: Props) {
         dashboardFilters,
         widgetInterval,
         onClose: () => {
-          // Strip widget viewer query params so they don't linger on the host page
+          // Filter out Widget Viewer Modal query params when exiting the Modal
           const query = omit(location.query, Object.values(WidgetViewerQueryField));
           navigate(
             {pathname: location.pathname, query},
