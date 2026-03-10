@@ -10,6 +10,7 @@ from sentry.testutils.helpers.features import with_feature
 
 @with_feature("organizations:dashboards-ai-generate")
 @with_feature("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
 
@@ -55,7 +56,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         assert response.status_code == 403
 
     @patch(
-        "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_access_with_detail"
+        "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_explorer_access_with_detail"
     )
     def test_post_without_seer_access_returns_403(self, mock_has_access: MagicMock) -> None:
         mock_has_access.return_value = (False, "AI features are disabled for this organization.")

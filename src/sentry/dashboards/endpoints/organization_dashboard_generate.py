@@ -17,8 +17,8 @@ from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashbo
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.seer_setup import has_seer_explorer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
