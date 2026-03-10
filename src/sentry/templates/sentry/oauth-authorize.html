@@ -64,14 +64,18 @@
   <script>
     (function () {
       var btn = document.querySelector('[name="op"][value="approve"]');
-      function onFirstPointerMove() {
-        document.removeEventListener('pointermove', onFirstPointerMove);
+      function onFirstInteraction() {
+        document.removeEventListener('pointermove', onFirstInteraction);
+        document.removeEventListener('pointerdown', onFirstInteraction);
+        document.removeEventListener('keydown', onFirstInteraction);
         setTimeout(function () {
           btn.disabled = false;
         }, 3000);
       }
 
-      document.addEventListener('pointermove', onFirstPointerMove);
+      document.addEventListener('pointermove', onFirstInteraction);
+      document.addEventListener('pointerdown', onFirstInteraction);
+      document.addEventListener('keydown', onFirstInteraction);
     })();
   </script>
   {% endscript %}
