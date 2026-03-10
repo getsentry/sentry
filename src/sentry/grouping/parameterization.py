@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 @dataclasses.dataclass
@@ -251,20 +251,6 @@ EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
     r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
     for r in DEFAULT_PARAMETERIZATION_REGEXES
 }
-
-
-@dataclasses.dataclass
-class ParameterizationCallable:
-    """
-    Represents a callable that can be used to modify a string, which can give us more flexibility
-    than just using regex.
-
-    Note: Future-proofing. Not currently in use.
-    """
-
-    name: str  # name of the pattern (also used as group name in combined regex)
-    apply: Callable[[str], tuple[str, int]]  # function for modifying the input string
-    counter: int = 0
 
 
 class Parameterizer:
