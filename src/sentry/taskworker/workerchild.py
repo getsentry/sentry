@@ -301,6 +301,13 @@ def child_process(
 
             # Get completion time before pushing to queue, so we can measure queue append time
             execution_complete_time = time.time()
+
+            try:
+                metrics.gauge("taskworker.processed_tasks.size", processed_tasks.qsize())
+            except Exception as e:
+                # `qsize` does not work on all machines
+                logger.warning(f"qsize failed - {e}")
+
             with metrics.timer(
                 "taskworker.worker.processed_tasks.put.duration",
                 tags={

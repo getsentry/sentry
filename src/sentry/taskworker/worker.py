@@ -19,10 +19,7 @@ from sentry_protos.taskworker.v1 import taskworker_pb2, taskworker_pb2_grpc
 
 from sentry import options
 from sentry.taskworker.app import import_app
-from sentry.taskworker.client.client import (
-    HealthCheckSettings,
-    TaskworkerClient,
-)
+from sentry.taskworker.client.client import HealthCheckSettings, TaskworkerClient
 from sentry.taskworker.client.inflight_task_activation import InflightTaskActivation
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.taskworker.constants import (
@@ -58,8 +55,9 @@ class WorkerServicer(taskworker_pb2_grpc.WorkerServiceServicer):
             receive_timestamp=time.monotonic(),
         )
 
-        # Push the task to the worker queue
-        self.worker._push_task(inflight)
+        # Push the task to the worker queue (wait at most 5 seconds)
+        if not self.worker._push_task(inflight, timeout=5):
+            context.abort(grpc.StatusCode.RESOURCE_EXHAUSTED, "worker busy")
 
         return taskworker_pb2.PushTaskResponse()
 
@@ -215,17 +213,38 @@ class TaskWorker:
 
         logger.info("taskworker.worker.shutdown.complete")
 
-    def _push_task(self, inflight: InflightTaskActivation):
+    def _push_task(self, inflight: InflightTaskActivation, timeout: float | None = None) -> bool:
         """
-        Push a task to child tasks queue. Returns False if the task could not be added.
+        Push a task to child tasks queue.
+
+        When timeout is None, blocks until the queue has space. When timeout is
+        set (e.g. 5.0), waits at most that many seconds; returns False if the
+        queue is still full (worker busy).
         """
+        try:
+            metrics.gauge("taskworker.child_tasks.size", self._child_tasks.qsize())
+        except Exception as e:
+            # `qsize` does not work on all machines
+            logger.warning(f"qsize failed - {e}")
+
         start_time = time.monotonic()
-        self._child_tasks.put(inflight)
+        try:
+            if timeout is None:
+                self._child_tasks.put(inflight)
+            else:
+                self._child_tasks.put(inflight, timeout=timeout)
+        except queue.Full:
+            metrics.incr(
+                "taskworker.worker.push_task.busy",
+                tags={"processing_pool": self._processing_pool_name},
+            )
+            return False
         metrics.distribution(
             "taskworker.worker.child_task.put.duration",
             time.monotonic() - start_time,
             tags={"processing_pool": self._processing_pool_name},
         )
+        return True
 
     def _add_task(self) -> bool:
         """
