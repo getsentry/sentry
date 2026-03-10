@@ -128,7 +128,26 @@ export function ProjectPageFilter({
                 ? true
                 : isSelected
             }
-            onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
+            onChange={() => {
+              const projectId = parseInt(project.id, 10);
+              // When a sentinel is staged, the checkbox appears checked via the
+              // `checked` override above — but toggleOption would just add the
+              // ID alongside the sentinel (e.g. [-1, 1]), keeping kind='all'.
+              // Instead, expand to explicit IDs first, then remove this project.
+              if (optionSelectionIntent.kind === 'all') {
+                dispatchRef.current?.({
+                  type: 'set staged',
+                  value: allProjectIds(projects).filter(id => id !== projectId),
+                });
+              } else if (optionSelectionIntent.kind === 'my' && project.isMember) {
+                dispatchRef.current?.({
+                  type: 'set staged',
+                  value: memberProjectIds(projects).filter(id => id !== projectId),
+                });
+              } else {
+                toggleOptionRef.current?.(projectId);
+              }
+            }}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />

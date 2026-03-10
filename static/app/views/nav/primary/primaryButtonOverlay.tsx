@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -60,5 +59,5 @@ const ScrollableOverlay = styled(Overlay, {
   min-height: 150px;
   max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
   overflow-y: auto;
-  width: ${p => (p.isMobile ? `calc(100vw - ${space(4)})` : '400px')};
+  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
 `;

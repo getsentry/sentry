@@ -8,7 +8,6 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -667,5 +666,5 @@ const ButtonDivider = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(4)} 0;
+  margin: ${p => p.theme.space['3xl']} 0;
 `;

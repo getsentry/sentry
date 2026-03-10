@@ -20,7 +20,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields';
@@ -50,7 +51,8 @@ function NotificationSettingsByEntity({
   organizations,
 }: NotificationSettingsByEntityProps) {
   const theme = useTheme();
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
@@ -60,7 +62,7 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    router.location?.query?.organizationId ??
+    (location.query?.organizationId as string | undefined) ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
@@ -99,10 +101,13 @@ function NotificationSettingsByEntity({
   const entityById = keyBy<Organization | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    router.replace({
-      ...router.location,
-      query: {organizationId},
-    });
+    navigate(
+      {
+        ...location,
+        query: {organizationId},
+      },
+      {replace: true}
+    );
   };
 
   const handleAdd = () => {
