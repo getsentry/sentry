@@ -587,7 +587,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
-    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
@@ -631,7 +630,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "()",
-                "source_file": "Something.java",
+                "source_file": "Util.java",
                 "source_line": 67,
             },
             {
@@ -639,12 +638,11 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getExtraClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "(): boolean",
-                "source_file": "Else.java",
+                "source_file": "Util.java",
                 "source_line": 69,
             },
         ]
 
-    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_inline_resolving(self) -> None:
@@ -690,7 +688,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 },
                 "name": "onClick",
                 "signature": "()",
-                "source_file": None,
+                "source_file": "-.java",
                 "source_line": 2,
             },
             {
