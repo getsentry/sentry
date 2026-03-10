@@ -360,6 +360,10 @@ def subdomain_is_locality(request: HttpRequest) -> bool:
     return get_global_directory().get_locality_by_name(subdomain) is not None
 
 
+# TODO(cells): Remove alias once getsentry import sites are updated
+subdomain_is_region = subdomain_is_locality
+
+
 @control_silo_function
 def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     """Resolve an organization to the cell where its data is stored."""
