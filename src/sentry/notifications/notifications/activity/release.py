@@ -146,7 +146,7 @@ class ReleaseActivityNotification(ActivityNotification):
         if project_slugs:
             projects_text = self.get_subject_project_text(project_slugs)
             return (
-                f"Deployed {projects_text} to version {self.version_parsed} to {self.environment}"
+                f"Deployed {projects_text} version {self.version_parsed} to {self.environment}"
             )
         return f"Deployed {self.version_parsed} to {self.environment}"
 

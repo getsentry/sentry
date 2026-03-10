@@ -170,7 +170,7 @@ class ReleaseTestCase(ActivityTestCase):
             self.user5.email,
         }
         expected_subject = self.get_prefixed_subject(
-            f"Deployed {self.project.slug} {email.version_parsed} to {self.environment.name}"
+            f"Deployed {self.project.slug} version {email.version_parsed} to {self.environment.name}"
         )
         assert {msg.subject for msg in mail.outbox} == {expected_subject}
         assert all(not msg.subject.startswith("Re:") for msg in mail.outbox)
@@ -221,10 +221,10 @@ class ReleaseTestCase(ActivityTestCase):
         subjects_by_recipient = {message.to[0]: message.subject for message in mail.outbox}
 
         assert subjects_by_recipient[self.user1.email] == self.get_prefixed_subject(
-            f"Deployed {', '.join(expected_project_slugs)} {email.version_parsed} to {self.environment.name}"
+            f"Deployed {', '.join(expected_project_slugs)} version {email.version_parsed} to {self.environment.name}"
         )
         assert subjects_by_recipient[self.user3.email] == self.get_prefixed_subject(
-            f"Deployed {self.project.slug} {email.version_parsed} to {self.environment.name}"
+            f"Deployed {self.project.slug} version {email.version_parsed} to {self.environment.name}"
         )
         assert all(not subject.startswith("Re:") for subject in subjects_by_recipient.values())
 
@@ -261,7 +261,7 @@ class ReleaseTestCase(ActivityTestCase):
         subjects_by_recipient = {message.to[0]: message.subject for message in mail.outbox}
 
         assert subjects_by_recipient[self.user1.email] == self.get_prefixed_subject(
-            f"Deployed {expected_project_slugs[0]}, {expected_project_slugs[1]} +1 more {email.version_parsed} to {self.environment.name}"
+            f"Deployed {expected_project_slugs[0]}, {expected_project_slugs[1]} +1 more version {email.version_parsed} to {self.environment.name}"
         )
 
     def test_does_not_generate_on_no_release(self) -> None:
