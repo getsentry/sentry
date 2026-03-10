@@ -39,9 +39,9 @@ describe('Cart', () => {
     ...routerProps,
     navigate: jest.fn(),
   };
-  const businessPlan = PlanDetailsLookupFixture('am3_business')!;
-  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
-  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team')!;
+  const businessPlan = PlanDetailsLookupFixture('am3_business');
+  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
+  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
 
   const defaultFormData: CheckoutFormData = {
     plan: 'am3_business',
