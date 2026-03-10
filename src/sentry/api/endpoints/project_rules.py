@@ -52,8 +52,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
 from sentry.workflow_engine.models import DataConditionGroup, Workflow
-from sentry.workflow_engine.processors.detector import ensure_default_detectors
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -882,7 +881,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast("ProjectRulePostData", request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, request.data))
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},
@@ -891,9 +890,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
             with transaction.atomic(router.db_for_write(Workflow)):
                 workflow = validator.create(validator.validated_data)
-                # Ensure default detectors exist for the project before linking
-                default_detectors = ensure_default_detectors(project)
-                issue_stream_detector = default_detectors.get(IssueStreamGroupType.slug)
+                issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
                 if issue_stream_detector is None:
                     raise serializers.ValidationError(
                         "Could not find issue stream detector for project"
