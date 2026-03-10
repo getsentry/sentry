@@ -43,6 +43,18 @@ type StackTraceStoryData = {
   stacktrace: StacktraceWithFrames;
 };
 
+function getSampleSourceLineCoverage(length: number): Coverage[] {
+  return Array.from({length}, (_, index) => {
+    if (index % 3 === 0) {
+      return Coverage.COVERED;
+    }
+    if (index % 3 === 1) {
+      return Coverage.NOT_COVERED;
+    }
+    return Coverage.PARTIAL;
+  });
+}
+
 function makeEvent(overrides: Partial<Event> = {}): Event {
   return {
     id: '1',
@@ -754,24 +766,21 @@ export default Storybook.story('StackTrace', story => {
 
   story('StackTraceFrames - Single Frame Source Coverage', () => {
     const {event, stacktrace} = makeStackTraceData();
-    const sourceLineCoverage = [
-      Coverage.NOT_APPLICABLE,
-      Coverage.COVERED,
-      Coverage.NOT_COVERED,
-      Coverage.PARTIAL,
-      Coverage.COVERED,
-      Coverage.COVERED,
-      Coverage.NOT_APPLICABLE,
-    ];
 
-    const firstFrame = stacktrace.frames[0];
-    if (!firstFrame) {
+    const frameWithContext = stacktrace.frames.find(
+      frame => frame.inApp && (frame.context?.length ?? 0) > 0
+    );
+    if (!frameWithContext) {
       return null;
     }
 
+    const sourceLineCoverage = getSampleSourceLineCoverage(
+      frameWithContext.context?.length ?? 0
+    );
+
     const singleFrameStacktrace = {
       ...stacktrace,
-      frames: [firstFrame],
+      frames: [frameWithContext],
     };
 
     function CoveredFrameContext() {
@@ -782,6 +791,44 @@ export default Storybook.story('StackTrace', story => {
       <div>
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames frameContextComponent={CoveredFrameContext} />
+        </StoryStackTraceProvider>
+      </div>
+    );
+  });
+
+  story('StackTraceFrames - Long Line Numbers', () => {
+    const {event, stacktrace} = makeStackTraceData();
+
+    const frameWithContext = stacktrace.frames.find(
+      frame => frame.inApp && (frame.context?.length ?? 0) > 0
+    );
+    if (!frameWithContext) {
+      return null;
+    }
+
+    const context = frameWithContext.context ?? [];
+    const lineNumberOffset = 12000;
+    const longLineNumberFrame = {
+      ...frameWithContext,
+      context: context.map<[number, string | null]>(([lineNumber, lineValue]) => [
+        lineNumber + lineNumberOffset,
+        lineValue,
+      ]),
+      lineNo:
+        typeof frameWithContext.lineNo === 'number'
+          ? frameWithContext.lineNo + lineNumberOffset
+          : frameWithContext.lineNo,
+    };
+
+    const singleFrameStacktrace = {
+      ...stacktrace,
+      frames: [longLineNumberFrame],
+    };
+
+    return (
+      <div>
+        <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
+          <StackTraceFrames />
         </StoryStackTraceProvider>
       </div>
     );
