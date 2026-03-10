@@ -69,17 +69,17 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self, request: Request, organization: RpcOrganization | None = None, **kwargs
     ) -> Response:
-        limit = None
+        try:
+            limit = int(request.GET.get("limit", 3))
+        except (ValueError, TypeError):
+            raise ParseError(detail="Invalid limit parameter")
+        if limit < 1:
+            raise ParseError(detail="Invalid limit parameter")
+
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
         elif request.GET.get("show") == "latest":
-            try:
-                limit = int(request.GET.get("limit", 3))
-            except (ValueError, TypeError):
-                raise ParseError(detail="Invalid limit parameter")
-            if limit < 1:
-                raise ParseError(detail="Invalid limit parameter")
             queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")
         else:
             # only allow active broadcasts if they're not a superuser
@@ -120,9 +120,8 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        if limit is not None:
-            queryset = queryset[:limit]
-            return self.respond(self._serialize_objects(list(queryset), request))
+        if request.GET.get("show") == "latest":
+            return self.respond(self._serialize_objects(list(queryset[:limit]), request))
 
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
