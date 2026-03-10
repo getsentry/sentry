@@ -69,6 +69,10 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
       }
     }
 
+    if (reposChanged === 0) {
+      return t('No files changed');
+    }
+
     if (reposChanged === 1) {
       return tn(
         '%s file changed in 1 repo',
