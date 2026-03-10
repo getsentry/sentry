@@ -335,17 +335,21 @@ function getAbuseData(
 
 function buildAbuseMarkAreaSeries(
   regions: AbuseRegion[],
-  theme: ReturnType<typeof useTheme>
+  theme: ReturnType<typeof useTheme>,
+  intervalMs: number
 ) {
   if (regions.length === 0) {
     return [];
   }
 
+  // Extend regions by half an interval on each side so the mark area
+  // covers the full width of the edge bars
+  const halfInterval = intervalMs / 2;
   const markAreaData = regions.map(
     r =>
       [
-        {xAxis: new Date(r.start).toISOString()},
-        {xAxis: new Date(r.end).toISOString()},
+        {xAxis: new Date(r.start - halfInterval).toISOString()},
+        {xAxis: new Date(r.end + halfInterval).toISOString()},
       ] as [{xAxis: string}, {xAxis: string}]
   );
 
@@ -644,7 +648,12 @@ export const CustomerStats = memo(
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
-    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseData.regions, theme);
+    const abuseIntervals = abuseStats?.intervals ?? intervals;
+    const intervalMs =
+      abuseIntervals.length >= 2
+        ? new Date(abuseIntervals[1]!).getTime() - new Date(abuseIntervals[0]!).getTime()
+        : 0;
+    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseData.regions, theme, intervalMs);
 
     const chartSeries = [
       // Abuse markArea first so bars render on top and get mouse events
