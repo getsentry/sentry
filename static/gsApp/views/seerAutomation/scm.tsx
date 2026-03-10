@@ -6,13 +6,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
+import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {t, tct} from 'sentry/locale';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import {ScmIntegrationTree} from 'getsentry/views/seerAutomation/components/scmIntegrationTree/scmIntegrationTree';
 import SeerSettingsPageContent from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
-import type {ProviderFilter, RepoFilter} from 'getsentry/views/seerAutomation/types';
 
 const REPO_FILTER_OPTIONS: Array<SelectOption<RepoFilter>> = [
   {value: 'all' as const, label: t('All repos')},
@@ -20,14 +20,6 @@ const REPO_FILTER_OPTIONS: Array<SelectOption<RepoFilter>> = [
   {value: 'not-connected' as const, label: t('Disconnected Repos')},
 ];
 
-const PROVIDER_FILTER_OPTIONS: Array<SelectOption<ProviderFilter>> = [
-  {value: 'seer-supported' as const, label: t('Supported by Seer')},
-  {value: 'all' as const, label: t('All providers')},
-];
-
-const providerParser = parseAsStringLiteral(
-  PROVIDER_FILTER_OPTIONS.map(option => option.value)
-).withDefault('seer-supported');
 const repoParser = parseAsStringLiteral(
   REPO_FILTER_OPTIONS.map(option => option.value)
 ).withDefault('all');
@@ -37,7 +29,6 @@ export default function SeerAutomationSCM() {
     'search',
     parseAsString.withDefault('')
   );
-  const [providerFilter, setProviderFilter] = useQueryState('provider', providerParser);
   const [repoFilter, setRepoFilter] = useQueryState('repo', repoParser);
 
   return (
@@ -60,13 +51,6 @@ export default function SeerAutomationSCM() {
         <SeerSettingsPageContent>
           <Flex align="center" gap="md">
             <CompactSelect
-              value={providerFilter}
-              onChange={(opt: SelectOption<ProviderFilter>) =>
-                setProviderFilter(opt.value)
-              }
-              options={PROVIDER_FILTER_OPTIONS}
-            />
-            <CompactSelect
               value={repoFilter}
               onChange={(opt: SelectOption<RepoFilter>) => setRepoFilter(opt.value)}
               options={REPO_FILTER_OPTIONS}
@@ -80,7 +64,7 @@ export default function SeerAutomationSCM() {
           </Flex>
 
           <ScmIntegrationTree
-            providerFilter={providerFilter}
+            providerFilter="seer-supported"
             repoFilter={repoFilter}
             search={searchTerm}
           />

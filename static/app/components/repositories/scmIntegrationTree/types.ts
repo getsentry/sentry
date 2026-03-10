@@ -47,9 +47,5 @@ export type TreeNode =
   | AddConfigNode
   | NoMatchNode;
 
-// ---------------------------------------------------------------------------
-// Builder
-// ---------------------------------------------------------------------------
-
 export type RepoFilter = 'all' | 'connected' | 'not-connected';
 export type ProviderFilter = 'seer-supported' | 'all';

@@ -12,15 +12,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import RepoProviderIcon from 'sentry/components/repositories/repoProviderIcon';
+import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {IconAdd, IconChevron, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
-
-import RepoProviderIcon from 'getsentry/views/seerAutomation/components/repoProviderIcon';
-import type {TreeNode} from 'getsentry/views/seerAutomation/types';
 
 // ---------------------------------------------------------------------------
 // Row component

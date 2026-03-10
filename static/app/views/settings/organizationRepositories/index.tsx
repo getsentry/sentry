@@ -1,75 +1,84 @@
-import {Fragment} from 'react';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import AnalyticsArea from 'sentry/components/analyticsArea';
+import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
+import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import OrganizationRepositories from './organizationRepositories';
+const REPO_FILTER_OPTIONS: Array<SelectOption<RepoFilter>> = [
+  {value: 'all' as const, label: t('All repos')},
+  {value: 'connected' as const, label: t('Connected Repos')},
+  {value: 'not-connected' as const, label: t('Disconnected Repos')},
+];
 
-function OrganizationRepositoriesContainer() {
+const repoParser = parseAsStringLiteral(
+  REPO_FILTER_OPTIONS.map(option => option.value)
+).withDefault('all');
+
+export default function OrganizationRepositories() {
   const organization = useOrganization();
-  const location = useLocation();
-  const queryClient = useQueryClient();
 
-  const {
-    data: itemList,
-    isPending,
-    isError,
-    getResponseHeader,
-  } = useApiQuery<Repository[]>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: location.query},
-    ],
-    {staleTime: 0}
+  const [searchTerm, setSearchTerm] = useQueryState(
+    'search',
+    parseAsString.withDefault('')
   );
-  const itemListPageLinks = getResponseHeader?.('Link');
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError />;
-  }
-
-  // Callback used by child component to signal state change
-  function onRepositoryChange(data: Pick<Repository, 'id' | 'status'>) {
-    setApiQueryData<Repository[]>(
-      queryClient,
-      [
-        getApiUrl(`/organizations/$organizationIdOrSlug/repos/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: location.query},
-      ],
-      oldItemList =>
-        oldItemList?.map(item =>
-          item.id === data.id ? {...item, status: data.status} : item
-        )
-    );
-  }
+  const [repoFilter, setRepoFilter] = useQueryState('repo', repoParser);
 
   return (
-    <Fragment>
+    <AnalyticsArea name="repositories">
       <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
-      <OrganizationRepositories
-        organization={organization}
-        itemList={itemList}
-        onRepositoryChange={onRepositoryChange}
+      <SettingsPageHeader
+        title={t('Repositories')}
+        subtitle={tct(
+          `Integrate with a [scm:Source Code Management] provider and then connect repositories with Sentry. Connecting a repo to a project enables [suspect_commits:Suspect Commits] on issues, [suggested_assignees:Suggested Assignees] based on code owners, the ability to mark an issue [resolved_via_commit:Resolved via Commit or PR], and is a requirement for [seer:Seer].`,
+          {
+            scm: (
+              <ExternalLink href="https://docs.sentry.io/organization/getting-started/#source-code-management" />
+            ),
+            suspect_commits: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/suspect-commits/" />
+            ),
+            suggested_assignees: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/ownership-rules/#code-owners" />
+            ),
+            resolved_via_commit: (
+              <ExternalLink href="https://docs.sentry.io/product/releases/associate-commits/#associate-commits-with-a-release" />
+            ),
+            seer: (
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+            ),
+          }
+        )}
       />
-      {itemListPageLinks && <Pagination pageLinks={itemListPageLinks} />}
-    </Fragment>
+      <Stack gap="lg">
+        <Flex align="center" gap="md">
+          <CompactSelect
+            value={repoFilter}
+            onChange={(opt: SelectOption<RepoFilter>) => setRepoFilter(opt.value)}
+            options={REPO_FILTER_OPTIONS}
+          />
+          <Input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder={t('Search repos\u2026')}
+            style={{flex: 1}}
+          />
+        </Flex>
+
+        <ScmIntegrationTree
+          providerFilter="all"
+          repoFilter={repoFilter}
+          search={searchTerm}
+        />
+      </Stack>
+    </AnalyticsArea>
   );
 }
-
-export default OrganizationRepositoriesContainer;
