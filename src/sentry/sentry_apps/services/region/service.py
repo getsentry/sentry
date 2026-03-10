@@ -179,4 +179,4 @@ class SentryAppRegionService(RpcService):
         pass
 
 
-sentry_app_region_service = SentryAppRegionService.create_delegation()
+sentry_app_cell_service = SentryAppRegionService.create_delegation()

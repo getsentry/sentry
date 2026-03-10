@@ -471,7 +471,7 @@ def find_regions_for_user(user_id: int) -> set[str]:
 
 
 @control_silo_function
-def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
+def find_cells_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 

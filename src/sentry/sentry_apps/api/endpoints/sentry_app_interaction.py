@@ -11,7 +11,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppStatsPermission,
 )
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.region import sentry_app_cell_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
         components = app_service.find_app_components(app_id=sentry_app.id)
         component_types = [component.type for component in components]
 
-        result = sentry_app_region_service.get_interaction_stats(
+        result = sentry_app_cell_service.get_interaction_stats(
             sentry_app=sentry_app,
             component_types=component_types,
             since=args["start"].timestamp(),
@@ -66,7 +66,7 @@ class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
         tsdb_field = request.data.get("tsdbField", "")
         component_type = request.data.get("componentType")
 
-        result = sentry_app_region_service.record_interaction(
+        result = sentry_app_cell_service.record_interaction(
             sentry_app=sentry_app,
             tsdb_field=tsdb_field,
             component_type=component_type,

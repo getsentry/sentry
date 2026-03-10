@@ -13,7 +13,7 @@ from sentry.sentry_apps.api.parsers.sentry_app import URLField
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.region import sentry_app_cell_service
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -41,7 +41,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         except Exception:
             return Response({"detail": "issueId is required, and must be an integer"}, status=400)
 
-        result = sentry_app_region_service.create_external_issue(
+        result = sentry_app_cell_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
             group_id=group_id,

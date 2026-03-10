@@ -11,7 +11,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEnd
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.region import sentry_app_cell_service
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 
@@ -61,7 +61,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         if isinstance(user, User):
             user = serialize_rpc_user(user)
 
-        result = sentry_app_region_service.create_issue_link(
+        result = sentry_app_cell_service.create_issue_link(
             organization_id=installation.organization_id,
             installation=installation,
             group_id=int(group_id),
