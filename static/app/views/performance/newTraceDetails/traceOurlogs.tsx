@@ -3,13 +3,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -74,7 +73,7 @@ function LogsSectionContent({
 
   return (
     <Fragment>
-      <Container display="flex" style={{gap: space(1.5)}}>
+      <Flex gap="lg">
         <SearchQueryBuilder
           placeholder={t('Search logs for this event')}
           filterKeys={{}}
@@ -84,7 +83,7 @@ function LogsSectionContent({
           onSearch={query => setLogsQuery(query)}
         />
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
-      </Container>
+      </Flex>
       <TableContainer>
         <LogsInfiniteTable embedded scrollContainer={scrollContainer} />
       </TableContainer>
