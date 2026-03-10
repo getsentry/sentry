@@ -161,18 +161,19 @@ class ApiApplication(Model):
             return False
         return self.version >= min_version
 
-    def normalize_url(self, value):
-        parts = urlparse(value)
-        path = parts.path
-
-        # Fully decode all layers of percent-encoding to a stable form.
-        # This prevents multi-layer encoding (e.g. %252e%252e) from hiding
-        # path traversal sequences that posixpath.normpath needs to resolve.
+    @staticmethod
+    def _fully_decode(value):
+        """Iteratively percent-decode until stable (no more encoded layers)."""
         prev = None
-        decoded = unquote(path)
+        decoded = unquote(value)
         while decoded != prev:
             prev = decoded
             decoded = unquote(decoded)
+        return decoded
+
+    def normalize_url(self, value):
+        parts = urlparse(value)
+        decoded = self._fully_decode(parts.path)
 
         has_trailing_slash = decoded.endswith("/")
         normalized_path = posixpath.normpath(decoded)
@@ -189,15 +190,15 @@ class ApiApplication(Model):
         #   - Native apps loopback exception (RFC 8252 §8.4):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
 
-        raw_path = urlparse(value).path
+        decoded_path = self._fully_decode(urlparse(value).path)
 
         # Reject null bytes — can cause string truncation in downstream servers.
-        if "\x00" in unquote(raw_path):
+        if "\x00" in decoded_path:
             return False
 
         # Reject backslashes — some servers/proxies interpret \ as /, enabling
         # path traversal that posixpath.normpath wouldn't catch.
-        if "\\" in unquote(raw_path):
+        if "\\" in decoded_path:
             return False
 
         value = self.normalize_url(value)

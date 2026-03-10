@@ -209,6 +209,8 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://example.com/callback/%00evil")
         assert not app.is_valid_redirect_uri("http://example.com/callback/\x00evil")
         assert not app.is_valid_redirect_uri("http://example.com/%00/callback/")
+        # Double-encoded null byte — must also be caught by full decode
+        assert not app.is_valid_redirect_uri("http://example.com/callback/%2500evil")
 
     def test_is_valid_redirect_uri_null_byte_strict(self) -> None:
         """Null bytes must be rejected in strict mode too."""
@@ -230,6 +232,8 @@ class ApiApplicationTest(TestCase):
 
         assert not app.is_valid_redirect_uri("http://example.com/callback/..\\..\\secret")
         assert not app.is_valid_redirect_uri("http://example.com/callback/%5c..%5c../secret")
+        # Double-encoded backslash — must also be caught by full decode
+        assert not app.is_valid_redirect_uri("http://example.com/callback/..%255c..%255csecret")
 
     def test_is_valid_redirect_uri_deep_encoding(self) -> None:
         """Deeply nested percent-encoding (3+ layers) must be resolved and rejected."""
