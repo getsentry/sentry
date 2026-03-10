@@ -503,7 +503,7 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
     const {organization, eventView} = baggage;
     const selection = eventView?.getPageFilters();
     const value =
-      data[INTERNAL_ERROR_COUNT_FIELD] || data[`equation|${INTERNAL_ERROR_COUNT_FIELD}`];
+      data[INTERNAL_ERROR_COUNT_FIELD] ?? data[`equation|${INTERNAL_ERROR_COUNT_FIELD}`];
     const count = typeof value === 'number' ? value : 0;
 
     if (count === 0) {
