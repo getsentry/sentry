@@ -1445,6 +1445,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result["timeseries_interval"], str | None)
         assert isinstance(result["tags_overview"], dict | None)
         assert isinstance(result["user_activity"], list | None)
+        assert isinstance(result["project_id"], int)
+        assert isinstance(result["project_slug"], str)
 
     # --- basic shape and group lookup ---
 
@@ -1468,6 +1470,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1488,6 +1492,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result, dict)
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
 
     # --- timeseries ---
 

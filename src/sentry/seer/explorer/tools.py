@@ -1168,6 +1168,8 @@ def get_issue_details(
         "timeseries_interval": timeseries_interval,
         "tags_overview": tags_overview,
         "user_activity": serialized_activities,
+        "project_id": group.project_id,
+        "project_slug": group.project.slug,
     }
 
 
