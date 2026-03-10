@@ -7,6 +7,7 @@ type ErrorCode = Literal[
     "rate_limit_exceeded",
     "integration_not_found",
     "unsupported_integration",
+    "unknown_provider",
 ]
 
 ERROR_CODES: dict[ErrorCode, str] = {
@@ -16,6 +17,7 @@ ERROR_CODES: dict[ErrorCode, str] = {
     "rate_limit_exceeded": "Exhausted allocated service-provider quota.",
     "integration_not_found": "An unsupported integration provider was found.",
     "unsupported_integration": "An unsupported integration provider was found.",
+    "unknown_provider": "Could not resolve source code management provider.",
 }
 
 
