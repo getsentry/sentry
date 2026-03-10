@@ -34,7 +34,6 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const aiAutofix = useExplorerAutofix(group.id);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
-  const handleReset = useHandleReset({aiAutofix});
 
   return (
     <Flex
@@ -50,7 +49,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
         project={project}
         event={event}
         onCopyMarkdown={handleCopyMarkdown}
-        onReset={handleReset}
+        onReset={aiAutofix.runState ? aiAutofix.reset : undefined}
       />
       <SeerDrawerBody>
         <InnerSeerDrawer
@@ -146,15 +145,4 @@ function useHandleCopyMarkdown({
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
   }, [aiAutofix, copy]);
-}
-
-function useHandleReset({
-  aiAutofix,
-}: {
-  aiAutofix: ReturnType<typeof useExplorerAutofix>;
-}): (() => void) | undefined {
-  if (!aiAutofix.runState) {
-    return undefined;
-  }
-  return aiAutofix.reset;
 }
