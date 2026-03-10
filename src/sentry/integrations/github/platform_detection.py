@@ -284,8 +284,8 @@ FRAMEWORKS: list[FrameworkDef] = [
         "sort": 10,
         "base_platform": "java",
         "some": [
-            {"path": "build.gradle", "match_content": r"spring-boot"},
-            {"path": "pom.xml", "match_content": r"spring-boot"},
+            {"path": "build.gradle", "match_content": r"(?i)spring-boot"},
+            {"path": "pom.xml", "match_content": r"(?i)spring-boot"},
         ],
     },
     {
@@ -293,8 +293,8 @@ FRAMEWORKS: list[FrameworkDef] = [
         "sort": 20,
         "base_platform": "java",
         "some": [
-            {"path": "build.gradle", "match_content": r"spring-framework"},
-            {"path": "pom.xml", "match_content": r"spring-framework"},
+            {"path": "build.gradle", "match_content": r"(?i)spring-framework"},
+            {"path": "pom.xml", "match_content": r"(?i)spring-framework"},
         ],
     },
     # --- Go ---
