@@ -28,7 +28,7 @@ from sentry.types.region import (
     get_cell_for_organization,
     get_local_region,
     load_from_config,
-    subdomain_is_region,
+    subdomain_is_locality,
 )
 
 
@@ -252,7 +252,7 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_subdomain_is_region(self) -> None:
+    def test_subdomain_is_locality(self) -> None:
         regions: list[CellConfig] = [
             {
                 "name": "us",
@@ -267,8 +267,8 @@ class RegionDirectoryTest(TestCase):
         with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")
-            assert subdomain_is_region(req)
+            assert subdomain_is_locality(req)
 
             req = rf.get("/")
             setattr(req, "subdomain", "acme")
-            assert not subdomain_is_region(req)
+            assert not subdomain_is_locality(req)
