@@ -2,12 +2,16 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -259,6 +263,11 @@ function WidgetCard(props: Props) {
         widgetLegendState,
         dashboardFilters,
         widgetInterval,
+        onClose: () => {
+          // Strip widget viewer query params so they don't linger on the host page
+          const query = omit(location.query, Object.values(WidgetViewerQueryField));
+          navigate({pathname: location.pathname, query}, {preventScrollReset: true});
+        },
       });
     }
   };
