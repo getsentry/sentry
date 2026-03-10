@@ -11,6 +11,7 @@ from django.dispatch import Signal
 from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
+from sentry.constants import DELETION_GRACE_PERIOD_DAYS
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -728,7 +729,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
 
             if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+                schedule = RegionScheduledDeletion.schedule(
+                    orm_organization, days=DELETION_GRACE_PERIOD_DAYS, actor=user
+                )
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(

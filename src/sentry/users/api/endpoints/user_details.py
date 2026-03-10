@@ -23,7 +23,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.constants import LANGUAGES
+from sentry.constants import DELETION_GRACE_PERIOD_DAYS, LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
@@ -65,7 +65,7 @@ def user_can_elevate(target_user: User) -> bool:
 
 def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
     deactivation_datetime = django_timezone.now()
-    scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
+    scheduled_deletion_datetime = deactivation_datetime + timedelta(days=DELETION_GRACE_PERIOD_DAYS)
 
     try:
         analytics.record(
