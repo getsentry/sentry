@@ -18,7 +18,7 @@ import {useCommandPalette} from 'sentry/views/nav/useCommandPalette';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 import {useResetActiveNavGroup} from 'sentry/views/nav/useResetActiveNavGroup';
 
-export function UserAndOrganizationNavigation() {
+function UserAndOrganizationNavigation() {
   useCommandPalette();
   const {layout, navParentRef} = useNavigationContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
@@ -45,7 +45,7 @@ export function UserAndOrganizationNavigation() {
   );
 }
 
-export function UserOnlyNavigation() {
+function UserOnlyNavigation() {
   return (
     <NoOrganizationSidebar data-test-id="no-organization-sidebar">
       <Flex direction="column" gap="md" justify="between">
