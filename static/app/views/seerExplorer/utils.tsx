@@ -487,12 +487,16 @@ export function toggleSeerExplorerPanel(): void {
   document.dispatchEvent(keyboardEvent);
 }
 
+/**
+ * Validate an ISO string and return it with 'Z' suffix stripped.
+ * Returns undefined if invalid.
+ */
 function validateIso(val: unknown): string | undefined {
   if (!val || typeof val !== 'string') {
     return undefined;
   }
   const d = new Date(val);
-  return isNaN(d.getTime()) ? undefined : d.toISOString();
+  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
 /**
