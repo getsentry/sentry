@@ -46,7 +46,7 @@ class BuildsEndpoint(OrganizationEndpoint):
                 try:
                     results.append(transform_preprod_artifact_to_build_details(artifact).dict())
                 except Exception:
-                    logger.warning(
+                    logger.exception(
                         "preprod.builds.transform_failed", extra={"artifact_id": artifact.id}
                     )
             return results
