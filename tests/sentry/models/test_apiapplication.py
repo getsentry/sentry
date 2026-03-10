@@ -271,6 +271,25 @@ class ApiApplicationTest(TestCase):
             twice = app.normalize_url(once)
             assert once == twice, f"Not idempotent for {uri}: {once!r} != {twice!r}"
 
+    def test_normalize_url_preserves_percent_literal_bytes(self) -> None:
+        """Percent-encoded non-UTF-8 bytes must not be lossily replaced."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="http://example.com/",
+        )
+
+        # %25ab = literal "%ab" — second decode would produce non-UTF-8 byte
+        # 0xAB, which must NOT be replaced with U+FFFD (%EF%BF%BD).
+        result = app.normalize_url("http://example.com/%25ab/")
+        assert "%EF%BF%BD" not in result
+        # The literal %ab is preserved (re-encoded as %25ab by quote)
+        assert "%25ab" in result.lower()
+
+        # %2580 = literal "%80" — same pattern with a continuation byte
+        result = app.normalize_url("http://example.com/%2580/")
+        assert "%EF%BF%BD" not in result
+        assert "%2580" in result.lower()
+
     def _assert_no_bypass(self, app, attack_uri, registered_path):
         """Verify an attack URI cannot redirect outside the registered path.
 

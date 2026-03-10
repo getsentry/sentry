@@ -163,12 +163,20 @@ class ApiApplication(Model):
 
     @staticmethod
     def _fully_decode(value):
-        """Iteratively percent-decode until stable (no more encoded layers)."""
+        """Iteratively percent-decode until stable (no more encoded layers).
+
+        Stops before any lossy step: if a decode would introduce U+FFFD
+        (replacement character) from non-UTF-8 bytes, the previous
+        lossless result is returned instead.
+        """
         prev = None
         decoded = unquote(value)
         while decoded != prev:
             prev = decoded
-            decoded = unquote(decoded)
+            candidate = unquote(decoded)
+            if candidate.count("\ufffd") > decoded.count("\ufffd"):
+                break
+            decoded = candidate
         return decoded
 
     def normalize_url(self, value):
