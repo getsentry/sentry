@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sentry.utils.services import Service
+from sentry.workflow_engine.models.workflow import Workflow
 
 if TYPE_CHECKING:
     from typing import Any
@@ -49,7 +50,7 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_groups_paginated(
-        self, rule: Rule, start: datetime, end: datetime, cursor: Cursor, per_page: int
+        self, rule: Rule | Workflow, start: datetime, end: datetime, cursor: Cursor, per_page: int
     ) -> CursorResult[RuleGroupHistory]:
         """
         Fetches groups that triggered a rule within a given timeframe, ordered by number of
@@ -58,7 +59,7 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_hourly_stats(
-        self, rule: Rule, start: datetime, end: datetime
+        self, rule: Rule | Workflow, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
         """
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by
