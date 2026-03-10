@@ -60,8 +60,7 @@ function IntegrationExternalUserMappings(props: Props) {
   } = useApiQuery<Member[]>([DATA_ENDPOINT], {staleTime: 0});
 
   const fetchData = () => {
-    refetchMembers();
-    refetchInitialResults();
+    return Promise.all([refetchMembers(), refetchInitialResults()]);
   };
 
   if (isMembersPending || isInitialResultsPending) {
@@ -143,6 +142,9 @@ function IntegrationExternalUserMappings(props: Props) {
         defaultOptions={defaultUserOptions}
         onCreate={openMembersModal}
         onDelete={handleDelete}
+        onSubmitSuccess={async () => {
+          await fetchData();
+        }}
         pageLinks={membersPageLinks}
       />
     </Fragment>

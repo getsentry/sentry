@@ -30,7 +30,7 @@ type BaseProps = {
   defaultOptions?: Array<{label: React.ReactNode; value: string}>;
   mapping?: ExternalActorMappingOrSuggestion;
   onSubmitError?: () => void;
-  onSubmitSuccess?: (data: ExternalActorMapping) => void;
+  onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
 };
 
 type InlineProps = BaseProps & {

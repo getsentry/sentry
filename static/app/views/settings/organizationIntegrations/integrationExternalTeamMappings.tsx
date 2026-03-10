@@ -57,8 +57,7 @@ function IntegrationExternalTeamMappings(props: Props) {
   } = useApiQuery<Team[]>([ORGANIZATION_TEAMS_ENDPOINT], {staleTime: 0});
 
   const fetchData = () => {
-    refetchTeams();
-    refetchInitialResults();
+    return Promise.all([refetchTeams(), refetchInitialResults()]);
   };
 
   if (isTeamsPending || isInitialResultsPending) {
@@ -144,6 +143,9 @@ function IntegrationExternalTeamMappings(props: Props) {
       defaultOptions={defaultTeamOptions()}
       onCreate={onCreate}
       onDelete={handleDelete}
+      onSubmitSuccess={async () => {
+        await fetchData();
+      }}
       pageLinks={teamsPageLinks}
     />
   );

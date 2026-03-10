@@ -44,6 +44,7 @@ type Props = Pick<
   onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   type: 'team' | 'user';
+  onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
 };
 
@@ -60,6 +61,7 @@ function IntegrationExternalMappings(props: Props) {
     defaultOptions,
     onCreate,
     onDelete,
+    onSubmitSuccess,
     getBaseFormEndpoint,
   } = props;
 
@@ -129,13 +131,14 @@ function IntegrationExternalMappings(props: Props) {
         integration={integration}
         getBaseFormEndpoint={getBaseFormEndpoint}
         mapping={mapping}
-        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
           setNewlyAssociatedMappings([
             ...newlyAssociatedMappings.filter(
               map => map.externalName !== newMapping.externalName
             ),
             newMapping,
           ]);
+          await onSubmitSuccess?.();
         }}
         isInline
         defaultOptions={defaultOptions}

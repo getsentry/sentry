@@ -1,3 +1,4 @@
+import React from 'react';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -232,6 +233,47 @@ describe('IntegrationExternalMappingForm', () => {
     });
     expect(putResponse).toHaveBeenCalled();
     expect(postResponse).not.toHaveBeenCalled();
+  });
+
+  it('triggers mutation again when re-selecting the original value after a save', async () => {
+    function Wrapper() {
+      const [teamId, setTeamId] = React.useState(MOCK_TEAM_MAPPING.teamId);
+      const mapping = {...MOCK_TEAM_MAPPING, teamId};
+      return (
+        <IntegrationExternalMappingForm
+          isInline
+          type="team"
+          mapping={mapping}
+          {...baseProps}
+          onSubmitSuccess={() => {
+            // Simulate what the parent does: refetch data, which updates the mapping
+            const lastData = baseProps.getBaseFormEndpoint.mock.lastCall![0];
+            setTeamId(lastData?.teamId ?? teamId);
+          }}
+        />
+      );
+    }
+
+    render(<Wrapper />);
+
+    // Wait for options to load
+    expect(await screen.findByText('option1')).toBeInTheDocument();
+
+    // Select option3 (different from the initial teamId '1' = option1)
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option3'}));
+
+    await waitFor(() => {
+      expect(putResponse).toHaveBeenCalledTimes(1);
+    });
+
+    // Now re-select option1 (the original value) — this should trigger another mutation
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option1'}));
+
+    await waitFor(() => {
+      expect(putResponse).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('fetches options with search query when typing', async () => {
