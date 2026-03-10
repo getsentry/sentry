@@ -1,36 +1,18 @@
-import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
-
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
-import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
+import ScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
+import useScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-const REPO_FILTER_OPTIONS: Array<SelectOption<RepoFilter>> = [
-  {value: 'all' as const, label: t('All repos')},
-  {value: 'connected' as const, label: t('Connected Repos')},
-  {value: 'not-connected' as const, label: t('Disconnected Repos')},
-];
-
-const repoParser = parseAsStringLiteral(
-  REPO_FILTER_OPTIONS.map(option => option.value)
-).withDefault('all');
-
 export default function OrganizationRepositories() {
   const organization = useOrganization();
-
-  const [searchTerm, setSearchTerm] = useQueryState(
-    'search',
-    parseAsString.withDefault('')
-  );
-  const [repoFilter, setRepoFilter] = useQueryState('repo', repoParser);
+  const {repoFilter, setRepoFilter, searchTerm, setSearchTerm} = useScmTreeFilters();
 
   return (
     <AnalyticsArea name="repositories">
@@ -60,19 +42,13 @@ export default function OrganizationRepositories() {
       />
       <Stack gap="lg">
         <Flex align="center" gap="md">
-          <CompactSelect
-            value={repoFilter}
-            onChange={(opt: SelectOption<RepoFilter>) => setRepoFilter(opt.value)}
-            options={REPO_FILTER_OPTIONS}
-          />
-          <Input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder={t('Search repos\u2026')}
-            style={{flex: 1}}
+          <ScmTreeFilters
+            repoFilter={repoFilter}
+            setRepoFilter={setRepoFilter}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
           />
         </Flex>
-
         <ScmIntegrationTree
           providerFilter="all"
           repoFilter={repoFilter}
