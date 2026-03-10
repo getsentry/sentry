@@ -323,29 +323,6 @@ function useSelectionIndex({
 
 type FrozenSuggestionOrder = Array<{sectionText: string; values: string[]}>;
 
-// Shallow comparison of suggestion groups by section text and suggestion values.
-// Used by `useFrozenSuggestionSectionItems` to avoid resetting the frozen item
-// order when the suggestion arrays are reconstructed with identical contents
-// (e.g. toggling a multi-select checkbox rebuilds the array but doesn't change
-// the set of available suggestions).
-function suggestionGroupsAffectOrderChanged(
-  previousSuggestionGroups: SuggestionSection[] | null,
-  nextSuggestionGroups: SuggestionSection[]
-) {
-  if (!previousSuggestionGroups) return true;
-  if (previousSuggestionGroups === nextSuggestionGroups) return false;
-  if (previousSuggestionGroups.length !== nextSuggestionGroups.length) return true;
-
-  return !previousSuggestionGroups.every((prevGroup, i) => {
-    const nextGroup = nextSuggestionGroups[i];
-    return (
-      prevGroup.sectionText === nextGroup?.sectionText &&
-      prevGroup.suggestions.length === nextGroup.suggestions.length &&
-      prevGroup.suggestions.every((s, j) => s.value === nextGroup.suggestions[j]?.value)
-    );
-  });
-}
-
 // In multi-select mode we want the currently selected values to float to the top
 // when the menu opens, but we do not want the list order to keep changing after
 // each checkbox toggle. If it re-sorts on every selection, the listbox scroll
@@ -372,12 +349,10 @@ function useFrozenSuggestionSectionItems({
   const prevSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
   const frozenOrderRef = useRef<FrozenSuggestionOrder | null>(null);
 
-  // Some callers rebuild suggestion group arrays even when the visible values
-  // are unchanged (for example when toggling a predefined multi-select value).
-  // Reset only when the actual suggestion contents change.
-  if (
-    suggestionGroupsAffectOrderChanged(prevSuggestionGroupsRef.current, suggestionGroups)
-  ) {
+  // A new suggestion group identity means the menu effectively has a new result
+  // set (reopened, new data, different key/filter), so the frozen ordering
+  // should be recalculated from scratch.
+  if (prevSuggestionGroupsRef.current !== suggestionGroups) {
     prevSuggestionGroupsRef.current = suggestionGroups;
     frozenOrderRef.current = null;
   }
