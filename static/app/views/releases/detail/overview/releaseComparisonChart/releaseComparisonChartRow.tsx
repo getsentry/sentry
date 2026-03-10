@@ -10,7 +10,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {releaseComparisonChartLabels} from 'sentry/views/releases/detail/utils';
@@ -228,8 +227,8 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-        padding-bottom: ${space(0.75)};
-        padding-top: ${space(0.75)};
+        padding-bottom: ${p.theme.space.sm};
+        padding-top: ${p.theme.space.sm};
         border-bottom: 0;
       }
     `}

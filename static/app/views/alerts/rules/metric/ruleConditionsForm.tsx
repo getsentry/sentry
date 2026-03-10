@@ -936,7 +936,7 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${p => (p.noMargin ? 0 : space(4))};
+  margin-bottom: ${p => (p.noMargin ? 0 : p.theme.space['3xl'])};
   ${p =>
     p.columns !== undefined &&
     css`

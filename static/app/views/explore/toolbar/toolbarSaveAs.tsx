@@ -66,9 +66,14 @@ export function ToolbarSaveAs() {
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const mode = useQueryParamsMode();
   const id = useQueryParamsId();
-  const visualizeYAxes = useMemo(
-    () => dedupeArray(visualizes.filter(isVisualizeFunction).map(v => v.yAxis)),
+
+  const visualizeFunctions = useMemo(
+    () => visualizes.filter(isVisualizeFunction),
     [visualizes]
+  );
+  const visualizeYAxes = useMemo(
+    () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
+    [visualizeFunctions]
   );
   const [caseInsensitive] = useCaseInsensitivity();
 
@@ -281,6 +286,8 @@ export function ToolbarSaveAs() {
     return null;
   }
 
+  const canCompareQueries = visualizeFunctions.length >= 2;
+
   return (
     <StyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
@@ -308,41 +315,45 @@ export function ToolbarSaveAs() {
             )}
           />
         </Tooltip>
-        <Tooltip
-          disabled={!hasCrossEvents}
-          title={t('Comparing cross event queries is not supported during early access.')}
-        >
-          <LinkButton
-            aria-label={t('Compare')}
-            disabled={hasCrossEvents}
-            onClick={() =>
-              trackAnalytics('trace_explorer.compare', {
-                organization,
-              })
-            }
-            to={generateExploreCompareRoute({
+        <WideLinkButton
+          aria-label={t('Compare')}
+          disabled={hasCrossEvents || !canCompareQueries}
+          onClick={() =>
+            trackAnalytics('trace_explorer.compare', {
               organization,
-              mode,
-              location,
-              queries: [
-                {
-                  query,
-                  groupBys,
-                  sortBys,
-                  yAxes: [visualizeYAxes[0]!],
-                  chartType: visualizes[0]!.chartType,
-                  caseInsensitive: caseInsensitive ? '1' : undefined,
-                },
-              ],
-            })}
-          >
-            {`${t('Compare Queries')}`}
-          </LinkButton>
-        </Tooltip>
+            })
+          }
+          to={generateExploreCompareRoute({
+            organization,
+            mode,
+            location,
+            queries: visualizeFunctions.map(visual => ({
+              query,
+              groupBys,
+              sortBys,
+              yAxes: [visual.yAxis],
+              chartType: visual.chartType,
+              caseInsensitive: caseInsensitive ? '1' : undefined,
+            })),
+          })}
+          tooltipProps={
+            hasCrossEvents
+              ? {title: t('Comparing queries is not supported during early access.')}
+              : canCompareQueries
+                ? undefined
+                : {title: t('Add two or more charts to compare chart queries.')}
+          }
+        >
+          {t('Compare Queries')}
+        </WideLinkButton>
       </Grid>
     </StyledToolbarSection>
   );
 }
+
+const WideLinkButton = styled(LinkButton)`
+  width: 100%;
+`;
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};

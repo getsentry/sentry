@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   /**
    * The left-hand aligned label
@@ -44,7 +42,7 @@ const Value = styled('dd')<{multiLine: boolean}>`
     css`
       display: flex;
       flex-direction: column;
-      gap: ${space(0.5)};
+      gap: ${p.theme.space.xs};
     `};
 `;
 

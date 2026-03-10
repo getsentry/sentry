@@ -174,23 +174,23 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
-        "title": "AI Agents Models",
+        "title": "AI Agents Model Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
-        "title": "AI Agents Tools",
+        "title": "AI Agents Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
-        "title": "MCP Tools",
+        "title": "MCP Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
-        "title": "MCP Resources",
+        "title": "MCP Resource Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
-        "title": "MCP Prompts",
+        "title": "MCP Prompt Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
@@ -422,23 +422,18 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 sentry_sdk.capture_exception(err)
 
             # Favorite pre-favorited prebuilt dashboards for the user
-            # TODO - remove this flag check once we confirm the sync is proper, this should be done for all users
-            if features.has(
-                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                organization,
-            ):
-                try:
-                    favorite_lock = locks.get(
-                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
-                        duration=10,
-                        name="sync_prebuilt_dashboards_favorited",
-                    )
-                    with favorite_lock.acquire():
-                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
-                except UnableToAcquireLock:
-                    pass
-                except Exception as err:
-                    sentry_sdk.capture_exception(err)
+            try:
+                favorite_lock = locks.get(
+                    f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
+                    duration=10,
+                    name="sync_prebuilt_dashboards_favorited",
+                )
+                with favorite_lock.acquire():
+                    sync_prebuilt_dashboards_favorited(organization, request.user.id)
+            except UnableToAcquireLock:
+                pass
+            except Exception as err:
+                sentry_sdk.capture_exception(err)
 
         filters = request.query_params.getlist("filter")
 

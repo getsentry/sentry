@@ -29,7 +29,10 @@ class CreateGroupingRecordData(TypedDict):
     exception_type: str | None
 
 
-seer_grouping_connection_pool = connection_from_url(settings.SEER_GROUPING_URL)
+seer_grouping_connection_pool = connection_from_url(
+    settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
 
 
 def call_seer_to_delete_project_grouping_records(

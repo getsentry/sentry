@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Switch} from '@sentry/scraps/switch';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
@@ -140,6 +140,7 @@ export const shouldUseOnDemandMetrics = (
 };
 
 export function ToggleOnDemand() {
+  const theme = useTheme();
   const org = useOrganization();
   const onDemand = _useOnDemandControl();
 
@@ -159,7 +160,7 @@ export function ToggleOnDemand() {
     <FlexContainer
       style={{
         opacity: onDemand.isControlEnabled ? 1.0 : 0.5,
-        gap: space(1),
+        gap: theme.space.md,
       }}
     >
       {t('On-demand metrics')}

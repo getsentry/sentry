@@ -290,9 +290,7 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions:
-    | DifferentialFlamegraphModel['increasedFrames']
-    | DifferentialFlamegraphModel['newFrames'];
+  functions: FlamegraphFrame[];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;
