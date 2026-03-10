@@ -64,17 +64,17 @@ describe('useSourceContext', () => {
       body: {context: [], sourceUrl: null, error: null},
     });
 
-    renderHook(useSourceContext, {
-      initialProps: [
+    renderHook(() =>
+      useSourceContext(
         {
           event,
           frame,
           orgSlug: 'org-slug',
           projectSlug: project.slug,
         },
-        {enabled: false},
-      ],
-    });
+        {enabled: false}
+      )
+    );
 
     expect(mockRequest).not.toHaveBeenCalled();
   });
