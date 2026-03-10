@@ -238,7 +238,7 @@ const NavigationTourContext = createContext<{
   setShowTourReminder: () => {},
 });
 
-export function useNavigationTourContext(): {
+function useNavigationTourContext(): {
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
 } {
