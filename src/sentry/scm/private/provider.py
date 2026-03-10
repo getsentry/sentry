@@ -435,6 +435,34 @@ class CreateReviewCommentFileProtocol(Protocol):
 
 
 @runtime_checkable
+class CreateReviewCommentLineProtocol(Protocol):
+    def create_review_comment_line(
+        self,
+        pull_request_id: str,
+        commit_id: SHA,
+        body: str,
+        path: str,
+        line: int,
+        side: ReviewSide,
+    ) -> ActionResult[ReviewComment]: ...
+
+
+@runtime_checkable
+class CreateReviewCommentMultilineProtocol(Protocol):
+    def create_review_comment_multiline(
+        self,
+        pull_request_id: str,
+        commit_id: SHA,
+        body: str,
+        path: str,
+        start_line: int,
+        start_side: ReviewSide,
+        end_line: int,
+        end_side: ReviewSide,
+    ) -> ActionResult[ReviewComment]: ...
+
+
+@runtime_checkable
 class CreateReviewCommentReplyProtocol(Protocol):
     def create_review_comment_reply(
         self,
@@ -454,6 +482,11 @@ class CreateReviewProtocol(Protocol):
         comments: list[ReviewCommentInput],
         body: str | None = None,
     ) -> ActionResult[Review]: ...
+
+
+@runtime_checkable
+class ResolveReviewThreadProtocol(Protocol):
+    def resolve_review_thread(self, thread_node_id: str) -> None: ...
 
 
 # Moderation Protocols
@@ -507,9 +540,12 @@ class ActionMap:
     create_check_run = CreateCheckRunProtocol
     update_check_run = UpdateCheckRunProtocol
     create_review_comment_file = CreateReviewCommentFileProtocol
+    create_review_comment_line = CreateReviewCommentLineProtocol
+    create_review_comment_multiline = CreateReviewCommentMultilineProtocol
     create_review_comment_reply = CreateReviewCommentReplyProtocol
     create_review = CreateReviewProtocol
     minimize_comment = MinimizeCommentProtocol
+    resolve_review_thread = ResolveReviewThreadProtocol
 
 
 class Provider(Protocol):
