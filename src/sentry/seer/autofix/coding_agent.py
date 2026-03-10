@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -644,13 +645,14 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
 
     # Fetch all events — the API returns events in chronological order,
     # so the last element is the most recent event.
-    all_events = client.list_session_events(agent_id)
-    if not all_events:
+    raw_events = client.list_session_events(agent_id)
+    if not raw_events:
         return
 
-    last_event_type = all_events[-1].get("type")
+    all_events = [ClaudeSessionEvent.parse_obj(e) for e in raw_events]
+    last_event_type = all_events[-1].type
 
-    if last_event_type == "status_idle":
+    if last_event_type == ClaudeSessionEventStatus.IDLE:
         new_status = CodingAgentStatus.COMPLETED
 
         result, new_status = build_result_from_events(
@@ -658,17 +660,11 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
         )
 
         if new_status != agent_state.status:
-            try:
-                update_coding_agent_state(
-                    agent_id=agent_id,
-                    status=new_status,
-                    result=result,
-                )
-            except Exception:
-                logger.exception(
-                    "coding_agent.claude_code.state_update_error",
-                    extra={"agent_id": agent_id},
-                )
+            update_coding_agent_state(
+                agent_id=agent_id,
+                status=new_status,
+                result=result,
+            )
 
         logger.info(
             "coding_agent.claude_code.poll_update",
@@ -680,26 +676,14 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
             },
         )
 
-    elif last_event_type == "status_pending":
+    elif last_event_type == ClaudeSessionEventStatus.PENDING:
         if agent_state.status != CodingAgentStatus.PENDING:
-            try:
-                update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
-            except Exception:
-                logger.exception(
-                    "coding_agent.claude_code.state_update_error",
-                    extra={"agent_id": agent_id},
-                )
+            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
 
     else:
         # Any other event (status_running, agent, tool_result, etc.) means active.
         if agent_state.status != CodingAgentStatus.RUNNING:
-            try:
-                update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
-            except Exception:
-                logger.exception(
-                    "coding_agent.claude_code.state_update_error",
-                    extra={"agent_id": agent_id},
-                )
+            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
@@ -746,15 +730,15 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def extract_result_url_from_events(events: list[dict[str, Any]]) -> str | None:
+def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | None:
     """Extract a GitHub PR or branch URL from session events."""
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
     for event in reversed(events):
-        if event.get("type") != "agent":
+        if event.type != "agent":
             continue
-        for block in event.get("content", []):
+        for block in getattr(event, "content", []):
             if isinstance(block, dict) and block.get("type") == "text":
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
@@ -768,7 +752,7 @@ def extract_result_url_from_events(events: list[dict[str, Any]]) -> str | None:
 
 
 def build_result_from_events(
-    events: list[dict[str, Any]],
+    events: list[ClaudeSessionEvent],
     client: Any,
     agent_id: str,
     agent_name: str,

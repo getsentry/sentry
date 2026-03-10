@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
     GithubCopilotArtifact,
@@ -698,8 +699,8 @@ MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent.update_coding_agent_s
 MOCK_DJANGO_SETTINGS_PATH = "sentry.seer.autofix.coding_agent.django_settings"
 
 
-def _make_agent_event(text: str) -> dict:
-    return {"type": "agent", "content": [{"type": "text", "text": text}]}
+def _make_agent_event(text: str) -> ClaudeSessionEvent:
+    return ClaudeSessionEvent(type="agent", content=[{"type": "text", "text": text}])
 
 
 class TestExtractResultUrlFromEvents(TestCase):
@@ -765,10 +766,10 @@ class TestExtractResultUrlFromEvents(TestCase):
 
     def test_skips_non_agent_events(self):
         events = [
-            {
-                "type": "tool_result",
-                "content": [{"type": "text", "text": "https://github.com/org/repo/pull/1"}],
-            },
+            ClaudeSessionEvent(
+                type="tool_result",
+                content=[{"type": "text", "text": "https://github.com/org/repo/pull/1"}],
+            ),
             _make_agent_event("No URL here"),
         ]
         assert extract_result_url_from_events(events) is None
