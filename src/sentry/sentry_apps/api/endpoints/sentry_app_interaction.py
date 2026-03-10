@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
-    RegionSentryAppBaseEndpoint,
+    CellSentryAppBaseEndpoint,
     SentryAppStatsPermission,
 )
 from sentry.sentry_apps.services.app import app_service
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @control_silo_endpoint
-class SentryAppInteractionEndpoint(RegionSentryAppBaseEndpoint, StatsMixin):
+class SentryAppInteractionEndpoint(CellSentryAppBaseEndpoint, StatsMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

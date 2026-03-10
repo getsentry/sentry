@@ -286,7 +286,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
+class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):

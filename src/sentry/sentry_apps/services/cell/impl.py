@@ -37,7 +37,7 @@ from sentry.users.services.user import RpcUser
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
-class DatabaseBackedSentryAppRegionService(SentryAppCellService):
+class DatabaseBackedSentryAppCellService(SentryAppCellService):
     def get_select_options(
         self,
         *,
