@@ -293,7 +293,10 @@ export function getOrderedArtifactKeys(
 const CODE_CHANGES_KEY = Symbol('codeChanges');
 
 type ArtifactKey = string | typeof CODE_CHANGES_KEY;
-type ArtifactOrExplorerFilePatches = Artifact | ExplorerFilePatch[] | RepoPRState[];
+export type ArtifactOrExplorerFilePatches =
+  | Artifact<unknown>
+  | ExplorerFilePatch[]
+  | RepoPRState[];
 
 export function getOrderedAutofixArtifacts(
   runState: ExplorerAutofixState | null

@@ -2,22 +2,22 @@ import {useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {SeerDrawerHeader} from 'sentry/components/events/autofix/drawer/drawerHeader';
-import {SeerDrawerNavigator} from 'sentry/components/events/autofix/drawer/drawerNavigator';
 import {SeerWelcomeScreen} from 'sentry/components/events/autofix/drawer/welcomeScreen';
 import {
-  getArtifactsFromBlocks,
+  getOrderedAutofixArtifacts,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
-import {SeerDrawerBody} from 'sentry/components/events/autofix/v2/body';
-import {SeerDrawerContent} from 'sentry/components/events/autofix/v2/content';
-import {formatArtifactsToMarkdown} from 'sentry/components/events/autofix/v2/utils';
+import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
+import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
+import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
@@ -33,7 +33,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const aiConfig = useAiConfig(group, project);
   const aiAutofix = useExplorerAutofix(group.id);
 
-  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix, group, event});
+  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
   const handleReset = useHandleReset({aiAutofix});
 
   return (
@@ -45,9 +45,10 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       direction="column"
       background="secondary"
     >
-      <SeerDrawerHeader group={group} project={project} event={event} />
-      <SeerDrawerNavigator
+      <SeerDrawerHeader
+        group={group}
         project={project}
+        event={event}
         onCopyMarkdown={handleCopyMarkdown}
         onReset={handleReset}
       />
@@ -123,56 +124,28 @@ function InnerSeerDrawer({
     return <SeerWelcomeScreen group={group} project={project} event={event} />;
   }
 
-  return (
-    <SeerDrawerContent
-      group={group}
-      project={project}
-      aiAutofix={aiAutofix}
-      aiConfig={aiConfig}
-    />
-  );
+  return <SeerDrawerContent autofix={aiAutofix} aiConfig={aiConfig} />;
 }
 
 function useHandleCopyMarkdown({
   aiAutofix,
-  event,
-  group,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
-  event: Event;
-  group: Group;
 }): (() => void) | undefined {
   const {copy} = useCopyToClipboard();
+
   return useMemo(() => {
     if (!aiAutofix.runState) {
       return undefined;
     }
 
-    const blocks = aiAutofix.runState?.blocks ?? [];
-    const artifacts = getArtifactsFromBlocks(blocks);
-
-    const hasArtifacts =
-      !!artifacts.root_cause?.data ||
-      !!artifacts.solution?.data ||
-      !!artifacts.impact_assessment?.data ||
-      !!artifacts.triage?.data;
-
-    if (!hasArtifacts) {
-      return undefined;
-    }
-
     return () => {
-      const markdownText = formatArtifactsToMarkdown(
-        artifacts as Record<string, {data: Record<string, unknown> | null}>,
-        group,
-        event
-      );
-      if (!markdownText.trim()) {
-        return;
-      }
-      copy(markdownText, {successMessage: t('Analysis copied to clipboard.')});
+      const artifacts = getOrderedAutofixArtifacts(aiAutofix.runState);
+      const markdown = artifacts.map(artifactToMarkdown).filter(defined).join('\n\n');
+
+      copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
-  }, [aiAutofix, group, event, copy]);
+  }, [aiAutofix, copy]);
 }
 
 function useHandleReset({

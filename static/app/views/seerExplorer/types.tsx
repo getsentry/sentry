@@ -6,6 +6,7 @@ export interface TodoItem {
 }
 
 export interface ExplorerFilePatch {
+  diff: string;
   patch: FilePatch;
   repo_name: string;
 }
