@@ -93,7 +93,7 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       if (err instanceof RequestError) {
         // This means org or project does not exist, we need to stop polling
         // Also stop polling on auth-related errors (403/401)
-        if (err.status && [404, 403, 401, 0].includes(err.status)) {
+        if (err.status !== undefined && [404, 403, 401, 0].includes(err.status)) {
           // TODO: Add some UX around this... redirect? error message?
           this.stopPolling();
           return;
