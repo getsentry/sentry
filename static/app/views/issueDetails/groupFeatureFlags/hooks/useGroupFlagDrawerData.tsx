@@ -64,8 +64,17 @@ export default function useGroupFlagDrawerData({
   }, [groupFlags, search, tagValues]);
 
   const displayFlags = useMemo(() => {
-    const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
-    return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
+    if (orderBy === OrderBy.A_TO_Z) {
+      return filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
+    }
+    if (orderBy === OrderBy.Z_TO_A) {
+      return filteredFlags.toSorted((a, b) => b.key.localeCompare(a.key));
+    }
+    if (orderBy === OrderBy.OLDEST) {
+      return Array.from(filteredFlags).reverse();
+    }
+    // orderBy === OrderBy.NEWEST
+    return filteredFlags;
   }, [filteredFlags, orderBy]);
 
   return {
