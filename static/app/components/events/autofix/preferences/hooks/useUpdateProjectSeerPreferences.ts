@@ -1,9 +1,12 @@
+import {useCallback} from 'react';
+
 import {
   makeProjectSeerPreferencesQueryKey,
   type SeerPreferencesResponse,
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
+import apiFetch from 'sentry/utils/api/apiFetch';
 import {
   fetchMutation,
   getApiQueryData,
@@ -22,6 +25,21 @@ type Context =
       error: Error;
       previousPrefs?: never;
     };
+
+export function useFetchProjectSeerPreferences({project}: {project: Project}) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const queryKey = makeProjectSeerPreferencesQueryKey(organization.slug, project.slug);
+
+  return useCallback(async () => {
+    const response = await queryClient.fetchQuery({
+      queryKey,
+      queryFn: apiFetch<SeerPreferencesResponse>,
+      staleTime: 0,
+    });
+    return response.json.preference;
+  }, [queryClient, queryKey]);
+}
 
 export function useUpdateProjectSeerPreferences(project: Project) {
   const organization = useOrganization();
