@@ -220,14 +220,6 @@ function ModalMappingForm({
   type,
 }: ModalProps) {
   const {slug: orgSlug} = useOrganization();
-  const selectQueryOptions =
-    type === 'team'
-      ? makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)
-      : (makeMemberSelectQueryOptions(
-          orgSlug,
-          defaultOptions,
-          mapping
-        ) as unknown as ReturnType<typeof makeTeamSelectQueryOptions>);
 
   const initialSentryId =
     mapping && isExternalActorMapping(mapping) ? String(mapping[`${type}Id`] ?? '') : '';
@@ -300,20 +292,37 @@ function ModalMappingForm({
             )}
           </form.AppField>
           <form.AppField name="sentryId">
-            {field => (
-              <field.Layout.Stack
-                label={tct('Sentry [type]', {type: capitalize(type)})}
-                required
-              >
-                <field.SelectAsync
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('Select Sentry %s', capitalize(type))}
-                  defaultOptions={defaultOptions}
-                  queryOptions={selectQueryOptions}
-                />
-              </field.Layout.Stack>
-            )}
+            {field =>
+              type === 'team' ? (
+                <field.Layout.Stack label={t('Sentry Team')} required>
+                  <field.SelectAsync
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('Select Sentry Team')}
+                    defaultOptions={defaultOptions}
+                    queryOptions={makeTeamSelectQueryOptions(
+                      orgSlug,
+                      defaultOptions,
+                      mapping
+                    )}
+                  />
+                </field.Layout.Stack>
+              ) : (
+                <field.Layout.Stack label={t('Sentry User')} required>
+                  <field.SelectAsync
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('Select Sentry User')}
+                    defaultOptions={defaultOptions}
+                    queryOptions={makeMemberSelectQueryOptions(
+                      orgSlug,
+                      defaultOptions,
+                      mapping
+                    )}
+                  />
+                </field.Layout.Stack>
+              )
+            }
           </form.AppField>
         </Stack>
       </Body>
