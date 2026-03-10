@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -24,8 +24,13 @@ export function DashboardsSecondaryNav() {
 
   const {data: starredDashboards = []} = useGetStarredDashboards();
 
-  const prebuiltDashboards = starredDashboards.filter(d => defined(d.prebuiltId));
-  const customDashboards = starredDashboards.filter(d => !defined(d.prebuiltId));
+  const {prebuiltDashboards, customDashboards} = useMemo(
+    () => ({
+      prebuiltDashboards: starredDashboards.filter(d => defined(d.prebuiltId)),
+      customDashboards: starredDashboards.filter(d => !defined(d.prebuiltId)),
+    }),
+    [starredDashboards]
+  );
 
   return (
     <Fragment>
