@@ -212,7 +212,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am1 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am1_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {
@@ -255,7 +255,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am2 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am2_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {
@@ -298,7 +298,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am3 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am3_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {

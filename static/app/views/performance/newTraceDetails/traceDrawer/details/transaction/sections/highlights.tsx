@@ -8,7 +8,6 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -96,12 +95,12 @@ export function TransactionHighlights(props: HighlightProps) {
 }
 
 const HeaderContentWrapper = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
   width: 100%;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   word-break: break-word;
   line-height: 1.4;
@@ -110,9 +109,9 @@ const HeaderContentWrapper = styled('div')`
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const BodyContentWrapper = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;

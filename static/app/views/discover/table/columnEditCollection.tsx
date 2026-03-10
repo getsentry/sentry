@@ -13,7 +13,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -713,8 +712,8 @@ const RowContainer = styled('div')<{
 
       @media (min-width: ${p.theme.breakpoints.sm}) {
         grid-template-columns: ${p.singleColumn
-          ? `1fr calc(200px + ${space(1)})`
-          : `${p.theme.space['2xl']} 1fr calc(200px + ${space(1)}) 40px 40px`};
+          ? `1fr calc(200px + ${p.theme.space.md})`
+          : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
       }
     `};
 `;

@@ -320,15 +320,17 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : (
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            overlayIsOpen={isOpen}
-            size="sm"
-          />
+          <ListBoxPane>
+            <ListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!!filterValue}
+              hiddenOptions={hiddenOptions}
+              overlayIsOpen={isOpen}
+              size="sm"
+            />
+          </ListBoxPane>
         )}
         {isLoading && anyItemsShowing ? (
           <Flex justify="center" align="center" height="32px" width="100%">
@@ -672,6 +674,14 @@ const ListBoxOverlay = styled(Overlay)`
   min-width: 200px;
   width: 600px;
   max-width: fit-content;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ListBoxPane = styled('div')`
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 `;
 
