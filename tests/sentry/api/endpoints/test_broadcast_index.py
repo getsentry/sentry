@@ -144,6 +144,27 @@ class BroadcastListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
+    def test_organization_invalid_status_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"status": "invalid"})
+        assert response.status_code == 400
+
+    def test_organization_invalid_limit_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"limit": "notanumber"})
+        assert response.status_code == 400
+
+    def test_organization_negative_limit_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"limit": "-1"})
+        assert response.status_code == 400
+
     def test_organization_limit_without_params_is_backwards_compatible(self) -> None:
         for i in range(5):
             Broadcast.objects.create(message=f"broadcast {i}", is_active=True)

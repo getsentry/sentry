@@ -118,15 +118,23 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 queryset = queryset.exclude(broadcastseen__user_id=request.user.id)
             elif status == "seen":
                 queryset = queryset.filter(broadcastseen__user_id=request.user.id)
+            elif status is not None:
+                return self.respond(
+                    {"detail": "Invalid status. Valid values are 'seen' and 'unseen'."},
+                    status=400,
+                )
 
             data = self._secondary_filtering(request, organization, queryset)
 
             limit_param = request.GET.get("limit")
             if limit_param is not None:
                 try:
-                    data = data[: int(limit_param)]
+                    limit = int(limit_param)
                 except ValueError:
-                    pass
+                    return self.respond({"detail": "limit must be an integer."}, status=400)
+                if limit <= 0:
+                    return self.respond({"detail": "limit must be a positive integer."}, status=400)
+                data = data[:limit]
 
             return self.respond(self._serialize_objects(data, request))
 
