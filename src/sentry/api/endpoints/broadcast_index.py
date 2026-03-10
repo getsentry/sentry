@@ -122,9 +122,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     queryset = queryset.filter(broadcastseen__user_id=request.user.id)
                 else:
                     queryset = queryset.none()
+            elif status == "all":
+                pass
             elif status is not None:
                 return self.respond(
-                    {"detail": "Invalid status. Valid values are 'seen' and 'unseen'."},
+                    {"detail": "Invalid status. Valid values are 'all', 'seen', and 'unseen'."},
                     status=400,
                 )
 

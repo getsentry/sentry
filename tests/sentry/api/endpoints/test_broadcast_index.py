@@ -119,6 +119,21 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in ids
         assert str(broadcast2.id) in ids
 
+    def test_organization_status_all_explicit(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="unseen", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="seen", is_active=True)
+        BroadcastSeen.objects.create(broadcast=broadcast2, user=self.user)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"status": "all"})
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        ids = [b["id"] for b in response.data]
+        assert str(broadcast1.id) in ids
+        assert str(broadcast2.id) in ids
+
     def test_organization_limit_slices_results(self) -> None:
         for i in range(5):
             Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
@@ -150,6 +165,9 @@ class BroadcastListTest(APITestCase):
 
         response = self.client.get(url, {"status": "invalid"})
         assert response.status_code == 400
+        assert "all" in response.data["detail"]
+        assert "seen" in response.data["detail"]
+        assert "unseen" in response.data["detail"]
 
     def test_organization_invalid_limit_returns_400(self) -> None:
         self.login_as(user=self.user)
