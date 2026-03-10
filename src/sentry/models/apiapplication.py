@@ -169,11 +169,11 @@ class ApiApplication(Model):
         (replacement character) from non-UTF-8 bytes, the previous
         lossless result is returned instead.
         """
-        prev = None
-        decoded = unquote(value)
-        while decoded != prev:
-            prev = decoded
+        decoded = value
+        while True:
             candidate = unquote(decoded)
+            if candidate == decoded:
+                break
             if candidate.count("\ufffd") > decoded.count("\ufffd"):
                 break
             decoded = candidate
