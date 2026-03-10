@@ -737,6 +737,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -3223,6 +3224,15 @@ register(
     default=500,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of segments a single trace can flush per cycle. Prevents a
+# single trace from monopolizing a flush cycle and concentrating SSCAN load
+# on one Redis node. 0 means no limit.
+register(
+    "spans.buffer.max-flush-segments-per-trace",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.
 register(
     "spans.buffer.max-memory-percentage",
@@ -3306,14 +3316,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Batch size for HDEL calls when removing spans from the redirect map during flush.
-register(
-    "spans.buffer.hdel-redirect-map-batch-size",
-    type=Int,
-    default=100,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
