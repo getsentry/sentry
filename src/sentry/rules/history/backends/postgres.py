@@ -106,7 +106,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_rule_groups(
         self,
-        target: Rule | Workflow,
+        target: Rule,
         start: datetime,
         end: datetime,
         cursor: Cursor | None = None,
@@ -148,7 +148,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_workflow_stats(
         self, target: Workflow, start: datetime, end: datetime
-    ) -> Sequence[TimeSeriesValue]:
+    ) -> dict[datetime, TimeSeriesValue]:
         # Use raw SQL to combine data from both tables
         with connection.cursor() as db_cursor:
             db_cursor.execute(
@@ -177,7 +177,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_rule_stats(
         self, target: Rule, start: datetime, end: datetime
-    ) -> Sequence[TimeSeriesValue]:
+    ) -> dict[datetime, TimeSeriesValue]:
         qs = (
             RuleFireHistory.objects.filter(
                 rule=target,
