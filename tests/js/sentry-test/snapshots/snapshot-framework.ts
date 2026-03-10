@@ -4,11 +4,17 @@ import {closeBrowser, takeSnapshot} from './snapshot';
 
 function snapshotTest(name: string, renderFn: () => ReactElement): void {
   test(`snapshot: ${name}`, async () => {
-    const testFilePath = expect.getState().testPath;
-    if (!testFilePath) {
+    const {testPath, currentTestName} = expect.getState();
+    if (!testPath) {
       throw new Error('Could not determine test file path');
     }
-    await takeSnapshot(name, renderFn, testFilePath);
+    // Use the full test name (including describe ancestors) for unique filenames.
+    // currentTestName looks like "Button theme-light snapshot: priority-default".
+    // Strip the "snapshot: " marker to produce a clean filename.
+    const snapshotName = currentTestName
+      ? currentTestName.replace(/\s*snapshot: /, ' ').trim()
+      : name;
+    await takeSnapshot(snapshotName, renderFn, testPath);
   });
 }
 
