@@ -22,7 +22,7 @@ from sentry.types.region import (
     RegionResolutionError,
     find_all_cell_names,
     find_all_multitenant_region_names,
-    find_regions_for_sentry_app,
+    find_cells_for_sentry_app,
     find_regions_for_user,
     get_cell_by_name,
     get_cell_for_organization,
@@ -185,7 +185,7 @@ class RegionDirectoryTest(TestCase):
             find_regions_for_user(user_id=user.id)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_regions_for_sentry_app(self) -> None:
+    def test_find_cells_for_sentry_app(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
@@ -196,26 +196,26 @@ class RegionDirectoryTest(TestCase):
                 organization=self.organization,
                 scopes=["project:write"],
             )
-            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
-            assert actual_regions == set()
+            actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
+            assert actual_cells == set()
 
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=us_org_1)
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=us_org_2)
-            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
-            assert actual_regions == {"us"}
+            actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
+            assert actual_cells == {"us"}
 
             eu_org_1 = self.create_organization(name="eu test name", region="eu")
             eu_org_2 = self.create_organization(name="eu test name", region="eu")
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_1)
             self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_2)
-            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
-            assert actual_regions == {"us", "eu"}
+            actual_cells = find_cells_for_sentry_app(sentry_app=sentry_app)
+            assert actual_cells == {"us", "eu"}
 
         with (
             override_settings(SILO_MODE=SiloMode.REGION),
             pytest.raises(SiloLimit.AvailabilityError),
         ):
-            find_regions_for_sentry_app(sentry_app=sentry_app)
+            find_cells_for_sentry_app(sentry_app=sentry_app)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_cell_names(self) -> None:
