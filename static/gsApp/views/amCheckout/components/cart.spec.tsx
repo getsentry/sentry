@@ -49,7 +49,7 @@ describe('Cart', () => {
       ...Object.fromEntries(
         Object.entries(businessPlan.planCategories).map(([category, buckets]) => [
           category,
-          buckets[0]!.events,
+          buckets[0].events,
         ])
       ),
       seerAutofix: 0,
