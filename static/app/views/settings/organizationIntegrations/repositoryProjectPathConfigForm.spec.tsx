@@ -6,11 +6,17 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import * as analytics from 'sentry/utils/analytics';
 
-import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
+import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
 
-describe('RepositoryProjectPathConfigForm', () => {
+describe('RepositoryProjectPathConfigModal', () => {
   const organization = OrganizationFixture();
   const integration = GitHubIntegrationFixture();
   const projects = [
@@ -22,8 +28,15 @@ describe('RepositoryProjectPathConfigForm', () => {
     RepositoryFixture({id: '20', name: 'org/repo-two'}),
   ];
 
-  const onSubmitSuccess = jest.fn();
-  const onCancel = jest.fn();
+  const closeModal = jest.fn();
+
+  const modalProps = {
+    Body: ModalBody,
+    Header: makeClosableHeader(jest.fn()),
+    Footer: ModalFooter,
+    CloseButton: makeCloseButton(jest.fn()),
+    closeModal,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,13 +50,12 @@ describe('RepositoryProjectPathConfigForm', () => {
 
   it('renders all fields with default values in create mode', () => {
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
@@ -66,14 +78,13 @@ describe('RepositoryProjectPathConfigForm', () => {
     });
 
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
         existingConfig={existingConfig}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
@@ -93,13 +104,12 @@ describe('RepositoryProjectPathConfigForm', () => {
     });
 
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
@@ -158,14 +168,13 @@ describe('RepositoryProjectPathConfigForm', () => {
     });
 
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
         existingConfig={existingConfig}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
@@ -199,13 +208,12 @@ describe('RepositoryProjectPathConfigForm', () => {
     });
 
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
@@ -229,13 +237,12 @@ describe('RepositoryProjectPathConfigForm', () => {
     });
 
     render(
-      <RepositoryProjectPathConfigForm
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
         organization={organization}
         integration={integration}
         projects={projects}
         repos={repos}
-        onSubmitSuccess={onSubmitSuccess}
-        onCancel={onCancel}
       />
     );
 
