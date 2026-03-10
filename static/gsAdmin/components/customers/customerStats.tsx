@@ -590,8 +590,13 @@ export const CustomerStats = memo(
 
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
-        const {intervals: allIntervals, valueByTimestamp} = abuseDataRef.current;
-        if (!instance || allIntervals.length === 0) {
+        const {
+          intervals: allIntervals,
+          regions,
+          valueByTimestamp,
+          intervalMs,
+        } = abuseDataRef.current;
+        if (!instance || allIntervals.length === 0 || regions.length === 0) {
           hideTooltip();
           return;
         }
@@ -612,9 +617,20 @@ export const CustomerStats = memo(
           return;
         }
 
+        const timestamp = dataPoint[0]!;
+
+        // Only show tooltip within the visual mark area bounds
+        const halfInterval = intervalMs / 2;
+        const inMarkArea = regions.some(
+          r => timestamp >= r.start - halfInterval && timestamp <= r.end + halfInterval
+        );
+        if (!inMarkArea) {
+          hideTooltip();
+          return;
+        }
+
         // Find the closest interval (from all intervals, not just abuse ones)
         // so we match the same interval the native tooltip is showing
-        const timestamp = dataPoint[0]!;
         let closestTs = 0;
         let closestDist = Infinity;
         for (const ts of allIntervals) {
