@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -18,9 +18,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -102,6 +104,21 @@ interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
 }
 
+interface LogsSearchSectionProps {
+  areAiFeaturesAllowed: boolean;
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
+  datePageFilterProps: DatePageFilterProps;
+  numberAttributes: TagCollection;
+  numberSecondaryAliases: TagCollection;
+  stringAttributes: TagCollection;
+  stringSecondaryAliases: TagCollection;
+  booleanAttributesLoading?: boolean;
+  numberAttributesLoading?: boolean;
+  searchBarWidthOffset?: number;
+  stringAttributesLoading?: boolean;
+}
+
 function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) {
   const {displayAskSeer} = useSearchQueryBuilder();
 
@@ -112,12 +129,118 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
+const LogsSearchSection = memo(function LogsSearchSection({
+  areAiFeaturesAllowed,
+  booleanAttributes,
+  booleanSecondaryAliases,
+  booleanAttributesLoading,
+  datePageFilterProps,
+  numberAttributes,
+  numberSecondaryAliases,
+  numberAttributesLoading,
+  searchBarWidthOffset,
+  stringAttributes,
+  stringSecondaryAliases,
+  stringAttributesLoading,
+}: LogsSearchSectionProps) {
+  const logsSearch = useQueryParamsSearch();
+  const logsSearchQuery = logsSearch.formatString();
+  const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
+  const [interval] = useChartInterval();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+
+  const saveAsItems = useSaveAsItems({
+    visualizes,
+    groupBys,
+    interval,
+    mode,
+    search: logsSearch,
+    sortBys: aggregateSortBys,
+  });
+
+  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
+    useLogsSearchQueryBuilderProps({
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+    });
+
+  const supportedAggregates = useMemo<AggregationKey[]>(() => {
+    return [];
+  }, []);
+
+  return (
+    <SearchQueryBuilderProvider
+      enableAISearch={areAiFeaturesAllowed}
+      aiSearchBadgeType="alpha"
+      {...searchQueryBuilderProviderProps}
+    >
+      <ExploreBodySearch>
+        <Layout.Main width="full">
+          <LogsFilterSection>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                {...datePageFilterProps}
+                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
+              />
+            </StyledPageFilterBar>
+            <LogsSearchBar
+              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+            />
+            {saveAsItems.length > 0 && (
+              <DropdownMenu
+                items={saveAsItems}
+                trigger={triggerProps => (
+                  <Button
+                    {...triggerProps}
+                    priority="default"
+                    aria-label={t('Save as')}
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+
+                      triggerProps.onClick?.(e);
+                    }}
+                  >
+                    {t('Save as')}
+                  </Button>
+                )}
+              />
+            )}
+          </LogsFilterSection>
+          <ExploreSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={supportedAggregates}
+              booleanTags={booleanAttributes}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={
+                numberAttributesLoading ||
+                stringAttributesLoading ||
+                booleanAttributesLoading
+              }
+              exploreQuery={logsSearchQuery}
+              source={SchemaHintsSources.LOGS}
+              searchBarWidthOffset={searchBarWidthOffset}
+            />
+          </ExploreSchemaHintsSection>
+        </Layout.Main>
+      </ExploreBodySearch>
+    </SearchQueryBuilderProvider>
+  );
+});
+
 export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const logsSearch = useQueryParamsSearch();
   const fields = useQueryParamsFields();
-  const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
@@ -200,20 +323,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
-    useLogsSearchQueryBuilderProps({
-      booleanAttributes,
-      numberAttributes,
-      stringAttributes,
-      booleanSecondaryAliases,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
-    });
-
-  const supportedAggregates = useMemo(() => {
-    return [];
-  }, []);
-
   const refreshTable = useCallback(async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(
@@ -277,15 +386,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     [setSidebarOpen, setMode]
   );
 
-  const saveAsItems = useSaveAsItems({
-    visualizes,
-    groupBys,
-    interval,
-    mode,
-    search: logsSearch,
-    sortBys: aggregateSortBys,
-  });
-
   /**
    * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.
    */
@@ -330,65 +430,21 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={areAiFeaturesAllowed}
-      aiSearchBadgeType="alpha"
-      {...searchQueryBuilderProviderProps}
-    >
-      <ExploreBodySearch>
-        <Layout.Main width="full">
-          <LogsFilterSection>
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                {...datePageFilterProps}
-                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
-              />
-            </StyledPageFilterBar>
-            <LogsSearchBar
-              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
-            />
-            {saveAsItems.length > 0 && (
-              <DropdownMenu
-                items={saveAsItems}
-                trigger={triggerProps => (
-                  <Button
-                    {...triggerProps}
-                    priority="default"
-                    aria-label={t('Save as')}
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-
-                      triggerProps.onClick?.(e);
-                    }}
-                  >
-                    {t('Save as')}
-                  </Button>
-                )}
-              />
-            )}
-          </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearch.formatString()}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-            />
-          </ExploreSchemaHintsSection>
-        </Layout.Main>
-      </ExploreBodySearch>
-
+    <Fragment>
+      <LogsSearchSection
+        areAiFeaturesAllowed={areAiFeaturesAllowed}
+        datePageFilterProps={datePageFilterProps}
+        booleanAttributes={booleanAttributes}
+        booleanSecondaryAliases={booleanSecondaryAliases}
+        numberAttributes={numberAttributes}
+        numberSecondaryAliases={numberSecondaryAliases}
+        stringAttributes={stringAttributes}
+        stringSecondaryAliases={stringSecondaryAliases}
+        booleanAttributesLoading={booleanAttributesLoading}
+        numberAttributesLoading={numberAttributesLoading}
+        stringAttributesLoading={stringAttributesLoading}
+        searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
+      />
       <ExploreBodyContent>
         <ExploreControlSection expanded={sidebarOpen}>
           {sidebarOpen ? <LogsToolbar /> : null}
@@ -482,6 +538,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           </LogsItemContainer>
         </ExploreContentSection>
       </ExploreBodyContent>
-    </SearchQueryBuilderProvider>
+    </Fragment>
   );
 }
