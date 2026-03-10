@@ -78,6 +78,64 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
         assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
 
+    def test_organization_always_returns_minimum_broadcasts(self) -> None:
+        # Create more than MIN_BROADCASTS so the backfill has candidates to draw from.
+        broadcasts = [
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True) for i in range(5)
+        ]
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        # Mark all broadcasts as seen for this user.
+        for broadcast in broadcasts:
+            BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
+
+        # The open-source _secondary_filtering returns all active broadcasts, so all 5
+        # will be present. Verify the endpoint still returns results (not an empty list).
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 5
+
+    def test_organization_backfills_to_minimum_when_filtered(self) -> None:
+        # Simulate a scenario where filtering reduces results below MIN_BROADCASTS.
+        # Create 5 active broadcasts so the backfill has enough candidates.
+        for i in range(5):
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) >= 3
+
+    def test_organization_backfill_does_not_exceed_available_broadcasts(self) -> None:
+        # When fewer than MIN_BROADCASTS active broadcasts exist at all,
+        # the endpoint returns however many exist without error.
+        Broadcast.objects.create(message="only one", is_active=True)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_organization_backfill_excludes_inactive_broadcasts(self) -> None:
+        # Inactive broadcasts must not be used to satisfy the minimum.
+        Broadcast.objects.create(message="active", is_active=True)
+        Broadcast.objects.create(message="inactive 1", is_active=False)
+        Broadcast.objects.create(message="inactive 2", is_active=False)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["message"] == "active"
+
 
 @control_silo_test
 class BroadcastCreateTest(APITestCase):

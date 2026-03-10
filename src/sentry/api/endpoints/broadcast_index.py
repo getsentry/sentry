@@ -23,6 +23,8 @@ from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
+MIN_BROADCASTS = 3
+
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -114,6 +116,14 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
+            if len(data) < MIN_BROADCASTS:
+                existing_ids = {b.id for b in data}
+                backfill = list(
+                    Broadcast.objects.filter(is_active=True)
+                    .exclude(id__in=existing_ids)
+                    .order_by("-date_added")[: MIN_BROADCASTS - len(data)]
+                )
+                data = list(data) + backfill
             return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get("sortBy")
