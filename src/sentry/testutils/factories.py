@@ -167,7 +167,7 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.region import Cell, get_cell_by_name, get_local_region
+from sentry.types.region import Cell, get_cell_by_name, get_local_cell
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
@@ -384,7 +384,7 @@ class Factories:
 
         with contextlib.ExitStack() as ctx:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                region_name = get_local_region().name
+                region_name = get_local_cell().name
             else:
                 if isinstance(region, Cell):
                     region_name = region.name
