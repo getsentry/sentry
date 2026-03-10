@@ -35,7 +35,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -54,7 +53,6 @@ export default function ProjectDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const router = useRouter();
   const {projects, fetching: loadingProjects} = useProjects();
   const {selection} = usePageFilters();
   const project = projects.find(p => p.slug === params.projectId);
@@ -142,11 +140,15 @@ export default function ProjectDetail() {
     function syncProjectWithSlug() {
       if (projectId && projectId !== projectQueryParam) {
         // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
-        updateProjects([Number(projectId)], router);
+        updateProjects([Number(projectId)], undefined);
+        navigate(
+          {pathname: location.pathname, query: {...location.query, project: projectId}},
+          {replace: true}
+        );
       }
     }
     syncProjectWithSlug();
-  }, [projectQueryParam, router, projectId]);
+  }, [projectQueryParam, projectId, navigate, location.pathname, location.query]);
 
   if (!loadingProjects && !project) {
     return (

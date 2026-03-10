@@ -35,10 +35,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {
-  agentMonitoringPlatforms,
-  javascriptMetaFrameworks,
-} from 'sentry/data/platformCategories';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -75,7 +72,6 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
-  SERVER_SIDE_NODE_INTEGRATIONS,
 } from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
@@ -246,35 +242,21 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
-    project?.platform ?? 'other'
-  );
-  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
+
+  const integrations = isPythonPlatform
+    ? PYTHON_AGENT_INTEGRATIONS
+    : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
-      items: isPythonPlatform
-        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          }))
-        : (hasServerSideNode
-            ? NODE_AGENT_INTEGRATIONS
-            : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
-              )
-          ).map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          })),
+      items: integrations.map(integration => ({
+        label: AGENT_INTEGRATION_LABELS[integration],
+        value: integration,
+        leadingItems: (
+          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+        ),
+      })),
     },
   };
 

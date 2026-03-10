@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import Panel from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -73,10 +72,10 @@ function LogsSectionContent({
 }
 
 const TableContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
 `;

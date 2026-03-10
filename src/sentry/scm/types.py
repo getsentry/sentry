@@ -1,5 +1,12 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Protocol, Required, TypedDict
+from typing import Any, Literal, Required, TypedDict
+
+type Action = Literal["check_run", "comment", "pull_request"]
+type EventType = "CheckRunEvent" | "CommentEvent" | "PullRequestEvent"
+type EventTypeHint = Literal["check_run", "comment", "pull_request"]
+type HybridCloudSilo = Literal["control", "region"]
+
 
 type ProviderName = Literal["bitbucket", "github", "github_enterprise", "gitlab"]
 """The SCM provider that owns an integration or repository."""
@@ -234,7 +241,7 @@ class Repository(TypedDict):
     integration_id: int
     name: str
     organization_id: int
-    status: int
+    is_active: bool
 
 
 class GitRef(TypedDict):
@@ -372,275 +379,194 @@ class CheckRun(TypedDict):
     html_url: str
 
 
-class Provider(Protocol):
+class SubscriptionEvent(TypedDict):
     """
-    Providers abstract over an integration. They map generic commands to service-provider specific
-    commands and they map the results of those commands to generic result-types.
+    A "SubscriptionEvent" is an event that was sent by a source control management (SCM)
+    service-provider. This type wraps the event and appends special metadata to aid processing
+    and monitoring.
 
-    Providers necessarily offer a larger API surface than what is available in an integration. Some
-    methods may be duplicates in some providers. This is intentional. Providers capture programmer
-    intent and translate it into a concrete interface. Therefore, providers provide a large range
-    of behaviors which may or may not be explicitly defined on a service-provider.
+    All service provider events must be validated as authentic prior to being transformed to this
+    type.
     """
 
-    repository: Repository
+    received_at: int
+    """The UTC timestamp (in seconds) the event was received by Sentry's servers."""
 
-    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool: ...
+    type: ProviderName
+    """
+    The name of the service provider who sent the event. A stringy enum value of "github",
+    "gitlab", etc. For more information see the "ProviderName" type definition.
+    """
 
-    # -- Single-resource endpoints ------------------------------------------------
+    event_type_hint: str | None
+    """
+    Source control management service providers may send headers which hint at the event's
+    contents. This hint is optionally provided to the consuming process and may be used to ignore
+    unwanted events without deserializing the event body itself.
+    """
 
-    def get_pull_request(
-        self,
-        pull_request_id: str,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[PullRequest]: ...
+    event: str
+    """
+    The event sent by the service provider. Typically a JSON object. The exact format is
+    determined by the "type" field.
+    """
 
-    def get_branch(
-        self,
-        branch: BranchName,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[GitRef]: ...
+    extra: dict[str, str | None | bool | int | float]
+    """
+    An arbitrary mapping of key, value pairs extracted from the request headers of the message or
+    the local Sentry environment. The type is provider specific and can be determined by
+    investigating the target integrations webhook.py file.
+    """
 
-    def get_file_content(
-        self,
-        path: str,
-        ref: str | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[FileContent]: ...
+    sentry_meta: list["SubscriptionEventSentryMeta"] | None
+    """
+    If the event is opportunistically associated with internal Sentry metadata then that metadata
+    is specified here. If this data is not present your process will need to derive it from the
+    event.
 
-    def get_commit(
-        self,
-        sha: SHA,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[Commit]: ...
+    This is included with GitLab requests but not with GitHub requests. This is because it is
+    necessary to derive this metadata to authenticate the request. GitHub requests do not need to
+    query for this metadata to authenticate their requests. Querying for Sentry metadata is left
+    as an exercise for the implementer if not provided.
+    """
 
-    def get_tree(
-        self,
-        tree_sha: SHA,
-        recursive: bool = True,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[GitTree]: ...
 
-    def get_git_commit(
-        self,
-        sha: SHA,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[GitCommitObject]: ...
+class SubscriptionEventSentryMeta(TypedDict):
+    id: int | None
+    """
+    "OrganizationIntegration" model identifier. Optionally specified. Only specified if the
+    installation has been explicitly queried.
+    """
 
-    def get_pull_request_diff(
-        self,
-        pull_request_id: str,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[str]: ...
+    integration_id: int | None
+    """
+    "Integration" model identifier.
+    """
 
-    def get_check_run(
-        self,
-        check_run_id: ResourceId,
-        request_options: RequestOptions | None = None,
-    ) -> ActionResult[CheckRun]: ...
+    organization_id: int | None
+    """
+    "Organization" model identifier.
+    """
 
-    # -- List endpoints ---------------------------------------------------------
 
-    def get_issue_comments(
-        self,
-        issue_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[Comment]: ...
+type CheckRunAction = Literal["completed", "created", "requested_action", "rerequested"]
 
-    def get_pull_request_comments(
-        self,
-        pull_request_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[Comment]: ...
 
-    def get_issue_comment_reactions(
-        self,
-        issue_id: str,
-        comment_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[ReactionResult]: ...
+class CheckRunEventData(TypedDict):
+    external_id: str
+    html_url: str
 
-    def get_pull_request_comment_reactions(
-        self,
-        pull_request_id: str,
-        comment_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[ReactionResult]: ...
 
-    def get_issue_reactions(
-        self,
-        issue_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[ReactionResult]: ...
+@dataclass(frozen=True)
+class CheckRunEvent:
+    action: CheckRunAction
+    """The action that triggered the event. An enumeration of string values."""
 
-    def get_pull_request_reactions(
-        self,
-        pull_request_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[ReactionResult]: ...
+    check_run: CheckRunEventData
+    """"""
 
-    def get_commits(
-        self,
-        sha: SHA | None = None,
-        path: str | None = None,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[Commit]: ...
+    subscription_event: SubscriptionEvent
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and check_run fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
 
-    def get_pull_request_files(
-        self,
-        pull_request_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[PullRequestFile]: ...
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """
 
-    def get_pull_request_commits(
-        self,
-        pull_request_id: str,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[PullRequestCommit]: ...
 
-    def get_pull_requests(
-        self,
-        state: PullRequestState | None = "open",
-        head: BranchName | None = None,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[PullRequest]: ...
+type CommentAction = Literal["created", "deleted", "edited", "pinned", "unpinned"]
+type CommentType = Literal["issue", "pull_request"]
 
-    def compare_commits(
-        self,
-        start_sha: SHA,
-        end_sha: SHA,
-        pagination: PaginationParams | None = None,
-        request_options: RequestOptions | None = None,
-    ) -> PaginatedActionResult[Commit]: ...
 
-    # -- Mutations --------------------------------------------------------------
+class CommentEventData(TypedDict):
+    id: str
+    body: str | None
+    author: Author | None
 
-    def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]: ...
 
-    def delete_issue_comment(self, issue_id: str, comment_id: str) -> None: ...
+@dataclass(frozen=True)
+class CommentEvent:
+    """ """
 
-    def create_pull_request_comment(
-        self, pull_request_id: str, body: str
-    ) -> ActionResult[Comment]: ...
+    action: CommentAction
+    """The action that triggered the event. An enumeration of string values."""
 
-    def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None: ...
+    comment_type: CommentType
+    """"""
 
-    def create_issue_comment_reaction(
-        self, issue_id: str, comment_id: str, reaction: Reaction
-    ) -> ActionResult[ReactionResult]: ...
+    comment: CommentEventData
+    """"""
 
-    def delete_issue_comment_reaction(
-        self, issue_id: str, comment_id: str, reaction_id: str
-    ) -> None: ...
+    subscription_event: SubscriptionEvent
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and comment fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
 
-    def create_pull_request_comment_reaction(
-        self, pull_request_id: str, comment_id: str, reaction: Reaction
-    ) -> ActionResult[ReactionResult]: ...
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """
 
-    def delete_pull_request_comment_reaction(
-        self, pull_request_id: str, comment_id: str, reaction_id: str
-    ) -> None: ...
 
-    def create_issue_reaction(
-        self, issue_id: str, reaction: Reaction
-    ) -> ActionResult[ReactionResult]: ...
+type PullRequestAction = Literal[
+    "assigned",
+    "auto_merge_disabled",
+    "auto_merge_enabled",
+    "closed",
+    "converted_to_draft",
+    "demilestoned",  # Removed a milestone.
+    "dequeued",  # Removed from merge queue.
+    "edited",
+    "enqueued",  # Added to merge queue.
+    "labeled",
+    "locked",
+    "milestoned",  # Added a milestone.
+    "opened",
+    "ready_for_review",
+    "reopened",
+    "review_request_removed",
+    "review_requested",
+    "synchronize",  # Commits were pushed.
+    "unassigned",
+    "unlabeled",
+    "unlocked",
+]
 
-    def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None: ...
 
-    def create_pull_request_reaction(
-        self, pull_request_id: str, reaction: Reaction
-    ) -> ActionResult[ReactionResult]: ...
+class PullRequestEventData(TypedDict):
+    id: str
+    title: str
+    description: str | None
+    head: PullRequestBranch
+    base: PullRequestBranch
+    is_private_repo: bool
+    author: Author | None
 
-    def delete_pull_request_reaction(self, pull_request_id: str, reaction_id: str) -> None: ...
 
-    def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]: ...
+@dataclass(frozen=True)
+class PullRequestEvent:
+    """
+    Pull request event type. This event is received when an action was performed on a pull-request.
+    For example, opened, closed, or ready for review.
+    """
 
-    def update_branch(
-        self, branch: BranchName, sha: SHA, force: bool = False
-    ) -> ActionResult[GitRef]: ...
+    action: PullRequestAction
+    """The action that triggered the event. An enumeration of string values."""
 
-    def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]: ...
+    pull_request: PullRequestEventData
+    """The pull-request that was acted upon."""
 
-    def create_git_tree(
-        self, tree: list[InputTreeEntry], base_tree: SHA | None = None
-    ) -> ActionResult[GitTree]: ...
+    subscription_event: SubscriptionEvent
+    """
+    The subscription event that was received by Sentry. This field contains the raw instructions
+    which parsed the action and pull_request fields. You can use this field to perform additional
+    parsing if the default implementation is lacking.
 
-    def create_git_commit(
-        self, message: str, tree_sha: SHA, parent_shas: list[SHA]
-    ) -> ActionResult[GitCommitObject]: ...
-
-    def create_pull_request(
-        self,
-        title: str,
-        body: str,
-        head: BranchName,
-        base: BranchName,
-        draft: bool = False,
-    ) -> ActionResult[PullRequest]: ...
-
-    def update_pull_request(
-        self,
-        pull_request_id: str,
-        title: str | None = None,
-        body: str | None = None,
-        state: PullRequestState | None = None,
-    ) -> ActionResult[PullRequest]: ...
-
-    def request_review(self, pull_request_id: str, reviewers: list[str]) -> None: ...
-
-    def create_review_comment_file(
-        self,
-        pull_request_id: str,
-        commit_id: SHA,
-        body: str,
-        path: str,
-        side: ReviewSide,
-    ) -> ActionResult[ReviewComment]: ...
-
-    def create_review_comment_reply(
-        self,
-        pull_request_id: str,
-        body: str,
-        comment_id: str,
-    ) -> ActionResult[ReviewComment]: ...
-
-    def create_review(
-        self,
-        pull_request_id: str,
-        commit_sha: SHA,
-        event: ReviewEvent,
-        comments: list[ReviewCommentInput],
-        body: str | None = None,
-    ) -> ActionResult[Review]: ...
-
-    def create_check_run(
-        self,
-        name: str,
-        head_sha: SHA,
-        status: BuildStatus | None = None,
-        conclusion: BuildConclusion | None = None,
-        external_id: str | None = None,
-        started_at: str | None = None,
-        completed_at: str | None = None,
-        output: CheckRunOutput | None = None,
-    ) -> ActionResult[CheckRun]: ...
-
-    def update_check_run(
-        self,
-        check_run_id: ResourceId,
-        status: BuildStatus | None = None,
-        conclusion: BuildConclusion | None = None,
-        output: CheckRunOutput | None = None,
-    ) -> ActionResult[CheckRun]: ...
-
-    def minimize_comment(self, comment_node_id: str, reason: str) -> None: ...
+    This field will also include any extra metadata that was generated prior to being submitted to
+    the listener. In some cases, Sentry will query the database for information. This information
+    is stored in the "sentry_meta" field and is accessible without performing redundant queries.
+    """

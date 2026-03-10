@@ -51,7 +51,12 @@ class GroupHashQuerySet(BaseQuerySet):
             )
         ]
 
-        cache.delete_many(cache_keys)
+        try:
+            cache.delete_many(cache_keys)
+        except Exception:
+            # If we can't delete from the cache, likely we couldn't have put the grouphashes there
+            # in the first place. Regardless, we don't want this to block the `update` call.
+            pass
 
         return len(cache_keys)
 
