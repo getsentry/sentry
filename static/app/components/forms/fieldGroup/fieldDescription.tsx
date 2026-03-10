@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {FieldGroupProps} from './types';
@@ -13,7 +13,7 @@ interface FieldDescriptionProps extends Pick<FieldGroupProps, 'inline'> {
   displayNone?: boolean;
 }
 
-const inlineStyle = (p: FieldDescriptionProps) =>
+const inlineStyle = (p: FieldDescriptionProps & {theme: Theme}) =>
   p.inline
     ? css`
         width: 50%;
@@ -21,7 +21,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
         flex-shrink: 0;
       `
     : css`
-        margin-bottom: ${p.theme.space[1]};
+        margin-bottom: ${p.theme.space.md};
       `;
 
 export const FieldDescription = styled('label')<FieldDescriptionProps>`

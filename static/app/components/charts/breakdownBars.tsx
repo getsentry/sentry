@@ -68,8 +68,8 @@ const Percentage = styled('div')`
 `;
 
 const BarContainer = styled('div')<{cursor: 'pointer' | 'default'}>`
-  padding-left: ${p => p.theme.space[1]};
-  padding-right: ${p => p.theme.space[1]};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
   position: relative;
   cursor: ${p => p.cursor};
   display: flex;

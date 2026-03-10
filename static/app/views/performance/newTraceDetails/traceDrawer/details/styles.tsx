@@ -666,7 +666,7 @@ const HiglightsDurationComparison = styled('div')<
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.font.size.xs};
-  padding: ${p => p.theme.space[0.25]} ${p => p.theme.space[1]};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
 `;

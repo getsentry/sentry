@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
@@ -341,6 +341,7 @@ export default function EditHighlightsModal({
   const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
@@ -350,7 +351,7 @@ export default function EditHighlightsModal({
       <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
-      <Body css={modalBodyCss}>
+      <Body css={modalBodyCss(theme)}>
         <EditPreviewHighlightSection
           event={event}
           highlightTags={highlightTags}
@@ -478,9 +479,9 @@ function SectionFilterInput(props: InputProps) {
   );
 }
 
-const modalBodyCss = css`
-  margin: 0 -${p => p.theme.space[4]};
-  padding: 0 ${p => p.theme.space[4]};
+const modalBodyCss = (theme: Theme) => css`
+  margin: 0 -${theme.space['3xl']};
+  padding: 0 ${theme.space['3xl']};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;

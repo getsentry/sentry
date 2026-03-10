@@ -34,7 +34,7 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   &[data-slide-direction='leftright'] {
     cursor: ew-resize;
     height: 100%;
-    width: ${p => p.theme.space[2]};
+    width: ${p => p.theme.space.xl};
   }
   &[data-slide-direction='updown'] {
     cursor: ns-resize;

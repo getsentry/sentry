@@ -188,7 +188,7 @@ const columnStyle = css`
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${p => p.theme.space[0.5]} 0;
+  padding: ${p => p.theme.space.xs} 0;
 `;
 
 const Column = styled('div')`

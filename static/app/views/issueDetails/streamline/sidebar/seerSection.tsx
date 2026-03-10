@@ -245,7 +245,7 @@ const ResourcesWrapper = styled('div')`
 
 const ResourcesContent = styled('div')`
   position: relative;
-  padding-bottom: ${p => p.theme.space[2]};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderContainer = styled('div')`

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
@@ -46,11 +46,11 @@ function DiffModal({
   );
 }
 
-const modalCss = css`
+const modalCss = (theme: Theme) => css`
   position: absolute;
   padding: 0;
-  inset: ${p => p.theme.space[3]};
-  width: calc(100% - 2 * ${p => p.theme.space[3]});
+  inset: ${theme.space['2xl']};
+  width: calc(100% - 2 * ${theme.space['2xl']});
 
   [role='document'] {
     height: 100%;

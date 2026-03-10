@@ -185,7 +185,7 @@ const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
   font-size: ${p => p.theme.font.size.md};
   margin: 0;
   white-space: nowrap;
-  height: ${p => p.theme.space[3]};
+  height: ${p => p.theme.space['2xl']};
   text-align: ${p => p.alignment};
 `;
 
