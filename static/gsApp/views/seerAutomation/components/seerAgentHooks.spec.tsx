@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {
   CodingAgentProvider,
   type ProjectSeerPreferences,
@@ -232,7 +233,15 @@ describe('seerAgentHooks', () => {
       };
     }
 
-    function setupMocks() {
+    function setupMocks(preference: ProjectSeerPreferences = basePreference) {
+      const seerPreferencesGetRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference,
+          code_mapping_repos: [],
+        } satisfies SeerPreferencesResponse,
+      });
       const projectPutRequest = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
@@ -243,18 +252,18 @@ describe('seerAgentHooks', () => {
         method: 'POST',
         body: {},
       });
-      return {projectPutRequest, seerPreferencesPostRequest};
+      return {seerPreferencesGetRequest, projectPutRequest, seerPreferencesPostRequest};
     }
 
-    function renderMutateSelectedAgent(preference = basePreference) {
+    function renderMutateSelectedAgent() {
       return renderHookWithProviders(
-        (props: {preference: ProjectSeerPreferences; project: typeof project}) => {
+        (props: {project: typeof project}) => {
           const queryClient = useQueryClient();
           const mutate = useMutateSelectedAgent(props);
           return {mutate, queryClient};
         },
         {
-          initialProps: {preference, project},
+          initialProps: {project},
           organization,
         }
       );
@@ -371,18 +380,17 @@ describe('seerAgentHooks', () => {
     });
 
     it('sets auto_create_pr from preference when integration is CodingAgentIntegration and stopping point is open_pr', async () => {
-      const {seerPreferencesPostRequest} = setupMocks();
+      const {seerPreferencesPostRequest} = setupMocks({
+        ...basePreference,
+        automated_run_stopping_point: 'open_pr',
+      });
       const integration: CodingAgentIntegration = {
         id: '456',
         name: 'Cursor',
         provider: 'cursor',
       };
-      const preferenceWithOpenPr: ProjectSeerPreferences = {
-        ...basePreference,
-        automated_run_stopping_point: 'open_pr',
-      };
 
-      const {result} = renderMutateSelectedAgent(preferenceWithOpenPr);
+      const {result} = renderMutateSelectedAgent();
 
       act(() => {
         result.current.mutate(integration, {});
@@ -405,7 +413,6 @@ describe('seerAgentHooks', () => {
     });
 
     it('passes through preference repositories and automated_run_stopping_point for all integration types', async () => {
-      const {seerPreferencesPostRequest} = setupMocks();
       const preferenceWithRepos: ProjectSeerPreferences = {
         repositories: [
           {
@@ -419,7 +426,8 @@ describe('seerAgentHooks', () => {
         automation_handoff: undefined,
       };
 
-      const {result} = renderMutateSelectedAgent(preferenceWithRepos);
+      const {seerPreferencesPostRequest} = setupMocks(preferenceWithRepos);
+      const {result} = renderMutateSelectedAgent();
 
       act(() => {
         result.current.mutate('seer', {});
@@ -462,6 +470,14 @@ describe('seerAgentHooks', () => {
     });
 
     it('calls onError when a request fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: basePreference,
+          code_mapping_repos: [],
+        } satisfies SeerPreferencesResponse,
+      });
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
@@ -536,7 +552,7 @@ describe('seerAgentHooks', () => {
       });
     });
 
-    it('optimistically updates the infinite query cache when selecting a CodingAgentIntegration', () => {
+    it('optimistically updates the infinite query cache when selecting a CodingAgentIntegration', async () => {
       setupMocks();
       const integration: CodingAgentIntegration = {
         id: '123',
@@ -553,18 +569,20 @@ describe('seerAgentHooks', () => {
         result.current.mutate(integration, {});
       });
 
-      const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
-        typeof makeInitialCacheData
-      >;
-      expect(cached.pages[0]!.json[0]).toMatchObject({
-        projectId: '1',
-        autofixAutomationTuning: 'medium',
-        automationHandoff: {
-          handoff_point: 'root_cause',
-          target: 'cursor_background_agent',
-          integration_id: 123,
-          auto_create_pr: false,
-        },
+      await waitFor(() => {
+        const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
+          typeof makeInitialCacheData
+        >;
+        expect(cached.pages[0]!.json[0]).toMatchObject({
+          projectId: '1',
+          autofixAutomationTuning: 'medium',
+          automationHandoff: {
+            handoff_point: 'root_cause',
+            target: 'cursor_background_agent',
+            integration_id: 123,
+            auto_create_pr: false,
+          },
+        });
       });
     });
 
@@ -635,7 +653,15 @@ describe('seerAgentHooks', () => {
       };
     }
 
-    function setupMocks() {
+    function setupMocks(preference: ProjectSeerPreferences = basePreference) {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference,
+          code_mapping_repos: [],
+        } satisfies SeerPreferencesResponse,
+      });
       const seerPreferencesPostRequest = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         method: 'POST',
@@ -644,25 +670,15 @@ describe('seerAgentHooks', () => {
       return {seerPreferencesPostRequest};
     }
 
-    function renderMutateCreatePr({
-      autofixAgent = 'seer' as const,
-      preference = basePreference,
-    }: {
-      autofixAgent?: 'seer' | 'none' | CodingAgentIntegration;
-      preference?: ProjectSeerPreferences;
-    } = {}) {
+    function renderMutateCreatePr() {
       return renderHookWithProviders(
-        (props: {
-          autofixAgent: 'seer' | 'none' | CodingAgentIntegration;
-          preference: ProjectSeerPreferences;
-          project: typeof project;
-        }) => {
+        (props: {project: typeof project}) => {
           const queryClient = useQueryClient();
           const mutate = useMutateCreatePr(props);
           return {mutate, queryClient};
         },
         {
-          initialProps: {autofixAgent, preference, project},
+          initialProps: {project},
           organization,
         }
       );
@@ -779,7 +795,7 @@ describe('seerAgentHooks', () => {
 
       it('sends correct API request when enabling PR creation', async () => {
         const {seerPreferencesPostRequest} = setupMocks();
-        const {result} = renderMutateCreatePr({autofixAgent: integration});
+        const {result} = renderMutateCreatePr();
 
         act(() => {
           result.current.mutate(integration, true, {});
@@ -808,7 +824,7 @@ describe('seerAgentHooks', () => {
 
       it('sends correct API request when disabling PR creation', async () => {
         const {seerPreferencesPostRequest} = setupMocks();
-        const {result} = renderMutateCreatePr({autofixAgent: integration});
+        const {result} = renderMutateCreatePr();
 
         act(() => {
           result.current.mutate(integration, false, {});
@@ -829,9 +845,9 @@ describe('seerAgentHooks', () => {
         );
       });
 
-      it('optimistically updates the cache with automationHandoff', () => {
+      it('optimistically updates the cache with automationHandoff', async () => {
         setupMocks();
-        const {result} = renderMutateCreatePr({autofixAgent: integration});
+        const {result} = renderMutateCreatePr();
 
         act(() => {
           result.current.queryClient.setQueryData(queryKey, makeInitialCacheData());
@@ -841,24 +857,26 @@ describe('seerAgentHooks', () => {
           result.current.mutate(integration, true, {});
         });
 
-        const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
-          typeof makeInitialCacheData
-        >;
-        expect(cached.pages[0]!.json[0]).toMatchObject({
-          projectId: '1',
-          automationHandoff: {
-            handoff_point: 'root_cause',
-            target: 'cursor_background_agent',
-            integration_id: 123,
-            auto_create_pr: true,
-          },
+        await waitFor(() => {
+          const cached = result.current.queryClient.getQueryData(queryKey) as ReturnType<
+            typeof makeInitialCacheData
+          >;
+          expect(cached.pages[0]!.json[0]).toMatchObject({
+            projectId: '1',
+            automationHandoff: {
+              handoff_point: 'root_cause',
+              target: 'cursor_background_agent',
+              integration_id: 123,
+              auto_create_pr: true,
+            },
+          });
         });
       });
 
       it('does not update ProjectsStore (no tuning change)', () => {
         setupMocks();
         const storeSpy = jest.spyOn(ProjectsStore, 'onUpdateSuccess');
-        const {result} = renderMutateCreatePr({autofixAgent: integration});
+        const {result} = renderMutateCreatePr();
 
         act(() => {
           result.current.mutate(integration, true, {});
@@ -871,7 +889,7 @@ describe('seerAgentHooks', () => {
     describe('with "none" agent', () => {
       it('does not make any API calls', () => {
         const {seerPreferencesPostRequest} = setupMocks();
-        const {result} = renderMutateCreatePr({autofixAgent: 'none'});
+        const {result} = renderMutateCreatePr();
 
         act(() => {
           result.current.mutate('none', true, {});
@@ -896,6 +914,14 @@ describe('seerAgentHooks', () => {
     });
 
     it('calls onError when the request fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: basePreference,
+          code_mapping_repos: [],
+        } satisfies SeerPreferencesResponse,
+      });
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         method: 'POST',

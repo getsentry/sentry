@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -56,17 +54,8 @@ export default function SeerProjectTableRow({
     integrations: integrations ?? [],
   });
 
-  const preference = useMemo(() => {
-    return {
-      repositories: [],
-      automated_run_stopping_point:
-        autofixSettings?.automatedRunStoppingPoint ?? 'code_changes',
-      automation_handoff: autofixSettings?.automationHandoff ?? undefined,
-    };
-  }, [autofixSettings]);
-
-  const mutateSelectedAgent = useMutateSelectedAgent({preference, project});
-  const mutateCreatePr = useMutateCreatePr({preference, project});
+  const mutateSelectedAgent = useMutateSelectedAgent({project});
+  const mutateCreatePr = useMutateCreatePr({project});
 
   const isCreatePrEnabled = autofixSettings
     ? autofixAgent === 'seer'

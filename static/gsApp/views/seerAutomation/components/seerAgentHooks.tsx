@@ -4,7 +4,10 @@ import {
   bulkAutofixAutomationSettingsInfiniteOptions,
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {
+  useFetchProjectSeerPreferences,
+  useUpdateProjectSeerPreferences,
+} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
@@ -137,17 +140,12 @@ function useApplyOptimisticUpdate({project}: {project: Project}) {
   );
 }
 
-export function useMutateSelectedAgent({
-  preference,
-  project,
-}: {
-  preference: ProjectSeerPreferences;
-  project: Project;
-}) {
+export function useMutateSelectedAgent({project}: {project: Project}) {
   const {mutateAsync: updateProject} = useUpdateProject(project);
   const {mutateAsync: updateProjectSeerPreferences} =
     useUpdateProjectSeerPreferences(project);
   const applyOptimisticUpdate = useApplyOptimisticUpdate({project});
+  const fetchPreferences = useFetchProjectSeerPreferences({project});
 
   return useCallback(
     (
@@ -161,56 +159,61 @@ export function useMutateSelectedAgent({
           automationHandoff: undefined,
         });
 
-        Promise.all([
-          updateProject({autofixAutomationTuning: tuning}),
-          updateProjectSeerPreferences({
-            repositories: preference?.repositories || [],
-            automated_run_stopping_point: preference?.automated_run_stopping_point,
-            automation_handoff: undefined,
-          }),
-        ])
+        fetchPreferences()
+          .then(preference =>
+            Promise.all([
+              updateProject({autofixAutomationTuning: tuning}),
+              updateProjectSeerPreferences({
+                repositories: preference.repositories,
+                automated_run_stopping_point: preference?.automated_run_stopping_point,
+                automation_handoff: undefined,
+              }),
+            ])
+          )
           .then(() => onSuccess?.())
           .catch(() => onError?.(new Error('Failed to update agent setting')));
       } else {
-        const handoff: ProjectSeerPreferences['automation_handoff'] = integration
-          ? {
-              handoff_point: 'root_cause',
-              target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
-              integration_id: Number(integration.id),
-              auto_create_pr: preference?.automated_run_stopping_point === 'open_pr',
-            }
-          : undefined;
-
         applyOptimisticUpdate({
           autofixAutomationTuning: 'medium',
-          automationHandoff: handoff,
         });
 
-        Promise.all([
-          updateProject({autofixAutomationTuning: 'medium'}),
-          updateProjectSeerPreferences({
-            repositories: preference?.repositories || [],
-            automated_run_stopping_point: preference?.automated_run_stopping_point,
-            automation_handoff: handoff,
-          }),
-        ])
+        fetchPreferences()
+          .then(preference => {
+            const handoff: ProjectSeerPreferences['automation_handoff'] = integration
+              ? {
+                  handoff_point: 'root_cause',
+                  target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
+                  integration_id: Number(integration.id),
+                  auto_create_pr: preference?.automated_run_stopping_point === 'open_pr',
+                }
+              : undefined;
+
+            applyOptimisticUpdate({
+              automationHandoff: handoff,
+            });
+
+            return Promise.all([
+              updateProject({autofixAutomationTuning: 'medium'}),
+              updateProjectSeerPreferences({
+                repositories: preference.repositories,
+                automated_run_stopping_point: preference?.automated_run_stopping_point,
+                automation_handoff: handoff,
+              }),
+            ]);
+          })
           .then(() => onSuccess?.())
           .catch(() => onError?.(new Error('Failed to update agent setting')));
       }
     },
-    [preference, updateProject, updateProjectSeerPreferences, applyOptimisticUpdate]
+    [updateProject, updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
   );
 }
 
-export function useMutateCreatePr({
-  preference,
-  project,
-}: {
-  preference: ProjectSeerPreferences;
-  project: Project;
-}) {
-  const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
+export function useMutateCreatePr({project}: {project: Project}) {
+  const {mutateAsync: updateProjectSeerPreferences} =
+    useUpdateProjectSeerPreferences(project);
   const applyOptimisticUpdate = useApplyOptimisticUpdate({project});
+  const fetchPreferences = useFetchProjectSeerPreferences({project});
 
   return useCallback(
     (
@@ -221,33 +224,37 @@ export function useMutateCreatePr({
       if (autofixAgent === 'seer') {
         const stoppingPoint = value ? ('open_pr' as const) : ('code_changes' as const);
         applyOptimisticUpdate({automatedRunStoppingPoint: stoppingPoint});
-        updateProjectSeerPreferences(
-          {
-            repositories: preference?.repositories || [],
-            automated_run_stopping_point: stoppingPoint,
-            automation_handoff: preference?.automation_handoff,
-          },
-          {onSuccess, onError: () => onError?.(new Error('Failed to update PR setting'))}
-        );
+        fetchPreferences()
+          .then(preference =>
+            updateProjectSeerPreferences({
+              repositories: preference.repositories,
+              automated_run_stopping_point: stoppingPoint,
+              automation_handoff: preference?.automation_handoff,
+            })
+          )
+          .then(() => onSuccess?.())
+          .catch(() => onError?.(new Error('Failed to update PR setting')));
       } else if (autofixAgent && autofixAgent !== 'none') {
-        const updatedHandoff = {
-          handoff_point: 'root_cause' as const,
-          target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
-          integration_id: Number(autofixAgent.id),
-          ...preference?.automation_handoff,
-          auto_create_pr: value,
-        };
-        applyOptimisticUpdate({automationHandoff: updatedHandoff});
-        updateProjectSeerPreferences(
-          {
-            repositories: preference?.repositories || [],
-            automated_run_stopping_point: preference?.automated_run_stopping_point,
-            automation_handoff: updatedHandoff,
-          },
-          {onSuccess, onError: () => onError?.(new Error('Failed to update PR setting'))}
-        );
+        fetchPreferences()
+          .then(preference => {
+            const updatedHandoff = {
+              handoff_point: 'root_cause' as const,
+              target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
+              integration_id: Number(autofixAgent.id),
+              ...preference.automation_handoff,
+              auto_create_pr: value,
+            };
+            applyOptimisticUpdate({automationHandoff: updatedHandoff});
+            return updateProjectSeerPreferences({
+              repositories: preference.repositories,
+              automated_run_stopping_point: preference.automated_run_stopping_point,
+              automation_handoff: updatedHandoff,
+            });
+          })
+          .then(() => onSuccess?.())
+          .catch(() => onError?.(new Error('Failed to update PR setting')));
       }
     },
-    [preference, updateProjectSeerPreferences, applyOptimisticUpdate]
+    [updateProjectSeerPreferences, applyOptimisticUpdate, fetchPreferences]
   );
 }
