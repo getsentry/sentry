@@ -152,17 +152,6 @@ class GroupingContext:
     def _pop_context_layer(self) -> None:
         self._stack.pop()
 
-    def get_grouping_components_by_variant(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ComponentsByVariant:
-        """
-        Called by a strategy to invoke delegates on its child interfaces.
-
-        For example, the chained exception strategy calls this on the exceptions in the chain, and
-        the exception strategy calls this on each exception's stacktrace.
-        """
-        return _get_grouping_components_for_interface(interface, event, self, **kwargs)
-
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
     """Looks up a strategy by id."""
@@ -516,3 +505,15 @@ def get_single_grouping_component(
 
     assert len(components_by_variant) == 1
     return components_by_variant[variant_name]
+
+
+def get_grouping_components_by_variant(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
+    """
+    Called by a strategy to invoke delegates on its child interfaces.
+
+    For example, the chained exception strategy calls this on the exceptions in the chain, and
+    the exception strategy calls this on each exception's stacktrace.
+    """
+    return _get_grouping_components_for_interface(interface, event, context, **kwargs)

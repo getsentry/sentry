@@ -28,6 +28,7 @@ from sentry.grouping.strategies.base import (
     ComponentsByVariant,
     GroupingContext,
     call_with_variants,
+    get_grouping_components_by_variant,
     get_single_grouping_component,
     strategy,
 )
@@ -581,9 +582,7 @@ def single_exception(
         with context:
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_components_by_variant(
-                    exception.stacktrace, event=event, **kwargs
-                )
+                get_grouping_components_by_variant(exception.stacktrace, event, context, **kwargs)
             )
     else:
         stacktrace_components_by_variant = {
@@ -651,7 +650,7 @@ def chained_exception(
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
-        id(exception): context.get_grouping_components_by_variant(exception, event=event, **kwargs)
+        id(exception): get_grouping_components_by_variant(exception, event, context, **kwargs)
         for exception in all_exceptions
     }
 
@@ -916,8 +915,8 @@ def _get_thread_components(
 
     thread_components_by_variant = {}
 
-    for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
-        stacktrace, event=event, **kwargs
+    for variant_name, stacktrace_component in get_grouping_components_by_variant(
+        stacktrace, event, context, **kwargs
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
             values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
