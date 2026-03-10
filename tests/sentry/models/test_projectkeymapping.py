@@ -51,6 +51,32 @@ def test_project_key_mapping_deleted_on_key_delete() -> None:
 
 @django_db_all(transaction=True)
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+def test_project_key_mapping_no_orphan_when_delete_coalesces_with_key_update() -> None:
+    """Deletion after a public_key change must not orphan the mapping when outboxes coalesce."""
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+    key = Factories.create_project_key(project=project)
+    key_id = key.id
+
+    # Flush creation outbox so a mapping row exists under the original public_key.
+    with outbox_runner():
+        pass
+
+    # Change public_key then immediately delete — the two outboxes coalesce into one
+    # carrying the new public_key.  Deletion must still find the mapping by project_key_id.
+    key.public_key = key.generate_api_key()
+    key.save()
+    key.delete()
+
+    with outbox_runner():
+        pass
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert not ProjectKeyMapping.objects.filter(project_key_id=key_id).exists()
+
+
+@django_db_all(transaction=True)
+@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mapping_no_orphan_on_public_key_override() -> None:
     """
     When write_relocation_import overwrites an auto-created ProjectKey with a different

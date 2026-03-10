@@ -46,7 +46,7 @@ class ControlReplicaService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def delete_project_key_mapping(self, *, public_key: str) -> None:
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
         pass
 
     @classmethod

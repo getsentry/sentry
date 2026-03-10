@@ -354,8 +354,10 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                     cell_name=project_key.cell_name,
                 )
 
-    def delete_project_key_mapping(self, *, public_key: str) -> None:
-        ProjectKeyMapping.objects.filter(public_key=public_key).delete()
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        ProjectKeyMapping.objects.filter(
+            project_key_id=project_key_id, cell_name=cell_name
+        ).delete()
 
     def upsert_replicated_team(self, *, team: RpcTeam) -> None:
         destination = TeamReplica(
