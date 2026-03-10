@@ -11,26 +11,8 @@ export enum OrderBy {
 }
 
 export enum SortBy {
-  EVAL_ORDER = 'eval',
   ALPHABETICAL = 'alphabetical',
-  SUSPICION = 'suspicion',
-  DISTRIBUTION = 'distribution',
 }
-
-export const getSelectionType = (selection: string): SortBy => {
-  switch (selection) {
-    case OrderBy.HIGH_TO_LOW:
-    case OrderBy.LOW_TO_HIGH:
-      return SortBy.DISTRIBUTION;
-    case OrderBy.A_TO_Z:
-    case OrderBy.Z_TO_A:
-      return SortBy.ALPHABETICAL;
-    case OrderBy.OLDEST:
-    case OrderBy.NEWEST:
-    default:
-      return SortBy.EVAL_ORDER;
-  }
-};
 
 const getOrderByLabel = (sort: string) => {
   switch (sort) {
@@ -46,40 +28,9 @@ const getOrderByLabel = (sort: string) => {
   }
 };
 
-const getSortByLabel = (sort: string) => {
-  switch (sort) {
-    case SortBy.ALPHABETICAL:
-      return t('Alphabetical');
-    case SortBy.DISTRIBUTION:
-      return t('Distribution');
-    case SortBy.SUSPICION:
-      return t('Suspiciousness');
-    case SortBy.EVAL_ORDER:
-    default:
-      return t('Evaluation Order');
-  }
-};
-
-export const getDefaultOrderBy = (sortBy: SortBy): OrderBy => {
-  switch (sortBy) {
-    case SortBy.DISTRIBUTION:
-    case SortBy.SUSPICION:
-      return OrderBy.HIGH_TO_LOW;
-    case SortBy.EVAL_ORDER:
-      return OrderBy.NEWEST;
-    case SortBy.ALPHABETICAL:
-    default:
-      return OrderBy.A_TO_Z;
-  }
-};
-
 export const SORT_BY_OPTIONS = [
   {
-    label: getSortByLabel(SortBy.EVAL_ORDER),
-    value: SortBy.EVAL_ORDER,
-  },
-  {
-    label: getSortByLabel(SortBy.ALPHABETICAL),
+    label: t('Alphabetical'),
     value: SortBy.ALPHABETICAL,
   },
 ];

@@ -9,7 +9,7 @@ import {
   EventStickyControls,
 } from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -34,15 +34,8 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
   const {tagKey} = useParams<{tagKey: string}>();
 
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>(SortBy.ALPHABETICAL);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.A_TO_Z);
 
-  const sortByOptions = [
-    {
-      label: t('Alphabetical'),
-      value: SortBy.ALPHABETICAL,
-    },
-  ];
   const orderByOptions = [
     {
       label: t('A-Z'),
@@ -90,16 +83,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                     sortMethod: value as string,
                   });
                 }}
-                setSortBy={value => {
-                  setSortBy(value);
-                  trackAnalytics('flags.sort_flags', {
-                    organization,
-                    sortMethod: value as string,
-                  });
-                }}
-                sortBy={sortBy}
                 orderByOptions={orderByOptions}
-                sortByOptions={sortByOptions}
               />
             </Grid>
           </EventStickyControls>
@@ -116,7 +100,6 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
               group={group}
               orderBy={orderBy}
               search={search}
-              sortBy={sortBy}
             />
           </AnalyticsArea>
         )}
