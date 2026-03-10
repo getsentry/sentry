@@ -272,11 +272,11 @@ describe('Core StackTrace', () => {
     expect(screen.getByRole('button', {name: 'Hide 1 frames'})).toBeInTheDocument();
   });
 
-  it('renders frame badges for in-app and system frames', async () => {
+  it('renders frame badges for in-app frames only', async () => {
     renderStackTrace();
 
     expect((await screen.findAllByText('In App')).length).toBeGreaterThan(0);
-    expect(screen.getByText('System')).toBeInTheDocument();
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
   it('renders captured python frame variables', async () => {
@@ -518,11 +518,15 @@ describe('Core StackTrace', () => {
       </TestStackTraceProvider>
     );
 
-    await userEvent.hover(screen.getByLabelText('Source map info'));
+    await userEvent.hover(screen.getByTestId('core-stacktrace-frame-location'));
 
-    expect(await screen.findByText('Source Map')).toBeInTheDocument();
     expect(
-      await screen.findByText('https://cdn.example.com/runner.min.js.map')
+      await screen.findByText('Source Map', undefined, {timeout: 2000})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('https://cdn.example.com/runner.min.js.map', undefined, {
+        timeout: 2000,
+      })
     ).toBeInTheDocument();
   });
 
@@ -637,9 +641,11 @@ describe('Core StackTrace', () => {
       </TestStackTraceProvider>
     );
 
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'));
+    await userEvent.hover(screen.getByTestId('core-stacktrace-frame-location'));
     expect(
-      await screen.findByText('/home/ubuntu/raven/scripts/runner.py')
+      await screen.findByText('/home/ubuntu/raven/scripts/runner.py:112', undefined, {
+        timeout: 2000,
+      })
     ).toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import {useCallback, useMemo} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
@@ -16,6 +17,7 @@ import {CopyButton, DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import type {FrameBadge} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue, Frame} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -40,7 +42,10 @@ export function IssueStackTrace({
     event.platform === 'java' && event.tags?.find(tag => tag.key === 'mechanism')?.value;
 
   const orderedWithStacktrace = useMemo(() => {
-    const withStacktrace = values.filter(exc => exc.stacktrace !== null);
+    const withStacktrace = values.filter(
+      (exc): exc is ExceptionValue & {stacktrace: StacktraceType} =>
+        exc.stacktrace !== null
+    );
     return newestFirst ? withStacktrace.toReversed() : withStacktrace;
   }, [newestFirst, values]);
 
@@ -95,7 +100,7 @@ export function IssueStackTrace({
         <StackTraceProvider
           event={event}
           frameBadge={frameBadge}
-          stacktrace={exc.stacktrace!}
+          stacktrace={exc.stacktrace}
         >
           <InterimSection
             type={SectionKey.EXCEPTION}
@@ -131,7 +136,7 @@ export function IssueStackTrace({
                 orderedWithStacktrace
                   .map(exc =>
                     rawStacktraceContent({
-                      data: exc.stacktrace!,
+                      data: exc.stacktrace,
                       platform: event.platform,
                     })
                   )
@@ -141,14 +146,15 @@ export function IssueStackTrace({
           </Flex>
         }
       >
-        <Text variant="muted">
-          {tn(
-            'There is %s chained exception in this event.',
-            'There are %s chained exceptions in this event.',
-            orderedWithStacktrace.length
-          )}
-        </Text>
         <Flex direction="column" gap="sm">
+          <Text variant="muted">
+            {tn(
+              'There is %s chained exception in this event.',
+              'There are %s chained exceptions in this event.',
+              orderedWithStacktrace.length
+            )}
+          </Text>
+          <Separator orientation="horizontal" border="primary" />
           {orderedWithStacktrace.map((exc, idx) => (
             <Disclosure
               key={exc.mechanism?.exception_id ?? idx}
@@ -168,7 +174,7 @@ export function IssueStackTrace({
                   <StackTraceProvider
                     event={event}
                     frameBadge={frameBadge}
-                    stacktrace={exc.stacktrace!}
+                    stacktrace={exc.stacktrace}
                   >
                     <StackTraceFrames
                       frameContextComponent={IssueStackTraceFrameContext}

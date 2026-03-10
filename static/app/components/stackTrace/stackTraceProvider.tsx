@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useEffectEvent, useMemo, useState} from 'react';
 
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event} from 'sentry/types/event';
@@ -77,11 +77,15 @@ export function StackTraceProvider({
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
   const shouldIncludeSystemFrames = view === 'full';
 
-  useEffect(() => {
+  const setHiddenFrameToggleMapEvent = useEffectEvent((includeSystemFrames: boolean) => {
     setHiddenFrameToggleMap(
-      createInitialHiddenFrameToggleMap(frames, shouldIncludeSystemFrames)
+      createInitialHiddenFrameToggleMap(frames, includeSystemFrames)
     );
-  }, [frames, shouldIncludeSystemFrames]);
+  });
+
+  useEffect(() => {
+    setHiddenFrameToggleMapEvent(shouldIncludeSystemFrames);
+  }, [shouldIncludeSystemFrames]);
 
   const frameCountMap = useMemo(
     () => getFrameCountMap(frames, shouldIncludeSystemFrames),

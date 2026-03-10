@@ -293,6 +293,28 @@ function makeCircularStackTraceData(): StackTraceStoryData {
   };
 }
 
+function makeSourceMapTooltipStackTraceData(): StackTraceStoryData {
+  const {event, stacktrace} = makeStackTraceData();
+  const lastFrame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+  return {
+    event,
+    stacktrace: {
+      ...stacktrace,
+      frames: [
+        {
+          ...lastFrame,
+          filename: 'raven/scripts/runner.min.js',
+          absPath: '/home/ubuntu/raven/scripts/runner.min.js',
+          origAbsPath: '/home/ubuntu/raven/scripts/runner.js',
+          mapUrl: 'https://cdn.example.com/runner.min.js.map',
+          inApp: true,
+        },
+      ],
+    } as StacktraceWithFrames,
+  };
+}
+
 function makeLongPathStackTraceData(): StackTraceStoryData {
   const {event, stacktrace} = makeStackTraceData();
 
@@ -706,6 +728,26 @@ export default Storybook.story('StackTrace', story => {
         <p>
           Very long file paths are truncated with an ellipsis on the left side, preserving
           the most specific (rightmost) segments.
+        </p>
+        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
+          <StackTraceFrames />
+        </StoryStackTraceProvider>
+      </Fragment>
+    );
+  });
+
+  story('StackTraceProvider - File Path and Source Map Tooltip', () => {
+    const {event, stacktrace} = makeSourceMapTooltipStackTraceData();
+
+    return (
+      <Fragment>
+        <p>
+          File paths use the standard <code>filename:line</code> or{' '}
+          <code>filename:line:column</code> format. Hover over the path for the full
+          absolute path and source map info (when{' '}
+          <Storybook.JSXProperty name="origAbsPath" value="string" /> and{' '}
+          <Storybook.JSXProperty name="mapUrl" value="string" /> or{' '}
+          <Storybook.JSXProperty name="map" value="string" /> are set).
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <StackTraceFrames />

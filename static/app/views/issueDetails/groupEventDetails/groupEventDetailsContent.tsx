@@ -61,6 +61,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import Placeholder from 'sentry/components/placeholder';
+import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
@@ -103,6 +104,7 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const shouldUseNewStackTrace = true as boolean;
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
@@ -269,13 +271,20 @@ export function EventDetailsContent({
             >
               {defined(eventEntries[EntryType.EXCEPTION]) && (
                 <EntryErrorBoundary type={EntryType.EXCEPTION}>
-                  <Exception
-                    event={event}
-                    data={eventEntries[EntryType.EXCEPTION].data}
-                    projectSlug={project.slug}
-                    group={group}
-                    groupingCurrentLevel={groupingCurrentLevel}
-                  />
+                  {shouldUseNewStackTrace ? (
+                    <IssueStackTrace
+                      event={event}
+                      values={eventEntries[EntryType.EXCEPTION].data.values}
+                    />
+                  ) : (
+                    <Exception
+                      event={event}
+                      data={eventEntries[EntryType.EXCEPTION].data}
+                      projectSlug={project.slug}
+                      group={group}
+                      groupingCurrentLevel={groupingCurrentLevel}
+                    />
+                  )}
                 </EntryErrorBoundary>
               )}
               {issueTypeConfig.stacktrace.enabled &&
