@@ -16,11 +16,13 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -44,6 +46,7 @@ export function MetricSelector({
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
 }) {
+  const organization = useOrganization();
   const [searchInputValue, setSearchInputValue] = useState('');
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -396,12 +399,14 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
-                  <MetricDetailPanel
-                    metric={highlightedOption ?? optionFromTraceMetric}
-                    hasMetricUnitsUI={hasMetricUnitsUI}
-                  />
-                </Container>
+                {canUseMetricsSidePanelUI(organization) ? (
+                  <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
+                    <MetricDetailPanel
+                      metric={highlightedOption ?? optionFromTraceMetric}
+                      hasMetricUnitsUI={hasMetricUnitsUI}
+                    />
+                  </Container>
+                ) : null}
               </Flex>
             </FocusScope>
           </Overlay>
