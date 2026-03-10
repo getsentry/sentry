@@ -119,21 +119,6 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in ids
         assert str(broadcast2.id) in ids
 
-    def test_organization_unseen_prioritised_when_no_status_filter(self) -> None:
-        seen_broadcast = Broadcast.objects.create(message="seen", is_active=True)
-        unseen_broadcast = Broadcast.objects.create(message="unseen", is_active=True)
-        BroadcastSeen.objects.create(broadcast=seen_broadcast, user=self.user)
-
-        self.login_as(user=self.user)
-        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
-
-        # limit=1 should return the unseen broadcast even though seen_broadcast
-        # was created first (and would win a purely date-based sort).
-        response = self.client.get(url, {"limit": "1"})
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(unseen_broadcast.id)
-
     def test_organization_limit_slices_results(self) -> None:
         for i in range(5):
             Broadcast.objects.create(message=f"broadcast {i}", is_active=True)

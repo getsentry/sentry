@@ -5,7 +5,7 @@ from functools import reduce
 from operator import or_
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.api.api_owners import ApiOwner
@@ -123,17 +123,6 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     {"detail": "Invalid status. Valid values are 'seen' and 'unseen'."},
                     status=400,
                 )
-            else:
-                # No status filter: annotate so unseen results sort before seen ones,
-                # ensuring they are prioritised when a limit is applied.
-                queryset = queryset.annotate(
-                    has_seen=Exists(
-                        BroadcastSeen.objects.filter(
-                            broadcast_id=OuterRef("pk"),
-                            user_id=request.user.id,
-                        )
-                    )
-                ).order_by("has_seen", "-date_added")
 
             data = self._secondary_filtering(request, organization, queryset)
 
