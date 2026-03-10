@@ -62,7 +62,7 @@ class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
 
         try:
             platforms = detect_platforms(client=client, repo=repo.name)
-        except ApiError:
+        except (ApiError, ValueError):
             logger.exception(
                 "integrations.github.platform_detection_failed",
                 extra={"repo_id": repo.id, "repo_name": repo.name},
