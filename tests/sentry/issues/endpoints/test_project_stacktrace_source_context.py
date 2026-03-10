@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from sentry_sdk import SiloMode
-
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -88,7 +87,7 @@ class ProjectStacktraceSourceContextTest(APITestCase):
 
         from sentry.integrations.source_code_management.repository import RepositoryIntegration
 
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
 
         with self.feature("organizations:scm-source-context"):
             response = self.get_success_response(
@@ -114,7 +113,7 @@ class ProjectStacktraceSourceContextTest(APITestCase):
         mock_service.get_integration.return_value = mock_integration
         mock_install = MagicMock()
         mock_integration.get_installation.return_value = mock_install
-        mock_install.__class__ = RepositoryIntegration
+        mock_install.__class__ = RepositoryIntegration  # type: ignore[assignment]
         mock_client = MagicMock()
         mock_install.get_client.return_value = mock_client
         mock_client.get_file.side_effect = ApiError("Not Found", code=404)
