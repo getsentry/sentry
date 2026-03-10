@@ -286,6 +286,7 @@ type AbuseRegion = {
 };
 
 type AbuseData = {
+  intervalMs: number;
   regions: AbuseRegion[];
   valueByTimestamp: Map<number, number>;
 };
@@ -330,7 +331,12 @@ function getAbuseData(
     regions.push({start: regionStart, end: regionEnd});
   }
 
-  return {regions, valueByTimestamp};
+  const intervalMs =
+    intervals.length >= 2
+      ? new Date(intervals[1]!).getTime() - new Date(intervals[0]!).getTime()
+      : 0;
+
+  return {regions, valueByTimestamp, intervalMs};
 }
 
 function buildAbuseMarkAreaSeries(
@@ -541,7 +547,7 @@ export const CustomerStats = memo(
       () =>
         abuseStats
           ? getAbuseData(abuseStats.intervals, abuseStats.groups)
-          : {regions: [], valueByTimestamp: new Map<number, number>()},
+          : {regions: [], valueByTimestamp: new Map<number, number>(), intervalMs: 0},
       [abuseStats]
     );
 
@@ -576,7 +582,7 @@ export const CustomerStats = memo(
 
       const handleMouseMove = (e: MouseEvent) => {
         const instance = chartRef.current?.getEchartsInstance();
-        const {regions, valueByTimestamp} = abuseDataRef.current;
+        const {regions, valueByTimestamp, intervalMs} = abuseDataRef.current;
         if (!instance || regions.length === 0) {
           return;
         }
@@ -597,8 +603,10 @@ export const CustomerStats = memo(
           return;
         }
 
-        // Snap to the closest interval that has abuse data
+        // Snap to the closest interval that has abuse data,
+        // but only if within half an interval (i.e., the mouse is over that bar)
         const timestamp = dataPoint[0]!;
+        const halfInterval = intervalMs / 2;
         let closestTs = 0;
         let closestDist = Infinity;
         for (const ts of valueByTimestamp.keys()) {
@@ -609,8 +617,13 @@ export const CustomerStats = memo(
           }
         }
 
+        if (closestDist > halfInterval) {
+          hideTooltip();
+          return;
+        }
+
         const value = valueByTimestamp.get(closestTs);
-        if (!value || !regions.some(r => closestTs >= r.start && closestTs <= r.end)) {
+        if (!value) {
           hideTooltip();
           return;
         }
@@ -648,12 +661,11 @@ export const CustomerStats = memo(
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
-    const abuseIntervals = abuseStats?.intervals ?? intervals;
-    const intervalMs =
-      abuseIntervals.length >= 2
-        ? new Date(abuseIntervals[1]!).getTime() - new Date(abuseIntervals[0]!).getTime()
-        : 0;
-    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseData.regions, theme, intervalMs);
+    const abuseMarkArea = buildAbuseMarkAreaSeries(
+      abuseData.regions,
+      theme,
+      abuseData.intervalMs
+    );
 
     const chartSeries = [
       // Abuse markArea first so bars render on top and get mouse events
