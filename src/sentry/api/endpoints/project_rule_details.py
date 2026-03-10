@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
@@ -47,8 +45,6 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
