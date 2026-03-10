@@ -193,19 +193,18 @@ class ProjectKey(ReplicatedRegionModel):
         return (0, 0)
 
     def payload_for_update(self) -> dict[str, Any] | None:
-        from sentry.types.region import get_local_region
-
-        return {"public_key": self.public_key, "cell_name": get_local_region().name}
+        return {"public_key": self.public_key}
 
     @classmethod
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
         from sentry.hybridcloud.services.replica import control_replica_service
+        from sentry.types.region import get_local_region
 
         control_replica_service.delete_project_key_mapping(
             project_key_id=identifier,
-            cell_name=payload["cell_name"],
+            cell_name=get_local_region().name,
         )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
