@@ -201,7 +201,6 @@ function WidgetViewerModal(props: Props) {
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
-
   // Get widget zoom from location
   // We use the start and end query params for just the initial state
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
@@ -770,9 +769,7 @@ function WidgetViewerModal(props: Props) {
                         isHoverable
                         position="bottom"
                       >
-                        <WidgetDescription data-test-id="widget-description">
-                          {widget.description}
-                        </WidgetDescription>
+                        <WidgetDescription>{widget.description}</WidgetDescription>
                       </Tooltip>
                     )}
                   </Stack>
@@ -915,7 +912,6 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
   if (totalResults === undefined) {
     return <span />;
   }
-
   switch (widgetType) {
     case WidgetType.ISSUE:
       return (
