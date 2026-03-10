@@ -621,7 +621,7 @@ class User(Model, AbstractBaseUser):
                 is_active=self.is_active,
                 email=self.email,
             ),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
 
