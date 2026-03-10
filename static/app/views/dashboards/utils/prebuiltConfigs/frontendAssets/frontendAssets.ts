@@ -24,6 +24,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: FILTER_QUERY.formatString(),
@@ -40,6 +41,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
           conditions: FILTER_QUERY.formatString(),

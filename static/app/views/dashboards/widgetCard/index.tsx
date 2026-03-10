@@ -288,7 +288,8 @@ function WidgetCard(props: Props) {
         location,
         props.onDelete,
         props.onDuplicate,
-        props.onEdit
+        props.onEdit,
+        data?.timeseriesResults
       )
     : [];
 

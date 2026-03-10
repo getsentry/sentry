@@ -2845,7 +2845,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
-SEER_DEFAULT_TIMEOUT = 5
+SEER_DEFAULT_TIMEOUT = 30
 
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
@@ -3102,9 +3102,6 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
-
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False

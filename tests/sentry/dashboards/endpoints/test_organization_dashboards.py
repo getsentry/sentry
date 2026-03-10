@@ -2269,6 +2269,37 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
 
+    def test_endpoint_creates_favorites_for_pre_favorited_prebuilt_dashboards(self) -> None:
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {

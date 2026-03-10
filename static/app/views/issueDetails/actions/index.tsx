@@ -428,7 +428,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             </ResolvedWrapper>
 
             <Divider />
-            {resolveCap.enabled && (
+            {resolveCap.enabled && isResolved && (
               <Button
                 size="sm"
                 disabled={disabled || isAutoResolved}
@@ -440,7 +440,22 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   })
                 }
               >
-                {isResolved ? t('Unresolve') : t('Unarchive')}
+                {t('Unresolve')}
+              </Button>
+            )}
+            {isIgnored && (
+              <Button
+                size="sm"
+                disabled={disabled || isAutoResolved}
+                onClick={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              >
+                {t('Unarchive')}
               </Button>
             )}
           </Flex>

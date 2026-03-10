@@ -9,6 +9,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
 
 _SNAPSHOT_TITLE_BASE = _("Snapshot Testing")
+_PROCESSING_STATUS = "⏳ Processing"
 
 
 def format_snapshot_status_check_messages(
@@ -112,6 +113,81 @@ def format_snapshot_status_check_messages(
     return str(title), str(subtitle), str(summary)
 
 
+def format_first_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+
+    total_images = 0
+    for artifact in artifacts:
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if metrics:
+            total_images += metrics.image_count
+
+    subtitle = ngettext(
+        "%(count)d snapshot uploaded",
+        "%(count)d snapshots uploaded",
+        total_images,
+    ) % {"count": total_images}
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
+    summary += "\n\nThis looks like your first snapshot upload. Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
+
+    return str(title), str(subtitle), str(summary)
+
+
+def format_missing_base_snapshot_status_check_messages(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> tuple[str, str, str]:
+    if not artifacts:
+        raise ValueError("Cannot format messages for empty artifact list")
+
+    title = _SNAPSHOT_TITLE_BASE
+    subtitle = str(_("No base snapshots found"))
+
+    summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
+    summary += "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+
+    return str(title), str(subtitle), str(summary)
+
+
+def _format_solo_snapshot_summary(
+    artifacts: list[PreprodArtifact],
+    snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
+) -> str:
+    table_rows = []
+
+    for artifact in artifacts:
+        mobile_app_info = getattr(artifact, "mobile_app_info", None)
+        app_name = mobile_app_info.app_name if mobile_app_info else None
+        app_display = app_name or artifact.app_id or str(_("Unknown App"))
+        app_id = artifact.app_id or ""
+
+        artifact_url = get_preprod_artifact_url(artifact, view_type="snapshots")
+
+        name_cell = (
+            f"[{app_display}]({artifact_url})<br>`{app_id}`"
+            if app_id
+            else f"[{app_display}]({artifact_url})"
+        )
+
+        metrics = snapshot_metrics_map.get(artifact.id)
+        if not metrics:
+            table_rows.append(f"| {name_cell} | - | {_PROCESSING_STATUS} |")
+            continue
+
+        table_rows.append(f"| {name_cell} | {metrics.image_count} | ✅ Uploaded |")
+
+    table_header = "| Name | Snapshots | Status |\n| :--- | :---: | :---: |\n"
+
+    return table_header + "\n".join(table_rows)
+
+
 def _format_snapshot_summary(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
@@ -143,19 +219,19 @@ def _format_snapshot_summary(
         )
 
         if not metrics:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Processing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
         if not comparison:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Processing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | ⏳ Comparing |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | {_PROCESSING_STATUS} |")
         else:
             added = comparison.images_added
             removed = comparison.images_removed

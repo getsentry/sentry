@@ -740,14 +740,13 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
     <ArtifactCard title={t('Code Changes')} icon={getArtifactIcon('code_changes')}>
       {Array.from(patchesByRepo.entries()).map(([repoName, repoPatches]) => {
         const prState = prStates?.[repoName];
-        const hasPR = prState?.pr_url;
         const isCreatingPR = prState?.pr_creation_status === 'creating';
 
         return (
           <RepoSection key={repoName}>
             <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
-              {hasPR ? (
+              {prState?.pr_url ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
                 </a>
