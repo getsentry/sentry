@@ -4,6 +4,13 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  openCommandPalette,
+  openCommandPaletteDeprecated,
+} from 'sentry/actionCreators/modal';
+import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
@@ -14,16 +21,35 @@ import {
   useStackedNavigationTour,
 } from 'sentry/views/navigation/tour/tour';
 import {NavigationLayout} from 'sentry/views/navigation/types';
-import {useCommandPalette} from 'sentry/views/navigation/useCommandPalette';
 import {UserDropdown} from 'sentry/views/navigation/userDropdown';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
-  useCommandPalette();
   const {layout, navigationParentRef} = useNavigationContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
+
+  const organization = useOrganization();
+  const {visible: isModalOpen} = useGlobalModal();
+  useGlobalCommandPaletteActions();
+
+  useHotkeys(
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => {
+              if (organization.features.includes('cmd-k-supercharged')) {
+                openCommandPalette();
+              } else {
+                openCommandPaletteDeprecated();
+              }
+            },
+          },
+        ]
+  );
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
