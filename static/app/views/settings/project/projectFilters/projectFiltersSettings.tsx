@@ -196,7 +196,7 @@ type RowProps = {
   onToggle: (
     data: RowProps['data'],
     filters: Set<string>,
-    event: React.MouseEvent
+    event: React.ChangeEvent | React.MouseEvent
   ) => void;
   disabled?: boolean;
 };
@@ -224,21 +224,23 @@ function getInitialSubfilters(active: boolean | string[]): Set<string> {
 function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
   const [subfilters, setSubfilters] = useState(getInitialSubfilters(data.active));
 
-  const handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
-    let newSubfilters = new Set(subfilters);
+  const createHandleToggleSubfilters = (subfilter: boolean | string) => {
+    return (e: React.ChangeEvent | React.MouseEvent) => {
+      let newSubfilters = new Set(subfilters);
 
-    if (subfilter === true) {
-      newSubfilters = getActiveSubfilters();
-    } else if (subfilter === false) {
-      newSubfilters = new Set();
-    } else if (newSubfilters.has(subfilter)) {
-      newSubfilters.delete(subfilter);
-    } else {
-      newSubfilters.add(subfilter);
-    }
+      if (subfilter === true) {
+        newSubfilters = getActiveSubfilters();
+      } else if (subfilter === false) {
+        newSubfilters = new Set();
+      } else if (newSubfilters.has(subfilter)) {
+        newSubfilters.delete(subfilter);
+      } else {
+        newSubfilters.add(subfilter);
+      }
 
-    setSubfilters(newSubfilters);
-    onToggle(data, newSubfilters, e);
+      setSubfilters(newSubfilters);
+      onToggle(data, newSubfilters, e);
+    };
   };
 
   return (
@@ -249,14 +251,14 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
           <Grid flow="column" align="center" gap="md">
             <Button
               priority="link"
-              onClick={handleToggleSubfilters.bind(undefined, true)}
+              onClick={createHandleToggleSubfilters(true)}
               disabled={disabled}
             >
               {t('All')}
             </Button>
             <Button
               priority="link"
-              onClick={handleToggleSubfilters.bind(undefined, false)}
+              onClick={createHandleToggleSubfilters(false)}
               disabled={disabled}
             >
               {t('None')}
@@ -294,7 +296,7 @@ function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
                     flex-shrink: 0;
                     margin-left: 6;
                   `}
-                  onChange={handleToggleSubfilters.bind(undefined, key)}
+                  onChange={createHandleToggleSubfilters(key)}
                   size="lg"
                 />
               </FilterGridItem>
@@ -419,7 +421,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
       event,
       subfilters,
     }: {
-      event: React.MouseEvent;
+      event: React.ChangeEvent | React.MouseEvent;
       onBlur: FormFieldProps['onBlur'];
       onChange: FormFieldProps['onChange'];
       subfilters: Set<string>;
