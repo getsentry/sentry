@@ -26,7 +26,7 @@ from sentry.types.region import (
     find_regions_for_user,
     get_cell_by_name,
     get_cell_for_organization,
-    get_local_region,
+    get_local_cell,
     load_from_config,
     subdomain_is_locality,
 )
@@ -96,21 +96,21 @@ class RegionDirectoryTest(TestCase):
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
-    def test_get_local_region(self) -> None:
+    def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            assert get_local_region() == self._EXPECTED_OUTPUTS[0]
+            assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
 
     def test_get_generated_monolith_region(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
             self._in_global_state(load_from_config([], [])),
         ):
-            local_region = get_local_region()
-            assert local_region.name == "defaultland"
-            assert local_region.snowflake_id == 0
-            assert local_region.category == RegionCategory.MULTI_TENANT
+            local_cell = get_local_cell()
+            assert local_cell.name == "defaultland"
+            assert local_cell.snowflake_id == 0
+            assert local_cell.category == RegionCategory.MULTI_TENANT
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
