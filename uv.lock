@@ -2353,7 +2353,7 @@ requires-dist = [
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
-    { name = "slack-sdk", specifier = ">=3.27.2" },
+    { name = "slack-sdk", specifier = ">=3.40.1" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
     { name = "sqlparse", specifier = ">=0.5.0" },
     { name = "statsd", specifier = ">=3.3.0" },
@@ -2629,10 +2629,10 @@ wheels = [
 
 [[package]]
 name = "slack-sdk"
-version = "3.27.2"
+version = "3.40.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/slack_sdk-3.27.2-py2.py3-none-any.whl", hash = "sha256:af97158e6ac7f667e158e8036e63dc1f79db9bd36216a33c10fcc49be7c2f30c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/slack_sdk-3.40.1-py2.py3-none-any.whl", hash = "sha256:cd8902252979aa248092b0d77f3a9ea3cc605bc5d53663ad728e892e26e14a65" },
 ]
 
 [[package]]

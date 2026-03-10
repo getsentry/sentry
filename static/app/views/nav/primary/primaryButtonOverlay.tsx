@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -38,14 +39,15 @@ export function PrimaryButtonOverlay({
   const theme = useTheme();
   const {layout} = useNavContext();
 
-  return (
-    <FocusScope autoFocus restoreFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+  return createPortal(
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.sidebarDropdownMenu} {...overlayProps}>
         <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
           {children}
         </ScrollableOverlay>
       </PositionWrapper>
-    </FocusScope>
+    </FocusScope>,
+    document.body
   );
 }
 
@@ -54,6 +56,7 @@ const ScrollableOverlay = styled(Overlay, {
 })<{
   isMobile: boolean;
 }>`
+  overscroll-behavior: none;
   min-height: 150px;
   max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
   overflow-y: auto;

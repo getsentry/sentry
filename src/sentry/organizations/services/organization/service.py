@@ -145,12 +145,17 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str | None = None
+        self,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when getsentry is updated
+        region_name: str | None = None,  # TODO(cells): remove when getsentry is updated
+        user: RpcUser,
+        scope: str | None = None,
     ) -> list[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
 
-        :param region_name: The region to locate an organization in
+        :param cell_name: The cell to locate an organization in
         :param user: The user to filter by membership
         :param scope: The api scopes to search by
         """

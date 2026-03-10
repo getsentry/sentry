@@ -149,7 +149,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def test_multi_region_organizationmember_id(self) -> None:
         org_region_name = OrganizationMapping.objects.get(
             organization_id=self.organization.id
-        ).region_name
+        ).cell_name
         regions = [
             Cell("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
             Cell(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
@@ -161,7 +161,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                     slug="abcslug",
                     name="The Thing",
                     idempotency_key="",
-                    region_name="some-region",
+                    cell_name="some-region",
                 )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()

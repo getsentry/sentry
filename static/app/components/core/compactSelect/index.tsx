@@ -44,6 +44,8 @@ export {
   getEscapedKey,
 } from './utils';
 
+export {useVirtualizedItems} from './useVirtualizedItems';
+
 export {SelectFilterContext} from './list';
 export {TriggerLabel} from './control';
 

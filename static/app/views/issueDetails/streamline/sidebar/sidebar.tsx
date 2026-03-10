@@ -22,6 +22,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
@@ -94,7 +95,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              <SeerSection group={group} project={project} event={event} />
+              {organization.features.includes('autofix-on-explorer-v2') ? (
+                <AutofixSection group={group} project={project} event={event} />
+              ) : (
+                <SeerSection group={group} project={project} event={event} />
+              )}
             </ErrorBoundary>
           )}
           {event && (

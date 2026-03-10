@@ -17,6 +17,8 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
+_sentinel = object()
+
 
 @region_silo_test
 class CreatePreprodPrCommentTaskTest(TestCase):
@@ -40,9 +42,14 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         app_id="com.example.app",
         artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         build_number=456,
-        extras=None,
+        extras=_sentinel,
         commit_comparison=None,
     ) -> PreprodArtifact:
+        if extras is _sentinel:
+            if artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+                extras = {"is_code_signature_valid": True}
+            else:
+                extras = None
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -372,3 +379,11 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             data={"body": "updated body"},
         )
         mock_client.create_comment.assert_not_called()
+
+    def test_skips_xcarchive_without_valid_code_signature(self):
+        artifact = self._create_artifact(extras={"is_code_signature_valid": False})
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        # No comment posted — task returns early because artifact is not installable

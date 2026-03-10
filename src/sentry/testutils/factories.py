@@ -403,7 +403,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)
