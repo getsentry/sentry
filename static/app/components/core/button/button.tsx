@@ -81,9 +81,7 @@ export function Button({
               visibility="visible"
               inset={0}
             >
-              {({className}) => (
-                <BusySpinner className={className} role="status" aria-label="Busy" />
-              )}
+              {({className}) => <BusySpinner className={className} aria-hidden />}
             </Flex>
           )}
         </Flex>
