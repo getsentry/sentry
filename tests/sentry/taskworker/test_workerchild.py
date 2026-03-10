@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import signal
 import time
+from types import FrameType
 
 import pytest
 
@@ -21,6 +22,10 @@ class OuterFired(Exception):
 
 
 class TestTimeoutAlarm:
+    @staticmethod
+    def noop(signum: int, frame: FrameType | None) -> None:
+        pass
+
     def setup_method(self):
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
@@ -31,7 +36,7 @@ class TestTimeoutAlarm:
 
     def test_no_previous_alarm_no_alarm_after_exit(self):
         """With no outer alarm, no alarm remains after context exits."""
-        with timeout_alarm(5, signal.SIG_DFL):
+        with timeout_alarm(5, self.noop):
             pass
 
         remaining = signal.alarm(0)
@@ -61,7 +66,7 @@ class TestTimeoutAlarm:
         signal.alarm(10)
 
         with pytest.raises(ValueError, match="Inner timeout.*must be less than.*outer alarm"):
-            with timeout_alarm(10, signal.SIG_DFL):
+            with timeout_alarm(10, self.noop):
                 pass
 
         # Outer alarm must still be active
