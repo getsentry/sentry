@@ -161,7 +161,7 @@ class GroupingContext:
         For example, the chained exception strategy calls this on the exceptions in the chain, and
         the exception strategy calls this on each exception's stacktrace.
         """
-        return self._get_grouping_components_for_interface(interface, event=event, **kwargs)
+        return _get_grouping_components_for_interface(interface, event, self, **kwargs)
 
     @overload
     def get_single_grouping_component(
@@ -188,33 +188,12 @@ class GroupingContext:
         variant_name = self["variant_name"]
         assert variant_name is not None
 
-        components_by_variant = self._get_grouping_components_for_interface(
-            interface, event=event, **kwargs
+        components_by_variant = _get_grouping_components_for_interface(
+            interface, event, self, **kwargs
         )
 
         assert len(components_by_variant) == 1
         return components_by_variant[variant_name]
-
-    def _get_grouping_components_for_interface(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ComponentsByVariant:
-        """
-        Apply a delegate strategy to the given interface to get a dictionary of grouping components
-        keyed by variant name.
-        """
-        interface_id = interface.path
-        strategy = self.config.delegates.get(interface_id)
-
-        if strategy is None:
-            raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
-
-        kwargs["context"] = self
-        kwargs["event"] = event
-
-        components_by_variant = strategy(interface, **kwargs)
-        assert isinstance(components_by_variant, dict)
-
-        return components_by_variant
 
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
@@ -509,5 +488,27 @@ def call_with_variants(
             component = components_by_stripped_variant[stripped_variant_name]
 
         components_by_variant[variant_name] = component
+
+    return components_by_variant
+
+
+def _get_grouping_components_for_interface(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
+    """
+    Apply a delegate strategy to the given interface to get a dictionary of grouping components
+    keyed by variant name.
+    """
+    interface_id = interface.path
+    strategy = context.config.delegates.get(interface_id)
+
+    if strategy is None:
+        raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
+
+    kwargs["context"] = context
+    kwargs["event"] = event
+
+    components_by_variant = strategy(interface, **kwargs)
+    assert isinstance(components_by_variant, dict)
 
     return components_by_variant
