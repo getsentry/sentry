@@ -30,7 +30,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     DetailedAlertRuleSerializer,
 )
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-    WorkflowEngineDetectorSerializer,
+    DetailedWorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -70,7 +70,7 @@ def fetch_alert_rule(
         serialized = serialize(
             detector,
             request.user,
-            WorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
+            DetailedWorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
         )
         return Response(serialized)
     # Serialize Alert Rule

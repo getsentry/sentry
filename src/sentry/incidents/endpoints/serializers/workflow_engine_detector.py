@@ -453,3 +453,31 @@ class WorkflowEngineDetectorSerializer(Serializer):
             data["eventTypes"] = attrs.get("event_types", [])
 
         return data
+
+
+class DetailedWorkflowEngineDetectorSerializer(WorkflowEngineDetectorSerializer):
+    """
+    Detailed serializer for detector detail endpoints.
+    Always includes eventTypes and snooze fields to match DetailedAlertRuleSerializer.
+
+    Known differences from DetailedAlertRuleSerializer:
+    - snooze/snoozeForEveryone: Derived from Detector.enabled instead of querying RuleSnooze
+    - snoozeCreatedBy: Not included (RuleSnooze model tracks this, but workflow engine doesn't)
+    - Detector.enabled=False is treated as snoozed for everyone
+    """
+
+    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+        # Force eventTypes to always be in expand for detail views
+        expand = expand or []
+        if "eventTypes" not in expand:
+            expand = list(expand) + ["eventTypes"]
+        super().__init__(expand=expand, prepare_component_fields=prepare_component_fields)
+
+    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
+        data = super().serialize(obj, attrs, user, **kwargs)
+        # Parent already includes eventTypes since we forced it into expand
+        # Add snooze fields based on detector enabled state
+        data["snooze"] = not obj.enabled
+        if not obj.enabled:
+            data["snoozeForEveryone"] = True
+        return data
