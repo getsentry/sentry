@@ -1,7 +1,7 @@
 import msgspec
 
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
-from sentry.scm.stream_producer import produce_event_to_scm_stream
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.scm.types import SubscriptionEvent
 
 
