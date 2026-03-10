@@ -246,7 +246,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/events-meta/'
   | '/organizations/$organizationIdOrSlug/events-root-cause-analysis/'
   | '/organizations/$organizationIdOrSlug/events-span-ops/'
-  | '/organizations/$organizationIdOrSlug/events-spans-histogram/'
   | '/organizations/$organizationIdOrSlug/events-spans-performance/'
   | '/organizations/$organizationIdOrSlug/events-spans-stats/'
   | '/organizations/$organizationIdOrSlug/events-spans/'
