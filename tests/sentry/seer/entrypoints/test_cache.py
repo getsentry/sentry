@@ -262,8 +262,9 @@ class SeerOperatorExplorerCacheTest(TestCase):
         mock_cache_get.assert_called_once_with(self.cache_key)
         assert result == payload
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_cache_miss(self, mock_cache_get):
+    def test_get_cache_miss(self, mock_cache_get, mock_record_halt):
         mock_cache_get.return_value = None
 
         result = SeerOperatorExplorerCache.get(
@@ -271,3 +272,4 @@ class SeerOperatorExplorerCacheTest(TestCase):
         )
 
         assert result is None
+        mock_record_halt.assert_called_once_with(halt_reason="cache_miss")
