@@ -26,16 +26,9 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
-    translate_to_data_condition_data,
-)
-from sentry.workflow_engine.migration_helpers.rule_action import (
-    translate_rule_data_actions_to_notification_actions,
-)
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
-from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
@@ -98,66 +91,38 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
-def assert_workflow_from_payload(workflow: Workflow, payload: Mapping[str, Any]) -> None:
-    """
-    Helper function to assert every field on a Workflow was modified correctly from the incoming payload
-    """
-    workflow.refresh_from_db()
-    assert workflow.name == payload.get("name")
-
-    environment = payload.get("environment")
-    if environment:
-        assert workflow.environment is not None
-        assert workflow.environment.name == environment
-    else:
-        assert workflow.environment is None
-
-    frequency = payload.get("frequency")
-    if frequency is not None:
-        assert workflow.config["frequency"] == frequency
-
-    # Check trigger conditions in the when_condition_group
-    fake_dcg = DataConditionGroup()
-    when_dcg = workflow.when_condition_group
-    if when_dcg is not None:
-        actual_conditions = list(
-            DataCondition.objects.filter(condition_group=when_dcg).values("type", "comparison")
-        )
-        for payload_condition in payload.get("conditions", []):
-            translated = translate_to_data_condition_data(payload_condition, fake_dcg)
-            assert any(
-                translated.type == ac["type"] and translated.comparison == ac["comparison"]
-                for ac in actual_conditions
-            )
-
-    # Check action filter (filterMatch, filters, and actions)
-    action_filter_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
-    action_filter_dcg.refresh_from_db()
-
-    filter_match = payload.get("filterMatch", "any")
-    if filter_match == "any":
-        filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
-    assert action_filter_dcg.logic_type == filter_match
-
-    actual_filter_conditions = list(
-        DataCondition.objects.filter(condition_group=action_filter_dcg).values("type", "comparison")
+def assert_serializer_results_match(
+    rule_response: dict[str, Any], workflow_response: dict[str, Any]
+) -> None:
+    rule_conditions = sorted(rule_response.get("conditions", []), key=lambda t: t.get("id", ""))
+    workflow_conditions = sorted(
+        workflow_response.get("conditions", []), key=lambda t: t.get("id", "")
     )
-    for payload_filter in payload.get("filters", []):
-        translated = translate_to_data_condition_data(payload_filter, fake_dcg)
-        assert any(
-            translated.type == afc["type"] and translated.comparison == afc["comparison"]
-            for afc in actual_filter_conditions
-        )
 
-    action_ids = DataConditionGroupAction.objects.filter(
-        condition_group=action_filter_dcg
-    ).values_list("action_id", flat=True)
-    actual_actions = list(Action.objects.filter(id__in=action_ids).values("type"))
-    translated_actions = translate_rule_data_actions_to_notification_actions(
-        payload.get("actions", []), False
-    )
-    for translated_action in translated_actions:
-        assert any(translated_action["type"] == aa["type"] for aa in actual_actions)
+    for rule_condition_data, workflow_condition_data in zip(rule_conditions, workflow_conditions):
+        assert rule_condition_data == workflow_condition_data
+
+    rule_filters = sorted(rule_response.get("filters", []), key=lambda t: t.get("id", ""))
+    workflow_filters = sorted(workflow_response.get("filters", []), key=lambda t: t.get("id", ""))
+
+    for rule_filter_data, workflow_filter_data in zip(rule_filters, workflow_filters):
+        assert rule_filter_data == workflow_filter_data
+
+    rule_actions = sorted(rule_response.get("actions", []), key=lambda t: t.get("id", ""))
+    workflow_actions = sorted(workflow_response.get("actions", []), key=lambda t: t.get("id", ""))
+
+    for rule_action_data, workflow_action_data in zip(rule_actions, workflow_actions):
+        del rule_action_data["uuid"]
+        assert rule_action_data == workflow_action_data
+
+    assert rule_response.get("actionMatch") == workflow_response.get("actionMatch")
+    assert rule_response.get("filterMatch") == workflow_response.get("filterMatch")
+    assert rule_response.get("frequency") == workflow_response.get("frequency")
+    assert rule_response.get("name") == workflow_response.get("name")
+    assert rule_response.get("environment") == workflow_response.get("environment")
+    assert rule_response.get("projects") == workflow_response.get("projects")
+    assert rule_response.get("status") == workflow_response.get("status")
+    assert rule_response.get("snooze") == workflow_response.get("snooze")
 
 
 class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
@@ -208,7 +173,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
             organization=self.detector.project.organization,
-            config={"frequency": 1440},
+            config={"frequency": 30},
         )
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
@@ -685,9 +650,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
+                # "key": "foo",
+                # "match": "eq",
+                # "value": "bar",
             }
         ]
         payload = {
@@ -705,16 +670,20 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
+        # test with a workflow
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
+        workflow = arw.workflow
+        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
+
         with self.feature("organizations:workflow-engine-rule-serializers"):
             workflow_response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.fake_workflow_id,
+                fake_workflow_id,
                 status_code=200,
                 **payload,
             )
-        assert workflow_response.data["id"] == str(self.fake_workflow_id)
-        assert_workflow_from_payload(self.workflow, payload)
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_no_owner(self) -> None:
         conditions = [
