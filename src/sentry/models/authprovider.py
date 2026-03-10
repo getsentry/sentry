@@ -160,7 +160,7 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.RESET_IDP_FLAGS,
                 object_identifier=self.organization_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]
@@ -208,7 +208,7 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.MARK_INVALID_SSO,
                 object_identifier=user_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]

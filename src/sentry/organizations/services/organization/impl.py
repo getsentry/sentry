@@ -823,7 +823,7 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
                 ControlOutbox(
                     shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                     shard_identifier=organization_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     category=OutboxCategory.SEND_SIGNAL,
                     object_identifier=ControlOutbox.next_object_identifier(),
                     payload=payload,

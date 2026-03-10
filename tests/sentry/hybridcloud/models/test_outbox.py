@@ -98,7 +98,7 @@ class ControlOutboxTest(TestCase):
                 inst.save()
 
         shards = {
-            (row["shard_scope"], row["shard_identifier"], row["region_name"])
+            (row["shard_scope"], row["shard_identifier"], row["cell_name"])
             for row in ControlOutbox.find_scheduled_shards()
         }
 
@@ -606,7 +606,7 @@ class OutboxAggregationTest(TestCase):
         for shard_id, (shard_count, region_name) in shard_counts.items():
             for i in range(shard_count):
                 ControlOutbox(
-                    region_name=region_name,
+                    cell_name=region_name,
                     shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
                     shard_identifier=shard_id,
                     category=OutboxCategory.AUDIT_LOG_EVENT,
@@ -620,19 +620,19 @@ class OutboxAggregationTest(TestCase):
         assert shard_depths == [
             dict(
                 shard_identifier=2,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             ),
             dict(
                 shard_identifier=1,
-                region_name="eu",
+                cell_name="eu",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=4,
             ),
             dict(
                 shard_identifier=3,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=1,
             ),
@@ -643,7 +643,7 @@ class OutboxAggregationTest(TestCase):
         assert shard_depths == [
             dict(
                 shard_identifier=2,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             )

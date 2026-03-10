@@ -49,7 +49,7 @@ def create_organization_provisioning_outbox(
 ) -> ControlOutbox:
     payload = org_provision_payload.dict() if org_provision_payload is not None else None
     return ControlOutbox(
-        region_name=region_name,
+        cell_name=region_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,
         category=OutboxCategory.PROVISION_ORGANIZATION,
         shard_identifier=organization_id,
