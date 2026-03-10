@@ -21,6 +21,7 @@ describe('SQLishParser', () => {
       '\r\n', // Windows newlines
       '✌🏻', // Emoji
       'ă', // Unicode
+      `\u0000`, // Unicode null
       'SELECT id, nam*', // Truncation
       'AND created >= :c1', // PHP-Style I
       'LIMIT $2', // PHP-style II
