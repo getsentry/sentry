@@ -163,11 +163,22 @@ class ApiApplication(Model):
 
     def normalize_url(self, value):
         parts = urlparse(value)
-        decoded_path = unquote(parts.path)
-        normalized_path = posixpath.normpath(decoded_path)
+        path = parts.path
+
+        # Fully decode all layers of percent-encoding to a stable form.
+        # This prevents multi-layer encoding (e.g. %252e%252e) from hiding
+        # path traversal sequences that posixpath.normpath needs to resolve.
+        prev = None
+        decoded = unquote(path)
+        while decoded != prev:
+            prev = decoded
+            decoded = unquote(decoded)
+
+        has_trailing_slash = decoded.endswith("/")
+        normalized_path = posixpath.normpath(decoded)
         if normalized_path == ".":
             normalized_path = "/"
-        elif value.endswith("/") and not normalized_path.endswith("/"):
+        elif has_trailing_slash and not normalized_path.endswith("/"):
             normalized_path += "/"
         return urlunparse(parts._replace(path=quote(normalized_path, safe="/")))
 
@@ -178,14 +189,19 @@ class ApiApplication(Model):
         #   - Native apps loopback exception (RFC 8252 §8.4):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
 
-        # Capture the raw path before normalization for the double-encoding
-        # guard below.  This must happen on the unprocessed input so that
-        # quote() inside normalize_url doesn't interfere with the check.
         raw_path = urlparse(value).path
+
+        # Reject null bytes — can cause string truncation in downstream servers.
+        if "\x00" in unquote(raw_path):
+            return False
+
+        # Reject backslashes — some servers/proxies interpret \ as /, enabling
+        # path traversal that posixpath.normpath wouldn't catch.
+        if "\\" in unquote(raw_path):
+            return False
 
         value = self.normalize_url(value)
 
-        # First: exact match only (spec-compliant), no logging.
         normalized_ruris = [
             self.normalize_url(redirect_uri) for redirect_uri in self.redirect_uris.split("\n")
         ]
@@ -223,12 +239,6 @@ class ApiApplication(Model):
 
         # Then: prefix-only match (legacy behavior). Log on success.
         if not self.has_feature(ApiApplicationFeature.STRICT_REDIRECT_URI):
-            # Reject multi-layer percent-encoding by checking the raw input:
-            # decode once, then check if a second decode would change it.
-            # If so, the input was double-encoded (or deeper).
-            decoded_once = unquote(raw_path)
-            if unquote(decoded_once) != decoded_once:
-                return False
             for ruri in normalized_ruris:
                 if value.startswith(ruri):
                     logger.warning(
