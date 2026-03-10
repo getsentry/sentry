@@ -322,6 +322,7 @@ from sentry.issues.endpoints import (
     ProjectGroupIndexEndpoint,
     ProjectGroupStatsEndpoint,
     ProjectStacktraceLinkEndpoint,
+    ProjectStacktraceSourceContextEndpoint,
     RelatedIssuesEndpoint,
     SharedGroupDetailsEndpoint,
     ShortIdLookupEndpoint,
@@ -3233,6 +3234,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",
+        ProjectStacktraceSourceContextEndpoint.as_view(),
+        name="sentry-api-0-project-stacktrace-source-context",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/repo-path-parsing/$",
