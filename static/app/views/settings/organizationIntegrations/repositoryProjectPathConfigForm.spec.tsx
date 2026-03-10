@@ -227,6 +227,60 @@ describe('RepositoryProjectPathConfigModal', () => {
     });
   });
 
+  it('allows submitting with empty stream for Perforce (stream-based) integrations', async () => {
+    const perforceIntegration = {
+      ...integration,
+      provider: {...integration.provider, key: 'perforce', name: 'Perforce'},
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${perforceIntegration.id}/repos/`,
+      body: {repos: []},
+    });
+
+    const mockPost = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <RepositoryProjectPathConfigModal
+        {...modalProps}
+        organization={organization}
+        integration={perforceIntegration}
+        projects={projects}
+        repos={repos}
+      />
+    );
+
+    // Stream field should be labeled "Stream" and not required
+    expect(screen.getByRole('textbox', {name: 'Stream'})).toHaveValue('');
+
+    // Select project
+    await userEvent.click(screen.getByRole('textbox', {name: 'Project'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'project-a'}));
+
+    // Select repo
+    await userEvent.click(screen.getByRole('textbox', {name: 'Repo'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'org/repo-one'}));
+
+    // Submit without filling in stream
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/code-mappings/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            defaultBranch: '',
+          }),
+          method: 'POST',
+        })
+      );
+    });
+  });
+
   it('does not override manually changed branch when repo is selected', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,

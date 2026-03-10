@@ -63,9 +63,9 @@ export default function RepositoryProjectPathConfigModal({
   const schema = z.object({
     projectId: z.string().min(1, t('Project is required')),
     repositoryId: z.string().min(1, t('Repository is required')),
-    defaultBranch: z
-      .string()
-      .min(1, isStreamBased ? t('Stream is required') : t('Branch is required')),
+    defaultBranch: isStreamBased
+      ? z.string()
+      : z.string().min(1, t('Branch is required')),
     stackRoot: z.string(),
     sourceRoot: z.string(),
     integrationId: z.string(),
