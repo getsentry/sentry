@@ -438,7 +438,7 @@ def get_local_cell() -> Cell:
 
 
 # TODO(cells): Remove alias once getsentry import sites are updated
-# get_local_region = get_local_cell
+get_local_region = get_local_cell
 
 
 @control_silo_function
