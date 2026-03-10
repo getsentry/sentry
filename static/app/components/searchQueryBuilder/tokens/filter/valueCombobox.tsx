@@ -321,108 +321,6 @@ function useSelectionIndex({
   };
 }
 
-type FrozenSuggestionOrder = Array<{sectionText: string; values: string[]}>;
-
-// In multi-select mode we want the currently selected values to float to the top
-// when the menu opens, but we do not want the list order to keep changing after
-// each checkbox toggle. If it re-sorts on every selection, the listbox scroll
-// position jumps back to the top and makes bulk selection frustrating.
-//
-// This hook computes the initial "selected values first" ordering once per
-// suggestion set, stores only the ordered values, and then rebuilds items in
-// that frozen order on later renders so checkbox state can update without
-// disturbing the list position.
-function useFrozenSuggestionSectionItems({
-  createItem,
-  selectedValues,
-  suggestionGroups,
-}: {
-  createItem: (suggestion: SuggestionItem) => Omit<SelectOptionWithKey<string>, 'key'>;
-  selectedValues: Array<{selected: boolean; value: string}>;
-  suggestionGroups: SuggestionSection[];
-}) {
-  // Read the latest selected values during memoized ordering work without
-  // making selection toggles invalidate the frozen ordering.
-  const selectedValuesRef = useRef(selectedValues);
-  selectedValuesRef.current = selectedValues;
-
-  const prevSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
-  const frozenOrderRef = useRef<FrozenSuggestionOrder | null>(null);
-
-  // A new suggestion group identity means the menu effectively has a new result
-  // set (reopened, new data, different key/filter), so the frozen ordering
-  // should be recalculated from scratch.
-  if (prevSuggestionGroupsRef.current !== suggestionGroups) {
-    prevSuggestionGroupsRef.current = suggestionGroups;
-    frozenOrderRef.current = null;
-  }
-
-  return useMemo<SuggestionSectionItem[]>(() => {
-    const currentSelectedValues = selectedValuesRef.current;
-    const selectedValueSet = new Set(
-      currentSelectedValues.map(selectedValue => selectedValue.value)
-    );
-    const allSuggestions = new Map(
-      suggestionGroups.flatMap(group =>
-        group.suggestions.map(suggestion => [suggestion.value, suggestion] as const)
-      )
-    );
-
-    if (!frozenOrderRef.current) {
-      // First render for this suggestion set: move selected values to the top
-      // and omit duplicates from the rest of the sections.
-      const unsectionedSuggestions = suggestionGroups
-        .filter(group => group.sectionText === '')
-        .flatMap(group => group.suggestions)
-        .filter(suggestion => !selectedValueSet.has(suggestion.value));
-      const sections = suggestionGroups.filter(group => group.sectionText !== '');
-
-      const sortedSections: SuggestionSectionItem[] = [
-        {
-          sectionText: '',
-          items: getItemsWithKeys([
-            ...currentSelectedValues.map(selectedValue => {
-              const matchingSuggestion = allSuggestions.get(selectedValue.value);
-              return createItem(matchingSuggestion ?? {value: selectedValue.value});
-            }),
-            ...unsectionedSuggestions.map(suggestion => createItem(suggestion)),
-          ]),
-        },
-        ...sections.map(group => ({
-          sectionText: group.sectionText,
-          items: getItemsWithKeys(
-            group.suggestions
-              .filter(suggestion => !selectedValueSet.has(suggestion.value))
-              .map(suggestion => createItem(suggestion))
-          ),
-        })),
-      ];
-
-      // Persist just the ordered values. Recomputing full item objects here
-      // would be wasted work, and storing values lets us rebuild against the
-      // latest suggestion metadata if descriptions/labels change.
-      frozenOrderRef.current = sortedSections.map(section => ({
-        sectionText: section.sectionText,
-        values: section.items.map(item => item.value),
-      }));
-
-      return sortedSections;
-    }
-
-    // Later renders keep the same visible order and only rebuild item objects,
-    // which lets checkbox state reflect current selection without re-sorting.
-    return frozenOrderRef.current.map(section => ({
-      sectionText: section.sectionText,
-      items: getItemsWithKeys(
-        section.values.map(value => {
-          const suggestion = allSuggestions.get(value) ?? {value};
-          return createItem(suggestion);
-        })
-      ),
-    }));
-  }, [createItem, suggestionGroups]);
-}
-
 function useFilterSuggestions({
   token,
   filterValue,
@@ -483,6 +381,11 @@ function useFilterSuggestions({
     enabled: shouldFetchValues,
   });
 
+  // Keep selected values in a ref so ordering calculations can read latest
+  // values without rebuilding suggestion items on every checkbox toggle.
+  const selectedValuesRef = useRef(selectedValues);
+  selectedValuesRef.current = selectedValues;
+
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
       return {
@@ -531,11 +434,86 @@ function useFilterSuggestions({
 
     return [{sectionText: '', suggestions: suggestions ?? []}];
   }, [data, predefinedValues, shouldFetchValues, key?.key]);
-  const suggestionSectionItems = useFrozenSuggestionSectionItems({
-    createItem,
-    selectedValues,
-    suggestionGroups,
-  });
+
+  // Track suggestion groups identity to detect when a fresh sort is needed
+  // (e.g. combobox reopened, filter key changed, or new data fetched)
+  const prevSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
+  const frozenOrderRef = useRef<Array<{sectionText: string; values: string[]}> | null>(
+    null
+  );
+
+  if (prevSuggestionGroupsRef.current !== suggestionGroups) {
+    prevSuggestionGroupsRef.current = suggestionGroups;
+    frozenOrderRef.current = null;
+  }
+
+  // Grouped sections for rendering purposes.
+  // On fresh open (frozenOrderRef is null): sorts selected items to the top, then
+  // freezes the order. On subsequent toggles: returns the cached result — checkbox
+  // states are read from context at render time, so item objects stay
+  // referentially stable and downstream memos/components skip re-computation.
+  const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
+    const currentSelectedValues = selectedValuesRef.current;
+    const allSuggestions = new Map(
+      suggestionGroups.flatMap(group => group.suggestions.map(s => [s.value, s] as const))
+    );
+
+    if (!frozenOrderRef.current) {
+      // Fresh open — sort selected items to top (original behavior)
+      const itemsWithoutSection = suggestionGroups
+        .filter(group => group.sectionText === '')
+        .flatMap(group => group.suggestions)
+        .filter(
+          suggestion => !currentSelectedValues.some(v => v.value === suggestion.value)
+        );
+      const sections = suggestionGroups.filter(group => group.sectionText !== '');
+
+      const result: SuggestionSectionItem[] = [
+        {
+          sectionText: '',
+          items: getItemsWithKeys([
+            ...currentSelectedValues.map(value => {
+              const matchingSuggestion = allSuggestions.get(value.value);
+              return createItem(matchingSuggestion ?? {value: value.value});
+            }),
+            ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
+          ]),
+        },
+        ...sections.map(group => ({
+          sectionText: group.sectionText,
+          items: getItemsWithKeys(
+            group.suggestions
+              .filter(
+                suggestion =>
+                  !currentSelectedValues.some(v => v.value === suggestion.value)
+              )
+              .map(suggestion => createItem(suggestion))
+          ),
+        })),
+      ];
+
+      // Freeze the item order for subsequent renders within this session
+      frozenOrderRef.current = result.map(section => ({
+        sectionText: section.sectionText,
+        values: section.items.map(item => item.value),
+      }));
+
+      return result;
+    }
+
+    // Subsequent toggle — return cached items. Checkbox states are read from
+    // context inside the trailingItems render prop, so the same
+    // item objects render the correct state without needing reconstruction.
+    return frozenOrderRef.current.map(section => ({
+      sectionText: section.sectionText,
+      items: getItemsWithKeys(
+        section.values.map(value => {
+          const suggestion = allSuggestions.get(value) ?? {value};
+          return createItem(suggestion);
+        })
+      ),
+    }));
+  }, [createItem, suggestionGroups]);
 
   // Flat list used for state management
   const items = useMemo(() => {
