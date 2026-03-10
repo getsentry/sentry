@@ -837,7 +837,8 @@ def update_coding_agent_state(
 ) -> None:
     """Send coding agent state update to Seer.
 
-    Raises SeerApiError for non-2xx responses.
+    Errors are logged and swallowed so that callers iterating over
+    multiple agents are never interrupted by a single failed update.
     """
     updates = CodingAgentStateUpdate(
         status=status,
@@ -854,10 +855,17 @@ def update_coding_agent_state(
         response = make_update_coding_agent_state_request(update_data, timeout=30)
     except Exception:
         logger.exception(
-            "coding_agent.claude_code.state_update_error",
+            "coding_agent.state_update_error",
             extra={"agent_id": agent_id},
         )
         return
 
     if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+        logger.error(
+            "coding_agent.seer_update_error",
+            extra={
+                "agent_id": agent_id,
+                "status_code": response.status,
+                "response": response.data.decode("utf-8"),
+            },
+        )

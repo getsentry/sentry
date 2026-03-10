@@ -652,7 +652,10 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
     all_events = [ClaudeSessionEvent.parse_obj(e) for e in raw_events]
     last_event_type = all_events[-1].type
 
-    if last_event_type == ClaudeSessionEventStatus.IDLE:
+    if (
+        last_event_type == ClaudeSessionEventStatus.IDLE
+        or last_event_type == ClaudeSessionEventStatus.CLOSED
+    ):
         new_status = CodingAgentStatus.COMPLETED
 
         result, new_status = build_result_from_events(
