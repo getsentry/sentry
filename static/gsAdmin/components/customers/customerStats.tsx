@@ -207,7 +207,10 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse' && point.by.reason === 'none') {
+      if (
+        point.by.outcome === 'abuse' &&
+        (!point.by.reason || point.by.reason === 'none')
+      ) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
