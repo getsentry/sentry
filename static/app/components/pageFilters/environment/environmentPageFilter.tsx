@@ -140,8 +140,8 @@ export function EnvironmentPageFilter({
         newValue,
         {
           location,
-          push: path => navigate(path),
-          replace: path => navigate(path, {replace: true}),
+          push: (path: Parameters<typeof navigate>[0]) => navigate(path),
+          replace: (path: Parameters<typeof navigate>[0]) => navigate(path, {replace: true}),
         } as any,
         {
           save: true,
