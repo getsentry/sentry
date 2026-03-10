@@ -1,6 +1,7 @@
 from django.core import mail
 
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -23,6 +24,9 @@ from sentry.users.services.user.service import user_service
 
 
 class ReleaseTestCase(ActivityTestCase):
+    def get_prefixed_subject(self, subject: str) -> str:
+        return f"{build_subject_prefix(self.project).rstrip()} {subject}"
+
     def setUp(self) -> None:
         super().setUp()
 
@@ -165,6 +169,11 @@ class ReleaseTestCase(ActivityTestCase):
             self.user3.email,
             self.user5.email,
         }
+        expected_subject = self.get_prefixed_subject(
+            f"Deployed {self.project.slug} {email.version_parsed} to {self.environment.name}"
+        )
+        assert {msg.subject for msg in mail.outbox} == {expected_subject}
+        assert all(not msg.subject.startswith("Re:") for msg in mail.outbox)
 
     def test_prevent_duplicate_projects(self) -> None:
         email = ReleaseActivityNotification(
@@ -184,6 +193,76 @@ class ReleaseTestCase(ActivityTestCase):
         # the same project twice
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
+
+    def test_subject_uses_recipient_visible_projects(self) -> None:
+        mail.outbox.clear()
+        self.create_team_membership(user=self.user1, team=self.team2)
+
+        email = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user_id=self.user1.id,
+                type=ActivityType.RELEASE.value,
+                data={"version": self.release.version, "deploy_id": self.deploy.id},
+            )
+        )
+
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
+        expected_project_slugs = sorted([self.project.slug, self.project2.slug])
+
+        assert [
+            project.slug for project, _, _ in user_context["projects"]
+        ] == expected_project_slugs
+        assert user_context["subject_project_slugs"] == expected_project_slugs
+
+        with self.tasks():
+            email.send()
+
+        subjects_by_recipient = {message.to[0]: message.subject for message in mail.outbox}
+
+        assert subjects_by_recipient[self.user1.email] == self.get_prefixed_subject(
+            f"Deployed {', '.join(expected_project_slugs)} {email.version_parsed} to {self.environment.name}"
+        )
+        assert subjects_by_recipient[self.user3.email] == self.get_prefixed_subject(
+            f"Deployed {self.project.slug} {email.version_parsed} to {self.environment.name}"
+        )
+        assert all(not subject.startswith("Re:") for subject in subjects_by_recipient.values())
+
+    def test_subject_caps_projects_at_two(self) -> None:
+        mail.outbox.clear()
+        team3 = self.create_team(organization=self.org)
+        project3 = self.create_project(
+            organization=self.org,
+            teams=[team3],
+            name="AAA Third",
+            slug="aaa-third",
+        )
+        self.release.add_project(project3)
+        self.create_team_membership(user=self.user1, team=self.team2)
+        self.create_team_membership(user=self.user1, team=team3)
+
+        email = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user_id=self.user1.id,
+                type=ActivityType.RELEASE.value,
+                data={"version": self.release.version, "deploy_id": self.deploy.id},
+            )
+        )
+
+        expected_project_slugs = sorted([self.project.slug, self.project2.slug, project3.slug])
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
+
+        assert user_context["subject_project_slugs"] == expected_project_slugs
+
+        with self.tasks():
+            email.send()
+
+        subjects_by_recipient = {message.to[0]: message.subject for message in mail.outbox}
+
+        assert subjects_by_recipient[self.user1.email] == self.get_prefixed_subject(
+            f"Deployed {expected_project_slugs[0]}, {expected_project_slugs[1]} +1 more {email.version_parsed} to {self.environment.name}"
+        )
 
     def test_does_not_generate_on_no_release(self) -> None:
         email = ReleaseActivityNotification(

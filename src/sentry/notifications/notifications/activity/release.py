@@ -33,6 +33,7 @@ class ReleaseActivityNotification(ActivityNotification):
     metrics_key = "release_activity"
     notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/activity/release"
+    max_subject_projects = 2
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -94,13 +95,13 @@ class ReleaseActivityNotification(ActivityNotification):
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: Actor) -> set[Project]:
+    def get_projects(self, recipient: Actor) -> list[Project]:
         if not self.release:
-            return set()
+            return []
 
         if recipient.is_user:
             if self.organization.flags.allow_joinleave:
-                return self.projects
+                return sorted(self.projects, key=lambda project: project.slug)
             team_ids = self.get_users_by_teams()[recipient.id]
         else:
             team_ids = [recipient.id]
@@ -108,7 +109,15 @@ class ReleaseActivityNotification(ActivityNotification):
         projects = Project.objects.get_for_team_ids(team_ids).filter(
             id__in={p.id for p in self.projects}
         )
-        return set(projects)
+        return sorted(projects, key=lambda project: project.slug)
+
+    def get_subject_project_text(self, project_slugs: Sequence[str]) -> str:
+        visible_project_slugs = list(project_slugs[: self.max_subject_projects])
+        remaining_projects = len(project_slugs) - len(visible_project_slugs)
+        projects_text = ", ".join(visible_project_slugs)
+        if remaining_projects > 0:
+            projects_text = f"{projects_text} +{remaining_projects} more"
+        return projects_text
 
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]
@@ -129,10 +138,15 @@ class ReleaseActivityNotification(ActivityNotification):
             **super().get_recipient_context(recipient, extra_context),
             "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
+            "subject_project_slugs": [project.slug for project in projects],
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Deployed version {self.version_parsed} to {self.environment}"
+        project_slugs = context.get("subject_project_slugs", []) if context else []
+        if project_slugs:
+            projects_text = self.get_subject_project_text(project_slugs)
+            return f"Deployed {projects_text} {self.version_parsed} to {self.environment}"
+        return f"Deployed {self.version_parsed} to {self.environment}"
 
     @property
     def title(self) -> str:
