@@ -45,7 +45,7 @@ export function RootCauseCard({artifact}: RootCauseCardProps) {
               ))}
             </Container>
           </ArtifactDetails>
-          {artifact.data?.reproduction_steps?.length && (
+          {artifact.data?.reproduction_steps?.length ? (
             <ArtifactDetails>
               <Text bold>{t('Reproduction Steps')}</Text>
               <Container as="ol" margin="0">
@@ -56,7 +56,7 @@ export function RootCauseCard({artifact}: RootCauseCardProps) {
                 ))}
               </Container>
             </ArtifactDetails>
-          )}
+          ) : null}
         </Fragment>
       ) : (
         <Placeholder height="3rem" />
@@ -139,14 +139,14 @@ export function CodeChangesCard({artifact}: CodeChangesCardProps) {
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')} summary={summary}>
       {patchesForRepos.size ? (
-        patchesForRepos.entries().map(([repo, patches], index) => {
+        [...patchesForRepos.entries()].map(([repo, patches]) => {
           return (
             <ArtifactDetails key={repo}>
               <Flex gap="lg">
                 <Text bold>{t('Repository:')}</Text>
                 <Text>{repo}</Text>
               </Flex>
-              {patches.map(patch => (
+              {patches.map((patch, index) => (
                 <FileDiffViewer
                   key={index}
                   patch={patch.patch}
