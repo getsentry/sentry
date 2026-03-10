@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -234,7 +235,10 @@ function WidgetCard(props: Props) {
   }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
-    if (!isWidgetViewerPath(location.pathname)) {
+    if (isWidgetViewerPath(location.pathname)) {
+      return;
+    }
+    if (currentDashboardId) {
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -248,6 +252,14 @@ function WidgetCard(props: Props) {
         }),
         {preventScrollReset: true}
       );
+    } else {
+      openWidgetViewerModal({
+        organization,
+        widget,
+        widgetLegendState,
+        dashboardFilters,
+        widgetInterval,
+      });
     }
   };
 
@@ -320,13 +332,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
-            onFullScreenViewClick={
-              disableFullscreen
-                ? undefined
-                : currentDashboardId
-                  ? onFullScreenViewClick
-                  : undefined
-            }
+            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           >
