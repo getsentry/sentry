@@ -100,7 +100,7 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase, BaseWorkflowTest):
 
         # make a couple in a different workflow to ensure we're not mixing them up
         for i in range(2):
-            wfh = WorkflowFireHistory(
+            wfh = WorkflowFireHistory.objects.create(
                 workflow=workflow2,
                 group=self.group,
                 date_added=before_now(hours=i + 1),
