@@ -931,6 +931,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.console_platform_cleanup",
     "sentry.tasks.delete_pending_groups",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
