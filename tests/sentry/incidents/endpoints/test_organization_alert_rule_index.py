@@ -271,21 +271,18 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
 class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
     """Delta tests comparing old vs new serializer output for the list endpoint."""
 
+    @with_feature("organizations:incidents")
     def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
         """New serializer output on the list endpoint must match old serializer output."""
         team = self.create_team(organization=self.organization, members=[self.user])
         ProjectTeam.objects.create(project=self.project, team=team)
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
-            old_resp = self.get_success_response(self.organization.slug)
+        old_resp = self.get_success_response(self.organization.slug)
         old_data = old_resp.data
         assert len(old_data) > 0
 
-        with (
-            self.feature("organizations:incidents"),
-            self.feature("organizations:workflow-engine-rule-serializers"),
-        ):
+        with self.feature("organizations:workflow-engine-rule-serializers"):
             new_resp = self.get_success_response(self.organization.slug)
         new_data = new_resp.data
         assert len(new_data) == len(old_data)

@@ -231,6 +231,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             for detector in detectors.values()
             if detector.workflow_condition_group
         ]
+        # NOTE: Assumes DataConditions are limited to what would be dual written.
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
@@ -335,16 +336,18 @@ class WorkflowEngineDetectorSerializer(Serializer):
         data_source_detectors = DataSourceDetector.objects.filter(
             detector_id__in=detectors.keys()
         ).select_related("data_source")
+        # Assumption: 1 DataSource per Detector
+        dsd_by_detector_id = {dsd.detector_id: dsd for dsd in data_source_detectors}
+
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
         ).select_related("snuba_query__environment")
+        qs_by_id = {qs.id: qs for qs in query_subscriptions}
 
         snuba_query_ids = []
         for detector in detectors.values():
-            data_source_detector = data_source_detectors.get(Q(detector=detector))
-            query_subscription = query_subscriptions.get(
-                Q(id=data_source_detector.data_source.source_id)
-            )
+            data_source_detector = dsd_by_detector_id[detector.id]
+            query_subscription = qs_by_id[data_source_detector.data_source.source_id]
             snuba_query = query_subscription.snuba_query
             snuba_query_ids.append(snuba_query.id)
             result[detector]["query"] = snuba_query.query
