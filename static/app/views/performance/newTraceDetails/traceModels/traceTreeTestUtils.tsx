@@ -125,10 +125,10 @@ export function makeEAPOccurrence(
     transaction: 'occurrence.transaction',
     event_type: 'occurrence',
     issue_id: 1,
+    issue_type: 0,
     level: 'info',
     culprit: 'code',
     short_id: 'short_id',
-    type: 0,
     ...overrides,
   };
 }

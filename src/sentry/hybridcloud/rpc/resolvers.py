@@ -32,7 +32,7 @@ class CellResolutionStrategy(ABC):
         except OrganizationMapping.DoesNotExist as e:
             raise RegionMappingNotFound from e
 
-        return get_cell_by_name(mapping.region_name)
+        return get_cell_by_name(mapping.cell_name)
 
 
 @dataclass(frozen=True)
@@ -47,11 +47,7 @@ class ByCellName(CellResolutionStrategy):
 
     def resolve(self, arguments: ArgumentDict) -> Cell:
         # TODO(cells): Temporary fall back to "region_name" while service methods are being migrated.
-        cell_name = (
-            arguments["region_name"]
-            if self.parameter_name not in arguments
-            else arguments[self.parameter_name]
-        )
+        cell_name = arguments.get("region_name") or arguments[self.parameter_name]
         return get_cell_by_name(cell_name)
 
 

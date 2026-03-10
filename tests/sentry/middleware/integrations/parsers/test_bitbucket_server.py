@@ -34,9 +34,7 @@ class BitbucketServerRequestParserTest(TestCase):
         parser = BitbucketServerRequestParser(request=request, response_handler=self.get_response)
 
         # Missing region
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="eu"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         with mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo:
@@ -44,9 +42,7 @@ class BitbucketServerRequestParserTest(TestCase):
             assert get_response_from_control_silo.called
 
         # Valid region
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="us"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="us")
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202

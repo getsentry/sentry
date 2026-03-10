@@ -33,7 +33,7 @@ def assert_matching_organization_mapping(
     assert org_mapping.name == org.name
     assert org_mapping.slug == org.slug
     assert org_mapping.status == org.status
-    assert org_mapping.region_name
+    assert org_mapping.cell_name
     assert org_mapping.customer_id == customer_id
 
     if validate_flags:
@@ -171,7 +171,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 slug=temporary_slug,
                 organization_id=self.organization.id,
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
-                region_name=primary_slug_res.region_name,
+                cell_name=primary_slug_res.cell_name,
                 user_id=user.id,
             ).save(unsafe_write=True)
 

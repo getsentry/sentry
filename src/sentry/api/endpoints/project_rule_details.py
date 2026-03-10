@@ -45,6 +45,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
@@ -418,12 +419,40 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if isinstance(rule, Workflow):
-            audit_id = "WORKFLOW_REMOVE"
             with transaction.atomic(router.db_for_write(Workflow)):
                 rule.update(status=ObjectStatus.PENDING_DELETION)
                 scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=rule.id,
+                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+                data=rule.get_audit_log_data(),
+                transaction_id=scheduled.id,
+            )
+            try:
+                ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
+                rule = Rule.objects.get(id=ard.rule_id, project=project)
+
+                report_used_legacy_models()
+                with transaction.atomic(router.db_for_write(Rule)):
+                    rule.update(status=ObjectStatus.PENDING_DELETION)
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    )
+                    scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=rule.id,
+                    event=audit_log.get_event_id("RULE_REMOVE"),
+                    data=rule.get_audit_log_data(),
+                    transaction_id=scheduled.id,
+                )
+            except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
+                return Response(status=202)
+
         else:
-            audit_id = "RULE_REMOVE"
             report_used_legacy_models()
             with transaction.atomic(router.db_for_write(Rule)):
                 rule.update(status=ObjectStatus.PENDING_DELETION)
@@ -432,12 +461,12 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 )
                 scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
 
-        self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=rule.id,
-            event=audit_log.get_event_id(audit_id),
-            data=rule.get_audit_log_data(),
-            transaction_id=scheduled.id,
-        )
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=rule.id,
+                event=audit_log.get_event_id("RULE_REMOVE"),
+                data=rule.get_audit_log_data(),
+                transaction_id=scheduled.id,
+            )
         return Response(status=202)

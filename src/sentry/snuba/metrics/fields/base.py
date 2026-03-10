@@ -250,8 +250,6 @@ def _get_entity_of_metric_mri(
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
         )
-    elif use_case_id is UseCaseID.ESCALATING_ISSUES:
-        entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
     else:
         raise InvalidParams
 
@@ -477,7 +475,6 @@ class RawOp(MetricOperation):
         if use_case_id in [
             UseCaseID.TRANSACTIONS,
             UseCaseID.SPANS,
-            UseCaseID.ESCALATING_ISSUES,
         ]:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
