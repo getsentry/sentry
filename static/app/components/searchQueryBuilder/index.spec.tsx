@@ -2734,13 +2734,14 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(document.body);
 
-        const updatedFilterKeys = {
-          ...defaultProps.filterKeys,
-          [FieldKey.BROWSER_NAME]: {
-            ...defaultProps.filterKeys[FieldKey.BROWSER_NAME],
-            values: ['Safari', 'Opera', 'Firefox', 'Chrome'],
-          },
-        };
+        const updatedFilterKeys: ComponentProps<typeof SearchQueryBuilder>['filterKeys'] =
+          {
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...defaultProps.filterKeys[FieldKey.BROWSER_NAME]!,
+              values: ['Safari', 'Opera', 'Firefox', 'Chrome'],
+            },
+          };
 
         rerender(
           <SearchQueryBuilder
