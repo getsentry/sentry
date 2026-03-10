@@ -70,8 +70,6 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
-          SENTRY_ORG: sentry
-          SENTRY_PROJECT: sentry-frontend
         run: |
           ARGS=(
             --log-level=debug
