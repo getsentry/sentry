@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -122,7 +123,19 @@ const RESOURCES_TABLE = {
 export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Resources',
-  filters: {},
+  title: 'MCP Resource Details',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'mcp.resource.uri',
+          name: 'mcp.resource.uri',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, RESOURCES_TABLE],
 };

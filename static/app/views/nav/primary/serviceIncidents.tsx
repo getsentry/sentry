@@ -34,6 +34,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconFire />,
+          size: 'sm',
         }}
       >
         <SidebarItemUnreadIndicator

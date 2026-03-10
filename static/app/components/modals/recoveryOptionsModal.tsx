@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -8,7 +8,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Authenticator} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -25,6 +24,7 @@ function RecoveryOptionsModal({
   Header,
   Footer,
 }: Props) {
+  const theme = useTheme();
   const {
     isPending,
     isError,
@@ -110,7 +110,7 @@ function RecoveryOptionsModal({
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
             css={css`
-              margin-left: ${space(1)};
+              margin-left: ${theme.space.md};
             `}
             autoFocus
           >

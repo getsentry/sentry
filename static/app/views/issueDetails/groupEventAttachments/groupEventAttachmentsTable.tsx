@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import GroupEventAttachmentsTableRow from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
@@ -50,7 +49,7 @@ const AttachmentsPanelTable = styled(PanelTable)`
   margin-bottom: 0;
 
   & > :last-child {
-    padding: ${p => (p.isEmpty ? space(4) : undefined)};
+    padding: ${p => (p.isEmpty ? p.theme.space['3xl'] : undefined)};
   }
 
   .preview {

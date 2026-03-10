@@ -2372,10 +2372,6 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      index: true,
-      component: make(() => import('sentry/views/preprod/buildList/buildList')),
-    },
-    {
       path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
@@ -2551,10 +2547,6 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
-    },
-    {
-      path: 'dynamic-groups/',
-      component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
     },
     {
       path: 'views/:viewId/',
