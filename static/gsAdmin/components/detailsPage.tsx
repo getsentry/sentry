@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {space} from 'sentry/styles/space';
 
 import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import DropdownActions from 'admin/components/dropdownActions';
@@ -173,7 +172,7 @@ function DetailsPage({
 }
 
 const SectionBody = styled('div')<{withPadding?: boolean}>`
-  ${p => p.withPadding && `padding: ${space(2)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
 `;
 
 export default DetailsPage;
