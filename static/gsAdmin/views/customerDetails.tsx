@@ -43,7 +43,6 @@ import triggerChangeDatesModal from 'admin/components/changeDatesAction';
 import triggerGoogleDomainModal from 'admin/components/changeGoogleDomainAction';
 import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
-import {CustomerAbuseStats} from 'admin/components/customers/customerAbuseStats';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
 import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
@@ -896,17 +895,6 @@ export default function CustomerDetails() {
             name: 'Usage Stats',
             content: (
               <CustomerStats
-                dataType={activeDataType}
-                orgSlug={orgId}
-                onDemandPeriodStart={subscription.onDemandPeriodStart}
-                onDemandPeriodEnd={subscription.onDemandPeriodEnd}
-              />
-            ),
-          },
-          {
-            name: 'Abuse Stats',
-            content: (
-              <CustomerAbuseStats
                 dataType={activeDataType}
                 orgSlug={orgId}
                 onDemandPeriodStart={subscription.onDemandPeriodStart}

@@ -1,20 +1,23 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
+import MarkArea from 'sentry/components/charts/components/markArea';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DataCategoryExact} from 'sentry/types/core';
-import type {DataPoint} from 'sentry/types/echarts';
+import type {DataPoint, ReactEchartsRef} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -272,6 +275,91 @@ export function populateChartData(
   return [accepted!, totalFiltered!, overQuota!, totalDiscarded!, totalDropped!];
 }
 
+type AbuseRegion = {
+  end: number;
+  start: number;
+};
+
+function getAbuseRegions(
+  intervals: Array<string | number>,
+  groups: StatsGroup[]
+): AbuseRegion[] {
+  // Sum abuse quantities per interval
+  const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+  for (const group of groups) {
+    if (group.by.outcome === 'abuse') {
+      group.series['sum(quantity)']?.forEach((val, i) => {
+        abuseByInterval[i] += val;
+      });
+    }
+  }
+
+  // Build contiguous regions where abuse > 0
+  const regions: AbuseRegion[] = [];
+  let regionStart: number | null = null;
+  let regionEnd: number | null = null;
+
+  for (let i = 0; i < intervals.length; i++) {
+    const ts = new Date(intervals[i]!).getTime();
+
+    if (abuseByInterval[i]! > 0) {
+      if (regionStart === null) {
+        regionStart = ts;
+      }
+      regionEnd = ts;
+    } else if (regionStart !== null && regionEnd !== null) {
+      regions.push({start: regionStart, end: regionEnd});
+      regionStart = null;
+      regionEnd = null;
+    }
+  }
+
+  if (regionStart !== null && regionEnd !== null) {
+    regions.push({start: regionStart, end: regionEnd});
+  }
+
+  return regions;
+}
+
+function buildAbuseMarkAreaSeries(
+  regions: AbuseRegion[],
+  theme: ReturnType<typeof useTheme>,
+  isHovered: boolean
+) {
+  if (regions.length === 0) {
+    return [];
+  }
+
+  const markAreaData = regions.map(
+    r =>
+      [
+        {xAxis: new Date(r.start).toISOString()},
+        {xAxis: new Date(r.end).toISOString()},
+      ] as [{xAxis: string}, {xAxis: string}]
+  );
+
+  return [
+    {
+      seriesName: '',
+      type: 'line' as const,
+      data: [] as DataPoint[],
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: isHovered
+            ? theme.tokens.graphics.danger.vibrant
+            : theme.tokens.graphics.danger.muted,
+          opacity: isHovered ? 0.35 : 0.25,
+        },
+        label: {
+          show: false,
+        },
+        data: markAreaData,
+      }),
+    },
+  ];
+}
+
 function FooterLegend({points}: LegendProps) {
   let accepted = 0;
   let filtered = 0;
@@ -375,6 +463,10 @@ export const CustomerStats = memo(
       };
     }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
+    const statsEndpointUrl = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    });
+
     const {
       isPending: loading,
       error,
@@ -382,9 +474,7 @@ export const CustomerStats = memo(
       refetch,
     } = useApiQuery<Stats>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
+        statsEndpointUrl,
         {
           query: {
             start: dataDatetime.start,
@@ -405,8 +495,83 @@ export const CustomerStats = memo(
       }
     );
 
+    // Abuse outcomes only exist under the 'error' category, so we fetch them
+    // separately to show abuse limit periods regardless of the selected category.
+    const {data: abuseStats} = useApiQuery<Stats>(
+      [
+        statsEndpointUrl,
+        {
+          query: {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+            statsPeriod: dataDatetime.period,
+            interval: getInterval(dataDatetime),
+            groupBy: ['outcome', 'category'],
+            field: 'sum(quantity)',
+            outcome: ['abuse'],
+            ...(projectId ? {project: projectId} : {}),
+          },
+        },
+      ],
+      {
+        staleTime: Infinity,
+        retry: false,
+      }
+    );
+
     const theme = useTheme();
     const series = useSeries();
+    const chartRef = useRef<ReactEchartsRef>(null);
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const [abuseTooltipX, setAbuseTooltipX] = useState<number | null>(null);
+
+    const abuseRegions = useMemo(
+      () => (abuseStats ? getAbuseRegions(abuseStats.intervals, abuseStats.groups) : []),
+      [abuseStats]
+    );
+
+    useEffect(() => {
+      const container = chartContainerRef.current;
+      if (!container || abuseRegions.length === 0) {
+        return undefined;
+      }
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const instance = chartRef.current?.getEchartsInstance();
+        if (!instance) {
+          return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+
+        // Convert pixel X to data value (timestamp)
+        const dataPoint = instance.convertFromPixel('grid', [offsetX, 0]);
+        if (!dataPoint) {
+          return;
+        }
+
+        const timestamp = dataPoint[0];
+        const inAbuse = abuseRegions.some(
+          r => timestamp >= r.start && timestamp <= r.end
+        );
+
+        setAbuseTooltipX(inAbuse ? offsetX : null);
+      };
+
+      const handleMouseLeave = () => {
+        setAbuseTooltipX(null);
+      };
+
+      container.addEventListener('mousemove', handleMouseMove);
+      container.addEventListener('mouseleave', handleMouseLeave);
+
+      return () => {
+        container.removeEventListener('mousemove', handleMouseMove);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+      };
+    }, [abuseRegions]);
 
     if (loading) {
       return <LoadingIndicator />;
@@ -425,7 +590,12 @@ export const CustomerStats = memo(
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
+    const isAbuseHovered = abuseTooltipX !== null;
+    const abuseMarkArea = buildAbuseMarkAreaSeries(abuseRegions, theme, isAbuseHovered);
+
     const chartSeries = [
+      // Abuse markArea first so bars render on top and get mouse events
+      ...abuseMarkArea,
       ...populateChartData(intervals, groups, series),
       zeroFillDates(
         zeroFillStart,
@@ -472,24 +642,40 @@ export const CustomerStats = memo(
             >
               {zoomRenderProps => (
                 <Fragment>
-                  <BarChart
-                    isGroupedByDate
-                    stacked
-                    animation={false}
-                    series={chartSeries}
-                    colors={Object.values(series)
-                      .map(serie => serie.color)
-                      .filter(defined)}
-                    tooltip={{subLabels}}
-                    legend={Legend({
-                      right: 10,
-                      top: 0,
-                      data: legend,
-                      theme,
-                    })}
-                    grid={{top: 30, bottom: 0, left: 0, right: 0}}
-                    {...zoomRenderProps}
-                  />
+                  <ChartContainer ref={chartContainerRef}>
+                    <BarChart
+                      ref={chartRef}
+                      isGroupedByDate
+                      stacked
+                      animation={false}
+                      series={chartSeries}
+                      colors={Object.values(series)
+                        .map(serie => serie.color)
+                        .filter(defined)}
+                      tooltip={{subLabels}}
+                      legend={Legend({
+                        right: 10,
+                        top: 0,
+                        data: legend,
+                        theme,
+                      })}
+                      grid={{top: 30, bottom: 0, left: 0, right: 0}}
+                      {...zoomRenderProps}
+                    />
+                    {abuseTooltipX !== null && (
+                      <Flex align="center" gap="xs" position="absolute" padding="xs md">
+                        {({className}) => (
+                          <AbuseTooltip
+                            className={className}
+                            style={{left: abuseTooltipX}}
+                          >
+                            <AbuseDot />
+                            Abuse
+                          </AbuseTooltip>
+                        )}
+                      </Flex>
+                    )}
+                  </ChartContainer>
                   <Footer>
                     <FooterLegend points={stats} />
                   </Footer>
@@ -503,6 +689,30 @@ export const CustomerStats = memo(
     );
   }
 );
+
+const ChartContainer = styled('div')`
+  position: relative;
+`;
+
+const AbuseTooltip = styled(Flex)`
+  bottom: -${p => p.theme.space.md};
+  transform: translateX(-50%);
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.primary};
+  z-index: 1;
+`;
+
+const AbuseDot = styled('span')`
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: ${p => p.theme.tokens.graphics.danger.vibrant};
+  opacity: 0.35;
+`;
 
 const Footer = styled('div')`
   display: flex;
