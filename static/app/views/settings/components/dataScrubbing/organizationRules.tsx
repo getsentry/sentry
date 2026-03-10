@@ -9,10 +9,10 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useMemoTryCatch} from 'sentry/utils/useMemoTryCatch';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 import {Rules} from './rules';
-import type {Rule} from './types';
 
 type Props = {
   organization: Organization;
@@ -20,24 +20,18 @@ type Props = {
 
 export function OrganizationRules({organization}: Props) {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [rules, setRules] = useState<Rule[]>(
-    (() => {
-      try {
-        return convertRelayPiiConfig(organization.relayPiiConfig);
-      } catch {
-        return [];
-      }
-    })()
-  );
   const [contentHeight, setContentHeight] = useState<string | undefined>();
 
+  const [rules, rulesError] = useMemoTryCatch(
+    convertRelayPiiConfig,
+    organization.relayPiiConfig
+  );
+
   useEffect(() => {
-    try {
-      setRules(convertRelayPiiConfig(organization.relayPiiConfig));
-    } catch {
+    if (rulesError) {
       addErrorMessage(t('Unable to load data scrubbing rules'));
     }
-  }, [organization.relayPiiConfig]);
+  }, [rulesError]);
 
   const handleToggleCollapsed = useCallback(() => {
     setIsCollapsed(previousIsCollapsed => !previousIsCollapsed);
@@ -52,7 +46,7 @@ export function OrganizationRules({organization}: Props) {
     [contentHeight]
   );
 
-  if (rules.length === 0) {
+  if (!rules?.length) {
     return (
       <PanelAlert variant="info">
         {t('There are no data scrubbing rules at the organization level')}
