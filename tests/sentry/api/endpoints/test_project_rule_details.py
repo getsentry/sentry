@@ -197,6 +197,13 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(self.workflow)
         self.fake_workflow_id = get_fake_id_from_object_id(self.workflow.id)
 
+        # fetch dual written workflow
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
+        self.dual_written_workflow = arw.workflow
+        self.fake_dual_written_workflow_id = get_fake_id_from_object_id(
+            self.dual_written_workflow.id
+        )
+
 
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self) -> None:
@@ -647,14 +654,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
     def test_simple(self, send_robust: MagicMock) -> None:
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                # "key": "foo",
-                # "match": "eq",
-                # "value": "bar",
-            }
-        ]
+        conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
         payload = {
             "name": "hello world",
             "owner": self.user.id,
@@ -670,30 +670,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
-        # test with a workflow
-        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
-        workflow = arw.workflow
-        fake_workflow_id = get_fake_id_from_object_id(workflow.id)
-
         with self.feature("organizations:workflow-engine-rule-serializers"):
             workflow_response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                fake_workflow_id,
+                self.fake_dual_written_workflow_id,
                 status_code=200,
                 **payload,
             )
         assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_no_owner(self) -> None:
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
-            }
-        ]
+        conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
         payload = {
             "name": "hello world",
             "owner": None,
@@ -707,6 +695,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_update_owner_type(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -727,6 +725,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         payload = {
             "name": "hello world 2",
             "owner": f"user:{self.user.id}",
@@ -742,6 +750,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_team_owner_not_member(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -805,6 +823,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_reassign_owner_from_own_team_to_any_team(self) -> None:
         """Test that a user can reassign rule ownership from their team to any other team"""
