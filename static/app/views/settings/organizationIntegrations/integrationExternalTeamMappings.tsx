@@ -127,11 +127,9 @@ function IntegrationExternalTeamMappings(props: Props) {
         {...modalProps}
         type="team"
         integration={integration}
-        dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
         getBaseFormEndpoint={map => getBaseFormEndpoint(map)}
         defaultOptions={defaultTeamOptions()}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
         onSubmitSuccess={handleSubmitSuccess}
       />
     ));
@@ -142,10 +140,8 @@ function IntegrationExternalTeamMappings(props: Props) {
       type="team"
       integration={integration}
       mappings={mappings()}
-      dataEndpoint={ORGANIZATION_TEAMS_ENDPOINT}
       getBaseFormEndpoint={mapping => getBaseFormEndpoint(mapping)}
       defaultOptions={defaultTeamOptions()}
-      sentryNamesMapper={sentryNamesMapper}
       onCreate={onCreate}
       onDelete={handleDelete}
       pageLinks={teamsPageLinks}

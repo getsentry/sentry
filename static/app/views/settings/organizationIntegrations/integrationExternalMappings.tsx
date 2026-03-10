@@ -37,7 +37,7 @@ type CodeOwnersAssociationMappings = Record<
 
 type Props = Pick<
   React.ComponentProps<typeof IntegrationExternalMappingForm>,
-  'dataEndpoint' | 'getBaseFormEndpoint' | 'sentryNamesMapper' | 'defaultOptions'
+  'getBaseFormEndpoint' | 'defaultOptions'
 > & {
   integration: Integration;
   mappings: ExternalActorMapping[];
@@ -57,12 +57,10 @@ function IntegrationExternalMappings(props: Props) {
     type,
     mappings,
     pageLinks,
-    dataEndpoint,
     defaultOptions,
     onCreate,
     onDelete,
     getBaseFormEndpoint,
-    sentryNamesMapper,
   } = props;
 
   const [newlyAssociatedMappings, setNewlyAssociatedMappings] = useState<
@@ -129,10 +127,8 @@ function IntegrationExternalMappings(props: Props) {
       <IntegrationExternalMappingForm
         type={type}
         integration={integration}
-        dataEndpoint={dataEndpoint}
         getBaseFormEndpoint={getBaseFormEndpoint}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
         onSubmitSuccess={(newMapping: ExternalActorMapping) => {
           setNewlyAssociatedMappings([
             ...newlyAssociatedMappings.filter(

@@ -11,30 +11,25 @@ import type {
   ExternalActorMappingOrSuggestion,
   Integration,
 } from 'sentry/types/integrations';
-import apiFetch from 'sentry/utils/api/apiFetch';
+import type {Member, Team} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   getExternalActorEndpointDetails,
   isExternalActorMapping,
   sentryNameToOption,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  queryOptions,
-  useMutation,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, queryOptions, useMutation} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type BaseProps = {
-  dataEndpoint: string;
   getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
   integration: Integration;
-  sentryNamesMapper: (v: any) => Array<{id: string; name: string}>;
   type: 'user' | 'team';
   defaultOptions?: Array<{label: React.ReactNode; value: string}>;
   mapping?: ExternalActorMappingOrSuggestion;
-  onSubmitError?: (error: any) => void;
-  onSubmitSuccess?: (data: any) => void;
+  onSubmitError?: () => void;
+  onSubmitSuccess?: () => void;
 };
 
 type InlineProps = BaseProps & {
@@ -48,45 +43,75 @@ type ModalProps = BaseProps &
 
 type Props = InlineProps | ModalProps;
 
-function makeSelectQueryOptions({
-  dataEndpoint,
-  defaultOptions,
-  mapping,
-  type,
-  sentryNamesMapper,
-}: Pick<
-  BaseProps,
-  'dataEndpoint' | 'defaultOptions' | 'mapping' | 'type' | 'sentryNamesMapper'
->) {
+function mapTeams(teams: Team[]) {
+  return teams.map(({id, slug}) => sentryNameToOption({id, name: slug}));
+}
+
+function mapMembers(members: Member[]) {
+  return members
+    .filter(member => member.user)
+    .map(({user, email, name}) => {
+      const label = email === name ? `${email}` : `${name} - ${email}`;
+      return sentryNameToOption({id: user?.id!, name: label});
+    });
+}
+
+function makeTeamSelectQueryOptions(
+  orgSlug: string,
+  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
+  mapping?: ExternalActorMappingOrSuggestion
+) {
   return (debouncedInput: string) =>
     queryOptions({
-      queryKey: (debouncedInput
-        ? [dataEndpoint as any, {query: {query: debouncedInput}}]
-        : [dataEndpoint as any]) as ApiQueryKey,
-      queryFn: apiFetch<any[]>,
-      staleTime: 0,
-      select: response => {
-        const mapped = sentryNamesMapper(response.json);
-        const transformed = (Array.isArray(mapped) ? mapped : []).map(sentryNameToOption);
-
-        // Merge with defaultOptions if provided
-        if (Array.isArray(defaultOptions)) {
-          const seen = new Set(transformed.map(o => o.value));
-          const extras = defaultOptions.filter(o => !seen.has(o.value));
-          transformed.unshift(...extras);
-        }
-
-        // Ensure current mapping's entry is present
-        if (mapping && isExternalActorMapping(mapping) && mapping.sentryName) {
-          const mappingId = (mapping as any)[`${type}Id`];
-          if (mappingId && !transformed.some(o => o.value === mappingId)) {
-            transformed.unshift({value: mappingId, label: mapping.sentryName});
-          }
-        }
-
-        return transformed;
-      },
+      ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+        path: {organizationIdOrSlug: orgSlug},
+        ...(debouncedInput ? {query: {query: debouncedInput}} : {}),
+        staleTime: 0,
+      }),
+      select: ({json: teams}) =>
+        mergeOptions(mapTeams(teams), defaultOptions, mapping, 'team'),
     });
+}
+
+function makeMemberSelectQueryOptions(
+  orgSlug: string,
+  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
+  mapping?: ExternalActorMappingOrSuggestion
+) {
+  return (debouncedInput: string) =>
+    queryOptions({
+      ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+        path: {organizationIdOrSlug: orgSlug},
+        ...(debouncedInput ? {query: {query: debouncedInput}} : {}),
+        staleTime: 0,
+      }),
+      select: ({json: members}) =>
+        mergeOptions(mapMembers(members), defaultOptions, mapping, 'user'),
+    });
+}
+
+function mergeOptions(
+  transformed: Array<{label: React.ReactNode; value: string}>,
+  defaultOptions?: Array<{label: React.ReactNode; value: string}>,
+  mapping?: ExternalActorMappingOrSuggestion,
+  type?: 'user' | 'team'
+) {
+  // Merge with defaultOptions if provided
+  if (Array.isArray(defaultOptions)) {
+    const seen = new Set(transformed.map(o => o.value));
+    const extras = defaultOptions.filter(o => !seen.has(o.value));
+    transformed.unshift(...extras);
+  }
+
+  // Ensure current mapping's entry is present
+  if (mapping && type && isExternalActorMapping(mapping) && mapping.sentryName) {
+    const mappingId = (mapping as any)[`${type}Id`] as string | undefined;
+    if (mappingId && !transformed.some(o => o.value === mappingId)) {
+      transformed.unshift({value: mappingId, label: mapping.sentryName});
+    }
+  }
+
+  return transformed;
 }
 
 function buildMutationData(
@@ -106,23 +131,15 @@ function buildMutationData(
 }
 
 function InlineMappingForm({
-  dataEndpoint,
   defaultOptions,
   getBaseFormEndpoint,
   integration,
   mapping,
   onSubmitError,
   onSubmitSuccess,
-  sentryNamesMapper,
   type,
 }: InlineProps) {
-  const selectQueryOptions = makeSelectQueryOptions({
-    dataEndpoint,
-    defaultOptions,
-    mapping,
-    type,
-    sentryNamesMapper,
-  });
+  const {slug: orgSlug} = useOrganization();
 
   const fieldName = `${type}Id` as const;
   const initialValue =
@@ -147,18 +164,31 @@ function InlineMappingForm({
             );
             return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
           },
-          onSuccess: (resp: any) => onSubmitSuccess?.(resp),
-          onError: (err: any) => onSubmitError?.(err),
+          onSuccess: () => onSubmitSuccess?.(),
+          onError: () => onSubmitError?.(),
         }}
       >
-        {field => (
-          <field.SelectAsync
-            value={field.state.value}
-            onChange={field.handleChange}
-            placeholder={t('Select Sentry %s', capitalize(type))}
-            queryOptions={selectQueryOptions}
-          />
-        )}
+        {field =>
+          type === 'team' ? (
+            <field.SelectAsync
+              value={field.state.value}
+              onChange={field.handleChange}
+              placeholder={t('Select Sentry Team')}
+              queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
+            />
+          ) : (
+            <field.SelectAsync
+              value={field.state.value}
+              onChange={field.handleChange}
+              placeholder={t('Select Sentry User')}
+              queryOptions={makeMemberSelectQueryOptions(
+                orgSlug,
+                defaultOptions,
+                mapping
+              )}
+            />
+          )
+        }
       </AutoSaveField>
     </FormWrapper>
   );
@@ -169,23 +199,23 @@ function ModalMappingForm({
   Footer,
   Header,
   closeModal,
-  dataEndpoint,
   defaultOptions,
   getBaseFormEndpoint,
   integration,
   mapping,
   onSubmitError,
   onSubmitSuccess,
-  sentryNamesMapper,
   type,
 }: ModalProps) {
-  const selectQueryOptions = makeSelectQueryOptions({
-    dataEndpoint,
-    defaultOptions,
-    mapping,
-    type,
-    sentryNamesMapper,
-  });
+  const {slug: orgSlug} = useOrganization();
+  const selectQueryOptions =
+    type === 'team'
+      ? makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)
+      : (makeMemberSelectQueryOptions(
+          orgSlug,
+          defaultOptions,
+          mapping
+        ) as unknown as ReturnType<typeof makeTeamSelectQueryOptions>);
 
   const fieldName = `${type}Id` as const;
   const initialSentryId =
@@ -213,11 +243,11 @@ function ModalMappingForm({
       );
       return fetchMutation({url: apiEndpoint, method: apiMethod, data: fullData});
     },
-    onSuccess: (resp: any) => {
-      onSubmitSuccess?.(resp);
+    onSuccess: () => {
+      onSubmitSuccess?.();
       closeModal();
     },
-    onError: (err: any) => onSubmitError?.(err),
+    onError: () => onSubmitError?.(),
   });
 
   const form = useScrapsForm({

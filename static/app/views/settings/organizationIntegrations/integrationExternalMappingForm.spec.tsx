@@ -12,12 +12,11 @@ import {
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', () => {
-  const dataEndpoint = '/test/dataEndpoint/';
+  const membersEndpoint = '/organizations/org-slug/members/';
+  const teamsEndpoint = '/organizations/org-slug/teams/';
   const baseProps = {
     integration: GitHubIntegrationFixture(),
-    dataEndpoint,
-    getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
-    sentryNamesMapper: (mappings: any) => mappings,
+    getBaseFormEndpoint: jest.fn(_mapping => membersEndpoint),
   } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
 
   const closeModal = jest.fn();
@@ -41,10 +40,17 @@ describe('IntegrationExternalMappingForm', () => {
     externalName: '@getsentry/animals',
     sentryName: '#zoo',
   };
-  const DEFAULT_OPTIONS = [
-    {id: '1', name: 'option1'},
-    {id: '2', name: 'option2'},
-    {id: '3', name: 'option3'},
+
+  // Member data with email === name so labels are just 'option1', 'option2', etc.
+  const MOCK_MEMBERS = [
+    {name: 'option1', email: 'option1', user: {id: '1'}},
+    {name: 'option2', email: 'option2', user: {id: '2'}},
+    {name: 'option3', email: 'option3', user: {id: '3'}},
+  ];
+  const MOCK_TEAMS = [
+    {id: '1', slug: 'option1'},
+    {id: '2', slug: 'option2'},
+    {id: '3', slug: 'option3'},
   ];
 
   let postResponse: jest.Mock;
@@ -54,17 +60,22 @@ describe('IntegrationExternalMappingForm', () => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: dataEndpoint,
+      url: membersEndpoint,
       method: 'GET',
-      body: DEFAULT_OPTIONS,
+      body: MOCK_MEMBERS,
+    });
+    MockApiClient.addMockResponse({
+      url: teamsEndpoint,
+      method: 'GET',
+      body: MOCK_TEAMS,
     });
     postResponse = MockApiClient.addMockResponse({
-      url: dataEndpoint,
+      url: membersEndpoint,
       method: 'POST',
       body: {},
     });
     putResponse = MockApiClient.addMockResponse({
-      url: `${dataEndpoint}1/`,
+      url: `${membersEndpoint}1/`,
       method: 'PUT',
       body: {},
     });
@@ -225,9 +236,9 @@ describe('IntegrationExternalMappingForm', () => {
 
   it('fetches options with search query when typing', async () => {
     const searchResponse = MockApiClient.addMockResponse({
-      url: dataEndpoint,
+      url: membersEndpoint,
       method: 'GET',
-      body: [{id: '4', name: 'searched-option'}],
+      body: [{name: 'searched-option', email: 'searched-option', user: {id: '4'}}],
       match: [MockApiClient.matchQuery({query: 'searched'})],
     });
 
@@ -257,11 +268,12 @@ describe('IntegrationExternalMappingForm', () => {
   });
 
   it('allows defaultOptions to be provided', async () => {
+    const defaultOptions = MOCK_MEMBERS.map(m => ({value: m.user.id, label: m.name}));
     render(
       <IntegrationExternalMappingForm
         type="user"
         mapping={MOCK_USER_MAPPING}
-        defaultOptions={DEFAULT_OPTIONS.map(({id, name}) => ({value: id, label: name}))}
+        defaultOptions={defaultOptions}
         {...modalProps}
         {...baseProps}
       />

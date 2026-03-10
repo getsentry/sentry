@@ -125,11 +125,9 @@ function IntegrationExternalUserMappings(props: Props) {
         {...modalProps}
         type="user"
         integration={integration}
-        dataEndpoint={DATA_ENDPOINT}
         getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
         defaultOptions={defaultUserOptions}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
         onSubmitSuccess={handleSubmitSuccess}
       />
     ));
@@ -141,10 +139,8 @@ function IntegrationExternalUserMappings(props: Props) {
         type="user"
         integration={integration}
         mappings={mappings()}
-        dataEndpoint={DATA_ENDPOINT}
         getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
         defaultOptions={defaultUserOptions}
-        sentryNamesMapper={sentryNamesMapper}
         onCreate={openMembersModal}
         onDelete={handleDelete}
         pageLinks={membersPageLinks}
