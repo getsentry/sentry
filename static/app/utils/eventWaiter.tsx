@@ -5,6 +5,7 @@ import type {Client} from 'sentry/api';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
@@ -84,24 +85,35 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
         `/projects/${organization.slug}/${project.slug}/`
       );
       firstEvent = getFirstEvent(eventType, resp);
-    } catch (resp: any) {
-      if (!resp) {
+    } catch (err: unknown) {
+      if (!err) {
         return;
       }
 
-      // This means org or project does not exist, we need to stop polling
-      // Also stop polling on auth-related errors (403/401)
-      if ([404, 403, 401, 0].includes(resp.status)) {
-        // TODO: Add some UX around this... redirect? error message?
-        this.stopPolling();
-        return;
+      if (err instanceof RequestError) {
+        // This means org or project does not exist, we need to stop polling
+        // Also stop polling on auth-related errors (403/401)
+        if (err.status && [404, 403, 401, 0].includes(err.status)) {
+          // TODO: Add some UX around this... redirect? error message?
+          this.stopPolling();
+          return;
+        }
+
+        Sentry.setExtras({
+          status: err.status,
+          detail: err.responseJSON?.detail,
+        });
       }
 
-      Sentry.setExtras({
-        status: resp.status,
-        detail: resp.responseJSON?.detail,
-      });
-      Sentry.captureException(new Error(`Error polling for first ${eventType} event`));
+      const captureError = new Error(`Error polling for first ${eventType} event`);
+
+      try {
+        captureError.cause = err;
+      } catch {
+        // some browsers don't let you set a `cause`
+      }
+
+      Sentry.captureException(captureError);
     }
 
     if (firstEvent === null || firstEvent === false) {
