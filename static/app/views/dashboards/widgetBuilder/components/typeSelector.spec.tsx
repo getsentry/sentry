@@ -25,7 +25,7 @@ describe('TypeSelector', () => {
     // click dropdown
     await userEvent.click(await screen.findByText('Table'));
     // select new option
-    await userEvent.click(await screen.findByText('Bar'));
+    await userEvent.click(await screen.findByText('Bar (Time Series)'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -54,9 +54,6 @@ describe('TypeSelector', () => {
         <TypeSelector />
       </WidgetBuilderProvider>,
       {
-        organization: {
-          features: ['dashboards-issue-widget-series-display-type'],
-        },
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',

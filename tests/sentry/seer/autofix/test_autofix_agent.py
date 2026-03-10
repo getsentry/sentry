@@ -431,9 +431,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(result["successes"]) == 1
         mock_client.get_run.assert_called_once_with(123)
         mock_client.launch_coding_agents.assert_called_once()
-        # Verify repos came from preferences
+        # Verify repos came from preferences (as SeerRepoDefinition objects)
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
-        assert call_kwargs["repos"] == ["owner/repo"]
+        repos = call_kwargs["repos"]
+        assert len(repos) == 1
+        assert repos[0].owner == "owner"
+        assert repos[0].name == "repo"
 
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")

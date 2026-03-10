@@ -21,8 +21,7 @@ export default function TracesPage() {
 
   return (
     <Feature
-      features={['performance-trace-explorer', 'visibility-explore-view']}
-      requireAll={false}
+      features={['visibility-explore-view']}
       organization={organization}
       renderDisabled={NoAccess}
     >

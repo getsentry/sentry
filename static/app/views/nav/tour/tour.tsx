@@ -226,6 +226,10 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 export function StackedNavigationTourReminder({children}: {children: React.ReactNode}) {
   const {showTourReminder, setShowTourReminder} = useNavContext();
 
+  if (!showTourReminder) {
+    return children;
+  }
+
   return (
     <TourGuide
       title={t('Come back anytime')}

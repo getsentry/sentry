@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {
   CanvasPoolManager,
@@ -377,7 +376,7 @@ export const ProfilingDetailsListItem = styled('li')<{
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
-  margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
+  margin-right: ${p => (p.margin === 'none' ? 0 : p.theme.space.md)};
 
   button {
     height: 100%;

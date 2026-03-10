@@ -118,7 +118,9 @@ export function useSaveAsMetricItems(_options: UseSaveAsMetricItemsOptions) {
               key: `add-to-dashboard-${index}`,
               label: `${getVisualizeLabel(index)}: ${
                 formatTraceMetricsFunction(
-                  metricQuery.queryParams.aggregateFields.find(isVisualize)?.yAxis ?? ''
+                  metricQuery.queryParams.aggregateFields
+                    .filter(isVisualize)
+                    .map(v => v.yAxis)
                 ) as string
               }`,
               onAction: () => {

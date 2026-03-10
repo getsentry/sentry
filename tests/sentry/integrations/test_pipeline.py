@@ -32,7 +32,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 from sentry.workflow_engine.models.action import Action
 
@@ -53,8 +53,8 @@ def naive_build_integration(data):
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
     regions = (
-        Region("na", 0, "North America", RegionCategory.MULTI_TENANT),
-        Region("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
+        Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
+        Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
     )
     external_id = "dummy_id-123"
 
@@ -90,7 +90,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             for org in na_orgs:
                 integration.add_organization(org)
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
-                mapping.update(region_name="na")
+                mapping.update(cell_name="na")
 
     def test_with_data(self, *args) -> None:
         data = {
@@ -170,7 +170,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(region_name="na")
+            mapping.update(cell_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with (
@@ -190,7 +190,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
-            mapping.update(region_name="eu")
+            mapping.update(cell_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with override_regions(self.regions):

@@ -207,7 +207,10 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse' && point.by.reason === 'none') {
+      if (
+        point.by.outcome === 'abuse' &&
+        (!point.by.reason || point.by.reason === 'none')
+      ) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
@@ -215,7 +218,11 @@ export function populateChartData(
           };
         }
 
-        droppedData.abuse.data.push(dataObject);
+        if (dateIndex >= droppedData.abuse.data.length) {
+          droppedData.abuse.data.push(dataObject);
+        } else {
+          droppedData.abuse.data[dateIndex]!.value += dataObject.value;
+        }
 
         if (dateIndex >= totalDropped!.data.length) {
           totalDropped!.data.push({...dataObject, value: 0});

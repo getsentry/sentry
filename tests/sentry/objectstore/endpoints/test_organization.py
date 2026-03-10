@@ -16,7 +16,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_objectstore
-from sentry.types.region import Region
+from sentry.types.region import Cell
 from sentry.utils import json
 
 
@@ -198,7 +198,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     def test_health(self):
         config = asdict(test_region)
         config["address"] = self.live_server.url
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 response = self.client.get(
                     self.get_endpoint_url() + "health",
@@ -213,7 +213,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 
@@ -284,7 +284,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         ctx = zstandard.ZstdCompressor()
         compressed = ctx.compress(data)
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 

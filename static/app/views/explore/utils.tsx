@@ -423,10 +423,7 @@ export function viewSamplesTarget({
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     return 'traces';
   }
 
@@ -711,6 +708,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 /**

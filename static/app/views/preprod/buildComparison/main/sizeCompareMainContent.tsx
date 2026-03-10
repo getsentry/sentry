@@ -109,7 +109,8 @@ export function SizeCompareMainContent() {
         !!mainArtifactComparison?.head_size_metric_id &&
         !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
-        !!baseArtifactId,
+        !!baseArtifactId &&
+        mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
     }
   );
 

@@ -155,18 +155,13 @@ export function AggregateColumnEditorModal({
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
-                  ...(organization.features.includes('visibility-explore-equations')
-                    ? [
-                        {
-                          key: 'add-equation',
-                          label: t('Equation'),
-                          details: t('ex. p50(span.duration) / 2'),
-                          disabled: !canAddVisualize,
-                          onAction: () =>
-                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
-                        },
-                      ]
-                    : []),
+                  {
+                    key: 'add-equation',
+                    label: t('Equation'),
+                    details: t('ex. p50(span.duration) / 2'),
+                    disabled: !canAddVisualize,
+                    onAction: () => insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
+                  },
                 ]}
                 trigger={triggerProps => (
                   <Button

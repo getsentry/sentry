@@ -262,7 +262,7 @@ class IssueAlertMigrator:
             "when_condition_group": when_dcg,
             "created_by_id": self.user_id,
             "owner_user_id": self.rule.owner_user_id,
-            "owner_team": self.rule.owner_team,
+            "owner_team_id": self.rule.owner_team_id,
             "config": config,
             "enabled": enabled,
         }

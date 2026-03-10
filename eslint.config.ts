@@ -588,6 +588,7 @@ export default typescript.config([
           '@typescript-eslint/consistent-type-exports': 'error',
           '@typescript-eslint/no-array-delete': 'error',
           '@typescript-eslint/no-base-to-string': 'error',
+          '@typescript-eslint/no-duplicate-type-constituents': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
@@ -1291,6 +1292,7 @@ export default typescript.config([
                 '*.{ts,tsx}', // core/renderToString.tsx at the core root etc.
                 '*/index.{ts,tsx}', // core/form/index.tsx, core/alert/index.tsx etc.
                 '**/*.png', // needed for story-files
+                '**/__stories__/*.{ts,tsx}', // story demo helpers imported by .mdx files
               ],
             },
             {

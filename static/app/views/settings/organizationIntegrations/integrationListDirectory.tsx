@@ -268,7 +268,6 @@ export default function IntegrationListDirectory() {
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
         {
-          ...location,
           query: {...location.query, category: newCategory ? newCategory : undefined},
         },
         {replace: true}
@@ -288,7 +287,6 @@ export default function IntegrationListDirectory() {
     (newSearch: string) => {
       navigate(
         {
-          ...location,
           query: {...location.query, search: newSearch ? newSearch : undefined},
         },
         {replace: true}

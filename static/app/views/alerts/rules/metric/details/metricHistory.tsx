@@ -11,7 +11,6 @@ import Duration from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -185,7 +184,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
   }
 
   div:last-of-type {
-    padding: ${p => p.isEmpty && `48px ${space(1)}`};
+    padding: ${p => p.isEmpty && `48px ${p.theme.space.md}`};
   }
 
   ${p =>

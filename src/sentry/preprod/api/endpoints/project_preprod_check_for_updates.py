@@ -43,7 +43,7 @@ class CheckForUpdatesApiResponse(BaseModel):
 
 def _build_details_from_artifact(artifact: PreprodArtifact) -> InstallableBuildDetails | None:
     """Convert a PreprodArtifact to InstallableBuildDetails, or None."""
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     if (
         not mobile_app_info
         or not mobile_app_info.build_version

@@ -30,7 +30,6 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -1981,7 +1980,7 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p => !p.hideAllTabs && `padding-top: ${space(2)};`}
+  ${p => !p.hideAllTabs && `padding-top: ${p.theme.space.xl};`}
 `;
 
 const CheckList = styled('ul')`

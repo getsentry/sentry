@@ -1,8 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const IssueStreamHeaderLabel = styled('div')<{
   align?: 'left' | 'right';
   breakpoint?: string;
@@ -19,7 +17,7 @@ const IssueStreamHeaderLabel = styled('div')<{
   ${p =>
     p.align === 'right'
       ? css`
-          padding-right: ${space(2)};
+          padding-right: ${p.theme.space.xl};
           text-align: right;
         `
       : css`
@@ -33,7 +31,7 @@ const IssueStreamHeaderLabel = styled('div')<{
         content: '';
         position: absolute;
         top: 0;
-        left: -${space(2)};
+        left: -${p.theme.space.xl};
         width: 1px;
         height: 100%;
 

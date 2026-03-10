@@ -242,6 +242,11 @@ export function SampleTableRow({
   };
 
   const renderDefaultCell = (field: string) => {
+    // For the metric value column, keep column.type as 'number' so that
+    // CellAction/updateQuery adds the raw numeric value to the filter
+    // instead of converting it with a duration assumption. The renderer
+    // still picks up the correct formatter via meta.fields/meta.units.
+    const isMetricValue = field === TraceMetricKnownFieldKey.METRIC_VALUE;
     const discoverColumn: TableColumn<keyof TableDataRow> = {
       column: {
         field,
@@ -250,7 +255,9 @@ export function SampleTableRow({
       name: field,
       key: field,
       isSortable: true,
-      type: (meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING,
+      type: isMetricValue
+        ? 'number'
+        : ((meta?.fields?.[field] as ColumnValueType) ?? FieldValueType.STRING),
     };
     return (
       <FieldRenderer
