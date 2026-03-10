@@ -16,7 +16,7 @@ const DEFAULT_POLL_INTERVAL = 5000;
  * Or in the case of transactions & replay the value will be set to true.
  * The `group.id` value is used to generate links directly into the event.
  */
-export type FirstIssue = null | boolean | Group;
+type FirstEvent = null | boolean | Group;
 
 type EventType = 'error' | 'transaction' | 'replay' | 'profile' | 'log';
 
@@ -48,7 +48,7 @@ function getFirstEvent(eventType: EventType, resp: Project) {
 /**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
- * resolved FirstIssue (a Group for errors, or true for other event types).
+ * resolved FirstEvent (a Group for errors, or true for other event types).
  * Once resolved, polling stops automatically.
  */
 export function useEventWaiter({
@@ -57,12 +57,12 @@ export function useEventWaiter({
   project,
   disabled,
   pollInterval = DEFAULT_POLL_INTERVAL,
-}: UseEventWaiterOptions): FirstIssue {
-  const [firstIssue, setFirstIssue] = useState<FirstIssue>(null);
+}: UseEventWaiterOptions): FirstEvent {
+  const [firstIssue, setFirstEvent] = useState<FirstEvent>(null);
 
   const shouldPoll = !disabled && !firstIssue && !!organization && !!project;
 
-  const projectUrl = getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+  const projectUrl = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
     path: {
       organizationIdOrSlug: organization.slug,
       projectIdOrSlug: project.slug,
@@ -70,7 +70,7 @@ export function useEventWaiter({
   });
 
   const issuesUrl = getApiUrl(
-    `/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/`,
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
     {
       path: {
         organizationIdOrSlug: organization.slug,
@@ -122,10 +122,10 @@ export function useEventWaiter({
       // The event may have expired, default to true
       const resolved =
         issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true;
-      setFirstIssue(resolved);
+      setFirstEvent(resolved);
     } else {
       // transaction, replay, profile, log
-      setFirstIssue(Boolean(firstEvent));
+      setFirstEvent(Boolean(firstEvent));
     }
   }, [firstEvent, eventType, issuesQuery.data, firstIssue]);
 
