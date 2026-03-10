@@ -570,6 +570,13 @@ export const CustomerStats = memo(
 
         const rect = node.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+
+        // Ensure the mouse is within the chart grid area
+        if (!instance.containPixel('grid', [offsetX, offsetY])) {
+          setAbuseTooltip(null);
+          return;
+        }
 
         // Convert pixel X to data value (timestamp)
         const dataPoint = instance.convertFromPixel('grid', [offsetX, 0]);
