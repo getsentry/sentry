@@ -123,12 +123,12 @@ class TestWorkflowEngineSerializer(TestCase):
             "sensitivity": self.detector.config.get("sensitivity"),
             "seasonality": self.detector.config.get("seasonality"),
             "detectionType": self.detector.config["detection_type"],
-            "extrapolationMode": (
-                ExtrapolationMode(self.alert_rule.snuba_query.extrapolation_mode).name.lower()
-                if self.alert_rule.snuba_query.extrapolation_mode is not None
-                else None
-            ),
         }
+        # Only include extrapolationMode if not None (matches AlertRuleSerializer behavior)
+        if self.alert_rule.snuba_query.extrapolation_mode is not None:
+            self.expected["extrapolationMode"] = ExtrapolationMode(
+                self.alert_rule.snuba_query.extrapolation_mode
+            ).name.lower()
 
     def add_warning_trigger(self) -> None:
         self.warning_trigger = self.create_alert_rule_trigger(
