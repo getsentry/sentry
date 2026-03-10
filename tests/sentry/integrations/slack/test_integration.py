@@ -12,6 +12,7 @@ from sentry import audit_log
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
@@ -622,7 +623,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_replies")
     def test_get_thread_history_success(self, mock_conversations_replies: MagicMock) -> None:
-        self.integration.metadata["scopes"] = ["channels:history"]
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
         mock_conversations_replies.return_value = {
             "ok": True,
             "messages": [
@@ -646,7 +647,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     def test_get_thread_history_error_returns_empty_list(
         self, mock_conversations_replies: MagicMock
     ) -> None:
-        self.integration.metadata["scopes"] = ["channels:history"]
+        self.integration.metadata["scopes"] = [SlackScope.CHANNELS_HISTORY]
         mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
         result = self.installation.get_thread_history(
             channel_id=self.channel_id, thread_ts=self.thread_ts
@@ -662,7 +663,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_add")
     def test_add_reaction_success(self, mock_reactions_add: MagicMock) -> None:
-        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.integration.metadata["scopes"] = [SlackScope.REACTIONS_WRITE]
         self.installation.add_reaction(
             channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
         )
@@ -674,7 +675,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     def test_add_reaction_already_reacted_is_idempotent(
         self, mock_reactions_add: MagicMock
     ) -> None:
-        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.integration.metadata["scopes"] = [SlackScope.REACTIONS_WRITE]
         mock_response = MagicMock()
         mock_response.get.return_value = "already_reacted"
         mock_reactions_add.side_effect = SlackApiError("already_reacted", mock_response)
@@ -692,7 +693,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.reactions_remove")
     def test_remove_reaction_success(self, mock_reactions_remove: MagicMock) -> None:
-        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.integration.metadata["scopes"] = [SlackScope.REACTIONS_WRITE]
         self.installation.remove_reaction(
             channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
         )
@@ -704,7 +705,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     def test_remove_reaction_no_reaction_is_idempotent(
         self, mock_reactions_remove: MagicMock
     ) -> None:
-        self.integration.metadata["scopes"] = ["reactions:write"]
+        self.integration.metadata["scopes"] = [SlackScope.REACTIONS_WRITE]
         mock_response = MagicMock()
         mock_response.get.return_value = "no_reaction"
         mock_reactions_remove.side_effect = SlackApiError("no_reaction", mock_response)
