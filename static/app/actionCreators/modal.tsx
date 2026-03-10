@@ -313,10 +313,6 @@ export async function openDashboardWidgetQuerySelectorModal(
   });
 }
 
-function isTextWidget(widget: WidgetViewerModalOptions['widget']): boolean {
-  return widget.displayType === DisplayType.TEXT;
-}
-
 export async function openWidgetViewerModal({
   onClose,
   ...options
@@ -325,7 +321,7 @@ export async function openWidgetViewerModal({
     default: Modal,
     modalCss,
     backdropCss,
-  } = isTextWidget(options.widget)
+  } = options.widget.displayType === DisplayType.TEXT
     ? await import('sentry/components/modals/textWidgetViewerModal')
     : await import('sentry/components/modals/widgetViewerModal');
 
