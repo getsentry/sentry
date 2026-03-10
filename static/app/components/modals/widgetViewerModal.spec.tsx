@@ -1324,56 +1324,6 @@ describe('Modals -> WidgetViewerModal', () => {
     });
   });
 
-  describe('Text Widget', () => {
-    const mockTextWidget: Widget = {
-      id: '1',
-      title: 'Text Widget',
-      description: 'A note for the dashboard',
-      displayType: DisplayType.TEXT,
-      interval: '5m',
-      queries: [],
-      widgetType: undefined,
-    };
-
-    let initialDataWithTextWidgetFlag: InitialData;
-    beforeEach(() => {
-      initialDataWithTextWidgetFlag = {
-        ...initialDataWithFlag,
-        organization: {
-          ...initialDataWithFlag.organization,
-          features: [
-            ...initialDataWithFlag.organization.features,
-            'dashboards-text-widgets',
-          ],
-        },
-      };
-    });
-
-    it('renders the widget title', async () => {
-      await renderModal({
-        initialData: initialDataWithTextWidgetFlag,
-        widget: mockTextWidget,
-      });
-      expect(await screen.findByText('Text Widget')).toBeInTheDocument();
-    });
-
-    it('does not render the description section', async () => {
-      await renderModal({
-        initialData: initialDataWithTextWidgetFlag,
-        widget: mockTextWidget,
-      });
-      expect(screen.queryByTestId('widget-description')).not.toBeInTheDocument();
-    });
-
-    it('does not render an Open button', async () => {
-      await renderModal({
-        initialData: initialDataWithTextWidgetFlag,
-        widget: mockTextWidget,
-      });
-      expect(screen.queryByRole('button', {name: /Open in/i})).not.toBeInTheDocument();
-    });
-  });
-
   describe('Span Widgets', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({

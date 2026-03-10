@@ -20,6 +20,7 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Theme} from 'sentry/utils/theme';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
 export type ModalOptions = ModalTypes['options'];
@@ -312,6 +313,10 @@ export async function openDashboardWidgetQuerySelectorModal(
   });
 }
 
+function isTextWidget(widget: WidgetViewerModalOptions['widget']): boolean {
+  return widget.displayType === DisplayType.TEXT;
+}
+
 export async function openWidgetViewerModal({
   onClose,
   ...options
@@ -320,7 +325,9 @@ export async function openWidgetViewerModal({
     default: Modal,
     modalCss,
     backdropCss,
-  } = await import('sentry/components/modals/widgetViewerModal');
+  } = isTextWidget(options.widget)
+    ? await import('sentry/components/modals/textWidgetViewerModal')
+    : await import('sentry/components/modals/widgetViewerModal');
 
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'none',
