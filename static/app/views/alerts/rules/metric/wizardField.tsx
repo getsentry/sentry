@@ -6,7 +6,6 @@ import {Select} from '@sentry/scraps/select';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -360,7 +359,7 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
 
 const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
-  gap: ${p => (p.hideGap ? 0 : space(1))};
+  gap: ${p => (p.hideGap ? 0 : p.theme.space.md)};
   grid-template-columns: 1fr auto;
 `;
 

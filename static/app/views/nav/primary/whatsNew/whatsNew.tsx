@@ -138,6 +138,7 @@ export function PrimaryNavigationWhatsNew() {
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,
+          size: 'sm',
         }}
       >
         {unseenPostIds.length > 0 && (

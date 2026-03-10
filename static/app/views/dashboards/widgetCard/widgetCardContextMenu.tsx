@@ -285,7 +285,11 @@ export function getMenuOptions(
       .map((series, index) => {
         const transformed = transformWidgetSeriesToTimeSeries(series, widget);
 
-        if (!transformed || transformed.timeSeries.meta.isOther) {
+        if (
+          !transformed ||
+          transformed.timeSeries.meta.isOther ||
+          isEquation(transformed.timeSeries.yAxis)
+        ) {
           return null;
         }
 

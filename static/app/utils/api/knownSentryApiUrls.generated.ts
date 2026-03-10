@@ -503,6 +503,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/'
   | '/organizations/$organizationIdOrSlug/projects-count/'
   | '/organizations/$organizationIdOrSlug/projects/'
+  | '/organizations/$organizationIdOrSlug/projects/$projectIdOrSlug/detectors/'
   | '/organizations/$organizationIdOrSlug/prompts-activity/'
   | '/organizations/$organizationIdOrSlug/pull-requests/size-analysis/$artifactId/'
   | '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/'

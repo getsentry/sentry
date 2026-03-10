@@ -20,7 +20,6 @@ import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -960,7 +959,9 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   overflow: hidden;
   position: relative;
   padding: ${p =>
-    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
+    p.noPadding
+      ? `0`
+      : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
 const BigNumber = styled('div')`
@@ -980,7 +981,7 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

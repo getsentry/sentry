@@ -32,7 +32,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
       '/organizations/$organizationIdOrSlug/config/integrations/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        staleTime: 60_000,
+        staleTime: 0,
       }
     )
   );

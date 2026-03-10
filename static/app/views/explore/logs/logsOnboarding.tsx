@@ -94,14 +94,11 @@ function LogDrainsLink({project}: {project: Project}) {
               }
             )
           : tct(
-              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel], or via the [otlpLink:OpenTelemetry Collector].',
               {
                 link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
                 vercelLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
-                ),
-                herokuLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
                 ),
                 otlpLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />

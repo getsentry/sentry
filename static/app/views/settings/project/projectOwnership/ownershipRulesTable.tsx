@@ -16,7 +16,6 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -248,7 +247,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1.5)} ${space(2)};
+        padding: ${p.theme.space.lg} ${p.theme.space.xl};
       }
     `}
 `;

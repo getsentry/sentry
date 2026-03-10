@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 
 import {ScrollCarousel} from './scrollCarousel';
 
 export default Storybook.story('ScrollCarousel', story => {
+  const theme = useTheme();
   story('Default', () => (
     <Fragment>
       <p>
@@ -18,7 +18,7 @@ export default Storybook.story('ScrollCarousel', story => {
         <ScrollCarousel
           aria-label="example"
           css={css`
-            gap: ${space(1)};
+            gap: ${theme.space.md};
           `}
         >
           {['one', 'two', 'three', 'four', 'five', 'six'].map(item => (
@@ -40,7 +40,7 @@ export default Storybook.story('ScrollCarousel', story => {
           aria-label="vertical-example"
           orientation="vertical"
           css={css`
-            gap: ${space(1)};
+            gap: ${theme.space.md};
           `}
         >
           {['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta'].map(item => (
