@@ -239,9 +239,9 @@ export function useMutateCreatePr({project}: {project: Project}) {
           .then(preference => {
             const updatedHandoff = {
               handoff_point: 'root_cause' as const,
-              target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
               integration_id: Number(autofixAgent.id),
               ...preference?.automation_handoff,
+              target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
               auto_create_pr: value,
             };
             applyOptimisticUpdate({automationHandoff: updatedHandoff});
