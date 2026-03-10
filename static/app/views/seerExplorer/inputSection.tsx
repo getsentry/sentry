@@ -88,7 +88,7 @@ export function InputSection({
       return 'Interrupted. What should Seer do instead?';
     }
     if (focusedBlockIndex !== -1) {
-      return 'Press Tab ⇥ to return here';
+      return 'Press ↑↓ to navigate, ↓ past last block to return here';
     }
     return 'Type your message or / command and press Enter ↵';
   };

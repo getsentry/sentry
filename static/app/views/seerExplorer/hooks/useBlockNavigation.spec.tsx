@@ -164,30 +164,15 @@ describe('useBlockNavigation', () => {
     });
   });
 
-  describe('Tab Navigation', () => {
-    it('always returns to input on Tab', () => {
+  describe('Tab key is not intercepted', () => {
+    it('does not prevent default on Tab', () => {
       const props = {...defaultProps, focusedBlockIndex: 1};
       renderHook(() => useBlockNavigation(props));
 
       const event = new KeyboardEvent('keydown', {key: 'Tab'});
       document.dispatchEvent(event);
 
-      expect(props.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(props.textareaRef.current?.focus).toHaveBeenCalled();
-      expect(mockTextarea.scrollIntoView).toHaveBeenCalledWith({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
-    });
-
-    it('focuses textarea even when already at input', () => {
-      renderHook(() => useBlockNavigation(defaultProps));
-
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
-      document.dispatchEvent(event);
-
-      expect(defaultProps.setFocusedBlockIndex).toHaveBeenCalledWith(-1);
-      expect(defaultProps.textareaRef.current?.focus).toHaveBeenCalled();
+      expect(props.setFocusedBlockIndex).not.toHaveBeenCalled();
     });
   });
 
@@ -206,7 +191,7 @@ describe('useBlockNavigation', () => {
       const props = {...defaultProps, isOpen: true};
       renderHook(() => useBlockNavigation(props));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'ArrowUp'});
       document.dispatchEvent(event);
 
       expect(props.setFocusedBlockIndex).toHaveBeenCalled();
@@ -312,10 +297,14 @@ describe('useBlockNavigation', () => {
     });
 
     it('handles null textarea ref gracefully', () => {
-      const props = {...defaultProps, textareaRef: {current: null}};
+      const props = {
+        ...defaultProps,
+        focusedBlockIndex: 2,
+        textareaRef: {current: null},
+      };
       renderHook(() => useBlockNavigation(props));
 
-      const event = new KeyboardEvent('keydown', {key: 'Tab'});
+      const event = new KeyboardEvent('keydown', {key: 'ArrowDown'});
       document.dispatchEvent(event);
 
       // Should not throw error with null textarea ref

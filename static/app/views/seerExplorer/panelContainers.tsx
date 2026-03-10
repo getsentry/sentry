@@ -4,6 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Block, PanelSize} from 'sentry/views/seerExplorer/types';
@@ -121,7 +122,10 @@ function PanelContainers({
                     style={{width: '100%'}}
                   >
                     <IconSeer animation={isPolling ? 'loading' : 'waiting'} size="lg" />
-                    <Text size="xs">{t('Tab ⇥ to continue')}</Text>
+                    <Flex align="center" gap="xs">
+                      <HotkeysLabel value={['command+/', 'ctrl+/']} />
+                      <Text size="xs">{t('to continue')}</Text>
+                    </Flex>
                     <Text size="xs" variant="muted" ellipsis style={{maxWidth: '100%'}}>
                       {statusText}
                     </Text>
