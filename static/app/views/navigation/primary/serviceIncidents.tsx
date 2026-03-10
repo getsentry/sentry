@@ -15,7 +15,7 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
   const {
@@ -38,7 +38,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
         }}
       >
         <SidebarItemUnreadIndicator
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
           variant="danger"
         />
       </SidebarButton>

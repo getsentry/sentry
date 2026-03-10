@@ -16,13 +16,13 @@ import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import ProjectIcon from 'sentry/views/navigation/projectIcon';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
 type Props = {
   queries: SavedQuery[];
 };
 
-export function ExploreSavedQueryNavItems({queries}: Props) {
+export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(queries);
@@ -84,7 +84,7 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
             reorderStarredSavedQueries(savedQueries);
           }}
         >
-          <StyledSecondaryNavItem
+          <StyledSecondaryNavigationItem
             leadingItems={
               <Flex justify="center" align="center" position="relative">
                 <GrabHandleWrapper
@@ -120,14 +120,14 @@ export function ExploreSavedQueryNavItems({queries}: Props) {
             <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
               <TruncatedTitle>{query.name}</TruncatedTitle>
             </Tooltip>
-          </StyledSecondaryNavItem>
+          </StyledSecondaryNavigationItem>
         </StyledReorderItem>
       ))}
     </Reorder.Group>
   );
 }
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
   align-items: center;
   padding-right: ${p => p.theme.space.xs};
   position: relative;

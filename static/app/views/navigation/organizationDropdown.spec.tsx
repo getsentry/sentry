@@ -108,11 +108,11 @@ describe('OrganizationDropdown', () => {
   it('clicking project sets referrer in session storage', async () => {
     render(<OrganizationDropdown />, {organization});
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
-    // We use onAction to navigate, no href is set:
+    // We use onAction to navigationigate, no href is set:
     expect(screen.getByRole('menuitemradio', {name: 'Projects'})).not.toHaveAttribute(
       'href'
     );
-    // onClick should take precedence setting session storage value and navigating:
+    // onClick should take precedence setting session storage value and navigationigating:
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Projects'}));
     expect(readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null)).toBe(
       'org-dropdown'

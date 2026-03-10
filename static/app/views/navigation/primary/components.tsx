@@ -17,18 +17,18 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import type {PrimaryNavGroup} from 'sentry/views/navigation/types';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 import {isLinkActive} from 'sentry/views/navigation/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  group: PrimaryNavGroup;
+  group: PrimaryNavigationGroup;
   to: string;
   activeTo?: string;
   analyticsParams?: Record<string, unknown>;
@@ -80,18 +80,20 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
   const {layout} = useNavigationContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
+    <IconDefaultsProvider
+      legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
+    >
       <Flex
         as="li"
         ref={ref}
         justify="center"
         align="center"
-        width={layout === NavLayout.MOBILE ? '100%' : undefined}
+        width={layout === NavigationLayout.MOBILE ? '100%' : undefined}
         {...props}
       >
         <Tooltip
           title={label}
-          disabled={layout === NavLayout.MOBILE || disableTooltip}
+          disabled={layout === NavigationLayout.MOBILE || disableTooltip}
           position="right"
           skipWrapper
           delay={600}
@@ -125,7 +127,7 @@ export function SidebarMenu({
   const {layout} = useNavigationContext();
   const theme = useTheme();
 
-  const showLabel = layout === NavLayout.MOBILE;
+  const showLabel = layout === NavigationLayout.MOBILE;
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -138,7 +140,7 @@ export function SidebarMenu({
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.sidebarDropdownMenu}
       renderWrapAs={PassthroughWrapper}
-      position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+      position={layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {
@@ -151,9 +153,9 @@ export function SidebarMenu({
               skipWrapper
               delay={600}
             >
-              <NavButton
+              <NavigationButton
                 {...triggerProps}
-                isMobile={layout === NavLayout.MOBILE}
+                isMobile={layout === NavigationLayout.MOBILE}
                 aria-label={showLabel ? undefined : label}
                 size={size}
                 onClick={event => {
@@ -167,7 +169,7 @@ export function SidebarMenu({
               >
                 {showLabel ? label : null}
                 {children}
-              </NavButton>
+              </NavigationButton>
             </Tooltip>
           </TriggerWrap>
         );
@@ -177,7 +179,7 @@ export function SidebarMenu({
   );
 }
 
-function SidebarNavLink({
+function SidebarNavigationLink({
   children,
   to,
   activeTo = to,
@@ -186,41 +188,41 @@ function SidebarNavLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavGroup} = useNavigationContext();
+  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
+  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
 
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
 
   return (
-    <NavLink
+    <NavigationLink
       to={to}
       reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activePrimaryNavGroup === group ? true : isActive}
+      aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === NavLayout.MOBILE}
+      isMobile={layout === NavigationLayout.MOBILE}
       onClick={() => {
         recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
       }}
       {...{
-        [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
     >
-      {layout === NavLayout.MOBILE ? (
+      {layout === NavigationLayout.MOBILE ? (
         <Fragment>
           {children}
           {label}
         </Fragment>
       ) : (
         <Fragment>
-          <NavLinkIconContainer>{children}</NavLinkIconContainer>
-          <NavLinkLabel>{label}</NavLinkLabel>
+          <NavigationLinkIconContainer>{children}</NavigationLinkIconContainer>
+          <NavigationLinkLabel>{label}</NavigationLinkLabel>
         </Fragment>
       )}
-    </NavLink>
+    </NavigationLink>
   );
 }
 
@@ -233,11 +235,11 @@ export function SidebarLink({
   group,
   ...props
 }: SidebarItemLinkProps) {
-  const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
+  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
 
   return (
     <SidebarItem label={label} {...props}>
-      <SidebarNavLink
+      <SidebarNavigationLink
         to={to}
         activeTo={activeTo}
         analyticsKey={analyticsKey}
@@ -245,7 +247,7 @@ export function SidebarLink({
         group={group}
       >
         {children}
-      </SidebarNavLink>
+      </SidebarNavigationLink>
     </SidebarItem>
   );
 }
@@ -261,13 +263,13 @@ export function SidebarButton({
 }: SidebarButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavigationContext();
-  const showLabel = layout === NavLayout.MOBILE;
+  const showLabel = layout === NavigationLayout.MOBILE;
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
-      <NavButton
+      <NavigationButton
         {...buttonProps}
-        isMobile={layout === NavLayout.MOBILE}
+        isMobile={layout === NavigationLayout.MOBILE}
         analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
@@ -280,7 +282,7 @@ export function SidebarButton({
       >
         {showLabel ? label : null}
         {children}
-      </NavButton>
+      </NavigationButton>
     </Tooltip>
   );
 }
@@ -319,7 +321,7 @@ const Separator = styled('hr')`
   margin: 0;
 `;
 
-const NavLinkIconContainer = styled('span')`
+const NavigationLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,7 +329,7 @@ const NavLinkIconContainer = styled('span')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const NavLinkLabel = styled('div')`
+const NavigationLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -336,7 +338,7 @@ const NavLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const NavLink = styled(Link, {
+const NavigationLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'size',
 })<{isMobile: boolean; size?: ButtonProps['size']}>`
   display: flex;
@@ -384,7 +386,7 @@ const NavLink = styled(Link, {
 
   /* Apply focus styles only to the icon container */
   &:focus-visible {
-    ${NavLinkIconContainer} {
+    ${NavigationLinkIconContainer} {
       outline: none;
       box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
@@ -393,7 +395,7 @@ const NavLink = styled(Link, {
   &:hover,
   &[aria-selected='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    ${NavLinkIconContainer} {
+    ${NavigationLinkIconContainer} {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
@@ -405,13 +407,14 @@ const NavLink = styled(Link, {
     &::before {
       opacity: 1;
     }
-    ${NavLinkIconContainer} {
+    ${NavigationLinkIconContainer} {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover} ${NavLinkIconContainer} {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover}
+        ${NavigationLinkIconContainer} {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
@@ -419,15 +422,15 @@ const NavLink = styled(Link, {
   }
 `;
 
-const NavButton = styled(
+const NavigationButton = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
     const {layout} = useNavigationContext();
 
     return (
       <Button
         {...props}
-        size={layout === NavLayout.MOBILE ? 'zero' : props.size}
-        priority={layout === NavLayout.MOBILE ? 'transparent' : props.priority}
+        size={layout === NavigationLayout.MOBILE ? 'zero' : props.size}
+        priority={layout === NavigationLayout.MOBILE ? 'transparent' : props.priority}
       />
     );
   }
@@ -451,7 +454,7 @@ const NavButton = styled(
     display: none;
   }
 
-  /* Nav buttons are icon-only; allow icon content to overflow the inner span */
+  /* Navigation buttons are icon-only; allow icon content to overflow the inner span */
   > span:last-child {
     overflow: visible;
   }

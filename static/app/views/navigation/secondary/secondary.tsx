@@ -20,15 +20,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/navigation/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 import {isLinkActive} from 'sentry/views/navigation/utils';
 
-type SecondaryNavProps = {
+type SecondaryNavigationProps = {
   children: ReactNode;
   className?: string;
 };
 
-interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
+interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
@@ -47,7 +47,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNav({children, className}: SecondaryNavProps) {
+export function SecondaryNavigation({children, className}: SecondaryNavigationProps) {
   return (
     <ErrorBoundary mini>
       <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
@@ -57,10 +57,14 @@ export function SecondaryNav({children, className}: SecondaryNavProps) {
   );
 }
 
-SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
+SecondaryNavigation.Header = function SecondaryNavigationHeader({
+  children,
+}: {
+  children?: ReactNode;
+}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
 
-  if (layout === NavLayout.MOBILE) {
+  if (layout === NavigationLayout.MOBILE) {
     return null;
   }
 
@@ -85,7 +89,11 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
   );
 };
 
-SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
+SecondaryNavigation.Body = function SecondaryNavigationBody({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const {layout} = useNavigationContext();
 
   return <Body layout={layout}>{children}</Body>;
@@ -111,7 +119,7 @@ function SectionTitle({
       <SectionTitleCollapsible
         size="sm"
         priority="transparent"
-        isMobile={layout === NavLayout.MOBILE}
+        isMobile={layout === NavigationLayout.MOBILE}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
         }}
@@ -142,14 +150,14 @@ function SectionTitle({
   }
 
   return (
-    <SectionTitleUnCollapsible isMobile={layout === NavLayout.MOBILE}>
+    <SectionTitleUnCollapsible isMobile={layout === NavigationLayout.MOBILE}>
       {title}
       {trailingItems}
     </SectionTitleUnCollapsible>
   );
 }
 
-SecondaryNav.Section = function SecondaryNavSection({
+SecondaryNavigation.Section = function SecondaryNavigationSection({
   id,
   title,
   children,
@@ -169,7 +177,7 @@ SecondaryNav.Section = function SecondaryNavSection({
     `secondary-nav-section-${id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === NavLayout.SIDEBAR;
+  const canCollapse = collapsible && layout === NavigationLayout.SIDEBAR;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -191,7 +199,7 @@ SecondaryNav.Section = function SecondaryNavSection({
   );
 };
 
-SecondaryNav.Item = function SecondaryNavItem({
+SecondaryNavigation.Item = function SecondaryNavigationItem({
   analyticsItemName,
   children,
   to,
@@ -203,13 +211,13 @@ SecondaryNav.Item = function SecondaryNavItem({
   trailingItems,
   onClick,
   ...linkProps
-}: SecondaryNavItemProps) {
+}: SecondaryNavigationItemProps) {
   const organization = useOrganization();
   const location = useLocation();
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavigationContext();
-  const {reset: closeCollapsedNavHovercard} = useHovercardContext();
+  const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
     <Item
@@ -229,7 +237,7 @@ SecondaryNav.Item = function SecondaryNavItem({
 
         // When this is rendered inside a hovercard (when the nav is collapsed)
         // this will dismiss it when clicking on a link.
-        closeCollapsedNavHovercard();
+        closeCollapsedNavigationHovercard();
 
         onClick?.(e);
       }}
@@ -244,7 +252,11 @@ SecondaryNav.Item = function SecondaryNavItem({
   );
 };
 
-SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
+SecondaryNavigation.Footer = function SecondaryNavigationFooter({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const {layout} = useNavigationContext();
 
   return <Footer layout={layout}>{children}</Footer>;
@@ -276,20 +288,20 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const Body = styled('div')<{layout: NavLayout}>`
+const Body = styled('div')<{layout: NavigationLayout}>`
   overflow-y: auto;
   overscroll-behavior: contain;
 
   ${p =>
-    p.layout === NavLayout.MOBILE &&
+    p.layout === NavigationLayout.MOBILE &&
     css`
       padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
-const Section = styled('div')<{layout: NavLayout}>`
+const Section = styled('div')<{layout: NavigationLayout}>`
   ${p =>
-    p.layout === NavLayout.SIDEBAR &&
+    p.layout === NavigationLayout.SIDEBAR &&
     css`
       padding: 0 ${p.theme.space.md};
     `}
@@ -365,7 +377,7 @@ const Separator = styled('hr')`
 `;
 
 interface ItemProps extends LinkProps {
-  layout: NavLayout;
+  layout: NavigationLayout;
 }
 
 const Item = styled(Link)<ItemProps>`
@@ -376,10 +388,11 @@ const Item = styled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
-    p.layout === NavLayout.MOBILE
+    p.layout === NavigationLayout.MOBILE
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
       : `${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
+  border-radius: ${p =>
+    p.theme.radius[p.layout === NavigationLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -432,12 +445,12 @@ const ItemText = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const Footer = styled('div')<{layout: NavLayout}>`
+const Footer = styled('div')<{layout: NavigationLayout}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
-    p.layout === NavLayout.MOBILE &&
+    p.layout === NavigationLayout.MOBILE &&
     css`
       padding: ${p.theme.space.md} 0;
     `}

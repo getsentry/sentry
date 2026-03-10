@@ -14,23 +14,23 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
-import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
 import {OrganizationDropdown} from 'sentry/views/navigation/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
-import {useActiveNavGroup} from 'sentry/views/navigation/useActiveNavGroup';
+import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
 function MobileTopbar() {
   const location = useLocation();
   const organization = useOrganization();
-  const activeGroup = useActiveNavGroup();
+  const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
-    updateNavStyleAttributes(view);
+    updateNavigationStyleAttributes(view);
   }, [view]);
   /** Automatically close the menu after any navigation */
   useEffect(() => {
@@ -83,7 +83,7 @@ function MobileTopbar() {
 export default MobileTopbar;
 
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
-function updateNavStyleAttributes(view: ActiveView) {
+function updateNavigationStyleAttributes(view: ActiveView) {
   const mainContent = document.getElementById('main');
   if (!mainContent) {
     throw new Error(
@@ -128,7 +128,7 @@ function NavigationOverlayPortal({
 }
 
 const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
-  height: ${NAV_MOBILE_TOPBAR_HEIGHT}px;
+  height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px;
   width: 100vw;
   padding-left: ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.lg};

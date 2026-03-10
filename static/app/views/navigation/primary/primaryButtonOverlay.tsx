@@ -6,7 +6,7 @@ import {FocusScope} from '@react-aria/focus';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 type PrimaryButtonOverlayProps = {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
 
   return useOverlay({
     offset: 8,
-    position: layout === NavLayout.MOBILE ? 'bottom' : 'right-end',
+    position: layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end',
     isDismissable: true,
     shouldApplyMinWidth: false,
     ...props,
@@ -41,7 +41,7 @@ export function PrimaryButtonOverlay({
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.sidebarDropdownMenu} {...overlayProps}>
-        <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
+        <ScrollableOverlay isMobile={layout === NavigationLayout.MOBILE}>
           {children}
         </ScrollableOverlay>
       </PositionWrapper>

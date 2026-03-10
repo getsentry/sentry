@@ -1,5 +1,5 @@
 import {AdminNavigation} from 'sentry/views/admin/adminLayout';
 
-export function AdminSecondaryNav() {
+export function AdminSecondaryNavigation() {
   return <AdminNavigation />;
 }

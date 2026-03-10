@@ -10,13 +10,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import ProjectIcon from 'sentry/views/navigation/projectIcon';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import {DashboardsNavItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavItems';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
-export function DashboardsSecondaryNav() {
+export function DashboardsSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
   const {projects} = useProjects();
@@ -34,20 +34,27 @@ export function DashboardsSecondaryNav() {
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
-        <SecondaryNav.Section id="dashboards-all">
-          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="dashboards_all">
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.DASHBOARDS].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
+        <SecondaryNavigation.Section id="dashboards-all">
+          <SecondaryNavigation.Item
+            to={`${baseUrl}/`}
+            end
+            analyticsItemName="dashboards_all"
+          >
             {t('All Dashboards')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
         {customDashboards.length > 0 ? (
-          <SecondaryNav.Section id="dashboards-starred" title={t('Starred Dashboards')}>
+          <SecondaryNavigation.Section
+            id="dashboards-starred"
+            title={t('Starred Dashboards')}
+          >
             <ErrorBoundary mini>
               {organization.features.includes('dashboards-starred-reordering') ? (
-                <DashboardsNavItems initialDashboards={customDashboards} />
+                <DashboardsNavigationItems initialDashboards={customDashboards} />
               ) : (
                 <StarredDashboardItems
                   dashboards={customDashboards}
@@ -58,10 +65,10 @@ export function DashboardsSecondaryNav() {
                 />
               )}
             </ErrorBoundary>
-          </SecondaryNav.Section>
+          </SecondaryNavigation.Section>
         ) : null}
         {prebuiltDashboards.length > 0 ? (
-          <SecondaryNav.Section
+          <SecondaryNavigation.Section
             id="dashboards-starred-sentry"
             title={t('Starred Sentry Built')}
           >
@@ -74,9 +81,9 @@ export function DashboardsSecondaryNav() {
                 userId={user.id}
               />
             </ErrorBoundary>
-          </SecondaryNav.Section>
+          </SecondaryNavigation.Section>
         ) : null}
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }
@@ -109,7 +116,7 @@ function StarredDashboardItems({
       .map(p => p.platform)
       .filter(defined);
     return (
-      <SecondaryNav.Item
+      <SecondaryNavigation.Item
         key={dashboard.id}
         to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
         analyticsItemName="dashboard_starred_item"
@@ -121,7 +128,7 @@ function StarredDashboardItems({
         }
       >
         {dashboard.title}
-      </SecondaryNav.Item>
+      </SecondaryNavigation.Item>
     );
   });
 }

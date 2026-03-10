@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {Navigation} from 'sentry/views/navigation';
 import {NavigationContextProvider} from 'sentry/views/navigation/context';
 
-describe('ExploreSecondaryNav', () => {
+describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
     organization: {
       features: ['performance-view', 'visibility-explore-view'],

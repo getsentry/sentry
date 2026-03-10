@@ -5,9 +5,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function makePreventPathname({
   path,
@@ -19,7 +19,7 @@ function makePreventPathname({
   return normalizeUrl(`/organizations/${organization.slug}/prevent${path}`);
 }
 
-export default function PreventSecondaryNav() {
+export default function PreventSecondaryNavigation() {
   const organization = useOrganization();
   const testsPathname = makePreventPathname({
     organization,
@@ -32,25 +32,25 @@ export default function PreventSecondaryNav() {
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.PREVENT].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
-        <SecondaryNav.Section id="prevent-main">
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.PREVENT].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
+        <SecondaryNavigation.Section id="prevent-main">
           <Feature features={['prevent-test-analytics']}>
-            <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
+            <SecondaryNavigation.Item to={testsPathname} activeTo={testsPathname}>
               {t('Tests')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
-        </SecondaryNav.Section>
+        </SecondaryNavigation.Section>
         <Feature features={['prevent-test-analytics']}>
-          <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
-            <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
+          <SecondaryNavigation.Section id="prevent-configure" title={t('Configure')}>
+            <SecondaryNavigation.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
               {t('Tokens')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
+            </SecondaryNavigation.Item>
+          </SecondaryNavigation.Section>
         </Feature>
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }

@@ -13,35 +13,35 @@ import {
   NavigationTourProvider,
   useStackedNavigationTour,
 } from 'sentry/views/navigation/tour/tour';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useCommandPalette} from 'sentry/views/navigation/useCommandPalette';
 import {UserDropdown} from 'sentry/views/navigation/userDropdown';
-import {useResetActiveNavGroup} from 'sentry/views/navigation/useResetActiveNavGroup';
+import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 export function UserAndOrganizationNavigation() {
   useCommandPalette();
-  const {layout, navParentRef} = useNavigationContext();
+  const {layout, navigationParentRef} = useNavigationContext();
   const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
-  const hoverProps = useResetActiveNavGroup();
+  const hoverProps = useResetActiveNavigationGroup();
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
   useEffect(() => {
-    if (tourIsActive && layout === NavLayout.MOBILE) {
+    if (tourIsActive && layout === NavigationLayout.MOBILE) {
       endTour();
     }
   }, [endTour, layout, tourIsActive]);
 
   return (
-    <NavContainer
-      ref={navParentRef}
+    <NavigationContainer
+      ref={navigationParentRef}
       tourIsActive={tourIsActive}
-      isMobile={layout === NavLayout.MOBILE}
+      isMobile={layout === NavigationLayout.MOBILE}
       {...hoverProps}
     >
-      {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-    </NavContainer>
+      {layout === NavigationLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
+    </NavigationContainer>
   );
 }
 
@@ -69,7 +69,7 @@ export function Navigation() {
   );
 }
 
-const NavContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
+const NavigationContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
   display: flex;
   user-select: none;
 

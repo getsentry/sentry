@@ -4,20 +4,20 @@ import styled from '@emotion/styled';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 import {NavigationContextProvider} from 'sentry/views/navigation/context';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
-export default Storybook.story('SecondaryNav', story => {
+export default Storybook.story('SecondaryNavigation', story => {
   story('Basics (WIP)', () => {
     const [activeItem, setActiveItem] = useState<string | null>('product-area-1');
 
     return (
       <Container>
         <NavigationContextProvider>
-          <StyledSecondaryNav>
-            <SecondaryNav.Header>Section Title</SecondaryNav.Header>
-            <SecondaryNav.Body>
-              <SecondaryNav.Section id="stories-product-areas">
-                <SecondaryNav.Item
+          <StyledSecondaryNavigation>
+            <SecondaryNavigation.Header>Section Title</SecondaryNavigation.Header>
+            <SecondaryNavigation.Body>
+              <SecondaryNavigation.Section id="stories-product-areas">
+                <SecondaryNavigation.Item
                   to="/product-area-1"
                   isActive={activeItem === 'product-area-1'}
                   onClick={e => {
@@ -26,8 +26,8 @@ export default Storybook.story('SecondaryNav', story => {
                   }}
                 >
                   Product Area 1
-                </SecondaryNav.Item>
-                <SecondaryNav.Item
+                </SecondaryNavigation.Item>
+                <SecondaryNavigation.Item
                   to="/product-area-2"
                   isActive={activeItem === 'product-area-2'}
                   onClick={e => {
@@ -36,8 +36,8 @@ export default Storybook.story('SecondaryNav', story => {
                   }}
                 >
                   Product Area 2
-                </SecondaryNav.Item>
-                <SecondaryNav.Item
+                </SecondaryNavigation.Item>
+                <SecondaryNavigation.Item
                   to="/product-area-3"
                   isActive={activeItem === 'product-area-3'}
                   onClick={e => {
@@ -46,10 +46,10 @@ export default Storybook.story('SecondaryNav', story => {
                   }}
                 >
                   Product Area 3
-                </SecondaryNav.Item>
-              </SecondaryNav.Section>
-              <SecondaryNav.Section id="stories-starred" title="Starred">
-                <SecondaryNav.Item
+                </SecondaryNavigation.Item>
+              </SecondaryNavigation.Section>
+              <SecondaryNavigation.Section id="stories-starred" title="Starred">
+                <SecondaryNavigation.Item
                   to="/starred-item"
                   isActive={activeItem === 'starred-item'}
                   onClick={e => {
@@ -58,11 +58,11 @@ export default Storybook.story('SecondaryNav', story => {
                   }}
                 >
                   Starred Item
-                </SecondaryNav.Item>
-              </SecondaryNav.Section>
-            </SecondaryNav.Body>
-            <SecondaryNav.Footer>
-              <SecondaryNav.Item
+                </SecondaryNavigation.Item>
+              </SecondaryNavigation.Section>
+            </SecondaryNavigation.Body>
+            <SecondaryNavigation.Footer>
+              <SecondaryNavigation.Item
                 to="/footer-item"
                 onClick={e => {
                   e.preventDefault();
@@ -71,9 +71,9 @@ export default Storybook.story('SecondaryNav', story => {
                 isActive={activeItem === 'footer-item'}
               >
                 Footer Item
-              </SecondaryNav.Item>
-            </SecondaryNav.Footer>
-          </StyledSecondaryNav>
+              </SecondaryNavigation.Item>
+            </SecondaryNavigation.Footer>
+          </StyledSecondaryNavigation>
         </NavigationContextProvider>
       </Container>
     );
@@ -84,7 +84,7 @@ const Container = styled(NegativeSpaceContainer)`
   padding: ${p => p.theme.space.xl};
 `;
 
-const StyledSecondaryNav = styled(SecondaryNav)`
+const StyledSecondaryNavigation = styled(SecondaryNavigation)`
   height: 500px;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};

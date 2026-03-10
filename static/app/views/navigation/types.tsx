@@ -1,9 +1,9 @@
-export enum NavLayout {
+export enum NavigationLayout {
   MOBILE = 'mobile',
   SIDEBAR = 'sidebar',
 }
 
-export enum PrimaryNavGroup {
+export enum PrimaryNavigationGroup {
   ISSUES = 'issues',
   DASHBOARDS = 'dashboards',
   EXPLORE = 'explore',

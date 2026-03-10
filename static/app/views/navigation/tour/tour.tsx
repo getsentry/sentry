@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 
-import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
+import stackedNavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -26,12 +26,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavigationigate} from 'sentry/utils/useNavigationigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
-import {useActiveNavGroup} from 'sentry/views/navigation/useActiveNavGroup';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export const enum StackedNavigationTour {
   ISSUES = 'issues',
@@ -130,9 +130,9 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const organization = useOrganization();
   const isStackedNavigationTourCompleted = useStackedNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
-  const navigate = useNavigate();
+  const navigationigate = useNavigationigate();
   const location = useLocation();
-  const activeGroup = useActiveNavGroup();
+  const activeGroup = useActiveNavigationGroup();
 
   const onStartTour = useCallback(() => {
     // Save the initial URL when the tour starts because we need to restore it when the tour ends.
@@ -148,68 +148,68 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
     // Restore the initial URL when the tour ends.
     if (initialUrlRef.current) {
-      navigate(initialUrlRef.current, {replace: true});
+      navigationigate(initialUrlRef.current, {replace: true});
     }
     initialUrlRef.current = null;
 
     // Unlock scrolling when the tour ends.
     document.documentElement.style.overflow = '';
-  }, [navigate, setShowTourReminder]);
+  }, [navigationigate, setShowTourReminder]);
 
   const onStepChange = useCallback(
     (stepId: StackedNavigationTour) => {
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case StackedNavigationTour.ISSUES:
-          if (activeGroup !== PrimaryNavGroup.ISSUES) {
+          if (activeGroup !== PrimaryNavigationGroup.ISSUES) {
             const target = normalizeUrl({
               pathname: `/${prefix}/issues/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigate(target, {replace: true});
+            navigationigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.EXPLORE:
-          if (activeGroup !== PrimaryNavGroup.EXPLORE) {
+          if (activeGroup !== PrimaryNavigationGroup.EXPLORE) {
             const target = normalizeUrl({
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigate(target, {replace: true});
+            navigationigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
-          if (activeGroup !== PrimaryNavGroup.DASHBOARDS) {
+          if (activeGroup !== PrimaryNavigationGroup.DASHBOARDS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/dashboards/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigate(target, {replace: true});
+            navigationigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.INSIGHTS:
-          if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
+          if (activeGroup !== PrimaryNavigationGroup.INSIGHTS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/insights/frontend/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigate(target, {replace: true});
+            navigationigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
-          if (activeGroup !== PrimaryNavGroup.SETTINGS) {
+          if (activeGroup !== PrimaryNavigationGroup.SETTINGS) {
             const target = normalizeUrl({
               pathname: `/settings/${organization.slug}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
-            navigate(target, {replace: true});
+            navigationigate(target, {replace: true});
           }
           break;
         default:
           break;
       }
     },
-    [activeGroup, navigate, organization]
+    [activeGroup, navigationigate, organization]
   );
 
   return (
@@ -333,7 +333,7 @@ export function useNavigationTourModal() {
       openModal(
         props => (
           <StartTourModal
-            img={{src: stackedNavTourSvg, alt: t('Stacked Navigation Tour')}}
+            img={{src: stackedNavigationTourSvg, alt: t('Stacked Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'
@@ -367,7 +367,7 @@ export function useNavigationTourModal() {
 
 const NAVIGATION_TOUR_REFERRER = 'navigation-tour';
 
-export function useIsNavTourActive() {
+export function useIsNavigationTourActive() {
   const location = useLocation();
   return location.query.referrer === NAVIGATION_TOUR_REFERRER;
 }

@@ -6,21 +6,21 @@ import {AnimatePresence, motion} from 'framer-motion';
 import useResizable from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
+  NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import {SecondaryNavContent} from 'sentry/views/navigation/secondary/secondaryNavContent';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
 import {
   NavigationTourElement,
   STACKED_NAVIGATION_TOUR_CONTENT,
   StackedNavigationTour,
   useStackedNavigationTour,
 } from 'sentry/views/navigation/tour/tour';
-import {useActiveNavGroup} from 'sentry/views/navigation/useActiveNavGroup';
+import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export function SecondarySidebar() {
   const {currentStepId} = useStackedNavigationTour();
@@ -43,10 +43,11 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavGroup} = useNavigationContext();
-  const defaultActiveNavGroup = useActiveNavGroup();
+  const {activePrimaryNavigationGroup} = useNavigationContext();
+  const defaultActiveNavigationGroup = useActiveNavigationGroup();
 
-  const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
+  const activeNavigationGroup =
+    activePrimaryNavigationGroup ?? defaultActiveNavigationGroup;
 
   return (
     <SecondarySidebarWrapper
@@ -59,19 +60,19 @@ export function SecondarySidebar() {
           {...props}
           ref={mergeRefs(resizableContainerRef, ref)}
           {...{
-            [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
           }}
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <MotionDiv
-              key={activeNavGroup}
+              key={activeNavigationGroup}
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
               transition={{duration: 0.06}}
             >
               <SecondarySidebarInner>
-                <SecondaryNavContent group={activeNavGroup} />
+                <SecondaryNavigationContent group={activeNavigationGroup} />
               </SecondarySidebarInner>
               <ResizeHandle
                 ref={resizeHandleRef}
@@ -104,7 +105,7 @@ const ResizeWrapper = styled('div')`
   width: ${SECONDARY_SIDEBAR_WIDTH}px;
 `;
 
-const SecondarySidebarInner = styled(SecondaryNav)`
+const SecondarySidebarInner = styled(SecondaryNavigation)`
   height: 100%;
 `;
 

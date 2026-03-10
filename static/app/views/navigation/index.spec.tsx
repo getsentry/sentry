@@ -17,7 +17,7 @@ import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext'
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Navigation} from 'sentry/views/navigation';
-import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {NavigationContextProvider} from 'sentry/views/navigation/context';
 
 jest.mock('sentry/utils/analytics', () => ({
@@ -52,7 +52,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('Nav', () => {
+describe('Navigation', () => {
   beforeEach(() => {
     localStorage.clear();
     MockApiClient.clearMockResponses();
@@ -90,7 +90,7 @@ describe('Nav', () => {
     mockUsingCustomerDomain.mockReturnValue(true);
   });
 
-  function renderNav({
+  function renderNavigation({
     initialPathname = '/organizations/org-slug/issues/',
     route,
     features = ALL_AVAILABLE_FEATURES,
@@ -120,7 +120,7 @@ describe('Nav', () => {
 
   describe('primary navigation', () => {
     it('displays primary navigation items', () => {
-      renderNav();
+      renderNavigation();
 
       const links = within(
         screen.getByRole('navigation', {name: 'Primary Navigation'})
@@ -135,7 +135,7 @@ describe('Nav', () => {
     });
 
     it('displays the current primary route as active', () => {
-      renderNav();
+      renderNavigation();
 
       const link = screen.getByRole('link', {name: 'Issues'});
       expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/');
@@ -146,14 +146,14 @@ describe('Nav', () => {
 
   describe('secondary navigation', () => {
     it('includes expected secondary nav items', () => {
-      renderNav();
+      renderNavigation();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const link = within(container).getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/');
     });
 
     it('displays the current secondary route as active', () => {
-      renderNav({initialPathname: '/organizations/org-slug/issues/'});
+      renderNavigation({initialPathname: '/organizations/org-slug/issues/'});
 
       const link = screen.getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('aria-current', 'page');
@@ -161,7 +161,7 @@ describe('Nav', () => {
     });
 
     it('can collapse sections with titles', async () => {
-      renderNav();
+      renderNavigation();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
 
       expect(
@@ -190,7 +190,7 @@ describe('Nav', () => {
     });
 
     it('previews secondary nav when hovering over other primary items', async () => {
-      renderNav();
+      renderNavigation();
 
       await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
       await screen.findByRole('link', {name: 'Traces'});
@@ -201,55 +201,55 @@ describe('Nav', () => {
 
     describe('sections', () => {
       it('renders organization/account settings secondary nav when on settings routes', () => {
-        renderNav({initialPathname: '/settings/organization/'});
+        renderNavigation({initialPathname: '/settings/organization/'});
 
-        const secondaryNav = screen.getByRole('navigation', {
+        const secondaryNavigation = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
 
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Account Details'})
+          within(secondaryNavigation).getByRole('link', {name: 'Account Details'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Security'})
+          within(secondaryNavigation).getByRole('link', {name: 'Security'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'General Settings'})
+          within(secondaryNavigation).getByRole('link', {name: 'General Settings'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Teams'})
+          within(secondaryNavigation).getByRole('link', {name: 'Teams'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Members'})
+          within(secondaryNavigation).getByRole('link', {name: 'Members'})
         ).toBeInTheDocument();
       });
 
       // Settings renders different secondary nav when on project routes
       it('renders project settings secondary nav when on setting project routes', () => {
-        renderNav({
+        renderNavigation({
           initialPathname: '/settings/projects/project-slug/',
           route: '/settings/projects/:projectId/',
         });
 
-        const secondaryNav = screen.getByRole('navigation', {
+        const secondaryNavigation = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
 
         expect(
-          within(secondaryNav).getByRole('link', {name: 'General Settings'})
+          within(secondaryNavigation).getByRole('link', {name: 'General Settings'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Project Teams'})
+          within(secondaryNavigation).getByRole('link', {name: 'Project Teams'})
         ).toBeInTheDocument();
         expect(
-          within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
+          within(secondaryNavigation).getByRole('link', {name: 'Inbound Filters'})
         ).toBeInTheDocument();
       });
     });
 
     describe('collapse behavior', () => {
       it('can collapse and expand secondary sidebar', async () => {
-        renderNav();
+        renderNavigation();
 
         expect(
           screen.getByRole('navigation', {name: 'Secondary Navigation'})
@@ -267,9 +267,9 @@ describe('Nav', () => {
       });
 
       it('remembers collapsed state', async () => {
-        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-        renderNav();
+        renderNavigation();
 
         expect(
           await screen.findByTestId('collapsed-secondary-sidebar')
@@ -278,9 +278,9 @@ describe('Nav', () => {
       });
 
       it('expands on hover', async () => {
-        localStorage.setItem(NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-        renderNav();
+        renderNavigation();
 
         expect(
           await screen.findByTestId('collapsed-secondary-sidebar')
@@ -318,7 +318,7 @@ describe('Nav', () => {
 
   describe('analytics', () => {
     it('tracks primary sidebar item', async () => {
-      renderNav();
+      renderNavigation();
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
       expect(trackAnalytics).toHaveBeenCalledWith(
@@ -416,7 +416,7 @@ describe('Nav', () => {
     });
 
     it('renders mobile navigation on small screen sizes', async () => {
-      renderNav();
+      renderNavigation();
 
       // Should have a top-level header element with a home link and menu button
       expect(
@@ -464,7 +464,7 @@ describe('Nav', () => {
       });
 
       renderGlobalModal();
-      const {router} = renderNav();
+      const {router} = renderNavigation();
 
       // Shows the tour modal
       const modal = await screen.findByRole('dialog');
@@ -475,13 +475,13 @@ describe('Nav', () => {
       await screen.findByText('See what broke');
       await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
-      // Navigates to the explore page on step 2
+      // Navigationigates to the explore page on step 2
       await screen.findByText('Dig into data');
       await waitFor(() => {
         expect(router.location.pathname).toBe('/organizations/org-slug/explore/traces/');
       });
 
-      // Dissmissing tour should navigate back to the initial page
+      // Dissmissing tour should navigationigate back to the initial page
       await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       await waitFor(() => {
         expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
@@ -508,7 +508,7 @@ describe('Nav', () => {
       });
 
       renderGlobalModal();
-      renderNav();
+      renderNavigation();
       await screen.findByRole('navigation', {name: 'Primary Navigation'});
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

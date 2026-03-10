@@ -28,12 +28,12 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import ProjectIcon from 'sentry/views/navigation/projectIcon';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
-export function InsightsSecondaryNav() {
+export function InsightsSecondaryNavigation() {
   const user = useUser();
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
@@ -54,46 +54,46 @@ export function InsightsSecondaryNav() {
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
-        <SecondaryNav.Section id="insights-main">
-          <SecondaryNav.Item
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.INSIGHTS].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
+        <SecondaryNavigation.Section id="insights-main">
+          <SecondaryNavigation.Item
             to={`${baseUrl}/${FRONTEND_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_frontend"
           >
             {FRONTEND_SIDEBAR_LABEL}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
+          </SecondaryNavigation.Item>
+          <SecondaryNavigation.Item
             to={`${baseUrl}/${BACKEND_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_backend"
           >
             {BACKEND_SIDEBAR_LABEL}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
+          </SecondaryNavigation.Item>
+          <SecondaryNavigation.Item
             to={`${baseUrl}/${MOBILE_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_mobile"
           >
             {MOBILE_SIDEBAR_LABEL}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
-        <SecondaryNav.Section id="insights-ai" title={t('AI')}>
-          <SecondaryNav.Item
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Section id="insights-ai" title={t('AI')}>
+          <SecondaryNavigation.Item
             to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_agents"
           >
             {AGENTS_SIDEBAR_LABEL}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
+          </SecondaryNavigation.Item>
+          <SecondaryNavigation.Item
             to={`${baseUrl}/${MCP_LANDING_SUB_PATH}/`}
             analyticsItemName="insights_mcp"
           >
             {MCP_SIDEBAR_LABEL}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
-        <SecondaryNav.Section id="insights-monitors">
-          <SecondaryNav.Item
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Section id="insights-monitors">
+          <SecondaryNavigation.Item
             to={
               shouldRedirectToMonitors
                 ? `${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`
@@ -102,9 +102,9 @@ export function InsightsSecondaryNav() {
             analyticsItemName="insights_crons"
           >
             {t('Crons')}
-          </SecondaryNav.Item>
+          </SecondaryNavigation.Item>
           <Feature features={['uptime']}>
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={
                 shouldRedirectToMonitors
                   ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
@@ -113,25 +113,25 @@ export function InsightsSecondaryNav() {
               analyticsItemName="insights_uptime"
             >
               {t('Uptime')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
-        </SecondaryNav.Section>
-        <SecondaryNav.Section id="insights-projects-all">
-          <SecondaryNav.Item
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Section id="insights-projects-all">
+          <SecondaryNavigation.Item
             to={`${baseUrl}/projects/`}
             end
             analyticsItemName="insights_projects_all"
           >
             {t('All Projects')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
         {projectsToDisplay.length > 0 ? (
-          <SecondaryNav.Section
+          <SecondaryNavigation.Section
             id="insights-starred-projects"
             title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
           >
             {projectsToDisplay.map(project => (
-              <SecondaryNav.Item
+              <SecondaryNavigation.Item
                 key={project.id}
                 to={`${baseUrl}/projects/${project.slug}/`}
                 leadingItems={
@@ -142,11 +142,11 @@ export function InsightsSecondaryNav() {
                 analyticsItemName="insights_project_starred"
               >
                 {project.slug}
-              </SecondaryNav.Item>
+              </SecondaryNavigation.Item>
             ))}
-          </SecondaryNav.Section>
+          </SecondaryNavigation.Section>
         ) : null}
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }

@@ -11,7 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViewItem} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 
@@ -54,7 +54,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
     debounceUpdateStarredViewsOrder(views);
 
     trackAnalytics('issue_views.reordered_views', {
-      leftNav: true,
+      leftNavigation: true,
       organization: organization.slug,
     });
   }, [debounceUpdateStarredViewsOrder, organization.slug, views]);
@@ -64,7 +64,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
   }
 
   return (
-    <SecondaryNav.Section id="issues-starred-views" title={t('Starred Views')}>
+    <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
       <Reorder.Group
         as="div"
         axis="y"
@@ -86,7 +86,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
           />
         ))}
       </Reorder.Group>
-    </SecondaryNav.Section>
+    </SecondaryNavigation.Section>
   );
 }
 

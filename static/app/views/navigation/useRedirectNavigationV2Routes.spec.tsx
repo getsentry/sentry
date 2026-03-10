@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useRedirectNavV2Routes} from 'sentry/views/navigation/useRedirectNavV2Routes';
+import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 const mockUsingCustomerDomain = jest.fn();
 
@@ -17,7 +17,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('useRedirectNavV2Routes', () => {
+describe('useRedirectNavigationV2Routes', () => {
   function TestComponent({
     oldPathPrefix,
     newPathPrefix,
@@ -25,7 +25,7 @@ describe('useRedirectNavV2Routes', () => {
     newPathPrefix: `/${string}`;
     oldPathPrefix: `/${string}`;
   }) {
-    const redirectPath = useRedirectNavV2Routes({
+    const redirectPath = useRedirectNavigationV2Routes({
       oldPathPrefix,
       newPathPrefix,
     });

@@ -17,13 +17,15 @@ import {useReorderStarredDashboards} from 'sentry/views/dashboards/hooks/useReor
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import ProjectIcon from 'sentry/views/navigation/projectIcon';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
-type DashboardsNavItemsProps = {
+type DashboardsNavigationItemsProps = {
   initialDashboards: DashboardListItem[];
 };
 
-export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps) {
+export function DashboardsNavigationItems({
+  initialDashboards,
+}: DashboardsNavigationItemsProps) {
   const organization = useOrganization();
   const user = useUser();
   const location = useLocation();
@@ -101,7 +103,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
               reorderStarredDashboards(savedDashboards);
             }}
           >
-            <StyledSecondaryNavItem
+            <StyledSecondaryNavigationItem
               leadingItems={
                 <Flex justify="center" align="center" position="relative">
                   <GrabHandleWrapper
@@ -143,7 +145,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
               >
                 <TruncatedTitle>{dashboard.title}</TruncatedTitle>
               </Tooltip>
-            </StyledSecondaryNavItem>
+            </StyledSecondaryNavigationItem>
           </StyledReorderItem>
         );
       })}
@@ -151,7 +153,7 @@ export function DashboardsNavItems({initialDashboards}: DashboardsNavItemsProps)
   );
 }
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
   align-items: center;
   padding-right: ${p => p.theme.space.xs};
   position: relative;

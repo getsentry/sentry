@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {ExploreSavedQueryNavItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavItems';
+import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 
-describe('ExploreSavedQueryNavItems', () => {
+describe('ExploreSavedQueryNavigationItems', () => {
   const queries = [
     {
       id: 1,
@@ -38,7 +38,7 @@ describe('ExploreSavedQueryNavItems', () => {
   ] as unknown as SavedQuery[];
 
   it('should render a list of starred queries', () => {
-    render(<ExploreSavedQueryNavItems queries={queries} />);
+    render(<ExploreSavedQueryNavigationItems queries={queries} />);
 
     expect(screen.getByText('My Saved Query')).toBeInTheDocument();
     expect(screen.getByText('Another Saved Query')).toBeInTheDocument();

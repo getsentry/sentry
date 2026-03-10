@@ -2,12 +2,12 @@ import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DashboardsNavItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavItems';
+import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 
-describe('DashboardsNavItems', () => {
+describe('DashboardsNavigationItems', () => {
   it('should render', () => {
     render(
-      <DashboardsNavItems
+      <DashboardsNavigationItems
         initialDashboards={[
           DashboardListItemFixture({
             id: '1',

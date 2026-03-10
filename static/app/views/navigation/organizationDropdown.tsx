@@ -16,12 +16,12 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavigationigate} from 'sentry/utils/useNavigationigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -33,7 +33,7 @@ interface OrganizationDropdownProps {
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
-  const navigate = useNavigate();
+  const navigationigate = useNavigationigate();
   const config = useLegacyStore(ConfigStore);
 
   const organization = useOrganization();
@@ -77,7 +77,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === NavLayout.MOBILE ? 'xs' : 'md'}
+          size={layout === NavigationLayout.MOBILE ? 'xs' : 'md'}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {
@@ -115,7 +115,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Projects'),
                     onAction: () => {
                       setReferrer('org-dropdown');
-                      navigate(makeProjectsPathname({path: '/', organization}));
+                      navigationigate(makeProjectsPathname({path: '/', organization}));
                     },
                   },
                   {

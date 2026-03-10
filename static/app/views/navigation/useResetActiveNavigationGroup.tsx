@@ -3,31 +3,31 @@ import {useCallback, useEffect, useRef} from 'react';
 import type {DOMAttributes, FocusableElement} from '@react-types/shared';
 
 import {
-  NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
-  NAV_SIDEBAR_RESET_DELAY_MS,
+  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
+  NAVIGATION_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {NavLayout} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 /**
  * Resets the active nav group when the user moves their mouse away from the
  * nav or into the dead space of the primary navigation. This is delayed slightly
  * to prevent accidental dismissals.
  */
-export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
-  const {layout, setActivePrimaryNavGroup} = useNavigationContext();
+export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement> {
+  const {layout, setActivePrimaryNavigationGroup} = useNavigationContext();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const resetActiveNavGroup = useCallback(() => {
+  const resetActiveNavigationGroup = useCallback(() => {
     if (resetTimeoutRef.current) {
       return;
     }
 
     resetTimeoutRef.current = setTimeout(() => {
-      setActivePrimaryNavGroup(null);
-    }, NAV_SIDEBAR_RESET_DELAY_MS);
-  }, [setActivePrimaryNavGroup]);
+      setActivePrimaryNavigationGroup(null);
+    }, NAVIGATION_SIDEBAR_RESET_DELAY_MS);
+  }, [setActivePrimaryNavigationGroup]);
 
   const clearResetTimeout = useCallback(() => {
     if (resetTimeoutRef.current) {
@@ -41,26 +41,26 @@ export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
       requestAnimationFrame(() => {
         const target = e.target as HTMLElement;
 
-        const isInPrimaryNavListContainer =
-          target.closest(`[${NAV_PRIMARY_LINK_DATA_ATTRIBUTE}]`) !== null;
-        const isInSecondaryNavListContainer =
-          target.closest(`[${NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE}]`) !== null;
+        const isInPrimaryNavigationListContainer =
+          target.closest(`[${NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE}]`) !== null;
+        const isInSecondaryNavigationListContainer =
+          target.closest(`[${NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE}]`) !== null;
 
-        if (isInPrimaryNavListContainer || isInSecondaryNavListContainer) {
+        if (isInPrimaryNavigationListContainer || isInSecondaryNavigationListContainer) {
           clearResetTimeout();
         } else {
-          resetActiveNavGroup();
+          resetActiveNavigationGroup();
         }
       });
     },
-    [clearResetTimeout, resetActiveNavGroup]
+    [clearResetTimeout, resetActiveNavigationGroup]
   );
 
   const onMouseLeave = useCallback(() => {
     requestAnimationFrame(() => {
-      resetActiveNavGroup();
+      resetActiveNavigationGroup();
     });
-  }, [resetActiveNavGroup]);
+  }, [resetActiveNavigationGroup]);
 
   useEffect(() => {
     return () => {
@@ -70,7 +70,7 @@ export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
     };
   }, []);
 
-  if (layout !== NavLayout.SIDEBAR) {
+  if (layout !== NavigationLayout.SIDEBAR) {
     return {};
   }
 

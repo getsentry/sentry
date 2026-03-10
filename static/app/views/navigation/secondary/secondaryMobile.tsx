@@ -5,16 +5,16 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {SecondaryNavContent} from 'sentry/views/navigation/secondary/secondaryNavContent';
-import {useActiveNavGroup} from 'sentry/views/navigation/useActiveNavGroup';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
+import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 type Props = {
   handleClickBack: () => void;
 };
 
 export function SecondaryMobile({handleClickBack}: Props) {
-  const activeGroup = useActiveNavGroup();
+  const activeGroup = useActiveNavigationGroup();
 
   return (
     <SecondaryMobileWrapper>
@@ -27,11 +27,11 @@ export function SecondaryMobile({handleClickBack}: Props) {
           priority="transparent"
         />
         <HeaderLabel>
-          {activeGroup ? PRIMARY_NAV_GROUP_CONFIG[activeGroup].label : ''}
+          {activeGroup ? PRIMARY_NAVIGATION_GROUP_CONFIG[activeGroup].label : ''}
         </HeaderLabel>
       </GroupHeader>
       <Stack justify="between" align="stretch" overflowY="auto" area="content">
-        <SecondaryNavContent group={activeGroup} />
+        <SecondaryNavigationContent group={activeGroup} />
       </Stack>
     </SecondaryMobileWrapper>
   );

@@ -7,64 +7,68 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-import {NavLayout, PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
-export function IssuesSecondaryNav() {
+export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
-        <SecondaryNav.Section id="issues-feed">
-          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.ISSUES].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
+        <SecondaryNavigation.Section id="issues-feed">
+          <SecondaryNavigation.Item
+            to={`${baseUrl}/`}
+            end
+            analyticsItemName="issues_feed"
+          >
             {t('Feed')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
-        <SecondaryNav.Section id="issues-types">
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Section id="issues-types">
           {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               key={key}
               to={`${baseUrl}/${key}/`}
               end
               analyticsItemName={`issues_types_${key}`}
             >
               {label}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           ))}
-          <SecondaryNav.Item
+          <SecondaryNavigation.Item
             to={`${baseUrl}/feedback/`}
             analyticsItemName="issues_feedback"
           >
             {t('User Feedback')}
-          </SecondaryNav.Item>
+          </SecondaryNavigation.Item>
           {organization.features.includes('seer-autopilot') && (
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={`${baseUrl}/instrumentation/`}
               analyticsItemName="issues_instrumentation"
             >
               {t('Instrumentation')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           )}
-        </SecondaryNav.Section>
-        <SecondaryNav.Section id="issues-views-all">
-          <SecondaryNav.Item
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Section id="issues-views-all">
+          <SecondaryNavigation.Item
             to={`${baseUrl}/views/`}
             analyticsItemName="issues_all_views"
             end
           >
             {t('All Views')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
+          </SecondaryNavigation.Item>
+        </SecondaryNavigation.Section>
         <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }
@@ -72,7 +76,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const organization = useOrganization();
   const {layout} = useNavigationContext();
-  const isSticky = layout === NavLayout.SIDEBAR;
+  const isSticky = layout === NavigationLayout.SIDEBAR;
 
   const hasRedirectOptOut = organization.features.includes(
     'workflow-engine-redirect-opt-out'
@@ -91,18 +95,18 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       collapsible={false}
       isSticky={isSticky}
     >
-      <SecondaryNav.Item
+      <SecondaryNavigation.Item
         to={alertsLink}
         {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
         analyticsItemName="issues_alerts"
       >
         {t('Alerts')}
-      </SecondaryNav.Item>
+      </SecondaryNavigation.Item>
     </StickyBottomSection>
   );
 }
 
-const StickyBottomSection = styled(SecondaryNav.Section, {
+const StickyBottomSection = styled(SecondaryNavigation.Section, {
   shouldForwardProp: prop => prop !== 'isSticky',
 })<{isSticky: boolean}>`
   ${p =>

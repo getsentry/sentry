@@ -2,8 +2,8 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useInteractOutside} from '@react-aria/interactions';
 
 import {
-  NAV_SIDEBAR_COLLAPSE_DELAY_MS,
-  NAV_SIDEBAR_OPEN_DELAY_MS,
+  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
+  NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
 
@@ -23,59 +23,61 @@ const IGNORE_ELEMENTS = [
  * Interaction outside nav -> close
  * Escape -> close
  */
-export function useCollapsedNav() {
+export function useCollapsedNavigation() {
   const {
-    navParentRef,
+    navigationParentRef,
     isCollapsed,
     isInteractingRef,
     endInteraction,
-    setActivePrimaryNavGroup,
-    collapsedNavIsOpen,
-    setCollapsedNavIsOpen,
+    setActivePrimaryNavigationGroup,
+    collapsedNavigationIsOpen,
+    setCollapsedNavigationIsOpen,
   } = useNavigationContext();
 
   const isHoveredRef = useRef(false);
 
-  const closeNav = useCallback(() => {
+  const closeNavigation = useCallback(() => {
     isHoveredRef.current = false;
     endInteraction();
-    setCollapsedNavIsOpen(false);
-    setActivePrimaryNavGroup(null);
-  }, [endInteraction, setActivePrimaryNavGroup, setCollapsedNavIsOpen]);
+    setCollapsedNavigationIsOpen(false);
+    setActivePrimaryNavigationGroup(null);
+  }, [endInteraction, setActivePrimaryNavigationGroup, setCollapsedNavigationIsOpen]);
 
-  const shouldNavStayOpen = useCallback(() => {
-    const hasKeyboardFocus = navParentRef.current?.querySelector(':focus-visible');
-    const hasOpenMenu = navParentRef.current?.querySelector('[aria-expanded="true"]');
+  const shouldNavigationStayOpen = useCallback(() => {
+    const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
+    const hasOpenMenu = navigationParentRef.current?.querySelector(
+      '[aria-expanded="true"]'
+    );
 
     return (
       isHoveredRef.current || isInteractingRef.current || hasKeyboardFocus || hasOpenMenu
     );
-  }, [isInteractingRef, navParentRef]);
+  }, [isInteractingRef, navigationParentRef]);
 
-  const tryCloseNav = useCallback(() => {
-    if (shouldNavStayOpen()) {
+  const tryCloseNavigation = useCallback(() => {
+    if (shouldNavigationStayOpen()) {
       return;
     }
 
-    closeNav();
-  }, [closeNav, shouldNavStayOpen]);
+    closeNavigation();
+  }, [closeNavigation, shouldNavigationStayOpen]);
 
   // Resets hover state if nav is disabled
   // Without this the menu will pop back open when collapsing
   useEffect(() => {
-    if (!isCollapsed && collapsedNavIsOpen) {
-      closeNav();
+    if (!isCollapsed && collapsedNavigationIsOpen) {
+      closeNavigation();
     }
   });
 
   // Sets up event listeners hover and focus changes
   useEffect(() => {
-    const element = navParentRef.current;
-    if (!element || !isCollapsed || !navParentRef.current) {
+    const element = navigationParentRef.current;
+    if (!element || !isCollapsed || !navigationParentRef.current) {
       return () => {};
     }
 
-    const navParentEl = navParentRef.current;
+    const navigationParentEl = navigationParentRef.current;
     let closeTimer: NodeJS.Timeout;
     let openTimer: NodeJS.Timeout;
 
@@ -86,8 +88,8 @@ export function useCollapsedNav() {
       isHoveredRef.current = true;
 
       openTimer = setTimeout(() => {
-        setCollapsedNavIsOpen(true);
-      }, NAV_SIDEBAR_OPEN_DELAY_MS);
+        setCollapsedNavigationIsOpen(true);
+      }, NAVIGATION_SIDEBAR_OPEN_DELAY_MS);
     };
 
     const hoverOut = () => {
@@ -97,8 +99,8 @@ export function useCollapsedNav() {
       isHoveredRef.current = false;
 
       closeTimer = setTimeout(() => {
-        tryCloseNav();
-      }, NAV_SIDEBAR_COLLAPSE_DELAY_MS);
+        tryCloseNavigation();
+      }, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS);
     };
 
     const handleMouseEnter = () => {
@@ -125,48 +127,48 @@ export function useCollapsedNav() {
     const handleFocusIn = (e: FocusEvent) => {
       if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
         clearTimeout(closeTimer);
-        setCollapsedNavIsOpen(true);
+        setCollapsedNavigationIsOpen(true);
       }
     };
 
     const handleFocusOut = () => {
-      tryCloseNav();
+      tryCloseNavigation();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeNav();
+        closeNavigation();
       }
     };
 
-    navParentEl.addEventListener('focusin', handleFocusIn);
-    navParentEl.addEventListener('focusout', handleFocusOut);
+    navigationParentEl.addEventListener('focusin', handleFocusIn);
+    navigationParentEl.addEventListener('focusout', handleFocusOut);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       element.removeEventListener('mouseenter', handleMouseEnter);
       element.removeEventListener('mouseleave', handleMouseLeave);
-      navParentEl.removeEventListener('focusin', handleFocusIn);
-      navParentEl.removeEventListener('focusout', handleFocusOut);
+      navigationParentEl.removeEventListener('focusin', handleFocusIn);
+      navigationParentEl.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
       clearTimeout(closeTimer);
     };
   }, [
-    closeNav,
+    closeNavigation,
     endInteraction,
     isCollapsed,
     isInteractingRef,
-    navParentRef,
-    setCollapsedNavIsOpen,
-    shouldNavStayOpen,
-    tryCloseNav,
+    navigationParentRef,
+    setCollapsedNavigationIsOpen,
+    shouldNavigationStayOpen,
+    tryCloseNavigation,
   ]);
 
   // Handles clicks outside the nav container
   // Most of the the nav will already be closed by mouse or focus events,
   // but this will catch instances where clicks on non-focusable elements
   useInteractOutside({
-    ref: navParentRef,
+    ref: navigationParentRef,
     onInteractOutside: e => {
       if (
         IGNORE_ELEMENTS.some(
@@ -176,10 +178,10 @@ export function useCollapsedNav() {
         return;
       }
 
-      closeNav();
+      closeNavigation();
     },
-    isDisabled: !isCollapsed || !collapsedNavIsOpen,
+    isDisabled: !isCollapsed || !collapsedNavigationIsOpen,
   });
 
-  return {isOpen: collapsedNavIsOpen};
+  return {isOpen: collapsedNavigationIsOpen};
 }

@@ -3,37 +3,39 @@ import {useTheme} from '@emotion/react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
-import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {NavigationTourContextProvider} from 'sentry/views/navigation/tour/tour';
-import type {PrimaryNavGroup} from 'sentry/views/navigation/types';
-import {NavLayout} from 'sentry/views/navigation/types';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 interface NavigationContext {
-  activePrimaryNavGroup: PrimaryNavGroup | null;
-  collapsedNavIsOpen: boolean;
+  activePrimaryNavigationGroup: PrimaryNavigationGroup | null;
+  collapsedNavigationIsOpen: boolean;
   endInteraction: () => void;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
-  layout: NavLayout;
-  navParentRef: React.RefObject<HTMLDivElement | null>;
-  setActivePrimaryNavGroup: (activePrimaryNavGroup: PrimaryNavGroup | null) => void;
-  setCollapsedNavIsOpen: (collapsedNavIsOpen: boolean) => void;
+  layout: NavigationLayout;
+  navigationParentRef: React.RefObject<HTMLDivElement | null>;
+  setActivePrimaryNavigationGroup: (
+    activePrimaryNavigationGroup: PrimaryNavigationGroup | null
+  ) => void;
+  setCollapsedNavigationIsOpen: (collapsedNavigationIsOpen: boolean) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   startInteraction: () => void;
 }
 
 const NavigationContext = createContext<NavigationContext>({
-  navParentRef: {current: null},
-  layout: NavLayout.SIDEBAR,
+  navigationParentRef: {current: null},
+  layout: NavigationLayout.SIDEBAR,
   isCollapsed: false,
   setIsCollapsed: () => {},
   isInteractingRef: {current: false},
   startInteraction: () => {},
   endInteraction: () => {},
-  activePrimaryNavGroup: null,
-  setActivePrimaryNavGroup: () => {},
-  collapsedNavIsOpen: false,
-  setCollapsedNavIsOpen: () => {},
+  activePrimaryNavigationGroup: null,
+  setActivePrimaryNavigationGroup: () => {},
+  collapsedNavigationIsOpen: false,
+  setCollapsedNavigationIsOpen: () => {},
 });
 
 export function useNavigationContext(): NavigationContext {
@@ -41,15 +43,15 @@ export function useNavigationContext(): NavigationContext {
 }
 
 export function NavigationContextProvider({children}: {children: React.ReactNode}) {
-  const navParentRef = useRef<HTMLDivElement>(null);
+  const navigationParentRef = useRef<HTMLDivElement>(null);
   const isInteractingRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
-    NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
+    NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
   );
-  const [collapsedNavIsOpen, setCollapsedNavIsOpen] = useState(false);
-  const [activePrimaryNavGroup, setActivePrimaryNavGroup] =
-    useState<PrimaryNavGroup | null>(null);
+  const [collapsedNavigationIsOpen, setCollapsedNavigationIsOpen] = useState(false);
+  const [activePrimaryNavigationGroup, setActivePrimaryNavigationGroup] =
+    useState<PrimaryNavigationGroup | null>(null);
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
@@ -64,17 +66,17 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
 
   const value = useMemo(
     () => ({
-      navParentRef,
-      layout: isMobile ? NavLayout.MOBILE : NavLayout.SIDEBAR,
+      navigationParentRef,
+      layout: isMobile ? NavigationLayout.MOBILE : NavigationLayout.SIDEBAR,
       isCollapsed,
       setIsCollapsed,
       isInteractingRef,
       startInteraction,
       endInteraction,
-      activePrimaryNavGroup,
-      setActivePrimaryNavGroup,
-      collapsedNavIsOpen,
-      setCollapsedNavIsOpen,
+      activePrimaryNavigationGroup,
+      setActivePrimaryNavigationGroup,
+      collapsedNavigationIsOpen,
+      setCollapsedNavigationIsOpen,
     }),
     [
       isMobile,
@@ -82,10 +84,10 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
       setIsCollapsed,
       startInteraction,
       endInteraction,
-      activePrimaryNavGroup,
-      setActivePrimaryNavGroup,
-      collapsedNavIsOpen,
-      setCollapsedNavIsOpen,
+      activePrimaryNavigationGroup,
+      setActivePrimaryNavigationGroup,
+      collapsedNavigationIsOpen,
+      setCollapsedNavigationIsOpen,
     ]
   );
 

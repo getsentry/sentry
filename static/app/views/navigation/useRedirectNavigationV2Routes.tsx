@@ -56,7 +56,7 @@ function useLogUnexpectedNavigationRedirect({shouldRedirect}: {shouldRedirect: b
  * /feedback/123 -> /issues/feedback/123/
  * /issues/feedback/123/ -> null (no redirect)
  */
-export function useRedirectNavV2Routes({
+export function useRedirectNavigationV2Routes({
   oldPathPrefix,
   newPathPrefix,
 }: Props): string | null {

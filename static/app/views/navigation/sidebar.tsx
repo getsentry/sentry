@@ -10,7 +10,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
@@ -22,7 +22,7 @@ import {
   useNavigationTourModal,
   useStackedNavigationTour,
 } from 'sentry/views/navigation/tour/tour';
-import {useCollapsedNav} from 'sentry/views/navigation/useCollapsedNav';
+import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
 export function Sidebar() {
   const organization = useOrganization();
@@ -40,10 +40,10 @@ export function Sidebar() {
   const tourIsActive = currentStepId !== null;
   const forceExpanded = tourIsActive;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
-  const {isOpen} = useCollapsedNav();
+  const {isOpen} = useCollapsedNavigation();
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
-    NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+    NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
 

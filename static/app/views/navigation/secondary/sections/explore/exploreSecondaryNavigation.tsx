@@ -13,15 +13,15 @@ import useProjects from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
-import {ExploreSavedQueryNavItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavItems';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {isLinkActive} from 'sentry/views/navigation/utils';
 
 const MAX_STARRED_QUERIES_DISPLAYED = 20;
 
-export function ExploreSecondaryNav() {
+export function ExploreSecondaryNavigation() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
@@ -70,104 +70,107 @@ export function ExploreSecondaryNav() {
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
-        <SecondaryNav.Section id="explore-main">
+      <SecondaryNavigation.Header>
+        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.EXPLORE].label}
+      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
+        <SecondaryNavigation.Section id="explore-main">
           <Feature features={['performance-view']}>
             <Feature features={['visibility-explore-view']}>
-              <SecondaryNav.Item
+              <SecondaryNavigation.Item
                 to={`${baseUrl}/traces/`}
                 analyticsItemName="explore_traces"
                 isActive={isLinkActive(`${baseUrl}/traces/`, location.pathname)}
               >
                 {t('Traces')}
-              </SecondaryNav.Item>
+              </SecondaryNavigation.Item>
             </Feature>
           </Feature>
           <Feature features="ourlogs-enabled">
-            <SecondaryNav.Item to={`${baseUrl}/logs/`} analyticsItemName="explore_logs">
+            <SecondaryNavigation.Item
+              to={`${baseUrl}/logs/`}
+              analyticsItemName="explore_logs"
+            >
               {t('Logs')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
           {hasMetricsSupportedPlatform && (
             <Feature features="tracemetrics-enabled">
-              <SecondaryNav.Item
+              <SecondaryNavigation.Item
                 to={`${baseUrl}/metrics/`}
                 analyticsItemName="explore_metrics"
                 trailingItems={<FeatureBadge type="beta" />}
               >
                 {t('Metrics')}
-              </SecondaryNav.Item>
+              </SecondaryNavigation.Item>
             </Feature>
           )}
           <Feature
             features="discover-basic"
             hookName="feature-disabled:discover2-sidebar-item"
           >
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={`${baseUrl}/discover/homepage/`}
               activeTo={`${baseUrl}/discover/`}
               analyticsItemName="explore_discover"
             >
               {t('Discover')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
           <Feature
             features="profiling"
             hookName="feature-disabled:profiling-sidebar-item"
           >
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={`${baseUrl}/profiling/`}
               analyticsItemName="explore_profiles"
             >
               {t('Profiles')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
           <Feature
             features="session-replay-ui"
             hookName="feature-disabled:replay-sidebar-item"
           >
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={`${baseUrl}/replays/`}
               analyticsItemName="explore_replays"
             >
               {t('Replays')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
-          <SecondaryNav.Item
+          <SecondaryNavigation.Item
             to={`${baseUrl}/releases/`}
             analyticsItemName="explore_releases"
           >
             {t('Releases')}
-          </SecondaryNav.Item>
+          </SecondaryNavigation.Item>
           <Feature features="gen-ai-conversations">
-            <SecondaryNav.Item
+            <SecondaryNavigation.Item
               to={`${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`}
               analyticsItemName="explore_conversations"
               trailingItems={<FeatureBadge type="alpha" />}
             >
               {t('Conversations')}
-            </SecondaryNav.Item>
+            </SecondaryNavigation.Item>
           </Feature>
-        </SecondaryNav.Section>
+        </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
-          <SecondaryNav.Section id="explore-all-queries">
-            <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
+          <SecondaryNavigation.Section id="explore-all-queries">
+            <SecondaryNavigation.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
+            </SecondaryNavigation.Item>
+          </SecondaryNavigation.Section>
           {starredQueries && starredQueries.length > 0 && (
-            <SecondaryNav.Section
+            <SecondaryNavigation.Section
               id="explore-starred-queries"
               title={t('Starred Queries')}
             >
-              <ExploreSavedQueryNavItems queries={starredQueries} />
-            </SecondaryNav.Section>
+              <ExploreSavedQueryNavigationItems queries={starredQueries} />
+            </SecondaryNavigation.Section>
           )}
         </Feature>
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }

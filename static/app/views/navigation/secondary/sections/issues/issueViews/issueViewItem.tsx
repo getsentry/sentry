@@ -16,7 +16,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useNavigationContext} from 'sentry/views/navigation/context';
 import ProjectIcon from 'sentry/views/navigation/projectIcon';
-import {SecondaryNav} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
@@ -111,7 +111,7 @@ export function IssueViewItem({
       }}
       grabbing={isDragging === view.id}
     >
-      <StyledSecondaryNavItem
+      <StyledSecondaryNavigationItem
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
         leadingItems={
@@ -150,7 +150,7 @@ export function IssueViewItem({
             e.preventDefault();
           } else {
             trackAnalytics('issue_views.switched_views', {
-              leftNav: true,
+              leftNavigation: true,
               organization: organization.slug,
             });
           }
@@ -173,7 +173,7 @@ export function IssueViewItem({
             />
           </Tooltip>
         )}
-      </StyledSecondaryNavItem>
+      </StyledSecondaryNavigationItem>
     </StyledReorderItem>
   );
 }
@@ -222,7 +222,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
   position: relative;
   padding-right: ${p => p.theme.space.xs};
 
@@ -247,7 +247,7 @@ const BoldTooltipText = styled('span')`
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   opacity: ${p => (p.isActive ? 1 : 0)};
 
-  ${StyledSecondaryNavItem}:hover & {
+  ${StyledSecondaryNavigationItem}:hover & {
     opacity: ${p => (p.isActive ? 1 : 0.75)};
   }
 

@@ -4,9 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {DashboardsSecondaryNav} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNav';
+import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 
-describe('DashboardsSecondaryNav', () => {
+describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('DashboardsSecondaryNav', () => {
   });
 
   it('should render dashboards in order of response', async () => {
-    render(<DashboardsSecondaryNav />, {organization});
+    render(<DashboardsSecondaryNavigation />, {organization});
 
     expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();
 

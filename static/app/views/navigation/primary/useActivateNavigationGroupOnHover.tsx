@@ -4,7 +4,7 @@ import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useWindowHeight} from 'sentry/views/navigation/primary/useWindowHeight';
-import {NavLayout, PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -20,7 +20,7 @@ import {NavLayout, PrimaryNavGroup} from 'sentry/views/navigation/types';
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
  */
-export function useActivateNavGroupOnHover({
+export function useActivateNavigationGroupOnHover({
   ref,
 }: {
   ref: React.RefObject<HTMLElement | null>;
@@ -28,21 +28,21 @@ export function useActivateNavGroupOnHover({
   const {layout} = useNavigationContext();
   const mouseAccelerationRef = useMouseMovement({
     ref,
-    disabled: layout !== NavLayout.SIDEBAR,
+    disabled: layout !== NavigationLayout.SIDEBAR,
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} =
+  const {setActivePrimaryNavigationGroup, isCollapsed, collapsedNavigationIsOpen} =
     useNavigationContext();
   const windowHeight = useWindowHeight();
 
-  return function makeNavItemProps(group: PrimaryNavGroup) {
+  return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
     const onMouseEnter = (e: MouseEvent) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
-      if (isCollapsed && !collapsedNavIsOpen) {
-        setActivePrimaryNavGroup(group);
+      if (isCollapsed && !collapsedNavigationIsOpen) {
+        setActivePrimaryNavigationGroup(group);
         return;
       }
 
@@ -71,7 +71,7 @@ export function useActivateNavGroupOnHover({
             ? 90
             : Math.atan2(verticalSpeed, horizontalSpeed) * (180 / Math.PI);
 
-        const isMovingTowardSecondaryNav =
+        const isMovingTowardSecondaryNavigation =
           horizontalDirection > 0
             ? verticalDirection > 0
               ? mouseDirectionAngle < angleToBottom
@@ -82,7 +82,7 @@ export function useActivateNavGroupOnHover({
           horizontalDirection < 1 && mouseX > PRIMARY_SIDEBAR_WIDTH * 0.8;
 
         // If we deem the user intention is _not_ to active another nav group, add a 200ms delay
-        if (isMovingTowardSecondaryNav || isSkimmingRightSide) {
+        if (isMovingTowardSecondaryNavigation || isSkimmingRightSide) {
           return 200;
         }
 
@@ -91,7 +91,7 @@ export function useActivateNavGroupOnHover({
       };
 
       timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavGroup(group);
+        setActivePrimaryNavigationGroup(group);
       }, getDelay());
     };
 
@@ -102,7 +102,7 @@ export function useActivateNavGroupOnHover({
     };
 
     const onClick = () => {
-      setActivePrimaryNavGroup(group);
+      setActivePrimaryNavigationGroup(group);
     };
 
     return {

@@ -1,46 +1,46 @@
 import {t} from 'sentry/locale';
-import {PrimaryNavGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
-type PrimaryNavGroupConfig = Record<
-  PrimaryNavGroup,
+type PrimaryNavigationGroupConfig = Record<
+  PrimaryNavigationGroup,
   {
     basePaths: string[];
     label: string;
   }
 >;
 
-export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
-  [PrimaryNavGroup.ISSUES]: {
+export const PRIMARY_NAVIGATION_GROUP_CONFIG: PrimaryNavigationGroupConfig = {
+  [PrimaryNavigationGroup.ISSUES]: {
     basePaths: ['issues'],
     label: t('Issues'),
   },
-  [PrimaryNavGroup.EXPLORE]: {
+  [PrimaryNavigationGroup.EXPLORE]: {
     basePaths: ['explore'],
     label: t('Explore'),
   },
-  [PrimaryNavGroup.DASHBOARDS]: {
+  [PrimaryNavigationGroup.DASHBOARDS]: {
     // XXX: Dashboard uses the singular `dashboard` path for details pages
     // but the plural `dashboards` path for the list of dashboards.
     basePaths: ['dashboards', 'dashboard'],
     label: t('Dashboards'),
   },
-  [PrimaryNavGroup.INSIGHTS]: {
+  [PrimaryNavigationGroup.INSIGHTS]: {
     basePaths: ['insights'],
     label: t('Insights'),
   },
-  [PrimaryNavGroup.MONITORS]: {
+  [PrimaryNavigationGroup.MONITORS]: {
     basePaths: ['monitors'],
     label: t('Monitors'),
   },
-  [PrimaryNavGroup.SETTINGS]: {
+  [PrimaryNavigationGroup.SETTINGS]: {
     basePaths: ['settings'],
     label: t('Settings'),
   },
-  [PrimaryNavGroup.PREVENT]: {
+  [PrimaryNavigationGroup.PREVENT]: {
     basePaths: ['prevent'],
     label: t('Prevent'),
   },
-  [PrimaryNavGroup.ADMIN]: {
+  [PrimaryNavigationGroup.ADMIN]: {
     basePaths: ['manage'],
     label: t('Admin'),
   },
