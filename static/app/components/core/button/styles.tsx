@@ -274,9 +274,9 @@ function getButtonTheme(type: ButtonType, theme: Theme) {
       };
     case 'danger':
       return {
-        surface: theme.tokens.interactive.chonky.embossed.danger.background,
-        background: theme.tokens.interactive.chonky.embossed.danger.chonk,
-        color: theme.tokens.interactive.chonky.embossed.danger.content,
+        surface: theme.tokens.interactive.chonky.embossed.success.background,
+        background: theme.tokens.interactive.chonky.embossed.success.chonk,
+        color: theme.tokens.interactive.chonky.embossed.success.content,
       };
     case 'transparent':
       return {
