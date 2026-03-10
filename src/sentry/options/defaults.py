@@ -711,7 +711,7 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    "coding_workflows.code_review.seer.use_new_endpoints",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
