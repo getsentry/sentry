@@ -6,7 +6,6 @@ import type {KeyboardEvent} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
-import {getItemsWithKeys} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DeviceName} from 'sentry/components/deviceName';
@@ -26,6 +25,7 @@ import {
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
+import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
   escapeTagValue,
   formatFilterValue,
@@ -43,7 +43,6 @@ import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/
 import type {
   SuggestionItem,
   SuggestionSection,
-  SuggestionSectionItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {
   cleanFilterValue,
@@ -384,11 +383,6 @@ function useFilterSuggestions({
     enabled: shouldFetchValues,
   });
 
-  // Keep selected values in a ref so ordering calculations can read latest
-  // values without rebuilding suggestion items on every checkbox toggle.
-  const selectedValuesRef = useRef(selectedValues);
-  selectedValuesRef.current = selectedValues;
-
   const createItem = useCallback(
     (suggestion: SuggestionItem) => {
       return {
@@ -438,85 +432,11 @@ function useFilterSuggestions({
     return [{sectionText: '', suggestions: suggestions ?? []}];
   }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
-  // Track suggestion groups identity to detect when a fresh sort is needed
-  // (e.g. combobox reopened, filter key changed, or new data fetched)
-  const prevSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
-  const frozenOrderRef = useRef<Array<{sectionText: string; values: string[]}> | null>(
-    null
-  );
-
-  if (prevSuggestionGroupsRef.current !== suggestionGroups) {
-    prevSuggestionGroupsRef.current = suggestionGroups;
-    frozenOrderRef.current = null;
-  }
-
-  // Grouped sections for rendering purposes.
-  // On fresh open (frozenOrderRef is null): sorts selected items to the top, then
-  // freezes the order. On subsequent toggles: returns the cached result — checkbox
-  // states are read from context at render time, so item objects stay
-  // referentially stable and downstream memos/components skip re-computation.
-  const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
-    const currentSelectedValues = selectedValuesRef.current;
-    const allSuggestions = new Map(
-      suggestionGroups.flatMap(group => group.suggestions.map(s => [s.value, s] as const))
-    );
-
-    if (!frozenOrderRef.current) {
-      // Fresh open — sort selected items to top (original behavior)
-      const itemsWithoutSection = suggestionGroups
-        .filter(group => group.sectionText === '')
-        .flatMap(group => group.suggestions)
-        .filter(
-          suggestion => !currentSelectedValues.some(v => v.value === suggestion.value)
-        );
-      const sections = suggestionGroups.filter(group => group.sectionText !== '');
-
-      const result: SuggestionSectionItem[] = [
-        {
-          sectionText: '',
-          items: getItemsWithKeys([
-            ...currentSelectedValues.map(value => {
-              const matchingSuggestion = allSuggestions.get(value.value);
-              return createItem(matchingSuggestion ?? {value: value.value});
-            }),
-            ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
-          ]),
-        },
-        ...sections.map(group => ({
-          sectionText: group.sectionText,
-          items: getItemsWithKeys(
-            group.suggestions
-              .filter(
-                suggestion =>
-                  !currentSelectedValues.some(v => v.value === suggestion.value)
-              )
-              .map(suggestion => createItem(suggestion))
-          ),
-        })),
-      ];
-
-      // Freeze the item order for subsequent renders within this session
-      frozenOrderRef.current = result.map(section => ({
-        sectionText: section.sectionText,
-        values: section.items.map(item => item.value),
-      }));
-
-      return result;
-    }
-
-    // Subsequent toggle — return cached items. Checkbox states are read from
-    // context inside the trailingItems render prop, so the same
-    // item objects render the correct state without needing reconstruction.
-    return frozenOrderRef.current.map(section => ({
-      sectionText: section.sectionText,
-      items: getItemsWithKeys(
-        section.values.map(value => {
-          const suggestion = allSuggestions.get(value) ?? {value};
-          return createItem(suggestion);
-        })
-      ),
-    }));
-  }, [createItem, suggestionGroups]);
+  const suggestionSectionItems = useFrozenSuggestionSectionItems({
+    createItem,
+    selectedValues,
+    suggestionGroups,
+  });
 
   // Flat list used for state management
   const items = useMemo(() => {
