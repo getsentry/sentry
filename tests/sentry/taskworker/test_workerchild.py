@@ -76,6 +76,36 @@ class TestTimeoutAlarm:
         # Outer handler must be restored
         assert signal.getsignal(signal.SIGALRM) is outer_handler
 
+    def test_outer_alarm_fires_with_minimal_gap(self):
+        """
+        With a 1s inner / 2s outer gap, the outer alarm is still restored and fires
+        after the inner. Guards the max(1, previous_remaining - elapsed) path: if
+        elapsed rounds up to equal previous_remaining, passing 0 would silently cancel
+        the outer alarm; the clamp ensures it fires instead.
+        """
+        times: dict[str, float] = {}
+        start = time.monotonic()
+
+        def inner_handler(signum: int, frame: FrameType | None) -> None:
+            times["inner"] = time.monotonic()
+            raise InnerFired()
+
+        def outer_handler(signum: int, frame: FrameType | None) -> None:
+            times["outer"] = time.monotonic()
+            raise OuterFired()
+
+        with pytest.raises(OuterFired):
+            with timeout_alarm(2, outer_handler):
+                try:
+                    with timeout_alarm(1, inner_handler):
+                        time.sleep(10)
+                except InnerFired:
+                    time.sleep(10)
+
+        assert "outer" in times, "Outer alarm should have fired"
+        outer_elapsed = times["outer"] - start
+        assert 1.5 <= outer_elapsed <= 5.0, f"Outer fired at {outer_elapsed:.2f}s, expected ~2s"
+
     def test_nested_inner_fires_then_outer_fires(self):
         """Inner alarm (3s) fires first, then outer alarm (5s) fires ~2s later."""
         times: dict[str, float] = {}

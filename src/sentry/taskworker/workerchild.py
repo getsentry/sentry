@@ -85,7 +85,7 @@ def timeout_alarm(
 
         if previous_remaining > 0:
             # Restore original outer alarm adjusted for elapsed time.
-            signal.alarm(previous_remaining - elapsed)
+            signal.alarm(max(1, previous_remaining - elapsed))
 
 
 def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:
