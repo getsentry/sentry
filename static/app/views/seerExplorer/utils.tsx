@@ -67,7 +67,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading, linkParams) => {
+  telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -96,7 +96,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : linkParams?.mode === 'traces'
+      : resultMetadata?.mode === 'traces'
         ? `Queried traces${projectInfo}: '${question}'...`
         : `Queried spans${projectInfo}: '${question}'`;
   },
@@ -114,46 +114,54 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_issue_details: (args, isLoading) => {
-    const {short_id, issue_id, start, end, event_id} = args;
+  get_issue_details: (args, isLoading, resultMetadata) => {
+    const {issue_id, start, end, event_id} = args;
 
     if (event_id) {
-      // event_id only present in some older versions (issue_and_event_details)
+      // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
       return isLoading
         ? `Inspecting event ${event_id.slice(0, 8)}...`
         : `Inspected event ${event_id.slice(0, 8)}`;
     }
 
-    if (short_id || issue_id) {
+    if (issue_id) {
       if (start && end) {
         return isLoading
-          ? `Inspecting issue ${short_id || issue_id} between ${start} to ${end}...`
-          : `Inspected issue ${short_id || issue_id} between ${start} to ${end}`;
+          ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected issue ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting issue ${short_id || issue_id}...`
-        : `Inspected issue ${short_id || issue_id}`;
+        ? `Inspecting issue ${issue_id}...`
+        : `Inspected issue ${resultMetadata?.short_id || issue_id}`;
     }
+
+    // shouldn't happen (issue_id required)
     return isLoading ? `Inspecting issue...` : `Inspected issue`;
   },
 
-  get_event_details: (args, isLoading) => {
-    const {selected_event, issue_id, start, end} = args;
-    if (selected_event) {
-      if (selected_event === 'recommended' && issue_id) {
-        if (start && end) {
-          return isLoading
-            ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
-            : `Inspected recommended event for issue ${issue_id} between ${start} to ${end}`;
-        }
+  get_event_details: (args, isLoading, resultMetadata) => {
+    const {event_id, issue_id, start, end} = args;
+
+    // event ID mode
+    if (event_id) {
+      return isLoading
+        ? `Inspecting event ${event_id.slice(0, 8)}...`
+        : `Inspected event ${event_id.slice(0, 8)}`;
+    }
+
+    // recommended event mode
+    if (issue_id) {
+      if (start && end) {
         return isLoading
-          ? `Inspecting recommended event for issue ${issue_id}...`
-          : `Inspected recommended event for issue ${issue_id}`;
+          ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`} between ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting event ${selected_event.slice(0, 8)}...`
-        : `Inspected event ${selected_event.slice(0, 8)}`;
+        ? `Inspecting recommended event for issue ${issue_id}...`
+        : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
     }
+
+    // shouldn't happen (either event_id or issue_id required)
     return isLoading ? `Inspecting event...` : `Inspected event`;
   },
 
