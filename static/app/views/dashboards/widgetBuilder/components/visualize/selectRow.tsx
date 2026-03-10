@@ -58,7 +58,7 @@ interface SelectRowProps {
   source: string;
   columnFilterMethod?: (
     option: FieldValueOption,
-    fieldValue?: QueryFieldValue | undefined
+    fieldValue?: QueryFieldValue
   ) => boolean;
   disabled?: boolean;
   error?: Record<string, any>;

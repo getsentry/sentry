@@ -4,7 +4,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -90,7 +89,7 @@ function SpanSummaryLink(props: Props) {
 }
 
 const StyledIconGraph = styled(IconGraph)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const resourceSummaryAvailable = (op = '') =>

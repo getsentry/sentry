@@ -13,7 +13,6 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type useOverlay from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
@@ -275,7 +274,7 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
+  ${p => p.hasTitle && `padding-top: calc(${p.theme.space.xs} + 1px);`}
 
   &:focus {
     outline: none;

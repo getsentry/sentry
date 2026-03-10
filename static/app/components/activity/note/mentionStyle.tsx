@@ -1,7 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-
 type Options = {
   theme: Theme;
   minHeight?: number;
@@ -15,7 +13,7 @@ type Options = {
 export function mentionStyle({theme, minHeight, streamlined}: Options) {
   const inputProps = {
     fontSize: theme.font.size.md,
-    padding: `${space(1.5)} ${space(2)}`,
+    padding: `${theme.space.lg} ${theme.space.xl}`,
     outline: 0,
     border: 0,
     minHeight,
@@ -24,7 +22,7 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
 
   const streamlinedInputProps = {
     fontSize: theme.font.size.md,
-    padding: `${space(1)} ${space(1.5)}`,
+    padding: `${theme.space.md} ${theme.space.lg}`,
     outline: 0,
     border: `1px solid ${theme.tokens.border.primary}`,
     borderRadius: theme.radius.md,
@@ -80,11 +78,11 @@ export function mentionStyle({theme, minHeight, streamlined}: Options) {
         border: '1px solid rgba(0,0,0,0.15)',
         borderRadius: theme.radius.md,
         fontSize: theme.font.size.sm,
-        padding: space(0.5),
+        padding: theme.space.xs,
       },
 
       item: {
-        padding: space(0.5),
+        padding: theme.space.xs,
         borderRadius: theme.radius.md,
         '&focused': {
           backgroundColor: theme.tokens.interactive.transparent.neutral.background.active,

@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -156,7 +157,19 @@ const MODELS_TABLE = {
 export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Models',
-  filters: {},
+  title: 'AI Agents Model Details',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'gen_ai.request.model',
+          name: 'gen_ai.request.model',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, MODELS_TABLE],
 };
