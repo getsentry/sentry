@@ -19,10 +19,13 @@ contract = ContractService().get_contract(GetContractRequest(organization_id=1))
 
 ```
 services/
-└── contract/           # Service name
-    ├── __init__.py     # Exports ContractService
-    ├── service.py      # Service implementation
-    └── ...             # Internal implementation files
+├── contract/           # Contract management (lives in getsentry)
+│   ├── __init__.py     # Exports ContractService
+│   ├── service.py      # Service implementation
+│   └── ...             # Internal implementation files
+└── usage/              # Usage data retrieval
+    ├── __init__.py     # Exports UsageService
+    └── service.py      # Service implementation
 ```
 
 ## Creating a Service
@@ -46,4 +49,15 @@ class MyService(BillingService):
 
 ## Available Services
 
-_Services will be listed here as they are implemented._
+### UsageService (`usage/`)
+
+Provides daily usage data for an organization within a date range. Returns usage broken down by day, with per-category totals.
+
+The default implementation in sentry returns an empty response. GetSentry overrides this with Postgres/ClickHouse backends.
+
+```python
+from sentry.billing.platform.services.usage import UsageService
+from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import GetUsageRequest
+
+response = UsageService().get_usage(GetUsageRequest(organization_id=1))
+```

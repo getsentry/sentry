@@ -132,7 +132,7 @@
     "framer-motion": "12.23.12",
     "fuse.js": "^6.6.2",
     "gettext-parser": "7.0.1",
-    "gl-matrix": "^3.4.3",
+    "gl-matrix": "3.4.4",
     "html-webpack-plugin": "5.6.3",
     "idb-keyval": "6.2.2",
     "invariant": "^2.2.4",
