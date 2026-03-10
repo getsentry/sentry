@@ -8,7 +8,8 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.parameterization import experimental_parameterizer
+from sentry.grouping.parameterization import parameterizer as default_parameterizer
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -62,10 +63,10 @@ def normalize_message_for_grouping(
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-    parameterizer = Parameterizer(
-        use_experimental_regexes=in_rollout_group(
-            "grouping.experimental_parameterization", event.project_id
-        ),
+    parameterizer = (
+        experimental_parameterizer
+        if in_rollout_group("grouping.experimental_parameterization", event.project_id)
+        else default_parameterizer
     )
 
     if trim_message:
