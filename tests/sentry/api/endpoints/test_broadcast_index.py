@@ -78,6 +78,89 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
         assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
 
+    def test_organization_status_unseen(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="unseen", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="seen", is_active=True)
+        BroadcastSeen.objects.create(broadcast=broadcast2, user=self.user)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"status": "unseen"})
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(broadcast1.id)
+
+    def test_organization_status_seen(self) -> None:
+        Broadcast.objects.create(message="unseen", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="seen", is_active=True)
+        BroadcastSeen.objects.create(broadcast=broadcast2, user=self.user)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"status": "seen"})
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(broadcast2.id)
+
+    def test_organization_status_all_is_default(self) -> None:
+        broadcast1 = Broadcast.objects.create(message="unseen", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="seen", is_active=True)
+        BroadcastSeen.objects.create(broadcast=broadcast2, user=self.user)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        ids = [b["id"] for b in response.data]
+        assert str(broadcast1.id) in ids
+        assert str(broadcast2.id) in ids
+
+    def test_organization_limit_backfills_when_below_minimum(self) -> None:
+        for i in range(5):
+            Broadcast.objects.create(message=f"broadcast {i}", is_active=True)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        # Mark all as seen so status=unseen returns 0, then limit=3 should backfill
+        for broadcast in Broadcast.objects.filter(is_active=True):
+            BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
+
+        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+
+    def test_organization_limit_does_not_exceed_available_broadcasts(self) -> None:
+        Broadcast.objects.create(message="only one", is_active=True)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_organization_limit_backfill_excludes_inactive_broadcasts(self) -> None:
+        Broadcast.objects.create(message="active", is_active=True)
+        Broadcast.objects.create(message="inactive 1", is_active=False)
+        Broadcast.objects.create(message="inactive 2", is_active=False)
+
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+
+        # Mark active as seen so unseen returns 0, limit=3 should only backfill active
+        for broadcast in Broadcast.objects.filter(is_active=True):
+            BroadcastSeen.objects.create(broadcast=broadcast, user=self.user)
+
+        response = self.client.get(url, {"status": "unseen", "limit": "3"})
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["message"] == "active"
+
 
 @control_silo_test
 class BroadcastCreateTest(APITestCase):

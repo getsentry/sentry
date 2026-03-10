@@ -113,7 +113,42 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                     queryset = queryset.none()
 
         if organization:
+            status = request.GET.get("status", "all")
+            if status == "unseen" and request.user.is_authenticated:
+                seen_ids = set(
+                    BroadcastSeen.objects.filter(user_id=request.user.id).values_list(
+                        "broadcast_id", flat=True
+                    )
+                )
+                queryset = queryset.exclude(id__in=seen_ids)
+            elif status == "seen" and request.user.is_authenticated:
+                seen_ids = set(
+                    BroadcastSeen.objects.filter(user_id=request.user.id).values_list(
+                        "broadcast_id", flat=True
+                    )
+                )
+                queryset = queryset.filter(id__in=seen_ids)
+
             data = self._secondary_filtering(request, organization, queryset)
+
+            try:
+                limit = int(request.GET.get("limit", 0))
+            except (ValueError, TypeError):
+                limit = 0
+
+            if limit > 0 and len(data) < limit:
+                existing_ids = {b.id for b in data}
+                backfill = list(
+                    Broadcast.objects.filter(is_active=True)
+                    .exclude(id__in=existing_ids)
+                    .order_by("-date_added")[: limit - len(data)]
+                )
+                data = sorted(
+                    list(data) + backfill,
+                    key=lambda b: b.date_added,
+                    reverse=True,
+                )
+
             return self.respond(self._serialize_objects(data, request))
 
         sort_by = request.GET.get("sortBy")
