@@ -360,10 +360,6 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      label = t('The issue changes state from archived to escalating');
-    }
-
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
         return <Separator key={i}>{part}</Separator>;

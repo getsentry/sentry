@@ -1,7 +1,7 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
 
@@ -114,7 +114,31 @@ describe('ProjectAlertsCreate', () => {
 
   it('adds default parameters if wizard was skipped', async () => {
     const location = {query: {}};
-    const {router} = createWrapper(undefined, location);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 0},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/available-actions/',
+      body: [],
+    });
+    const {router} = createWrapper({organization: {features: ['incidents']}}, location);
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
@@ -650,19 +674,6 @@ describe('ProjectAlertsCreate', () => {
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
-  });
-
-  it('shows archived to escalating instead of ignored to unresolved', async () => {
-    createWrapper({
-      organization: OrganizationFixture(),
-    });
-    await selectEvent.select(screen.getByText('Add optional trigger...'), [
-      'The issue changes state from archived to escalating',
-    ]);
-
-    expect(
-      screen.getByText('The issue changes state from archived to escalating')
-    ).toBeInTheDocument();
   });
 
   it('displays noisy alert checkbox for no conditions + filters', async () => {
