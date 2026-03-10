@@ -47,7 +47,9 @@ function StoryLayout() {
     parseAsString.withOptions({history: 'push'}).withDefault('usage')
   );
   const documentation = useStoryDocumentation(
-    isMDXStory(story) ? story.exports.documentation : undefined,
+    (isMDXStory(story) ? story.exports.documentation : story.exports.documentation) as
+      | StoryDocumentation
+      | undefined,
     story.filename
   );
 
@@ -159,7 +161,12 @@ function StoryTabPanels(props: {documentation: TypeLoader.TypeLoaderResult | und
   const {story} = useStory();
 
   if (!isMDXStory(story)) {
-    return <StoryUsage />;
+    return (
+      <Fragment>
+        <StoryUsage />
+        {props.documentation && <StoryAPI documentation={props.documentation} />}
+      </Fragment>
+    );
   }
 
   // A document is just a single page
