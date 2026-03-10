@@ -82,7 +82,7 @@ function makeTeamSelectQueryOptions(
       ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
         path: {organizationIdOrSlug: orgSlug},
         ...(debouncedInput ? {query: {query: debouncedInput}} : {}),
-        staleTime: 0,
+        staleTime: 1000 * 60,
       }),
       select: ({json: teams}) => {
         return mergeOptions(mapTeams(teams), defaultOptions, mapping, 'team');
@@ -100,7 +100,7 @@ function makeMemberSelectQueryOptions(
       ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
         path: {organizationIdOrSlug: orgSlug},
         ...(debouncedInput ? {query: {query: debouncedInput}} : {}),
-        staleTime: 0,
+        staleTime: 1000 * 60,
       }),
       select: ({json: members}) =>
         mergeOptions(mapMembers(members), defaultOptions, mapping, 'user'),
