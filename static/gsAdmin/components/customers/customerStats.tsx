@@ -741,7 +741,6 @@ const AbuseTooltip = styled('div')`
   position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
-  color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
