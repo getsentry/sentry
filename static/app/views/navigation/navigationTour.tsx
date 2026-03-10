@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 
-import NavigationTourSvg from 'sentry-images/spot/-nav-tour.svg';
+import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -85,7 +85,7 @@ export const NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-const NAVIGATION_TOUR_GUIDE_KEY = 'tour._navigation';
+const NAVIGATION_TOUR_GUIDE_KEY = 'tour.navigation';
 
 const NavigationTourContext = createContext<TourContextType<NavigationTour> | null>(null);
 
@@ -308,7 +308,7 @@ export function useNavigationTourModal() {
     {hasSeen: false}
   );
 
-  // We don't want to show the tour modal for new users that were forced into the new  navigation.
+  // We don't want to show the tour modal for new users that were forced into the new navigation.
   const shouldSkipTourForNewUsers =
     new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
@@ -336,7 +336,7 @@ export function useNavigationTourModal() {
       openModal(
         props => (
           <StartTourModal
-            img={{src: NavigationTourSvg, alt: t(' Navigation Tour')}}
+            img={{src: NavigationTourSvg, alt: t('Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'

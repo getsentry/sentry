@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
-import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
+import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -92,8 +92,8 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
   );
 
   return (
-    <NavigationTourProvider>
+    <NavigationTourReminderContextProvider>
       <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
-    </NavigationTourProvider>
+    </NavigationTourReminderContextProvider>
   );
 }
