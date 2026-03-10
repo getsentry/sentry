@@ -73,7 +73,7 @@ class ScmRpcSignatureAuthentication(StandardAuthentication):
                 {
                     "errors": [
                         {
-                            "details": f"SCM RPC signature validation failed: {signature_validation_error}"
+                            "detail": f"SCM RPC signature validation failed: {signature_validation_error}"
                         }
                     ]
                 }
@@ -157,7 +157,7 @@ class ScmRpcServiceEndpoint(Endpoint):
                         {
                             "status": "404",
                             "title": "Not found",
-                            "details": f"Could not find action {e.action_name}",
+                            "detail": f"Could not find action {e.action_name}",
                         }
                     ]
                 },
@@ -184,7 +184,7 @@ class ScmRpcServiceEndpoint(Endpoint):
                         {
                             "status": "500",
                             "title": "An unexpected error occurred.",
-                            "details": e.message,
+                            "detail": e.message,
                         }
                     ]
                 },
@@ -195,7 +195,7 @@ class ScmRpcServiceEndpoint(Endpoint):
             return Response(
                 data={
                     "errors": [
-                        {"status": "400", "title": "Provider not supported.", "details": e.message}
+                        {"status": "400", "title": "Provider not supported.", "detail": e.message}
                     ]
                 },
                 status=400,
@@ -208,7 +208,7 @@ class ScmRpcServiceEndpoint(Endpoint):
                         {
                             "status": "503",
                             "title": "The service provider raised an error.",
-                            "details": self._make_details(e),
+                            "detail": self._make_details(e),
                         }
                     ]
                 },
@@ -222,7 +222,7 @@ class ScmRpcServiceEndpoint(Endpoint):
                         {
                             "status": "500",
                             "title": "An unexpected error occurred.",
-                            "details": self._make_details(e),
+                            "detail": self._make_details(e),
                         }
                     ]
                 },

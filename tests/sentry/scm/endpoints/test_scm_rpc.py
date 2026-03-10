@@ -107,7 +107,7 @@ class TestScmRpc(APITestCase):
         }
         response = self.client.post(path, data=data)
         assert response.status_code == 403
-        # Response body is built by DRF before we can format it as {"errors": [{"details": ...}]}
+        # Response body is built by DRF before we can format it as {"errors": [{"detail": ...}]}
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
     def test_wrong_name_in_authorization_header(self) -> None:
@@ -139,7 +139,7 @@ class TestScmRpc(APITestCase):
         response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature rpc42:foobar")
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"details": "SCM RPC signature validation failed: invalid signature prefix"}]
+            "errors": [{"detail": "SCM RPC signature validation failed: invalid signature prefix"}]
         }
 
     def test_wrong_signature_in_authorization_header(self) -> None:
@@ -156,7 +156,7 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"details": "SCM RPC signature validation failed: wrong secret"}]
+            "errors": [{"detail": "SCM RPC signature validation failed: wrong secret"}]
         }
 
     def test_signature_with_more_colons_in_authorization_header(self) -> None:
@@ -173,7 +173,7 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"details": "SCM RPC signature validation failed: wrong secret"}]
+            "errors": [{"detail": "SCM RPC signature validation failed: wrong secret"}]
         }
 
     def test_signature_without_prefix_in_authorization_header(self) -> None:
@@ -190,7 +190,7 @@ class TestScmRpc(APITestCase):
         )
         assert response.status_code == 401
         assert response.json() == {
-            "errors": [{"details": "SCM RPC signature validation failed: invalid signature format"}]
+            "errors": [{"detail": "SCM RPC signature validation failed: invalid signature format"}]
         }
 
     def test_invalid_endpoint(self) -> None:
@@ -201,7 +201,7 @@ class TestScmRpc(APITestCase):
                 {
                     "status": "404",
                     "title": "Not found",
-                    "details": "Could not find action not_a_method",
+                    "detail": "Could not find action not_a_method",
                 }
             ]
         }
@@ -427,7 +427,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'",
+                        "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() missing 1 required keyword-only argument: 'name'",
                     }
                 ]
             }
@@ -452,7 +452,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'",
+                        "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'login'",
                     }
                 ]
             }
@@ -476,7 +476,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "details": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?",
+                        "detail": "Error calling method say_hello: add_say_hello.<locals>.say_hello() got an unexpected keyword argument 'fame'. Did you mean 'name'?",
                     }
                 ]
             }
@@ -556,7 +556,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "details": ["Blah", 68],
+                        "detail": ["Blah", 68],
                     }
                 ]
             }
@@ -573,7 +573,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "500",
                         "title": "An unexpected error occurred.",
-                        "details": [
+                        "detail": [
                             "repository_not_found",
                             "A repository could not be found.",
                             "Blah",
@@ -595,7 +595,7 @@ class TestScmRpc(APITestCase):
                     {
                         "status": "503",
                         "title": "The service provider raised an error.",
-                        "details": ["Blah", 68],
+                        "detail": ["Blah", 68],
                     }
                 ]
             }
