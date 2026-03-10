@@ -5,6 +5,7 @@ from typing import Any
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
 
 
@@ -101,3 +102,9 @@ def translate_issue_platform_orderby_to_eap(orderby: list[str] | None) -> list[s
         translated_name = translate_issue_platform_column_to_eap(column_name)
         translated.append(f"-{translated_name}" if descending else translated_name)
     return translated
+
+
+def normalize_eap_results_to_snuba_aliases(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [{get_function_alias(key): value for key, value in row.items()} for row in rows]

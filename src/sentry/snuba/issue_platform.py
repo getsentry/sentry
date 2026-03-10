@@ -9,6 +9,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.occurrences.query_utils import (
     keyed_counts_subset_match,
+    normalize_eap_results_to_snuba_aliases,
     translate_issue_platform_column_from_eap,
     translate_issue_platform_column_to_eap,
     translate_issue_platform_orderby_to_eap,
@@ -135,10 +136,15 @@ def query(
                 config=SearchResolverConfig(),
                 occurrence_category=OccurrenceCategory.GENERIC,
             )
-            eap_data = [
-                {translate_issue_platform_column_from_eap(key): value for key, value in row.items()}
-                for row in eap_result.get("data", [])
-            ]
+            eap_data = normalize_eap_results_to_snuba_aliases(
+                [
+                    {
+                        translate_issue_platform_column_from_eap(key): value
+                        for key, value in row.items()
+                    }
+                    for row in eap_result.get("data", [])
+                ]
+            )
         except Exception:
             eap_data = []
 
@@ -287,6 +293,7 @@ def timeseries_query(
 
     callsite = "snuba.issue_platform.timeseries_query"
     control_data = result.get("data", [])
+    # TODO: EAP RPC doesn't support equations - need to investigate this
     if EAPOccurrencesComparator.should_check_experiment(callsite):
         eap_data: list[dict[str, Any]] = []
         try:
@@ -347,12 +354,17 @@ def _table_subset_match(
         control_ids = {row["id"] for row in control_rows if "id" in row}
         return {row["id"] for row in experimental_rows}.issubset(control_ids)
 
-    # Aggregated rows with count(): enforce experimental_count <= control_count per group key
-    if all("count()" in row for row in experimental_rows):
+    # Aggregated rows with count(): enforce experimental_count <= control_count per group key.
+    # After normalization, both control and EAP use the Snuba alias "count" (not "count()").
+    count_alias = "count"
+    if all(count_alias in row for row in experimental_rows):
         return keyed_counts_subset_match(
             control_rows,
             experimental_rows,
-            key_fn=lambda row: tuple(sorted((k, str(v)) for k, v in row.items() if k != "count()")),
+            key_fn=lambda row: tuple(
+                sorted((k, str(v)) for k, v in row.items() if k != count_alias)
+            ),
+            count_field=count_alias,
         )
 
     # Fallback: verify experimental didn't return more rows than control
@@ -454,4 +466,4 @@ def _run_eap_timeseries(
         for row in eap_rows[len(comp_rows) :]:
             row["comparisonCount"] = 0
 
-    return eap_rows
+    return normalize_eap_results_to_snuba_aliases(eap_rows)
