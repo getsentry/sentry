@@ -21,7 +21,7 @@ const ListItem = styled(
   )
 )`
   position: relative;
-  ${p => p.symbol && `padding-left: ${p.padding ?? p.theme.space['3xl']};`}
+  padding-left: ${p => (p.symbol ? (p.padding ?? p.theme.space['3xl']) : undefined)};
 `;
 
 export default ListItem;

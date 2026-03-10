@@ -1,4 +1,4 @@
-import {css, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {FieldGroupProps} from './types';
@@ -8,30 +8,28 @@ interface FieldWrapperProps extends Pick<
   'hasControlState' | 'highlighted' | 'inline' | 'stacked'
 > {}
 
-const inlineStyle = (p: FieldWrapperProps) =>
-  p.inline
-    ? css`
-        align-items: center;
-      `
-    : css`
-        flex-direction: column;
-        align-items: stretch;
-      `;
-
-const getPadding = (p: FieldWrapperProps & {theme: Theme}) =>
-  p.stacked && !p.inline
-    ? css`
-        padding: 0 ${p.theme.space.xl} ${p.theme.space.xl} 0;
-      `
-    : css`
-        padding: ${p.theme.space.xl};
-      `;
-
 export const FieldWrapper = styled('div')<FieldWrapperProps>`
-  ${getPadding}
-  ${inlineStyle}
   display: flex;
   transition: background 0.15s;
+
+  ${p =>
+    p.inline
+      ? css`
+          align-items: center;
+        `
+      : css`
+          flex-direction: column;
+          align-items: stretch;
+        `};
+
+  ${p =>
+    p.stacked && !p.inline
+      ? css`
+          padding: 0 ${p.theme.space.xl} ${p.theme.space.xl} 0;
+        `
+      : css`
+          padding: ${p.theme.space.xl};
+        `};
 
   ${p =>
     !p.stacked &&
