@@ -241,6 +241,7 @@ function useNavigationTourReminderContext(): {
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
 } {
+  const context = useContext(NavigationTourReminderContext);
   if (!context) {
     throw new Error('Must be used within a NavigationTourReminderContextProvider');
   }
