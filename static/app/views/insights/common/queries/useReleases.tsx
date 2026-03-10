@@ -4,6 +4,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -75,12 +76,13 @@ export function useReleases(
           },
         },
       ] as ApiQueryKey;
+      const {options} = parseQueryKey(queryKey);
       return {
         queryKey,
         queryFn: () =>
           api.requestPromise(queryKey[0], {
             method: 'GET',
-            query: queryKey[1]?.query,
+            query: options?.query,
           }) as Promise<TableData>,
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,

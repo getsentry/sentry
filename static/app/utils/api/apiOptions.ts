@@ -1,17 +1,18 @@
+import type {SkipToken} from '@tanstack/react-query';
+import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
+
 import apiFetch, {apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {
+  ApiQueryKey,
+  InfiniteApiQueryKey,
+  QueryKeyEndpointOptions,
+} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
 import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.generated';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {infiniteQueryOptions, queryOptions, skipToken} from 'sentry/utils/queryClient';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  QueryKeyEndpointOptions,
-  SkipToken,
-} from 'sentry/utils/queryClient';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
@@ -40,8 +41,8 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(options).length > 0
-        ? ([url, options] as ApiQueryKey)
-        : ([url] as ApiQueryKey),
+        ? (['apiOptions', url, options] as ApiQueryKey)
+        : (['apiOptions', url] as ApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -74,8 +75,8 @@ function _apiOptionsInfinite<
   return infiniteQueryOptions({
     queryKey:
       Object.keys(options).length > 0
-        ? (['infinite', url, options] as InfiniteApiQueryKey)
-        : (['infinite', url] as InfiniteApiQueryKey),
+        ? (['apiOptions', 'infinite', url, options] as InfiniteApiQueryKey)
+        : (['apiOptions', 'infinite', url] as InfiniteApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),

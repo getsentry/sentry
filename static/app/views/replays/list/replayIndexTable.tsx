@@ -13,6 +13,7 @@ import ReplayTable from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -70,8 +71,9 @@ export default function ReplayIndexTable({
   const {allMobileProj} = useAllMobileProj({});
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
+  const {options} = parseQueryKey(queryKey);
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
-    search: queryKey[1]?.query?.query,
+    search: options?.query?.query,
   });
 
   const showDeadRageClickCards =
