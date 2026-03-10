@@ -742,7 +742,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-feedback/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-issue/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-reports/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/users/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/web-vitals-detector/'
   | '/publickeys/relocations/'
