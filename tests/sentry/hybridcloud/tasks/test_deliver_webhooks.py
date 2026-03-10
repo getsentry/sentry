@@ -269,7 +269,6 @@ def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
             cell_name="us",
-            region_name="us",
             provider=provider,
         )
         created.append(hook)
@@ -1119,7 +1118,7 @@ class DeliveryTimeMetricsTest(TestCase):
         )
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             provider="github",
             request_headers=orjson.dumps(
                 {"X-GitHub-Event": "push", "Content-Type": "application/json"}
@@ -1151,7 +1150,7 @@ class DeliveryTimeMetricsTest(TestCase):
         )
         webhook = self.create_webhook_payload(
             mailbox_name="stripe:123",
-            region_name="us",
+            cell_name="us",
             provider="stripe",
         )
         drain_mailbox(webhook.id)
