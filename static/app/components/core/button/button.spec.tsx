@@ -42,7 +42,7 @@ describe('Button', () => {
   it('shows spinner when busy', () => {
     render(<Button busy>Busy Button</Button>);
 
-    const button = screen.getByRole('button', {name: 'Busy Button'});
+    const button = screen.getByRole('button', {name: 'Busy'});
     expect(button).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('status', {name: 'Busy'})).not.toHaveStyle({
       visibility: 'hidden',
