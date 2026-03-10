@@ -14,7 +14,6 @@ from sentry.search.eap.occurrences.common_queries import (
 from sentry.search.eap.occurrences.query_utils import (
     build_escaped_term_filter,
     build_snuba_params_from_ids,
-    issue_platform_table_subset_match,
     keyed_counts_subset_match,
 )
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -441,27 +440,3 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert not keyed_counts_subset_match(
             control_rows, mismatched_rows, key_fn=lambda row: (row["project_id"], row["group_id"])
         )
-
-    def test_issue_platform_table_subset_match_ids(self) -> None:
-        control_rows = [{"id": "a"}, {"id": "b"}]
-        experimental_rows = [{"id": "a"}]
-        mismatched_rows = [{"id": "c"}]
-
-        assert issue_platform_table_subset_match(control_rows, experimental_rows)
-        assert not issue_platform_table_subset_match(control_rows, mismatched_rows)
-
-    def test_issue_platform_table_subset_match_counts(self) -> None:
-        control_rows = [
-            {"project.id": "1", "count()": 4},
-            {"project.id": "2", "count()": 2},
-        ]
-        experimental_rows = [
-            {"project.id": "1", "count()": 3},
-            {"project.id": "2", "count()": 1},
-        ]
-        mismatched_rows = [
-            {"project.id": "1", "count()": 5},
-        ]
-
-        assert issue_platform_table_subset_match(control_rows, experimental_rows)
-        assert not issue_platform_table_subset_match(control_rows, mismatched_rows)

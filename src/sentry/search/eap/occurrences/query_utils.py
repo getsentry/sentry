@@ -76,52 +76,28 @@ def keyed_counts_subset_match(
     return all(exp_count <= control_map[key] for key, exp_count in experimental_map.items())
 
 
-def _normalize_hashable(value: Any) -> Hashable:
-    if isinstance(value, dict):
-        return tuple(sorted((str(key), _normalize_hashable(val)) for key, val in value.items()))
-    if isinstance(value, list):
-        return tuple(_normalize_hashable(v) for v in value)
-    if isinstance(value, set):
-        return tuple(sorted(_normalize_hashable(v) for v in value))
-    return value
+ISSUE_PLATFORM_EAP_COLUMN_MAP: dict[str, str] = {
+    "issue.id": "group_id",
+}
+_ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP = {v: k for k, v in ISSUE_PLATFORM_EAP_COLUMN_MAP.items()}
 
 
-def issue_platform_table_subset_match(
-    control_rows: Sequence[Mapping[str, Any]],
-    experimental_rows: Sequence[Mapping[str, Any]],
-) -> bool:
-    if not experimental_rows:
-        return True
+def translate_issue_platform_column_to_eap(column: str) -> str:
+    return ISSUE_PLATFORM_EAP_COLUMN_MAP.get(column, column)
 
-    # Event-like rows: use ID subset semantics.
-    experimental_has_ids = all(row.get("id") is not None for row in experimental_rows)
-    if experimental_has_ids:
-        control_ids = {row.get("id") for row in control_rows if row.get("id") is not None}
-        experimental_ids = {row.get("id") for row in experimental_rows if row.get("id") is not None}
-        return experimental_ids.issubset(control_ids)
 
-    # Aggregated rows keyed by count(): enforce eap_count <= control_count for matching keys.
-    experimental_has_counts = all("count()" in row for row in experimental_rows)
-    if experimental_has_counts:
-        return keyed_counts_subset_match(
-            control_rows,
-            experimental_rows,
-            key_fn=lambda row: tuple(
-                sorted(
-                    (key, _normalize_hashable(value))
-                    for key, value in row.items()
-                    if key != "count()"
-                )
-            ),
-        )
+def translate_issue_platform_column_from_eap(column: str) -> str:
+    return _ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP.get(column, column)
 
-    # Conservative fallback: exact row subset for normalized row payloads.
-    control_signatures = {
-        tuple(sorted((key, _normalize_hashable(value)) for key, value in row.items()))
-        for row in control_rows
-    }
-    experimental_signatures = {
-        tuple(sorted((key, _normalize_hashable(value)) for key, value in row.items()))
-        for row in experimental_rows
-    }
-    return experimental_signatures.issubset(control_signatures)
+
+def translate_issue_platform_orderby_to_eap(orderby: list[str] | None) -> list[str] | None:
+    if orderby is None:
+        return None
+
+    translated: list[str] = []
+    for orderby_column in orderby:
+        descending = orderby_column.startswith("-")
+        column_name = orderby_column.lstrip("-")
+        translated_name = translate_issue_platform_column_to_eap(column_name)
+        translated.append(f"-{translated_name}" if descending else translated_name)
+    return translated

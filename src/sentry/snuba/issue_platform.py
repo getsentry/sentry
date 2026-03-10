@@ -1,11 +1,17 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
+from typing import Any
 
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.occurrences.query_utils import issue_platform_table_subset_match
+from sentry.search.eap.occurrences.query_utils import (
+    keyed_counts_subset_match,
+    translate_issue_platform_column_from_eap,
+    translate_issue_platform_column_to_eap,
+    translate_issue_platform_orderby_to_eap,
+)
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -18,31 +24,29 @@ from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
-ISSUE_PLATFORM_EAP_COLUMN_MAP = {
-    "issue.id": "group_id",
-}
-ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP = {v: k for k, v in ISSUE_PLATFORM_EAP_COLUMN_MAP.items()}
 
+def _table_subset_match(
+    control_rows: Sequence[Mapping[str, Any]],
+    experimental_rows: Sequence[Mapping[str, Any]],
+) -> bool:
+    if not experimental_rows:
+        return True
 
-def _translate_issue_platform_column_to_eap(column: str) -> str:
-    return ISSUE_PLATFORM_EAP_COLUMN_MAP.get(column, column)
+    # Event-like rows: experimental event IDs must be a subset of control IDs
+    if all(row.get("id") is not None for row in experimental_rows):
+        control_ids = {row["id"] for row in control_rows if "id" in row}
+        return {row["id"] for row in experimental_rows}.issubset(control_ids)
 
+    # Aggregated rows with count(): enforce experimental_count <= control_count per group key
+    if all("count()" in row for row in experimental_rows):
+        return keyed_counts_subset_match(
+            control_rows,
+            experimental_rows,
+            key_fn=lambda row: tuple(sorted((k, str(v)) for k, v in row.items() if k != "count()")),
+        )
 
-def _translate_issue_platform_column_from_eap(column: str) -> str:
-    return ISSUE_PLATFORM_EAP_REVERSE_COLUMN_MAP.get(column, column)
-
-
-def _translate_issue_platform_orderby_to_eap(orderby: list[str] | None) -> list[str] | None:
-    if orderby is None:
-        return None
-
-    translated: list[str] = []
-    for orderby_column in orderby:
-        descending = orderby_column.startswith("-")
-        column_name = orderby_column.lstrip("-")
-        translated_name = _translate_issue_platform_column_to_eap(column_name)
-        translated.append(f"-{translated_name}" if descending else translated_name)
-    return translated
+    # Fallback: verify experimental didn't return more rows than control
+    return len(experimental_rows) <= len(control_rows)
 
 
 def query(
@@ -131,63 +135,56 @@ def query(
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))
 
+    callsite = "snuba.issue_platform.query"
     snuba_data = result.get("data", [])
-    if conditions is None:
-        callsite = f"snuba.issue_platform.query:{referrer}"
-        if EAPOccurrencesComparator.should_check_experiment(callsite):
-            eap_data: list[dict[str, object]] = []
-            try:
-                translated_columns = [
-                    _translate_issue_platform_column_to_eap(column) for column in selected_columns
-                ]
-                translated_orderby = _translate_issue_platform_orderby_to_eap(orderby)
-                eap_result = Occurrences.run_table_query(
-                    params=snuba_params,
-                    query_string=query,
-                    selected_columns=translated_columns,
-                    equations=equations,
-                    orderby=translated_orderby,
-                    offset=offset or 0,
-                    limit=limit,
-                    referrer=referrer,
-                    config=SearchResolverConfig(),
-                    occurrence_category=OccurrenceCategory.GENERIC,
-                )
-                eap_data = [
-                    {
-                        _translate_issue_platform_column_from_eap(key): value
-                        for key, value in row.items()
-                    }
-                    for row in eap_result.get("data", [])
-                ]
-            except Exception:
-                # Keep control path authoritative on experimental query failures.
-                eap_data = []
-
-            result["data"] = EAPOccurrencesComparator.check_and_choose(
-                snuba_data,
-                eap_data,
-                callsite,
-                is_experimental_data_a_null_result=len(eap_data) == 0,
-                reasonable_match_comparator=issue_platform_table_subset_match,
-                debug_context={
-                    "referrer": referrer,
-                    "selected_columns": list(selected_columns),
-                    "equations": equations,
-                    "query": query,
-                    "orderby": orderby,
-                    "offset": offset,
-                    "limit": limit,
-                    "project_ids": [project.id for project in snuba_params.projects],
-                    "organization_id": (
-                        snuba_params.organization.id
-                        if snuba_params.organization is not None
-                        else None
-                    ),
-                    "start": snuba_params.start.isoformat() if snuba_params.start else None,
-                    "end": snuba_params.end.isoformat() if snuba_params.end else None,
-                },
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_data: list[dict[str, object]] = []
+        try:
+            translated_columns = [
+                translate_issue_platform_column_to_eap(column) for column in selected_columns
+            ]
+            translated_orderby = translate_issue_platform_orderby_to_eap(orderby)
+            eap_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=query,
+                selected_columns=translated_columns,
+                equations=equations,
+                orderby=translated_orderby,
+                offset=offset or 0,
+                limit=limit,
+                referrer=referrer,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.GENERIC,
             )
+            eap_data = [
+                {translate_issue_platform_column_from_eap(key): value for key, value in row.items()}
+                for row in eap_result.get("data", [])
+            ]
+        except Exception:
+            eap_data = []
+
+        result["data"] = EAPOccurrencesComparator.check_and_choose(
+            snuba_data,
+            eap_data,
+            callsite,
+            is_experimental_data_a_null_result=len(eap_data) == 0,
+            reasonable_match_comparator=_table_subset_match,
+            debug_context={
+                "referrer": referrer,
+                "selected_columns": list(selected_columns),
+                "equations": equations,
+                "query": query,
+                "orderby": orderby,
+                "offset": offset,
+                "limit": limit,
+                "project_ids": [project.id for project in snuba_params.projects],
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization is not None else None
+                ),
+                "start": snuba_params.start.isoformat() if snuba_params.start else None,
+                "end": snuba_params.end.isoformat() if snuba_params.end else None,
+            },
+        )
 
     if snuba_params.debug:
         result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
