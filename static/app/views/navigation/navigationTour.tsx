@@ -241,7 +241,10 @@ function useNavigationTourReminderContext(): {
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
 } {
-  return useContext(NavigationTourReminderContext);
+  if (!context) {
+    throw new Error('Must be used within a NavigationTourReminderContextProvider');
+  }
+  return context;
 }
 
 export function NavigationTourReminderContextProvider({
@@ -308,7 +311,7 @@ export function useNavigationTourModal() {
     {hasSeen: false}
   );
 
-  // We don't want to show the tour modal for new users that were forced into the new navigation.
+  // We don't want to show the tour modal for new users that were forced into the new  navigation.
   const shouldSkipTourForNewUsers =
     new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
@@ -336,7 +339,7 @@ export function useNavigationTourModal() {
       openModal(
         props => (
           <StartTourModal
-            img={{src: NavigationTourSvg, alt: t('Navigation Tour')}}
+            img={{src: NavigationTourSvg, alt: t(' Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'
