@@ -79,7 +79,7 @@ jobs:
            build \
            snapshots \
            .artifacts/snapshots \
-           --app-id sentry-frontend
+           --app-id sentry-frontend \
            --head-sha ${{ github.event.pull_request.head.sha }} \
            --base-sha ${{ github.event.pull_request.base.sha }} \
            --vcs-provider github \
