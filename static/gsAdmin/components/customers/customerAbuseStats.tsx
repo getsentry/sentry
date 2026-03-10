@@ -39,13 +39,8 @@ interface SeriesItem {
   subSeries?: Array<{data: DataPoint[]; seriesName: string}>;
 }
 
-const ABUSE_REASON_CODES = new Set(['project_abuse_limit', 'org_abuse_limit']);
-
 function isAbuseGroup(group: StatsGroup): boolean {
-  return (
-    group.by.outcome === 'abuse' ||
-    (group.by.outcome === 'rate_limited' && ABUSE_REASON_CODES.has(group.by.reason))
-  );
+  return group.by.outcome === 'abuse';
 }
 
 function populateAbuseChartData(
@@ -194,7 +189,7 @@ export const CustomerAbuseStats = memo(
             groupBy: ['outcome', 'reason'],
             field: 'sum(quantity)',
             category: dataType,
-            outcome: ['abuse', 'rate_limited'],
+            outcome: ['abuse'],
             ...(projectId ? {project: projectId} : {}),
           },
         },
