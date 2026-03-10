@@ -145,7 +145,7 @@ class ReleaseActivityNotification(ActivityNotification):
         project_slugs = context.get("subject_project_slugs", []) if context else []
         if project_slugs:
             projects_text = self.get_subject_project_text(project_slugs)
-            return f"Deployed {projects_text} {self.version_parsed} to {self.environment}"
+            return f"Deployed {projects_text} to version {self.version_parsed} to {self.environment}"
         return f"Deployed {self.version_parsed} to {self.environment}"
 
     @property
