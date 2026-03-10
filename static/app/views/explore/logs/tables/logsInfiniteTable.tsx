@@ -159,7 +159,7 @@ export function LogsInfiniteTable({
     return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
-  const data: LogTableRowItem[] = useMemo(() => {
+  const data = useMemo(() => {
     if (
       !additionalData?.event ||
       !baseData ||
@@ -515,7 +515,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}

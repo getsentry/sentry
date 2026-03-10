@@ -34,7 +34,7 @@ export default function SeerAgentSettings({canWrite, preference, project}: Props
       disabled={Boolean(disabledReason)}
       disabledReason={disabledReason}
       name="automated_run_stopping_point"
-      label={t('Allow PR Auto Creation')}
+      label={t('Auto Create Pull Requests')}
       help={
         <Stack gap="sm">
           <span>

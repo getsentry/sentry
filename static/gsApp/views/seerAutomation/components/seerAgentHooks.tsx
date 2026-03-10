@@ -5,6 +5,7 @@ import {
   type AutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
+import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
@@ -174,7 +175,7 @@ export function useMutateSelectedAgent({
         const handoff: ProjectSeerPreferences['automation_handoff'] = integration
           ? {
               handoff_point: 'root_cause',
-              target: 'cursor_background_agent',
+              target: PROVIDER_TO_HANDOFF_TARGET[integration.provider]!,
               integration_id: Number(integration.id),
               auto_create_pr: preference?.automated_run_stopping_point === 'open_pr',
             }
@@ -231,7 +232,7 @@ export function useMutateCreatePr({
       } else if (autofixAgent && autofixAgent !== 'none') {
         const updatedHandoff = {
           handoff_point: 'root_cause' as const,
-          target: 'cursor_background_agent' as const,
+          target: PROVIDER_TO_HANDOFF_TARGET[autofixAgent.provider]!,
           integration_id: Number(autofixAgent.id),
           ...preference?.automation_handoff,
           auto_create_pr: value,

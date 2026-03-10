@@ -186,19 +186,11 @@ mutationOptions={{
 }}
 ```
 
-**Important: Typing mutations with mixed-type schemas**
+**Important: Typing mutations correctly**
 
-When using `AutoSaveField` with schemas that have mixed types (e.g., strings and booleans), the mutation function must be typed using the schema-inferred type. Using generic types like `Record<string, unknown>` breaks TanStack Form's ability to narrow field types based on the field name.
+The `mutationFn` should be typed with the API's data type (e.g., `Partial<Organization>`, `Partial<Project>`), **not** the schema-inferred type. The schema is for client-side field validation only — the mutation receives whatever the API endpoint accepts. Tying the mutation to the schema couples two unrelated concerns and can cause type errors when the schema types don't exactly match the API types.
 
 ```tsx
-const preferencesSchema = z.object({
-  theme: z.string(),
-  language: z.string(),
-  notifications: z.boolean(),
-});
-
-type Preferences = z.infer<typeof preferencesSchema>;
-
 // ❌ Don't use generic types - breaks field type narrowing
 mutationOptions={{
   mutationFn: (data: Record<string, unknown>) => {
@@ -206,13 +198,22 @@ mutationOptions={{
   },
 }}
 
-// ✅ Use schema-inferred type for proper type narrowing
+// ❌ Don't tie mutation type to the zod schema
 mutationOptions={{
-  mutationFn: (data: Partial<Preferences>) => {
+  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => {
+    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+  },
+}}
+
+// ✅ Use the API's data type
+mutationOptions={{
+  mutationFn: (data: Partial<UserDetails>) => {
     return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
   },
 }}
 ```
+
+Make sure the zod schema's types are compatible with (i.e., assignable to) the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
 
 ### mapFormErrors → `setFieldErrors`
 
@@ -452,7 +453,7 @@ function SlugForm({project}: {project: Project}) {
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="slug">
         {field => (
           <field.Layout.Stack label="Project Slug">

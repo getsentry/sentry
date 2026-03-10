@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import sentry_sdk
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -102,14 +101,20 @@ class OrganizationSeerExplorerPRGroupsEndpoint(OrganizationEndpoint):
                 if run.group_id is not None:
                     serialized_group = groups_by_id.get(str(run.group_id))
                     if serialized_group is None:
-                        sentry_sdk.capture_message(
-                            f"Seer Explorer PR group not found: group_id={run.group_id}",
-                            level="warning",
+                        logger.warning(
+                            "Seer Explorer PR: group not found",
+                            extra={
+                                "group_id": run.group_id,
+                                "project_ids": project_ids,
+                            },
                         )
                 else:
-                    sentry_sdk.capture_message(
-                        f"Seer Explorer PR run has no group_id: run_id={run.run_id}",
-                        level="warning",
+                    logger.warning(
+                        "Seer Explorer PR: run has no group_id",
+                        extra={
+                            "run_id": run.run_id,
+                            "project_ids": project_ids,
+                        },
                     )
 
                 results.append(

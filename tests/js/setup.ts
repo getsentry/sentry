@@ -240,6 +240,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     withProfiler: SentryReact.withProfiler,
     metrics: {
+      count: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -378,4 +379,11 @@ Object.defineProperty(global.self, 'crypto', {
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = nodeStructuredClone;
+}
+
+if (typeof globalThis.setImmediate === 'undefined') {
+  // @ts-expect-error setImmediate is not defined in jsdom, but we can use setTimeout as a polyfill
+  globalThis.setImmediate = setTimeout;
+  // @ts-expect-error clearImmediate is not defined in jsdom, but we can use clearTimeout as a polyfill
+  globalThis.clearImmediate = clearTimeout;
 }

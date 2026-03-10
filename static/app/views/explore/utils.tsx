@@ -27,6 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -50,7 +51,6 @@ import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMod
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -60,6 +60,7 @@ export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
+  chartSelection?: ChartSelectionQueryParam;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -80,6 +81,7 @@ export function getExploreUrl({
   interval,
   mode,
   aggregateField,
+  chartSelection,
   visualize,
   query,
   groupBy,
@@ -114,6 +116,7 @@ export function getExploreUrl({
     title,
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
   };
 
   return (
@@ -140,9 +143,9 @@ function getExploreUrlFromSavedQueryUrl({
           q.aggregateField
             ?.filter<RawGroupBy>(isGroupBy)
             ?.map(groupBy => groupBy.groupBy) ?? q.groupby;
-        const visualize: RawVisualize | undefined =
+        const visualize =
           q.aggregateField?.find<RawVisualize>(isRawVisualize) ?? q.visualize?.[0];
-        const chartType: ChartType | undefined = isChartType(visualize?.chartType)
+        const chartType = isChartType(visualize?.chartType)
           ? visualize.chartType
           : undefined;
 
@@ -420,10 +423,7 @@ export function viewSamplesTarget({
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     return 'traces';
   }
 
@@ -486,7 +486,7 @@ export function findSuggestedColumns(
   const oldFilters = oldSearch.filters;
   const newFilters = newSearch.filters;
 
-  const keys: Set<string> = new Set();
+  const keys = new Set<string>();
 
   for (const [key, value] of Object.entries(newFilters)) {
     if (key === 'has' || key === '!has') {

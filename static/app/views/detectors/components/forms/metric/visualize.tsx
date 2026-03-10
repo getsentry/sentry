@@ -27,6 +27,7 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -222,6 +223,16 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 }
 
 export function Visualize() {
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+
+  if (dataset === DetectorDataset.METRICS) {
+    return <MetricsVisualize />;
+  }
+
+  return <GenericVisualize />;
+}
+
+function GenericVisualize() {
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);

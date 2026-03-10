@@ -22,6 +22,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       aggregates: [],
       columns: [
@@ -30,6 +31,7 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
         SpanFields.SPAN_GROUP,
         SpanFields.SPAN_DESCRIPTION,
         SpanFields.SPAN_CATEGORY,
+        SpanFields.PROJECT_ID,
       ] satisfies DefaultDetailWidgetFields[],
       fieldAliases: [],
       conditions: '',
@@ -41,8 +43,8 @@ const ASSET_DESCRIPTION_WIDGET: Widget = {
   layout: {
     x: 0,
     y: 0,
-    minH: 1,
-    h: 1,
+    minH: 2,
+    h: 2,
     w: 6,
   },
 };
@@ -58,6 +60,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: '',
@@ -74,6 +77,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`],
           aggregates: [`avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`],
           columns: [],
           conditions: '',
@@ -90,6 +94,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
           aggregates: [`avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
           columns: [],
           conditions: '',
@@ -106,6 +111,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`],
           aggregates: [`avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`],
           columns: [],
           conditions: '',
@@ -122,6 +128,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
           conditions: '',
@@ -138,6 +145,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
           conditions: '',
@@ -146,7 +154,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1,
+  2,
   {h: 1, minH: 1}
 );
 
@@ -161,6 +169,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: ['epm()'],
           aggregates: ['epm()'],
           columns: [],
           conditions: '',
@@ -177,6 +186,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
           columns: [],
           conditions: '',
@@ -193,6 +203,11 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
+          fields: [
+            `avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
+            `avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`,
+            `avg(${SpanFields.HTTP_RESPONSE_CONTENT_LENGTH})`,
+          ],
           aggregates: [
             `avg(${SpanFields.HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
             `avg(${SpanFields.HTTP_RESPONSE_TRANSFER_SIZE})`,
@@ -210,7 +225,7 @@ const THIRD_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  1
+  3
 );
 
 const ASSETS_TABLE_WIDGET: Widget = {

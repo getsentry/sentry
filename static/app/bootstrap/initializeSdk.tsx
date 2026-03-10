@@ -32,6 +32,19 @@ export function getLastEventId(): string | undefined {
   return lastEventId;
 }
 
+// Each error type maps to the set of HTTP status codes it should be filtered for.
+const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<string>>> = {
+  RequestError: new Set(['200', '400', '401', '403', '404', '429']),
+  BadRequestError: new Set(['400']),
+  UnauthorizedError: new Set(['401']),
+  ForbiddenError: new Set(['403']),
+  NotFoundError: new Set(['404']),
+  TooManyRequestsError: new Set(['429']),
+};
+const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
+
+const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
+
 // We don't care about recording breadcrumbs for these hosts. These typically
 // pollute our breadcrumbs since they may occur a LOT.
 //
@@ -203,7 +216,11 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
+      if (
+        isFilteredRequestErrorEvent(event) ||
+        isEventWithFileUrl(event) ||
+        isNullTupleUnhandledRejectionEvent(event)
+      ) {
         return null;
       }
 
@@ -268,26 +285,12 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
   for (const error of mainAndMaybeCauseErrors) {
     const {type = '', value = ''} = error;
 
-    const is200 =
-      ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
-    const is400 =
-      ['BadRequestError', 'RequestError'].includes(type) &&
-      !!value.match('(GET|POST|PUT|DELETE) .* 400');
-    const is401 =
-      ['UnauthorizedError', 'RequestError'].includes(type) &&
-      !!value.match('(GET|POST|PUT|DELETE) .* 401');
-    const is403 =
-      ['ForbiddenError', 'RequestError'].includes(type) &&
-      !!value.match('(GET|POST|PUT|DELETE) .* 403');
-    const is404 =
-      ['NotFoundError', 'RequestError'].includes(type) &&
-      !!value.match('(GET|POST|PUT|DELETE) .* 404');
-    const is429 =
-      ['TooManyRequestsError', 'RequestError'].includes(type) &&
-      !!value.match('(GET|POST|PUT|DELETE) .* 429');
-
-    if (is200 || is400 || is401 || is403 || is404 || is429) {
-      return true;
+    const allowedStatuses = FILTERED_STATUSES_BY_ERROR_TYPE[type];
+    if (allowedStatuses) {
+      const match = FILTERED_REQUEST_ERROR_VALUE_REGEX.exec(value);
+      if (match && allowedStatuses.has(match[2]!)) {
+        return true;
+      }
     }
   }
 
@@ -296,6 +299,23 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Some unhandled rejections are serialized as `[null,null]`, which maps to
+ * an unhelpful `Error: ,` and is not actionable.
+ */
+function isNullTupleUnhandledRejectionEvent(event: Event): boolean {
+  if (event.message !== '[null,null]') {
+    return false;
+  }
+
+  const error = event.exception?.values?.at(-1);
+  return (
+    error?.type === 'Error' &&
+    error.value === ',' &&
+    error.mechanism?.type === 'auto.browser.global_handlers.onunhandledrejection'
+  );
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */
@@ -319,8 +339,7 @@ export function addEndpointTagToRequestError(event: Event): void {
   const errorMessage = event.exception?.values?.[0]!.value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
-  const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');
-  const messageMatch = requestErrorRegex.exec(errorMessage);
+  const messageMatch = ENDPOINT_TAG_REGEX.exec(errorMessage);
 
   if (messageMatch) {
     event.tags = {...event.tags, endpoint: messageMatch[1]};

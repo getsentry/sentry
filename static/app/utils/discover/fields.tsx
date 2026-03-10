@@ -105,12 +105,7 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
     };
@@ -118,7 +113,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-export type Alignments = 'left' | 'right';
+type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
@@ -940,7 +935,7 @@ export function getAggregateArg(field: string): string | null {
 
 export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length === 3) {
+  if (results?.length === 3) {
     return {
       name: results[1]!,
       arguments: parseArguments(results[2]!),
@@ -1041,7 +1036,7 @@ export function stripEquationPrefix(field: string): string {
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
-  if (results && results.length === 2) {
+  if (results?.length === 2) {
     return parseInt(results[1]!, 10);
   }
   return -1;
@@ -1125,8 +1120,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
@@ -1402,6 +1396,7 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(

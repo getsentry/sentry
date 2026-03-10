@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_region_names, find_regions_for_orgs
+from sentry.types.region import find_all_cell_names, find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -169,7 +169,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                     "organization_id": self.organization_id,
                 },
             )
-            for region_name in find_all_region_names()
+            for region_name in find_all_cell_names()
         ]
 
     def prepare_ui_component(

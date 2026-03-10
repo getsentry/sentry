@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -6,7 +6,8 @@ import partition from 'lodash/partition';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -17,7 +18,6 @@ import ProgressRing from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import {space} from 'sentry/styles/space';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -376,14 +376,11 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   }, [unseenDoneTasks, markSeenOnOpen]);
 
   return (
-    <Fragment>
-      <hr />
-      <TaskGroupBody>
-        {tasks.map(task => (
-          <Task key={task.task} task={task} hidePanel={hidePanel} />
-        ))}
-      </TaskGroupBody>
-    </Fragment>
+    <TaskGroupBody>
+      {tasks.map(task => (
+        <Task key={task.task} task={task} hidePanel={hidePanel} />
+      ))}
+    </TaskGroupBody>
   );
 }
 
@@ -393,6 +390,7 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
+  separator: boolean;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -403,6 +401,7 @@ function TaskGroup({
   title,
   tasks,
   expanded,
+  separator,
   hidePanel,
   toggleable = true,
   group,
@@ -447,7 +446,7 @@ function TaskGroup({
   ]);
 
   return (
-    <TaskGroupWrapper>
+    <Stack padding="lg" paddingBottom="0" gap="md">
       <TaskGroupHeader
         title={<strong>{title}</strong>}
         description={
@@ -487,8 +486,9 @@ function TaskGroup({
           />
         }
       />
-      {isExpanded && <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} />}
-    </TaskGroupWrapper>
+      {isExpanded ? <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} /> : null}
+      {separator && <Stack.Separator />}
+    </Stack>
   );
 }
 
@@ -512,7 +512,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   );
 
   return (
-    <Content data-test-id="quick-start-content">
+    <Stack overscrollBehavior="none" data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -522,6 +522,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
         group="getting_started"
+        separator={sortedBeyondBasicsTasks.length > 0}
       />
       {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
@@ -534,47 +535,21 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
           group="beyond_basics"
+          separator={allTasks.length === doneTasks.length}
         />
       )}
       {allTasks.length === doneTasks.length && (
-        <CompletionCelebrationText>
-          <div>{t('Good job, you’re all done here!')}</div>
-          {t('Now get out of here and write some broken code.')}
-        </CompletionCelebrationText>
+        <Container padding="2xl" paddingBottom="2xl">
+          <Text as="p" size="md" align="center">
+            {t(
+              'Good job, you’re all done here! Now get out of here and write some broken code.'
+            )}
+          </Text>
+        </Container>
       )}
-    </Content>
+    </Stack>
   );
 }
-
-const CompletionCelebrationText = styled('div')`
-  margin-top: ${space(1.5)};
-  text-align: center;
-`;
-
-const Content = styled('div')`
-  padding: ${space(3)};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-  flex: 1;
-
-  p {
-    margin-bottom: ${space(1)};
-  }
-`;
-
-const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)};
-
-  background-color: ${p => p.theme.tokens.background.primary};
-
-  hr {
-    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-    margin: ${space(1)} -${space(1)};
-  }
-`;
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
@@ -591,7 +566,7 @@ const TaskGroupBody = styled('ul')`
 `;
 
 const TaskWrapper = styled('li')`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   p {
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -601,10 +576,10 @@ const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: 22px 1fr max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};
@@ -630,6 +605,6 @@ const TaskCardActions = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 20px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;

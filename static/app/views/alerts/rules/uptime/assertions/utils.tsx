@@ -346,11 +346,9 @@ export function getJsonPathCombinedLabelAndTooltip(op: UptimeJsonPathOp): {
       ? ''
       : (STRING_OPERAND_OPTIONS.find(opt => opt.value === operandType)?.symbol ?? '');
 
-  const isNumericComparison =
-    op.operator.cmp === UptimeComparisonType.LESS_THAN ||
-    op.operator.cmp === UptimeComparisonType.GREATER_THAN;
+  const isNumericComparisonSelected = isNumericComparison(op.operator.cmp);
 
-  const combinedLabel = isNumericComparison
+  const combinedLabel = isNumericComparisonSelected
     ? comparisonSymbol
     : operandSymbol
       ? `${comparisonSymbol}${operandSymbol}`
@@ -359,11 +357,46 @@ export function getJsonPathCombinedLabelAndTooltip(op: UptimeJsonPathOp): {
   const combinedTooltip =
     operandType === 'none'
       ? t('JSON path %s', comparisonLabel)
-      : isNumericComparison
+      : isNumericComparisonSelected
         ? t('JSON path value %s', comparisonLabel)
         : t('JSON path value %s to string %s', comparisonLabel, operandLabel);
 
   return {combinedLabel, combinedTooltip};
+}
+
+export const isLeafOp = (op: UptimeOp) =>
+  op.op === UptimeOpType.STATUS_CODE_CHECK ||
+  op.op === UptimeOpType.JSON_PATH ||
+  op.op === UptimeOpType.HEADER_CHECK;
+
+export function leafOpsMatchByValue(a: UptimeOp, b: UptimeOp): boolean {
+  if (a.op !== b.op) return false;
+
+  if (
+    a.op === UptimeOpType.STATUS_CODE_CHECK &&
+    b.op === UptimeOpType.STATUS_CODE_CHECK
+  ) {
+    return a.operator.cmp === b.operator.cmp && a.value === b.value;
+  }
+
+  if (a.op === UptimeOpType.JSON_PATH && b.op === UptimeOpType.JSON_PATH) {
+    return (
+      a.value === b.value &&
+      a.operator.cmp === b.operator.cmp &&
+      JSON.stringify(a.operand) === JSON.stringify(b.operand)
+    );
+  }
+
+  if (a.op === UptimeOpType.HEADER_CHECK && b.op === UptimeOpType.HEADER_CHECK) {
+    return (
+      a.key_op.cmp === b.key_op.cmp &&
+      JSON.stringify(a.key_operand) === JSON.stringify(b.key_operand) &&
+      a.value_op.cmp === b.value_op.cmp &&
+      JSON.stringify(a.value_operand) === JSON.stringify(b.value_operand)
+    );
+  }
+
+  return false;
 }
 
 export function getGroupOpLabel(op: UptimeGroupOp, isNegated: boolean): string {
@@ -376,4 +409,10 @@ export function getGroupOpLabel(op: UptimeGroupOp, isNegated: boolean): string {
   // By De Morgan's Laws, NOT (A OR B) is equivalent to (NOT A AND NOT B),
   // i.e. passing when all children fail.
   return isNegated ? t('Assert None') : t('Assert Any');
+}
+
+export function isNumericComparison(cmp: UptimeComparisonType): boolean {
+  return (
+    cmp === UptimeComparisonType.LESS_THAN || cmp === UptimeComparisonType.GREATER_THAN
+  );
 }

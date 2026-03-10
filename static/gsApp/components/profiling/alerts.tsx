@@ -346,7 +346,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
   const sdkDeprecationResults = useSDKDeprecations();
 
   const sdkDeprecations = useMemo(() => {
-    const sdks: Map<string, SDKDeprecation> = new Map();
+    const sdks = new Map<string, SDKDeprecation>();
 
     for (const sdk of sdkDeprecationResults.data?.data ?? []) {
       const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
@@ -642,14 +642,14 @@ const SDKDeprecationsContainer = styled('ul')`
 
 const Dot = styled('span')`
   display: inline-block;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
-  width: ${space(0.5)};
-  height: ${space(0.5)};
+  width: ${p => p.theme.space.xs};
+  height: ${p => p.theme.space.xs};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.content.primary};
 `;
 
 const AlertBody = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsInteger, useQueryState} from 'nuqs';
 
@@ -621,6 +621,7 @@ function ClusterCard({
 }
 
 function DynamicGrouping() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen} = useDrawer();
   const user = useUser();
@@ -899,7 +900,7 @@ function DynamicGrouping() {
                 radius="md"
                 marginBottom="md"
               >
-                <Text size="sm" variant="muted" style={{marginBottom: space(1)}}>
+                <Text size="sm" variant="muted" style={{marginBottom: theme.space.md}}>
                   {t(
                     'Paste cluster JSON data below. Accepts either a raw array of clusters or an object with a "data" property.'
                   )}
@@ -915,7 +916,10 @@ function DynamicGrouping() {
                   monospace
                 />
                 {jsonError && (
-                  <Text size="sm" style={{color: 'var(--red400)', marginTop: space(1)}}>
+                  <Text
+                    size="sm"
+                    style={{color: 'var(--red400)', marginTop: theme.space.md}}
+                  >
                     {jsonError}
                   </Text>
                 )}
@@ -1171,7 +1175,7 @@ const ClusterTitleLink = styled(Link)`
 const MoreProjectsCount = styled('span')`
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
 `;
 
 const StatusTag = styled('div')<{color: 'purple' | 'yellow' | 'red'}>`
@@ -1245,8 +1249,8 @@ const FilterLabel = styled('span')<{disabled?: boolean}>`
 const ShowMoreButton = styled('button')`
   display: block;
   width: 100%;
-  margin-top: ${space(3)};
-  padding: ${space(2)} ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -1268,8 +1272,8 @@ const ShowMoreButton = styled('button')`
 const CustomDataBadge = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   background: ${p => p.theme.colors.yellow100};
   border: 1px solid ${p => p.theme.colors.yellow400};
   border-radius: ${p => p.theme.radius.md};

@@ -122,7 +122,7 @@ export default function SeerProjectTable() {
     parseAsSort.withDefault({field: 'project', kind: 'asc'})
   );
 
-  const queryKey: ApiQueryKey = [
+  const queryKey = [
     'seer-projects',
     {query: {query: searchTerm, sort}},
   ] as unknown as ApiQueryKey;

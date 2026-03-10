@@ -9,7 +9,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -17,7 +16,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -30,7 +28,6 @@ export function ShortIdBreadcrumb({
   project,
   group,
 }: ShortIdBreadcrumbProps) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
@@ -38,10 +35,10 @@ export function ShortIdBreadcrumb({
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
-        streamline: hasStreamlinedUI,
+        streamline: true,
       });
     });
-  }, [copy, organization, group, hasStreamlinedUI]);
+  }, [copy, organization, group]);
 
   const issueUrl =
     window.location.origin +
@@ -52,10 +49,10 @@ export function ShortIdBreadcrumb({
       trackAnalytics('issue_details.copy_issue_url_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
-        streamline: hasStreamlinedUI,
+        streamline: true,
       });
     });
-  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
+  }, [copy, organization, group, issueUrl]);
 
   const handleCopyMarkdown = useCallback(() => {
     copy(`[${group.shortId}](${issueUrl})`, {
@@ -64,10 +61,10 @@ export function ShortIdBreadcrumb({
       trackAnalytics('issue_details.copy_issue_markdown_link_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
-        streamline: hasStreamlinedUI,
+        streamline: true,
       });
     });
-  }, [copy, organization, group, hasStreamlinedUI, issueUrl]);
+  }, [copy, organization, group, issueUrl]);
 
   if (!group.shortId) {
     return null;
@@ -132,7 +129,7 @@ const StyledShortId = styled(ShortId)`
 
 const ShortIdCopyable = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: center;
 
   button[aria-haspopup] {

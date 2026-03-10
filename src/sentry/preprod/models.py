@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from enum import IntEnum
-from typing import ClassVar, Self
+from enum import IntEnum, StrEnum
+from typing import ClassVar, Self, assert_never
 
 import sentry_sdk
 from django.db import models
@@ -78,6 +78,11 @@ class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
 class PreprodArtifactModelManager(BaseManager["PreprodArtifact"]):
     def get_queryset(self) -> PreprodArtifactQuerySet:
         return PreprodArtifactQuerySet(self.model, using=self._db)
+
+
+class Platform(StrEnum):
+    APPLE = "apple"
+    ANDROID = "android"
 
 
 @region_silo_model
@@ -155,6 +160,8 @@ class PreprodArtifact(DefaultFieldsModel):
         """No quota available for distribution."""
         SKIPPED = 2
         """Distribution was not requested on this build."""
+        PROCESSING_ERROR = 3
+        """Distribution failed due to a processing error."""
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -162,6 +169,7 @@ class PreprodArtifact(DefaultFieldsModel):
                 (cls.UNKNOWN, "unknown"),
                 (cls.NO_QUOTA, "no_quota"),
                 (cls.SKIPPED, "skipped"),
+                (cls.PROCESSING_ERROR, "processing_error"),
             )
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -220,6 +228,22 @@ class PreprodArtifact(DefaultFieldsModel):
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
+
+    def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
+        """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
+        return getattr(self, "mobile_app_info", None)
+
+    @property
+    def platform(self) -> Platform | None:
+        if self.artifact_type is None:
+            return None
+        match self.artifact_type:
+            case self.ArtifactType.XCARCHIVE:
+                return Platform.APPLE
+            case self.ArtifactType.AAB | self.ArtifactType.APK:
+                return Platform.ANDROID
+            case _:
+                assert_never(self.artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
@@ -769,6 +793,14 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_name = models.CharField(max_length=255, null=True)
     # Miscellaneous fields that we don't need columns for
     extras = models.JSONField(null=True)
+
+    def format_version_string(self, default: str = "--") -> str:
+        parts: list[str] = []
+        if self.build_version:
+            parts.append(self.build_version)
+        if self.build_number:
+            parts.append(f"({self.build_number})")
+        return " ".join(parts) if parts else default
 
     class Meta:
         app_label = "preprod"

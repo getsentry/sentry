@@ -16,7 +16,6 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -60,12 +59,13 @@ import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hook
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
@@ -174,19 +174,18 @@ export function getColumnOptions(
   )?.value;
 
   if (
-    fieldData &&
-    fieldData.kind === FieldValueKind.FUNCTION &&
+    fieldData?.kind === FieldValueKind.FUNCTION &&
     fieldData.meta.parameters.length > 0 &&
     fieldData.meta.parameters[0]
   ) {
     const parameter = fieldData.meta.parameters[0];
-    if (parameter && parameter.kind === 'dropdown') {
+    if (parameter?.kind === 'dropdown') {
       // Parameters for dropdowns are already formatted in the correct manner
       // for select fields
       return parameter.options;
     }
 
-    if (parameter && parameter.kind === 'column' && parameter.columnTypes) {
+    if (parameter?.kind === 'column' && parameter.columnTypes) {
       // Release Health widgets are the only widgets that actually have different
       // columns than the aggregates accept. e.g. project will never be a valid
       // parameter for any of the aggregates.
@@ -286,9 +285,25 @@ function Visualize({error, setError}: VisualizeProps) {
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number',
+    hiddenKeys
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string',
+    hiddenKeys
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'boolean',
+    hiddenKeys
+  );
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -464,9 +479,6 @@ function Visualize({error, setError}: VisualizeProps) {
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
-  const hasExploreEquations = organization.features.includes(
-    'visibility-explore-equations'
-  );
   const hasDrillDownFlows = useHasDrillDownFlows();
 
   // Default field to add to the widget query when adding a new field.
@@ -1059,7 +1071,12 @@ function Visualize({error, setError}: VisualizeProps) {
             onClick={() => {
               dispatch({
                 type: updateAction,
-                payload: [...(fields ?? []), cloneDeep(defaultField)],
+                payload: [
+                  ...(fields ?? []),
+                  state.dataset === WidgetType.TRACEMETRICS && fields?.length
+                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    : cloneDeep(defaultField),
+                ],
               });
 
               trackAnalytics('dashboards_views.widget_builder.change', {
@@ -1079,36 +1096,34 @@ function Visualize({error, setError}: VisualizeProps) {
                 ? t('+ Add Field')
                 : t('+ Add Column')}
           </AddButton>
-          {datasetConfig.enableEquations &&
-            (state.dataset !== WidgetType.SPANS ||
-              (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
-              <AddButton
-                priority="link"
-                disabled={disableTransactionWidget}
-                aria-label={t('Add Equation')}
-                onClick={() => {
-                  dispatch({
-                    type: updateAction,
-                    payload: [
-                      ...(fields ?? []),
-                      {kind: FieldValueKind.EQUATION, field: ''},
-                    ],
-                  });
+          {datasetConfig.enableEquations && (
+            <AddButton
+              priority="link"
+              disabled={disableTransactionWidget}
+              aria-label={t('Add Equation')}
+              onClick={() => {
+                dispatch({
+                  type: updateAction,
+                  payload: [
+                    ...(fields ?? []),
+                    {kind: FieldValueKind.EQUATION, field: ''},
+                  ],
+                });
 
-                  trackAnalytics('dashboards_views.widget_builder.change', {
-                    builder_version: WidgetBuilderVersion.SLIDEOUT,
-                    field: 'visualize.addEquation',
-                    from: source,
-                    new_widget: !isEditing,
-                    value: '',
-                    widget_type: state.dataset ?? '',
-                    organization,
-                  });
-                }}
-              >
-                {t('+ Add Equation')}
-              </AddButton>
-            )}
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'visualize.addEquation',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
+            >
+              {t('+ Add Equation')}
+            </AddButton>
+          )}
         </AddButtons>
       )}
     </Fragment>
@@ -1155,7 +1170,7 @@ export const LegendAliasInput = styled(Input)``;
 export const ParameterRefinements = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   > * {
     flex: 1;
@@ -1165,7 +1180,7 @@ export const ParameterRefinements = styled('div')`
 export const FieldBar = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: 3;
   min-width: 0;
 `;
@@ -1198,18 +1213,18 @@ export function FieldRow(props: FlexProps<'div'>) {
 export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex: ${p => (p.compact ? '0' : '1')};
   align-items: center;
 `;
 
 const AddButton = styled(Button)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const AddButtons = styled('div')`
   display: inline-flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 export const StyledArithmeticInput = styled(ArithmeticInput)`

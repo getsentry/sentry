@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   customSyntax: 'postcss-styled-syntax',
   extends: ['stylelint-config-recommended'],
   rules: {

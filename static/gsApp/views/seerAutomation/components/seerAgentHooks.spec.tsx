@@ -734,7 +734,7 @@ describe('seerAgentHooks', () => {
       it('optimistically updates the cache to code_changes when disabling', () => {
         setupMocks();
         const initialData = makeInitialCacheData();
-        initialData.pages[0]!.json[0]!.automatedRunStoppingPoint = 'open_pr';
+        initialData.pages[0]!.json[0]!.automatedRunStoppingPoint = 'open_pr' as const;
         const {result} = renderMutateCreatePr();
 
         act(() => {

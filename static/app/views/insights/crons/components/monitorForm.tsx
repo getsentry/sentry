@@ -24,7 +24,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
@@ -581,17 +580,17 @@ const LabelText = styled(Text)`
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InputGroup = styled('div')<{noPadding?: boolean}>`
-  padding-left: ${space(4)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
     ${p => p.noPadding && `padding: 0;`};
@@ -601,7 +600,7 @@ const InputGroup = styled('div')<{noPadding?: boolean}>`
 const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: ${p => p.columns};
 `;
 

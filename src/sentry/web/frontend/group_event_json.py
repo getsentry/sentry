@@ -3,6 +3,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import json
 from sentry.web.frontend.base import OrganizationView, region_silo_view
 
@@ -19,6 +20,7 @@ class GroupEventJsonView(OrganizationView):
         except Group.DoesNotExist:
             raise Http404
 
+        event: Event | GroupEvent | None
         if event_id_or_latest == "latest":
             event = group.get_latest_event()
         else:

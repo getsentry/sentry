@@ -20,11 +20,16 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
 
 logger = logging.getLogger(__name__)
+
+seer_code_review_connection_pool = connection_from_url(
+    settings.SEER_PREVENT_AI_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
 
 
 class Log(enum.StrEnum):
@@ -87,13 +92,18 @@ def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
     return SeerEndpoint.OVERWATCH_REQUEST
 
 
-def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
+def make_seer_request(
+    path: str,
+    payload: Mapping[str, Any],
+    viewer_context: SeerViewerContext | None = None,
+) -> bytes:
     """
     Make a request to the Seer API and return the response data.
 
     Args:
         path: The path to the Seer API
         payload: The payload to send to the Seer API
+        viewer_context: Optional viewer context for access control
 
     Raises:
         HTTPError: If the Seer API returns a retryable status
@@ -104,9 +114,10 @@ def make_seer_request(path: str, payload: Mapping[str, Any]) -> bytes:
     """
     logger.info("seer.code_review.sending_request_to_seer")
     response = make_signed_seer_api_request(
-        connection_pool=connection_from_url(settings.SEER_PREVENT_AI_URL),
+        connection_pool=seer_code_review_connection_pool,
         path=path,
         body=orjson.dumps(payload),
+        viewer_context=viewer_context,
     )
     # Retry on server errors (5xx) and rate limits (429), but not client errors (4xx)
     if response.status >= 500 or response.status == 429:
@@ -188,7 +199,7 @@ def _get_target_commit_sha(
             raise ValueError("missing-pr-number-for-sha")
 
         client = integration.get_installation(organization_id=repo.organization_id).get_client()
-        sha = client.get_pull_request(repo.name, pr_number).get("head", {}).get("sha")
+        sha = client.get_pull_request(repo.name, str(pr_number)).get("head", {}).get("sha")
         if not isinstance(sha, str) or not sha:
             raise ValueError("missing-api-pr-head-sha")
         return sha
@@ -238,9 +249,10 @@ def _common_codegen_request_payload(
     repo: Repository,
     target_commit_sha: str,
     organization: Organization,
+    event_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     data: dict[str, Any] = {
-        "repo": _build_repo_definition(repo, target_commit_sha),
+        "repo": _build_repo_definition(repo, target_commit_sha, event_payload),
         "bug_prediction_specific_information": {
             "organization_id": organization.id,
             "organization_slug": organization.slug,
@@ -279,6 +291,7 @@ def transform_issue_comment_to_codegen_request(
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
+        event_payload=event_payload,
     )
     payload["data"]["pr_id"] = event_payload["issue"]["number"]
     config = payload["data"]["config"]
@@ -317,6 +330,7 @@ def transform_pull_request_to_codegen_request(
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
+        event_payload=event_payload,
     )
     pull_request = event_payload.get("pull_request", {})
     payload["data"]["pr_id"] = pull_request.get("number")
@@ -335,7 +349,11 @@ def transform_pull_request_to_codegen_request(
     return payload
 
 
-def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str, Any]:
+def _build_repo_definition(
+    repo: Repository,
+    target_commit_sha: str,
+    event_payload: Mapping[str, Any],
+) -> dict[str, Any]:
     """
     Build the repository definition for code review requests.
     """
@@ -351,6 +369,7 @@ def _build_repo_definition(repo: Repository, target_commit_sha: str) -> dict[str
         "external_id": repo.external_id,
         "base_commit_sha": target_commit_sha,
         "organization_id": repo.organization_id,
+        "is_private": event_payload.get("repository", {}).get("private"),
     }
 
     # add integration_id which is used in pr_closed_step for product metrics dashboarding only
@@ -417,6 +436,7 @@ def get_tags(
             - scm_owner: The repository owner/organization name
             - scm_provider: Always "github"
             - scm_repo_full_name: The repository full name (owner/repo)
+            - scm_repo_is_private: Whether the repo is private (if available)
             - scm_repo_name: The repository name
             - sentry_integration_id: The Sentry integration ID
             - sentry_organization_id: Sentry organization ID (if available)
@@ -440,6 +460,8 @@ def get_tags(
             result["scm_repo_name"] = repo_name
         if owner_repo_name := repository.get("full_name"):
             result["scm_repo_full_name"] = owner_repo_name
+        if (repo_private := repository.get("private")) is not None:
+            result["scm_repo_is_private"] = str(repo_private)
 
     github_event_action = event.get("action")
     if github_event_action:

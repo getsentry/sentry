@@ -254,10 +254,9 @@ class SlackEntrypoint(SeerEntrypoint[SlackEntrypointCachePayload]):
                     changes_list = [
                         {
                             "repo_name": repo,
-                            "title": change["path"],
-                            # TODO: add the diff to the change list
-                            "description": "",
-                            "diff": "",
+                            "title": change.get("path", ""),
+                            "description": "",  # No description available in explorer autofix
+                            "diff": change.get("diff", ""),
                         }
                         for repo, changes in explorer_changes.items()
                         for change in changes

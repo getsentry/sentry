@@ -52,6 +52,10 @@ class TraceExplorerAIQueryTest(APITestCase):
             self.organization.slug,
             [self.project.id],
             "Find slow transactions",
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
         )
 
     def test_query_missing_parameters(self) -> None:
