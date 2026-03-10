@@ -14,7 +14,7 @@ from sentry.models.group import Group
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.workflow_engine.models import AlertRuleWorkflow
+from sentry.workflow_engine.models.workflow import Workflow
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
@@ -62,24 +62,17 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_rule_groups_paginated(
         self,
-        rule: Rule,
+        target: Rule | Workflow,
         start: datetime,
         end: datetime,
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[RuleGroupHistory]:
-        try:
-            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-            workflow = alert_rule_workflow.workflow
-
+        if isinstance(target, Workflow):
             # Performs the raw SQL query with pagination
             def data_fn(offset: int, limit: int) -> list[_Result]:
                 query = """
-                    WITH combined_data AS (
-                        SELECT group_id, date_added, event_id
-                        FROM sentry_rulefirehistory
-                        WHERE rule_id = %s AND date_added >= %s AND date_added < %s
-                        UNION ALL
+                    WITH workflow_data AS (
                         SELECT group_id, date_added, event_id
                         FROM workflow_engine_workflowfirehistory
                         WHERE workflow_id = %s
@@ -90,16 +83,14 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                         COUNT(*) as count,
                         MAX(date_added) as last_triggered,
                         (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
-                    FROM combined_data
+                    FROM workflow_data
                     GROUP BY group_id
                     ORDER BY count DESC, last_triggered DESC
                     LIMIT %s OFFSET %s
                 """
 
                 with connection.cursor() as cursor:
-                    cursor.execute(
-                        query, [rule.id, start, end, workflow.id, start, end, limit, offset]
-                    )
+                    cursor.execute(query, [target.id, start, end, limit, offset])
                     return [
                         _Result(
                             group=row[0],
@@ -115,13 +106,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
             return result
 
-        except AlertRuleWorkflow.DoesNotExist:
-            # If no workflow is associated with this rule, just use the original behavior
-            logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
-            pass
-
         rule_filtered_history = RuleFireHistory.objects.filter(
-            rule=rule,
+            rule=target,
             date_added__gte=start,
             date_added__lt=end,
         )
@@ -143,17 +129,14 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         ).get_result(per_page, cursor)
 
     def fetch_rule_hourly_stats(
-        self, rule: Rule, start: datetime, end: datetime
+        self, target: Rule | Workflow, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
         start = start.replace(tzinfo=timezone.utc)
         end = end.replace(tzinfo=timezone.utc)
 
         existing_data: dict[datetime, TimeSeriesValue] = {}
 
-        try:
-            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-            workflow = alert_rule_workflow.workflow
-
+        if isinstance(target, Workflow):
             # Use raw SQL to combine data from both tables
             with connection.cursor() as db_cursor:
                 db_cursor.execute(
@@ -163,14 +146,6 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                         COUNT(*) as count
                     FROM (
                         SELECT date_added
-                        FROM sentry_rulefirehistory
-                        WHERE rule_id = %s
-                            AND date_added >= %s
-                            AND date_added < %s
-
-                        UNION ALL
-
-                        SELECT date_added
                         FROM workflow_engine_workflowfirehistory
                         WHERE workflow_id = %s
                             AND date_added >= %s
@@ -179,7 +154,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                     GROUP BY DATE_TRUNC('hour', date_added)
                     ORDER BY bucket
                     """,
-                    [rule.id, start, end, workflow.id, start, end],
+                    [target.id, start, end],
                 )
 
                 results = db_cursor.fetchall()
@@ -187,15 +162,11 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             # Convert raw SQL results to the expected format
             existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
 
-        except AlertRuleWorkflow.DoesNotExist:
-            # If no workflow is associated with this rule, just use the original behavior
-            logger.exception("No workflow associated with rule", extra={"rule_id": rule.id})
-            pass
-
-        if not existing_data:
+        else:
+            # fall back to previous behavior
             qs = (
                 RuleFireHistory.objects.filter(
-                    rule=rule,
+                    rule=target,
                     date_added__gte=start,
                     date_added__lt=end,
                 )

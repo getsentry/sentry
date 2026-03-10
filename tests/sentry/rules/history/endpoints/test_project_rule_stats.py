@@ -3,13 +3,17 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import WorkflowFireHistory
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
 
@@ -28,7 +32,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-class ProjectRuleStatsIndexEndpointTest(APITestCase):
+class ProjectRuleStatsIndexEndpointTest(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
     def test(self) -> None:
@@ -63,6 +67,56 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
+            start=before_now(days=6),
+            end=before_now(days=0),
+        )
+        assert len(resp.data) == 144
+        now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        assert [r for r in resp.data[-4:]] == [
+            {"date": now - timedelta(hours=3), "count": 3},
+            {"date": now - timedelta(hours=2), "count": 2},
+            {"date": now - timedelta(hours=1), "count": 1},
+            {"date": now, "count": 0},
+        ]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine(self) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+        workflow2 = self.create_workflow(organization=self.organization)
+
+        for i in range(3):
+            for _ in range(i + 1):
+                wfh = WorkflowFireHistory.objects.create(
+                    workflow=workflow,
+                    group=self.group,
+                    date_added=before_now(days=i + 1),
+                    event_id=f"workflow_event_{i}",
+                )
+
+        wfhs = WorkflowFireHistory.objects.filter(workflow=workflow)
+        hours = [1, 2, 2, 3, 3, 3]
+        for hour, wfh in zip(hours, wfhs):
+            wfh.update(date_added=before_now(hours=hour))
+
+        # make a couple in a different workflow to ensure we're not mixing them up
+        for i in range(2):
+            wfh = WorkflowFireHistory(
+                workflow=workflow2,
+                group=self.group,
+                date_added=before_now(hours=i + 1),
+                event_id=f"workflow2_event_{i}",
+            )
+
+        wfhs = WorkflowFireHistory.objects.filter(workflow=workflow2)
+        hours = [1, 2]
+        for hour, wfh in zip(hours, wfhs):
+            wfh.update(date_added=before_now(hours=hour))
+
+        self.login_as(self.user)
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            get_fake_id_from_object_id(workflow.id),
             start=before_now(days=6),
             end=before_now(days=0),
         )
