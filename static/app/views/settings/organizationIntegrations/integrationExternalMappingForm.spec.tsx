@@ -223,6 +223,39 @@ describe('IntegrationExternalMappingForm', () => {
     expect(postResponse).not.toHaveBeenCalled();
   });
 
+  it('fetches options with search query when typing', async () => {
+    const searchResponse = MockApiClient.addMockResponse({
+      url: dataEndpoint,
+      method: 'GET',
+      body: [{id: '4', name: 'searched-option'}],
+      match: [MockApiClient.matchQuery({query: 'searched'})],
+    });
+
+    render(
+      <IntegrationExternalMappingForm
+        type="user"
+        mapping={{externalName: MOCK_USER_MAPPING.externalName}}
+        {...modalProps}
+        {...baseProps}
+      />
+    );
+
+    // Open select and wait for initial options
+    await userEvent.click(screen.getByRole('textbox', {name: 'Sentry User'}));
+    await screen.findByRole('menuitemradio', {name: 'option1'});
+
+    // Type a search query
+    await userEvent.type(screen.getByRole('textbox', {name: 'Sentry User'}), 'searched');
+
+    await waitFor(() => {
+      expect(searchResponse).toHaveBeenCalled();
+    });
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'searched-option'})
+    ).toBeInTheDocument();
+  });
+
   it('allows defaultOptions to be provided', async () => {
     render(
       <IntegrationExternalMappingForm

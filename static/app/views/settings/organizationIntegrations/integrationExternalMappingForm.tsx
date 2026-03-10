@@ -58,9 +58,11 @@ function makeSelectQueryOptions({
   BaseProps,
   'dataEndpoint' | 'defaultOptions' | 'mapping' | 'type' | 'sentryNamesMapper'
 >) {
-  return (_debouncedInput: string) =>
+  return (debouncedInput: string) =>
     queryOptions({
-      queryKey: [dataEndpoint as any] as ApiQueryKey,
+      queryKey: (debouncedInput
+        ? [dataEndpoint as any, {query: {query: debouncedInput}}]
+        : [dataEndpoint as any]) as ApiQueryKey,
       queryFn: apiFetch<any[]>,
       staleTime: 0,
       select: response => {
