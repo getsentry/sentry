@@ -135,10 +135,16 @@ export function collectTraceMeasurements(
       score,
     });
 
-    const hasSeenMeasurement = tree.indicators.some(
+    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement]) {
+      continue;
+    }
+
+    const isStandalone = isStandaloneSpanMeasurementNode(node);
+    const existingIndicatorIndex = tree.indicators.findIndex(
       indicator => indicator.type === collectableMeasurement
     );
-    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement] || hasSeenMeasurement) {
+
+    if (existingIndicatorIndex !== -1 && !isStandalone) {
       continue;
     }
 
@@ -146,11 +152,11 @@ export function collectTraceMeasurements(
     // We pass in 0 as the measurement value to prevent applying any unnecessary offset.
     const timestamp = traceMeasurementToTimestamp(
       start_timestamp,
-      isStandaloneSpanMeasurementNode(node) ? 0 : measurement.value,
+      isStandalone ? 0 : measurement.value,
       measurement.unit ?? 'millisecond'
     );
 
-    indicators.push({
+    const indicator: TraceTree.Indicator = {
       start: timestamp,
       duration: 0,
       measurement,
@@ -162,7 +168,13 @@ export function collectTraceMeasurements(
         MEASUREMENT_ACRONYM_MAPPING[collectableMeasurement] ?? collectableMeasurement
       ).toUpperCase(),
       score,
-    });
+    };
+
+    if (existingIndicatorIndex === -1) {
+      indicators.push(indicator);
+    } else {
+      tree.indicators[existingIndicatorIndex] = indicator;
+    }
   }
 
   return indicators;
