@@ -3308,14 +3308,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Batch size for HDEL calls when removing spans from the redirect map during flush.
-register(
-    "spans.buffer.hdel-redirect-map-batch-size",
-    type=Int,
-    default=100,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Segments consumer
 register(
     "spans.process-segments.consumer.enable",
