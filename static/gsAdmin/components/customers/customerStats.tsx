@@ -593,15 +593,8 @@ export const CustomerStats = memo(
           return;
         }
 
+        // Snap to the closest interval that has abuse data
         const timestamp = dataPoint[0]!;
-        const inAbuse = regions.some(r => timestamp >= r.start && timestamp <= r.end);
-
-        if (!inAbuse) {
-          hideTooltip();
-          return;
-        }
-
-        // Find the closest interval timestamp to get the abuse value
         let closestTs = 0;
         let closestDist = Infinity;
         for (const ts of valueByTimestamp.keys()) {
@@ -612,7 +605,13 @@ export const CustomerStats = memo(
           }
         }
 
-        showTooltip(offsetX, valueByTimestamp.get(closestTs) ?? 0);
+        const value = valueByTimestamp.get(closestTs);
+        if (!value || !regions.some(r => closestTs >= r.start && closestTs <= r.end)) {
+          hideTooltip();
+          return;
+        }
+
+        showTooltip(offsetX, value);
       };
 
       const handleMouseLeave = () => {
