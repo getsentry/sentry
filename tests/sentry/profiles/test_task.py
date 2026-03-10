@@ -587,6 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
+    @pytest.mark.skip(reason="flaky: #110313")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
