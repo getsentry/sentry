@@ -29,15 +29,6 @@ type Props = ModalRenderProps & {
   existingConfig?: RepositoryProjectPathConfig;
 };
 
-const schema = z.object({
-  projectId: z.string().min(1),
-  repositoryId: z.string().min(1),
-  defaultBranch: z.string(),
-  stackRoot: z.string(),
-  sourceRoot: z.string(),
-  integrationId: z.string(),
-});
-
 const integrationReposOptions = (
   orgSlug: string,
   integrationId: string,
@@ -66,6 +57,17 @@ export default function RepositoryProjectPathConfigModal({
   const queryClient = useQueryClient();
 
   const isStreamBased = integration.provider.key === 'perforce';
+
+  const schema = z.object({
+    projectId: z.string().min(1, t('Project is required')),
+    repositoryId: z.string().min(1, t('Repository is required')),
+    defaultBranch: z
+      .string()
+      .min(1, isStreamBased ? t('Stream is required') : t('Branch is required')),
+    stackRoot: z.string(),
+    sourceRoot: z.string(),
+    integrationId: z.string(),
+  });
 
   const projectOptions = projects.map(project => ({
     value: project.id,
