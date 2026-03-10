@@ -4,8 +4,8 @@ from django.db import router, transaction
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 
-from sentry.workflow_engine.caches.workflow import invalidate_processing_workflows
-from sentry.workflow_engine.models import DetectorWorkflow
+from sentry.workflow_engine.caches.workflow import DEFAULT_VALUE, invalidate_processing_workflows
+from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 
 
 @receiver(pre_save, sender=DetectorWorkflow)
@@ -28,6 +28,7 @@ def invalidate_processing_workflows_cache_pre(
     # If updating an existing instance, also need to invalidate old relationship
     old_detector_id = None
     old_env_id = None
+
     if instance.pk is not None:
         try:
             # This lookup trade-off is okay, because we rarely update these relationships
@@ -56,7 +57,13 @@ def invalidate_processing_workflows_cache_delete_relationship(
     Uses transaction.on_commit to ensure invalidation happens after DB commit.
     """
     detector_id = instance.detector_id
-    env_id = instance.workflow.environment_id
+
+    # If we don't have a workflow (e.g., during cascade delete), we should
+    # invalidate all environments related to the detector
+    try:
+        env_id = instance.workflow.environment_id
+    except Workflow.DoesNotExist:
+        env_id = DEFAULT_VALUE
 
     transaction.on_commit(
         lambda: invalidate_processing_workflows(detector_id, env_id),
