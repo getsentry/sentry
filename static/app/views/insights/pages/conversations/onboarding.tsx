@@ -6,8 +6,9 @@ import {PlatformIcon} from 'platformicons';
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -208,7 +209,19 @@ function ConversationOnboardingPanel({
                 <HeaderImage src={replayOnboardingImg} />
               </Flex>
               <Divider />
-              <Container padding="3xl">{children}</Container>
+              <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
+                <Setup>{children}</Setup>
+                <Container padding="xl" paddingTop="3xl">
+                  <Heading as="h4" size="xl">
+                    {t('Preview Conversations')}
+                  </Heading>
+                  <Arcade
+                    src="https://app.arcade.software/share/oV2kLNiavNzbDHX12Bib?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Container>
+              </Grid>
             </div>
           </TabSelectionScope>
         </AuthTokenGeneratorProvider>
@@ -516,6 +529,26 @@ const HeaderImage = styled('img')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
+`;
+
+const Setup = styled('div')`
+  padding: ${p => p.theme.space['3xl']};
+
+  &:after {
+    content: '';
+    position: absolute;
+    right: 50%;
+    top: 2.5%;
+    height: 95%;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
+  }
+`;
+
+const Arcade = styled('iframe')`
+  width: 100%;
+  min-height: 420px;
+  margin-top: ${p => p.theme.space.md};
+  border: 0;
 `;
 
 const Divider = styled('hr')`
