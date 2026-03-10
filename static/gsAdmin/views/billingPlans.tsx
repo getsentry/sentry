@@ -1,12 +1,13 @@
+import {Fragment, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 
 import Panel from 'sentry/components/panels/panel';
-import {IconDownload} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconClose, IconDownload} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -14,9 +15,23 @@ import ResultTable from 'admin/components/resultTable';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
+interface SeatCosts {
+  ondemand?: number | null;
+  prepaid?: number | null;
+  standard?: number | null;
+}
+
+interface CategoryInfo {
+  billed_category: string;
+  is_add_on: boolean;
+  name: string;
+  tally_type: string;
+  seat_costs?: SeatCosts;
+}
+
 export interface BillingPlansResponse {
   data: Plans;
-  not_live: string[];
+  categories?: Record<string, CategoryInfo | string>;
 }
 
 type Plans = Record<string, PlanTier>;
@@ -27,6 +42,10 @@ interface PlanDetails {
   data_categories_disabled: DataCategory[];
   price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
   pricing: Record<string, Price>;
+  allow_reserved_budgets?: boolean;
+  has_custom_dynamic_sampling?: boolean;
+  has_ondemand_modes?: boolean;
+  id?: string;
 }
 
 interface Price {
@@ -46,7 +65,6 @@ interface PriceTier {
 function BillingPlans() {
   const {
     data: billingPlansResponse = {
-      not_live: [],
       data: {},
     },
   } = useQuery(
@@ -186,71 +204,112 @@ function BillingPlans() {
 
   return (
     <BillingPlansContainer>
-      <h1>Billing Plans</h1>
+      <h1>Application Monitoring Billing Plans</h1>
       <Button icon={<IconDownload />} onClick={handleDownloadCsv}>
         Download CSV
       </Button>
       <TableOfContents plans={plans} />
-      {Object.entries(plans).map(([planTierId, planTier]) => (
-        <PlanTierSection
-          key={planTierId}
-          planTierId={planTierId}
-          planTier={planTier}
-          notLive={billingPlansResponse.not_live}
-        />
-      ))}
+      {Object.entries(plans)
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([planTierId, planTier]) => (
+          <PlanTierSection
+            key={planTierId}
+            planTierId={planTierId}
+            planTier={planTier}
+            categories={billingPlansResponse.categories}
+          />
+        ))}
     </BillingPlansContainer>
   );
 }
 
+const PREFERRED_PLAN_ORDER = [
+  'developer',
+  'team',
+  'business',
+  'enterprise_team',
+  'enterprise_business',
+  'enterprise_trial',
+  'enterprise_team_ds',
+  'enterprise_business_ds',
+  'enterprise_trial_ds',
+] as const;
+
+function getPlanColumnOrder(plans: Plans): string[] {
+  const allPlanNames = new Set<string>();
+  Object.values(plans).forEach(planTier => {
+    Object.keys(planTier).forEach(planName => allPlanNames.add(planName));
+  });
+  const preferred = PREFERRED_PLAN_ORDER.filter(p => allPlanNames.has(p));
+  const preferredSet = new Set<string>(PREFERRED_PLAN_ORDER);
+  const others = [...allPlanNames].filter(p => !preferredSet.has(p)).sort();
+  return [...preferred, ...others];
+}
+
 function TableOfContents({plans}: {plans: Plans}) {
+  const sortedTiers = Object.entries(plans).sort(([a], [b]) => b.localeCompare(a));
+  const planColumnOrder = getPlanColumnOrder(plans);
+
   return (
     <TOCContainer>
-      <h2>Table of Contents</h2>
-      <ul>
-        {Object.entries(plans).map(([planTierId, planTier]) => {
-          const planTierIdFormatted = formatPlanTierId(planTierId);
-          return (
-            <li key={planTierIdFormatted}>
-              <a href={`#${planTierIdFormatted}`}>{planTierIdFormatted} Plans</a>
-              <ul>
-                {Object.entries(planTier).map(([planName, planDetails]) => {
-                  const planNameFormatted = formatPlanName(planName);
-                  const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
-                  const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
-                  return (
-                    <li key={planTypeId}>
-                      <a href={`#${planTypeId}`}>{planNameFormatted}</a>
-                      <ul>
-                        <li>
-                          <a href={`#${pricingId}`}>Pricing</a>
-                          <ul>
-                            {Object.entries(planDetails.price_tiers).map(
-                              ([dataCategory]) => {
-                                const dataCategoryFormatted = formatDataCategory(
-                                  dataCategory as DataCategory
-                                );
-                                const dataCategoryId = `${planTypeId}-${dataCategoryFormatted}`;
-                                return (
-                                  <li key={dataCategoryId}>
-                                    <a href={`#${dataCategoryId}`}>
-                                      {dataCategoryFormatted}
-                                    </a>
-                                  </li>
-                                );
-                              }
-                            )}
-                          </ul>
-                        </li>
-                      </ul>
-                    </li>
-                  );
-                })}
-              </ul>
-            </li>
-          );
-        })}
-      </ul>
+      <h2 style={{marginTop: 20}}>Table of Contents</h2>
+      <Panel>
+        <StyledResultTable>
+          <thead>
+            <tr>
+              <th />
+              {planColumnOrder.map(planName => (
+                <th key={planName}>{formatPlanName(planName)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTiers.length === 0 ? (
+              <tr>
+                <td colSpan={planColumnOrder.length + 1}>No plans.</td>
+              </tr>
+            ) : (
+              sortedTiers.map(([planTierId, planTier]) => {
+                const planTierIdFormatted = formatPlanTierId(planTierId);
+                return (
+                  <tr key={planTierIdFormatted}>
+                    <td>{planTierIdFormatted}</td>
+                    {planColumnOrder.map(planName => {
+                      const planDetails = planTier[planName];
+                      const planNameFormatted = formatPlanName(planName);
+                      return (
+                        <td key={planName}>
+                          {planDetails ? (
+                            <span style={{display: 'block'}}>
+                              <a
+                                href={`#${planDetails.id ?? `${planTierIdFormatted}-${planNameFormatted}`}`}
+                              >
+                                {planNameFormatted}
+                              </a>
+                              {planDetails.id && (
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    paddingTop: '7px',
+                                  }}
+                                >
+                                  <code>{planDetails.id}</code>
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </StyledResultTable>
+      </Panel>
     </TOCContainer>
   );
 }
@@ -258,24 +317,31 @@ function TableOfContents({plans}: {plans: Plans}) {
 function PlanTierSection({
   planTierId,
   planTier,
-  notLive,
+  categories,
 }: {
-  notLive: string[];
   planTier: PlanTier;
   planTierId: string;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
   const planTierIdFormatted = formatPlanTierId(planTierId);
 
   return (
-    <div>
-      <h2 id={planTierIdFormatted}>{planTierIdFormatted} Plans</h2>
+    <div
+      style={{
+        borderTop: '1px solid rgb(230, 230, 233)',
+        borderBottom: '1px solid rgb(230, 230, 233)',
+      }}
+    >
+      <h2 id={planTierIdFormatted} style={{marginTop: 20}}>
+        {planTierIdFormatted} Plans
+      </h2>
       {Object.entries(planTier).map(([planName, planDetails]) => (
         <PlanDetailsSection
           key={planName}
           planTierIdFormatted={planTierIdFormatted}
           planName={planName}
           planDetails={planDetails}
-          notLive={notLive.includes(planTierId)}
+          categories={categories}
         />
       ))}
     </div>
@@ -286,49 +352,80 @@ function PlanDetailsSection({
   planTierIdFormatted,
   planName,
   planDetails,
-  notLive,
+  categories,
 }: {
   planDetails: PlanDetails;
   planName: string;
   planTierIdFormatted: string;
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
   const theme = useTheme();
   const planNameFormatted = formatPlanName(planName);
-  const planTypeId = `${planTierIdFormatted}-${planNameFormatted}`;
-  const pricingId = `${planTierIdFormatted}-${planNameFormatted}-pricing`;
 
   return (
     <div>
       <div
         style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
       >
-        <h3 id={planTypeId} style={{margin: 0}}>
+        <h3
+          id={planDetails.id ?? `${planTierIdFormatted}-${planNameFormatted}`}
+          style={{margin: '20px 0 5px'}}
+        >
           {planTierIdFormatted} {planNameFormatted} Plan
+          {planDetails.id ? ` (${planDetails.id})` : null}
         </h3>
-        <Badge variant={notLive ? 'warning' : 'new'}>
-          {notLive ? 'NOT LIVE' : 'LIVE'}
-        </Badge>
       </div>
 
+      {/* Plan Features */}
+      <h4>Plan Features</h4>
+      <Panel>
+        <StyledResultTable>
+          <thead>
+            <tr>
+              <th>Has Custom Dynamic Sampling</th>
+              <th>Has Ondemand Modes</th>
+              <th>Allow Reserved Budgets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                {planDetails.has_custom_dynamic_sampling ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+              <td>
+                {planDetails.has_ondemand_modes ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+              <td>
+                {planDetails.allow_reserved_budgets ? (
+                  <IconCheckmark size="sm" variant="success" />
+                ) : (
+                  <IconClose size="sm" />
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </StyledResultTable>
+      </Panel>
+
       {/* Pricing Table */}
-      <h4 id={pricingId}>Pricing:</h4>
+      <h4>Pricing</h4>
       <PricingTable pricing={planDetails.pricing} />
 
-      {/* Price Tiers Tables */}
-      {(
-        Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
-      ).map(([dataCategory, tiers]) => (
-        <PriceTiersTable
-          key={dataCategory}
-          planTierIdFormatted={planTierIdFormatted}
-          planNameFormatted={planNameFormatted}
-          dataCategory={dataCategory}
-          tiers={tiers}
-          notLive={notLive}
-          data_categories_disabled={planDetails.data_categories_disabled}
-        />
-      ))}
+      {/* Price Tiers (single merged table) */}
+      <MergedPriceTiersTable
+        planTierIdFormatted={planTierIdFormatted}
+        planNameFormatted={planNameFormatted}
+        planDetails={planDetails}
+        categories={categories}
+      />
     </div>
   );
 }
@@ -358,74 +455,392 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
   );
 }
 
-function PriceTiersTable({
+interface TierGroup {
+  bands: PriceTier[];
+  categoryLabel: string;
+  dataCategory: DataCategory;
+  dataCategoryFormatted: string;
+  dataCategoryId: string;
+  disabled: boolean;
+  groupKey: string;
+  isFirstForCategory: boolean;
+  tierNumber: number;
+  categoryCode?: string;
+  tallyType?: string;
+}
+
+function getCategoryInfo(
+  categories: Record<string, CategoryInfo | string> | undefined,
+  dataCategory: string,
+  dataCategoryFormatted: string
+): {categoryCode?: string; seatCosts?: SeatCosts; tallyType?: string} {
+  if (!categories) return {};
+  const entry =
+    categories[dataCategory] ??
+    categories[dataCategoryFormatted] ??
+    categories[dataCategoryFormatted.toLowerCase()];
+  if (!entry) return {};
+  if (typeof entry === 'string') {
+    return {categoryCode: entry.toLowerCase()};
+  }
+  return {
+    categoryCode: entry.billed_category?.toLowerCase(),
+    seatCosts: entry.seat_costs,
+    tallyType: entry.tally_type,
+  };
+}
+
+function MergedPriceTiersTable({
   planTierIdFormatted,
   planNameFormatted,
-  dataCategory,
-  tiers,
-  notLive,
-  data_categories_disabled,
+  planDetails,
+  categories,
 }: {
-  dataCategory: DataCategory;
-  data_categories_disabled: DataCategory[];
+  planDetails: PlanDetails;
   planNameFormatted: string;
   planTierIdFormatted: string;
-  tiers: PriceTier[];
-  notLive?: boolean;
+  categories?: Record<string, CategoryInfo | string>;
 }) {
-  const theme = useTheme();
-  const dataCategoryFormatted = formatDataCategory(dataCategory);
-  const dataCategoryId = `${planTierIdFormatted}-${planNameFormatted}-${dataCategoryFormatted}`;
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
-  const disabled = data_categories_disabled.includes(dataCategory);
+  const entries = (
+    Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+  )
+    .filter(([, tiers]) => tiers?.length)
+    .sort(([a], [b]) => formatDataCategory(a).localeCompare(formatDataCategory(b)));
 
-  const badgeText = notLive ? 'NOT LIVE' : disabled ? 'DISABLED' : 'LIVE';
-  const badgeType = notLive || disabled ? 'warning' : 'new';
+  const groups: TierGroup[] = entries.flatMap(([dataCategory, tiers]) => {
+    const dataCategoryFormatted = formatDataCategory(dataCategory);
+    const dataCategoryId = `${planTierIdFormatted}-${planNameFormatted}-${dataCategoryFormatted}`;
+    const disabled = planDetails.data_categories_disabled.includes(dataCategory);
+    const categoryLabel = disabled
+      ? `${dataCategoryFormatted} (DISABLED)`
+      : dataCategoryFormatted;
+    const {categoryCode, tallyType} = getCategoryInfo(
+      categories,
+      dataCategory,
+      dataCategoryFormatted
+    );
+
+    const byTier = (tiers ?? []).reduce<Map<number, PriceTier[]>>((acc, t) => {
+      const list = acc.get(t.tier) ?? [];
+      list.push(t);
+      acc.set(t.tier, list);
+      return acc;
+    }, new Map());
+
+    const isVolumeConstant = (v: number) => v === -1 || v === -2;
+
+    let isFirstForCategory = true;
+    const result: TierGroup[] = [];
+    for (const [tierNumber, bands] of Array.from(byTier.entries()).sort(
+      ([a], [b]) => a - b
+    )) {
+      const constantBands = bands.filter(t => isVolumeConstant(t.volume));
+      const scalarBands = bands.filter(t => !isVolumeConstant(t.volume));
+
+      for (const band of constantBands) {
+        result.push({
+          dataCategory,
+          tierNumber,
+          bands: [band],
+          groupKey: `${dataCategory}-${tierNumber}-vol${band.volume}`,
+          categoryCode,
+          tallyType,
+          dataCategoryFormatted,
+          dataCategoryId,
+          categoryLabel,
+          disabled,
+          isFirstForCategory,
+        });
+        isFirstForCategory = false;
+      }
+      if (scalarBands.length > 0) {
+        result.push({
+          dataCategory,
+          tierNumber,
+          bands: scalarBands,
+          groupKey: `${dataCategory}-${tierNumber}`,
+          categoryCode,
+          tallyType,
+          dataCategoryFormatted,
+          dataCategoryId,
+          categoryLabel,
+          disabled,
+          isFirstForCategory,
+        });
+        isFirstForCategory = false;
+      }
+    }
+    return result;
+  });
+
+  const usageGroups = groups.filter(
+    g => !g.tallyType || g.tallyType.toUpperCase() === 'USAGE'
+  );
+
+  const seatPricingRows = (
+    Object.entries(planDetails.price_tiers) as Array<[DataCategory, PriceTier[]]>
+  )
+    .filter(([, tiers]) => tiers?.length)
+    .map(([dataCategory]) => {
+      const dataCategoryFormatted = formatDataCategory(dataCategory);
+      const disabled = planDetails.data_categories_disabled.includes(dataCategory);
+      const categoryLabel = disabled
+        ? `${dataCategoryFormatted} (DISABLED)`
+        : dataCategoryFormatted;
+      const info = getCategoryInfo(categories, dataCategory, dataCategoryFormatted);
+      if (info.tallyType?.toUpperCase() !== 'SEAT' || !info.seatCosts) return null;
+      return {
+        categoryLabel,
+        categoryCode: info.categoryCode,
+        seatCosts: info.seatCosts,
+        disabled,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+    .sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel));
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const renderBandCells = (tier: PriceTier) => (
+    <Fragment>
+      <td>{renderVolume(tier.volume)}</td>
+      <td>{formatCurrency(tier.monthly)}</td>
+      <td>{formatCurrency(tier.annual)}</td>
+      <td>
+        {displayUnitPrice({
+          cents: tier.reserved_ppe,
+          minDigits: 2,
+          maxDigits: 10,
+        })}
+      </td>
+      <td>
+        {displayUnitPrice({
+          cents: tier.od_ppe,
+          minDigits: 2,
+          maxDigits: 10,
+        })}
+      </td>
+    </Fragment>
+  );
+
+  const renderTiersTable = (tableGroups: TierGroup[]) => (
+    <Panel>
+      <StyledResultTable>
+        <thead>
+          <tr>
+            <th style={{width: 0}} />
+            <th>Category</th>
+            <th>Tier</th>
+            <th>Volume</th>
+            <th>Monthly</th>
+            <th>Annual</th>
+            <th>Reserved PPE</th>
+            <th>PAYG PPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tableGroups.map(group => {
+            const {bands, tierNumber, categoryLabel, dataCategoryId, groupKey} = group;
+            const expandKey = groupKey;
+            const isExpanded = expandedKeys.has(expandKey);
+            const isSingleBand = bands.length === 1;
+
+            if (isSingleBand) {
+              const tier = bands[0];
+              if (!tier) return null;
+              return (
+                <tr
+                  key={expandKey}
+                  id={group.isFirstForCategory ? dataCategoryId : undefined}
+                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                >
+                  <td />
+                  <td style={{textAlign: 'left'}}>
+                    <span style={{display: 'block'}}>{categoryLabel}</span>
+                    {group.categoryCode && (
+                      <code style={{display: 'block', textAlign: 'left'}}>
+                        {group.categoryCode}
+                      </code>
+                    )}
+                  </td>
+                  <td>{tierNumber}</td>
+                  {renderBandCells(tier)}
+                </tr>
+              );
+            }
+
+            const [first, ...rest] = bands;
+            const volumeRange =
+              bands.length > 0 ? (
+                <Fragment>
+                  {renderVolume(bands[0]!.volume)} –{' '}
+                  {renderVolume(bands[bands.length - 1]!.volume)}
+                </Fragment>
+              ) : (
+                '—'
+              );
+
+            return (
+              <Fragment key={expandKey}>
+                <tr
+                  id={group.isFirstForCategory ? dataCategoryId : undefined}
+                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                >
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(expandKey)}
+                      aria-expanded={isExpanded}
+                      style={{
+                        padding: 0,
+                        border: 0,
+                        background: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
+                    </button>
+                  </td>
+                  <td style={{textAlign: 'left'}}>
+                    <span style={{display: 'block'}}>{categoryLabel}</span>
+                    {group.categoryCode && (
+                      <code style={{display: 'block', textAlign: 'left'}}>
+                        {group.categoryCode}
+                      </code>
+                    )}
+                  </td>
+                  <td>{tierNumber}</td>
+                  {isExpanded && first ? (
+                    renderBandCells(first)
+                  ) : isExpanded ? null : (
+                    <Fragment>
+                      <td>{volumeRange}</td>
+                      <td colSpan={5} style={{color: 'var(--gray400)'}}>
+                        {bands.length} bands — click to expand
+                      </td>
+                    </Fragment>
+                  )}
+                </tr>
+                {isExpanded &&
+                  first &&
+                  rest.map((tier, index) => (
+                    <tr
+                      key={`${expandKey}-band-${index}`}
+                      style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                    >
+                      <td />
+                      <td />
+                      <td />
+                      {renderBandCells(tier)}
+                    </tr>
+                  ))}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </StyledResultTable>
+    </Panel>
+  );
 
   return (
     <div>
-      <div
-        style={{display: 'flex', alignItems: 'center', marginBottom: theme.space['2xl']}}
-      >
-        <h5 id={dataCategoryId} style={{margin: 0}}>
-          {dataCategoryFormatted} for {planTierIdFormatted} {planNameFormatted}
-        </h5>
-        <Badge variant={badgeType}>{badgeText}</Badge>
-      </div>
-      <Panel>
-        <StyledResultTable>
-          <thead>
-            <tr>
-              <th>Tier</th>
-              <th>Volume</th>
-              <th>Monthly</th>
-              <th>Annual</th>
-              <th>Reserved PPE</th>
-              <th>PAYG PPE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tiers.map((tier, index) => (
-              <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
-                <td>{tier.tier}</td>
-                <td>{Number(tier.volume).toLocaleString('en-US')}</td>
-                <td>{formatCurrency(tier.monthly)}</td>
-                <td>{formatCurrency(tier.annual)}</td>
-                <td>
-                  {displayUnitPrice({
-                    cents: tier.reserved_ppe,
-                    minDigits: 2,
-                    maxDigits: 10,
-                  })}
-                </td>
-                <td>
-                  {displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10})}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </StyledResultTable>
-      </Panel>
+      {usageGroups.length > 0 && (
+        <Fragment>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: space(3),
+              marginTop: space(3),
+            }}
+          >
+            <h4 style={{margin: 0}}>Usage Price Tiers</h4>
+          </div>
+          {renderTiersTable(usageGroups)}
+        </Fragment>
+      )}
+      {seatPricingRows.length > 0 && (
+        <Fragment>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: space(3),
+              marginTop: space(3),
+            }}
+          >
+            <h4 style={{margin: 0}}>Seat Pricing</h4>
+          </div>
+          <Panel>
+            <StyledResultTable>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Standard</th>
+                  <th>Prepaid</th>
+                  <th>Ondemand</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seatPricingRows.map(row => (
+                  <tr
+                    key={row.categoryCode ?? row.categoryLabel}
+                    style={row.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                  >
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{row.categoryLabel}</span>
+                      {row.categoryCode && (
+                        <code style={{display: 'block', textAlign: 'left'}}>
+                          {row.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.standard === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.standard,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.prepaid === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.prepaid,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                    <td>
+                      {typeof row.seatCosts.ondemand === 'number'
+                        ? displayUnitPrice({
+                            cents: row.seatCosts.ondemand,
+                            minDigits: 2,
+                            maxDigits: 10,
+                          })
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </StyledResultTable>
+          </Panel>
+        </Fragment>
+      )}
     </div>
   );
 }
@@ -435,7 +850,19 @@ const BillingPlansContainer = styled('div')`
 `;
 
 const StyledResultTable = styled(ResultTable)`
-  margin-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.md};
+  thead th {
+    background-color: #f0f0ff;
+    padding: 12px 2px;
+  }
+  td {
+    padding: 12px 2px;
+  }
+  td code {
+    padding: 0.45em 0 0 0;
+    font-size: 12px;
+    background: #f6f6f6;
+  }
 `;
 
 const TOCContainer = styled('nav')`
@@ -456,11 +883,40 @@ const TOCContainer = styled('nav')`
   }
 `;
 
+const VOLUME_CONSTANTS = ['RESERVED_BUDGET_QUOTA', 'UNLIMITED_ONDEMAND'] as const;
+
+function formatVolume(volume: number): string {
+  const n = Number(volume);
+  if (n === -2) return 'RESERVED_BUDGET_QUOTA';
+  if (n === -1) return 'UNLIMITED_ONDEMAND';
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.0001 && Math.abs(n) > 0) {
+    return n.toFixed(15).replace(/\.?0+$/, '');
+  }
+  return n.toLocaleString('en-US', {maximumFractionDigits: 10});
+}
+
+function renderVolume(volume: number): ReactNode {
+  const formatted = formatVolume(volume);
+  if (VOLUME_CONSTANTS.includes(formatted as (typeof VOLUME_CONSTANTS)[number])) {
+    return <code>{formatted}</code>;
+  }
+  return formatted;
+}
+
 function formatPlanTierId(planTierId: string): string {
   return planTierId.toUpperCase();
 }
 
 function formatPlanName(planType: string): string {
+  // Shorten "enterprise_" prefix to "Ent " for display
+  if (planType.startsWith('enterprise_')) {
+    const suffix = planType.slice('enterprise_'.length);
+    const parts = suffix
+      .split('_')
+      .map(part => (part.length <= 2 ? part.toUpperCase() : capitalizeWords(part)));
+    return 'Ent ' + parts.join(' ');
+  }
   return planType.charAt(0).toUpperCase() + planType.slice(1);
 }
 
