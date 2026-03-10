@@ -54,7 +54,7 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
     debounceUpdateStarredViewsOrder(views);
 
     trackAnalytics('issue_views.reordered_views', {
-      leftNavigation: true,
+      leftNav: true,
       organization: organization.slug,
     });
   }, [debounceUpdateStarredViewsOrder, organization.slug, views]);

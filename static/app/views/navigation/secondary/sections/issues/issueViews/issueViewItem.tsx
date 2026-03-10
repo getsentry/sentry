@@ -150,7 +150,7 @@ export function IssueViewItem({
             e.preventDefault();
           } else {
             trackAnalytics('issue_views.switched_views', {
-              leftNavigation: true,
+              leftNav: true,
               organization: organization.slug,
             });
           }
