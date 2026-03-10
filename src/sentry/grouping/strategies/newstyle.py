@@ -26,7 +26,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.strategies.base import (
     ComponentsByVariant,
-    GroupingContext,
     call_with_variants,
     get_grouping_components_by_variant,
     get_single_grouping_component,
@@ -42,6 +41,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
