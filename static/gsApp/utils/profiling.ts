@@ -1,6 +1,6 @@
 import {DataCategory} from 'sentry/types/core';
 
-import type {BillingMetricHistory, Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 
 export enum BudgetUsage {
   EXCEEDED = 'exceeded',
@@ -13,8 +13,7 @@ export function checkBudgetUsageFor(
   subscription: Subscription,
   dataCategory: DataCategory.PROFILE_DURATION | DataCategory.PROFILE_DURATION_UI
 ): BudgetUsage {
-  const category: BillingMetricHistory | undefined =
-    subscription.categories[dataCategory];
+  const category = subscription.categories[dataCategory];
   if (!category) {
     return BudgetUsage.UNKNOWN;
   }

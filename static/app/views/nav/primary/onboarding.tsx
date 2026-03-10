@@ -7,7 +7,6 @@ import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/conte
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing from 'sentry/components/progressRing';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
@@ -74,36 +73,40 @@ function OnboardingItem({
     <GuideAnchor target="onboarding_sidebar" position="right">
       <SidebarButton
         analyticsKey="onboarding"
-        buttonProps={{...overlayTriggerProps, onMouseEnter: refetch}}
+        buttonProps={{
+          ...overlayTriggerProps,
+          onMouseEnter: refetch,
+          size: isMobile ? 'xs' : 'sm',
+          icon: (
+            <ProgressRingWrapper isMobile={isMobile}>
+              <OnboardingProgressRing
+                isMobile={isMobile}
+                animate
+                textCss={() => css`
+                  font-size: ${theme.font.size.sm};
+                  font-weight: ${theme.font.weight.sans.medium};
+                  color: ${theme.tokens.content.accent};
+                  ${isMobile && 'display: none'};
+                `}
+                text={
+                  doneTasks.length === allTasks.length ? (
+                    <IconCheckmark size="xs" />
+                  ) : (
+                    doneTasks.length
+                  )
+                }
+                value={(doneTasks.length / allTasks.length) * 100}
+                backgroundColor={theme.colors.gray200}
+                progressEndcaps="round"
+                progressColor={theme.tokens.content.accent}
+                size={isMobile ? 14 : 18}
+                barWidth={isMobile ? 2 : 2}
+              />
+            </ProgressRingWrapper>
+          ),
+        }}
         label={label}
       >
-        <ProgressRingWrapper isMobile={isMobile}>
-          <OnboardingProgressRing
-            isMobile={isMobile}
-            animate
-            textCss={() => css`
-              font-size: ${theme.font.size.sm};
-              font-weight: ${theme.font.weight.sans.medium};
-              color: ${theme.tokens.content.accent};
-              ${isMobile && 'display: none'};
-            `}
-            text={
-              doneTasks.length === allTasks.length ? (
-                <IconDefaultsProvider>
-                  <IconCheckmark />
-                </IconDefaultsProvider>
-              ) : (
-                doneTasks.length
-              )
-            }
-            value={(doneTasks.length / allTasks.length) * 100}
-            backgroundColor={theme.colors.gray200}
-            progressEndcaps="round"
-            progressColor={theme.tokens.content.accent}
-            size={isMobile ? 14 : 26}
-            barWidth={isMobile ? 2 : 4}
-          />
-        </ProgressRingWrapper>
         {pendingCompletionSeen && (
           <SidebarItemUnreadIndicator
             data-test-id="pending-seen-indicator"
@@ -113,7 +116,7 @@ function OnboardingItem({
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <OnboardingSidebarContent onClose={() => OnboardingDrawerStore.close()} />
+          <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
         </PrimaryButtonOverlay>
       )}
     </GuideAnchor>
@@ -184,8 +187,8 @@ export function PrimaryNavigationOnboarding() {
 // because the progress ring is larger than the icons, but we want this
 // to be sized similarly to other nav buttons.
 const ProgressRingWrapper = styled('div')<{isMobile: boolean}>`
-  height: ${p => (p.isMobile ? '14px' : '16px')};
-  width: ${p => (p.isMobile ? '14px' : '16px')};
+  height: ${p => (p.isMobile ? '14px' : '12px')};
+  width: ${p => (p.isMobile ? '14px' : '12px')};
   position: relative;
 `;
 

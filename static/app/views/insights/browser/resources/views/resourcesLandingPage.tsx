@@ -3,14 +3,12 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import useHasPlatformizedAssets from 'sentry/views/insights/browser/resources/utils/useHasPlatformizedAssets';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -22,6 +20,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -78,9 +77,9 @@ function PageWithProviders() {
     dataCategories: [DataCategory.SPANS],
   });
 
-  const hasPlatformizedAssets = useHasPlatformizedAssets();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
 
-  if (hasPlatformizedAssets) {
+  if (hasPlatformizedInsights) {
     return <PlatformizedAssetsOverview />;
   }
 
@@ -96,7 +95,7 @@ function PageWithProviders() {
 }
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default PageWithProviders;

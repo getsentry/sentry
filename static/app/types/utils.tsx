@@ -20,3 +20,14 @@ export type DeepPartial<T> =
         [P in keyof T]?: DeepPartial<T[P]>;
       }
     : T;
+
+export function isArrayOf<T>(
+  value: unknown,
+  predicate: (x: unknown) => x is T
+): value is T[] {
+  return Array.isArray(value) && value.every(predicate);
+}
+
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}

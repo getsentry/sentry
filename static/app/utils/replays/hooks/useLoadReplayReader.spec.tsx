@@ -1,28 +1,21 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
   __esModule: true,
   default: () => jest.fn().mockReturnValue({}),
 }));
 
-const {organization, project} = initializeOrg();
-
-const wrapper = ({children}: {children?: React.ReactNode}) => (
-  <OrganizationContext value={organization}>{children}</OrganizationContext>
-);
+const organization = OrganizationFixture();
+const project = ProjectFixture();
 
 describe('useLoadReplayReader', () => {
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
   it('should accept a replaySlug with project and id parts', () => {
-    const {result} = renderHook(useLoadReplayReader, {
-      wrapper,
+    const {result} = renderHookWithProviders(useLoadReplayReader, {
       initialProps: {
         orgSlug: organization.slug,
         replaySlug: `${project.slug}:123`,
@@ -37,8 +30,7 @@ describe('useLoadReplayReader', () => {
   });
 
   it('should accept a replaySlug with only the replay-id', () => {
-    const {result} = renderHook(useLoadReplayReader, {
-      wrapper,
+    const {result} = renderHookWithProviders(useLoadReplayReader, {
       initialProps: {
         orgSlug: organization.slug,
         replaySlug: `123`,

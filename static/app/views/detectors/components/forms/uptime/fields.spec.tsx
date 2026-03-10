@@ -1,10 +1,10 @@
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 
 import {
-  ComparisonType,
-  OpType,
+  UptimeComparisonType,
   UptimeMonitorMode,
-  type Assertion,
+  UptimeOpType,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
@@ -65,14 +65,14 @@ describe('uptimeFormDataToEndpointPayload', () => {
   });
 
   it('includes assertion in payload when provided', () => {
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -199,11 +199,11 @@ describe('uptimeFormDataToEndpointPayload', () => {
       body: '',
       assertion: {
         root: {
-          op: OpType.AND,
+          op: UptimeOpType.AND,
           id: 'empty-root',
           children: [],
         },
-      } satisfies Assertion,
+      } satisfies UptimeAssertion,
       recoveryThreshold: 1,
       downtimeThreshold: 3,
       environment: 'production',
@@ -242,14 +242,14 @@ describe('uptimeSavedDetectorToFormData', () => {
   });
 
   it('extracts assertion from data source', () => {
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -294,7 +294,7 @@ describe('uptimeSavedDetectorToFormData', () => {
 
     expect(formData.assertion).toMatchObject({
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [],
         id: expect.any(String),
       },
@@ -320,7 +320,7 @@ describe('uptimeSavedDetectorToFormData', () => {
       // null would cause a crash in getValue when accessing value.root.children.length
       assertion: {
         root: {
-          op: OpType.AND,
+          op: UptimeOpType.AND,
           children: [],
           id: expect.any(String),
         },

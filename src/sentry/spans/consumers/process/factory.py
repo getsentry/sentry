@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from functools import partial
 from typing import cast
 
@@ -20,7 +20,7 @@ from sentry import killswitches
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
 from sentry.spans.buffer import Span, SpansBuffer
-from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, SetJoinTimeout, run_task_with_multiprocessing
@@ -48,7 +48,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
         flusher_processes: int | None = None,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        produce_to_pipe: ProduceToPipe | None = None,
         kafka_slice_id: int | None = None,
     ):
         super().__init__()
@@ -203,6 +203,7 @@ def process_batch(
                 payload=payload.value,
                 end_timestamp=cast(float, val["end_timestamp"]),
                 is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_segment")),
+                partition=value.partition.index,
             )
 
             spans.append(span)

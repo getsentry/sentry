@@ -167,10 +167,10 @@ export function getPendoAccountFields(
     subscription.productTrials ?? null,
     DataCategory.TRANSACTIONS
   );
-  const perfTrialAvailable: boolean = perfTrial ? !perfTrial.isStarted : false;
-  const perfTrialStartDate: string = perfTrial?.startDate ?? '';
-  const perfTrialEndDate: string = perfTrial?.endDate ?? '';
-  const perfTrialActive: boolean = perfTrial
+  const perfTrialAvailable = perfTrial ? !perfTrial.isStarted : false;
+  const perfTrialStartDate = perfTrial?.startDate ?? '';
+  const perfTrialEndDate = perfTrial?.endDate ?? '';
+  const perfTrialActive = perfTrial
     ? perfTrial.isStarted && getDaysSinceDate(perfTrial.endDate ?? '') <= 0
     : false;
 
@@ -178,10 +178,10 @@ export function getPendoAccountFields(
     subscription.productTrials ?? null,
     DataCategory.REPLAYS
   );
-  const replayTrialAvailable: boolean = replayTrial ? !replayTrial.isStarted : false;
-  const replayTrialStartDate: string = replayTrial?.startDate ?? '';
-  const replayTrialEndDate: string = replayTrial?.endDate ?? '';
-  const replayTrialActive: boolean = replayTrial
+  const replayTrialAvailable = replayTrial ? !replayTrial.isStarted : false;
+  const replayTrialStartDate = replayTrial?.startDate ?? '';
+  const replayTrialEndDate = replayTrial?.endDate ?? '';
+  const replayTrialActive = replayTrial
     ? replayTrial.isStarted && getDaysSinceDate(replayTrial.endDate ?? '') <= 0
     : false;
 
@@ -189,12 +189,10 @@ export function getPendoAccountFields(
     subscription.productTrials ?? null,
     DataCategory.PROFILE_DURATION
   );
-  const profilesTrialAvailable: boolean = profilesTrial
-    ? !profilesTrial.isStarted
-    : false;
-  const profilesTrialStartDate: string = profilesTrial?.startDate ?? '';
-  const profilesTrialEndDate: string = profilesTrial?.endDate ?? '';
-  const profilesTrialActive: boolean = profilesTrial
+  const profilesTrialAvailable = profilesTrial ? !profilesTrial.isStarted : false;
+  const profilesTrialStartDate = profilesTrial?.startDate ?? '';
+  const profilesTrialEndDate = profilesTrial?.endDate ?? '';
+  const profilesTrialActive = profilesTrial
     ? profilesTrial.isStarted && getDaysSinceDate(profilesTrial.endDate ?? '') <= 0
     : false;
 
@@ -202,10 +200,10 @@ export function getPendoAccountFields(
     subscription.productTrials ?? null,
     DataCategory.SPANS
   );
-  const spansTrialAvailable: boolean = spansTrial ? !spansTrial.isStarted : false;
-  const spansTrialStartDate: string = spansTrial?.startDate ?? '';
-  const spansTrialEndDate: string = spansTrial?.endDate ?? '';
-  const spansTrialActive: boolean = spansTrial
+  const spansTrialAvailable = spansTrial ? !spansTrial.isStarted : false;
+  const spansTrialStartDate = spansTrial?.startDate ?? '';
+  const spansTrialEndDate = spansTrial?.endDate ?? '';
+  const spansTrialActive = spansTrial
     ? spansTrial.isStarted && getDaysSinceDate(spansTrial.endDate ?? '') <= 0
     : false;
 

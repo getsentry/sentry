@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
@@ -23,7 +16,6 @@ import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries'
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -83,7 +75,8 @@ interface EventGraphProps {
    * Enable/disables showing the event and user summary
    */
   showSummary?: boolean;
-  style?: CSSProperties;
+
+  style?: React.CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -475,9 +468,9 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert variant="danger" {...styleProps}>
+      <Alert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
-      </GraphAlert>
+      </Alert>
     );
   }
 
@@ -619,7 +612,7 @@ function SummaryContainer(props: FlexProps) {
 
 const CalloutButton = styled(Button)`
   height: unset;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;
 
 const ChartContainer = styled('div')`
@@ -630,11 +623,4 @@ const ChartContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
-`;
-
-export const GraphAlert = styled(Alert)`
-  padding-left: ${p => p.theme.space['2xl']};
-  margin: 0 0 0 -${p => p.theme.space['2xl']};
-  border: 0;
-  border-radius: 0;
 `;

@@ -12,7 +12,6 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
@@ -140,6 +139,6 @@ export function AutomateSection() {
 
 const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(2)};
-  margin: -${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin: -${p => p.theme.space.xl};
 `;

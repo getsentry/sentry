@@ -14,7 +14,11 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     get_github_external_id,
 )
-from sentry.integrations.github.webhook_types import GITHUB_WEBHOOK_TYPE_HEADER, GithubWebhookType
+from sentry.integrations.github.webhook_types import (
+    GITHUB_WEBHOOK_TYPE_HEADER,
+    REGION_PROCESSED_GITHUB_EVENTS,
+    GithubWebhookType,
+)
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -54,8 +58,8 @@ class GithubRequestParser(BaseRequestParser):
         """Override to gate bucketing on an options flag for safe rollout and revert.
 
         When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID,
-        bypassing the rate-limit auto-switch used by the base class.
+        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
+        event type, bypassing the rate-limit auto-switch used by the base class.
         """
         if not options.get("github.webhook.mailbox-bucketing.enabled"):
             metrics.incr(
@@ -64,7 +68,11 @@ class GithubRequestParser(BaseRequestParser):
             )
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
+        base = self._build_bucketed_identifier(integration, data)
+        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        if event_type:
+            return f"{base}:{event_type}"
+        return base
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
@@ -130,6 +138,22 @@ class GithubRequestParser(BaseRequestParser):
             )
             if codecov_regions:
                 self.try_forward_to_codecov(event=event)
+
+        github_event = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+
+        # Only drop when we have a known unprocessed event type. Missing or empty
+        # X-GitHub-Event is malformed; let the request be forwarded so the region
+        # returns 400 and GitHub is notified of the delivery failure.
+        if (
+            github_event
+            and github_event not in REGION_PROCESSED_GITHUB_EVENTS
+            and options.get("github.webhook.drop-unprocessed-events.enabled")
+        ):
+            metrics.incr(
+                "github.webhook.drop_unprocessed_event",
+                tags={"event_type": github_event or "unknown"},
+            )
+            return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
             regions=regions,

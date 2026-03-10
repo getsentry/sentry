@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -33,6 +35,10 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        operation_id="List a Tag's Values",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project, key) -> Response:
         """
         List a Tag's Values

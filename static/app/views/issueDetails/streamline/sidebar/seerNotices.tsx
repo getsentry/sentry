@@ -16,9 +16,10 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
+  organizationIntegrationsCodingAgents,
   useAutofixRepos,
-  useCodingAgentIntegrations,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   GuidedSteps,
@@ -27,11 +28,11 @@ import {
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -98,7 +99,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -186,7 +189,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       automated_run_stopping_point: 'root_cause',
       automation_handoff: {
         handoff_point: 'root_cause',
-        target: 'cursor_background_agent',
+        target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
         integration_id: parseInt(cursorIntegration.id, 10),
       },
     });
@@ -588,7 +591,7 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function CardDescription(props: StackProps) {
@@ -644,27 +647,27 @@ function StepImageCol(props: FlexProps) {
 const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   margin-left: 1px;
 `;
 
 const StepsDivider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: ${space(3)} 0;
+  margin: ${p => p.theme.space['2xl']} 0;
 `;
 
 const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   background: ${p => p.theme.colors.pink500}10;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-  padding: ${space(1)};
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
   cursor: pointer;
   font-size: ${p => p.theme.font.size.md};
   font-weight: 500;

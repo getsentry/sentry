@@ -19,8 +19,12 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {AttributeResults} from 'sentry/views/settings/components/dataScrubbing/types';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+type AttributeResults = Record<
+  AllowedDataScrubbingDatasets,
+  ReturnType<typeof useTraceItemAttributeKeys> | null
+>;
 
 export function LogFixture({
   [OurLogKnownFieldKey.PROJECT_ID]: projectId,

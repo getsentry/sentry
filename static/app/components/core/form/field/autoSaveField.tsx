@@ -108,7 +108,7 @@ interface AutoSaveFieldProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactNode;
+  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactElement;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -121,7 +121,8 @@ interface AutoSaveFieldProps<
   mutationOptions: UseMutationOptions<
     any, // it doesn't matter here what the mutation returns
     Error,
-    Record<TFieldName, z.infer<TSchema>[TFieldName]>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
+    any // context type from onMutate - allow any shape
   >;
 
   /**
@@ -231,11 +232,9 @@ export function AutoSaveField<
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form as never}>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
-        <form.FormWrapper>
-          <form.AppField name={name}>{field => children(field as never)}</form.AppField>
-        </form.FormWrapper>
+        <form.AppField name={name}>{field => children(field as never)}</form.AppField>
       </AutoSaveContextProvider>
     </form.AppForm>
   );

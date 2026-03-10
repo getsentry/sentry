@@ -22,11 +22,8 @@ from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupFo
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
-from sentry.sentry_metrics.client.snuba import build_mri
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
-    BaseMetricsTestCase,
     PerformanceIssueTestCase,
     SnubaTestCase,
     TestCase,
@@ -42,7 +39,7 @@ pytestmark = pytest.mark.sentry_metrics
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(BaseMetricsTestCase, TestCase):
+class BaseGroupCounts(TestCase):
     def _create_events_for_group(
         self,
         project_id: int | None = None,
@@ -69,15 +66,6 @@ class BaseGroupCounts(BaseMetricsTestCase, TestCase):
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
 
-            self.store_metric(
-                org_id=last_event.project.organization_id,
-                project_id=last_event.project.id,
-                mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
-                value=1,
-                tags={"group": str(last_event.group_id)},
-                timestamp=data["timestamp"],
-            )
-
         return last_event
 
 
@@ -98,6 +86,7 @@ class HistoricGroupCounts(
             "project_id": event.project_id,
         }
 
+    @freeze_time(TIME_YESTERDAY)
     def test_query_single_group(self) -> None:
         event = self._create_events_for_group()
         assert query_groups_past_counts(Group.objects.all()) == [
@@ -117,15 +106,6 @@ class HistoricGroupCounts(
             fingerprints=[f"{ProfileFileIOGroupType.type_id}-group1"],
             insert_time=timestamp,
         )
-        self.store_metric(
-            org_id=profile_error_event.project.organization_id,
-            project_id=profile_error_event.project.id,
-            mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
-            value=1,
-            tags={"group": str(profile_error_event.group_id)},
-            timestamp=profile_error_event.data["timestamp"],
-        )
-
         assert profile_error_event.group is not None
         assert profile_issue_occurrence is not None
         assert len(Group.objects.all()) == 2
@@ -314,7 +294,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group is not None
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
-        assert get_group_hourly_count_snuba(group) == 1
+        assert get_group_hourly_count_snuba(group) == (1, False)
 
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
@@ -379,10 +359,12 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         )[0].group
         assert group is not None
 
-        snuba_count = get_group_hourly_count_snuba(group)
-        eap_count = get_group_hourly_count_eap(group)
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
 
         assert snuba_count == eap_count == 6
+        assert snuba_cached is False
+        assert eap_cached is False
 
     @freeze_time(FROZEN_TIME)
     def test_eap_hourly_count_excludes_old_events(self) -> None:
@@ -394,10 +376,12 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         )[0].group
         assert group is not None
 
-        snuba_count = get_group_hourly_count_snuba(group)
-        eap_count = get_group_hourly_count_eap(group)
+        snuba_count, snuba_cached = get_group_hourly_count_snuba(group)
+        eap_count, eap_cached = get_group_hourly_count_eap(group)
 
         assert snuba_count == eap_count == 1
+        assert snuba_cached is False
+        assert eap_cached is False
 
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_single_group(self) -> None:

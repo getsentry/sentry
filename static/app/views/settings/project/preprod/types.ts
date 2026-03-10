@@ -1,12 +1,14 @@
+import {android, apple} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+export type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-type MetricType = (typeof ALL_METRIC_TYPES)[number];
+const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
 
-const ALL_MEASUREMENT_TYPES = ['absolute', 'absolute_diff', 'relative_diff'] as const;
-
-type MeasurementType = (typeof ALL_MEASUREMENT_TYPES)[number];
+export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 
 export const ALL_ARTIFACT_TYPES = [
   'all_artifacts',
@@ -56,11 +58,27 @@ const MEASUREMENT_LABELS: Record<MeasurementType, string> = {
   relative_diff: t('Relative Diff'),
 };
 
-export const MEASUREMENT_OPTIONS: Array<{label: string; value: MeasurementType}> =
-  ALL_MEASUREMENT_TYPES.map(value => ({
-    label: MEASUREMENT_LABELS[value],
-    value,
-  }));
+export const MEASUREMENT_OPTIONS: Array<{
+  description: string;
+  label: string;
+  value: MeasurementType;
+}> = [
+  {
+    label: 'Absolute Size',
+    value: 'absolute',
+    description: 'Thresholds based on configured size metric.',
+  },
+  {
+    label: 'Absolute Diff',
+    value: 'absolute_diff',
+    description: 'Absolute diff based on configured size metric, e.g. +10 MB',
+  },
+  {
+    label: 'Relative Diff',
+    value: 'relative_diff',
+    description: 'Relative diff based on configured size metric, e.g. +10%',
+  },
+];
 
 const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
   all_artifacts: t('Any Artifact Type'),
@@ -76,8 +94,35 @@ export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> 
     value,
   }));
 
+export function guessPlatformForProject(project: Project): Platform | undefined {
+  const platform = project.platform;
+  if (!platform) {
+    return undefined;
+  }
+  if (android.includes(platform)) {
+    return 'android';
+  }
+  if (apple.includes(platform)) {
+    return 'apple';
+  }
+  return undefined;
+}
+
 export function getMetricLabel(metric: MetricType): string {
   return METRIC_LABELS[metric];
+}
+
+export function getMetricLabelForPlatform(
+  metric: MetricType,
+  platform: Platform | undefined
+): string {
+  if (platform === 'android' && metric === 'install_size') {
+    return 'Uncompressed size';
+  }
+  if (platform === 'apple' && metric === 'install_size') {
+    return 'Install size';
+  }
+  return getMetricLabel(metric);
 }
 
 export function getMeasurementLabel(measurement: MeasurementType): string {
@@ -99,7 +144,7 @@ export function toMeasurementType(
   value: unknown,
   fallback: MeasurementType = DEFAULT_MEASUREMENT_TYPE
 ): MeasurementType {
-  return getSafeValue(value, ALL_MEASUREMENT_TYPES, fallback);
+  return getSafeValue(value, ALL_MEASUREMENTS, fallback);
 }
 
 export function toArtifactType(

@@ -1026,7 +1026,7 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
-    @patch("sentry.seer.autofix.autofix.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.autofix.make_autofix_start_request")
     def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
@@ -1080,12 +1080,9 @@ class TestCallAutofix(TestCase):
 
         # Verify the API call
         mock_request.assert_called_once()
-        # Verify path (second positional argument)
-        path = mock_request.call_args[0][1]
-        assert path == "/v1/automation/autofix/start"
 
-        # Verify the request body (third positional argument)
-        body = orjson.loads(mock_request.call_args[0][2])
+        # Verify the request body (first positional argument)
+        body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
         assert body["repos"] == repos
@@ -1472,7 +1469,7 @@ class UpdateAutofixTest(TestCase):
         self.run_id = 123
         self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
 
-    @patch("sentry.seer.autofix.autofix.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_http_error(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
@@ -1487,7 +1484,7 @@ class UpdateAutofixTest(TestCase):
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to update autofix run"
 
-    @patch("sentry.seer.autofix.autofix.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_json_decode_error(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
@@ -1503,7 +1500,7 @@ class UpdateAutofixTest(TestCase):
         assert response.status_code == 500
         assert response.data["detail"] == "Seer returned an invalid response"
 
-    @patch("sentry.seer.autofix.autofix.make_signed_seer_api_request")
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_success(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 

@@ -5,8 +5,6 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
 from django import forms
-from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 from requests import HTTPError
@@ -20,11 +18,10 @@ from sentry.integrations.base import (
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
+    CodingAgentPipelineView,
 )
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
@@ -67,38 +64,18 @@ class CursorAgentConfigForm(forms.Form):
     )
 
 
-class CursorPipelineView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = CursorAgentConfigForm(request.POST)
-            if form.is_valid():
-                pipeline.bind_state("config", form.cleaned_data)
-                return pipeline.next_step()
-        else:
-            form = CursorAgentConfigForm()
+class CursorPipelineView(CodingAgentPipelineView):
+    def get_form_class(self) -> type[forms.Form]:
+        return CursorAgentConfigForm
 
-        from sentry.web.helpers import render_to_response
-
-        return render_to_response(
-            template="sentry/integrations/cursor-config.html",
-            context={"form": form},
-            request=request,
-        )
+    def get_template_name(self) -> str:
+        return "sentry/integrations/cursor-config.html"
 
 
 class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = "cursor"
     name = "Cursor Agent"
-    can_add = True
     metadata = metadata
-    setup_dialog_config = {"width": 600, "height": 700}
-    requires_feature_flag = True
-
-    features = frozenset(
-        [
-            IntegrationFeatures.CODING_AGENT,
-        ]
-    )
 
     def get_pipeline_views(self):
         return [CursorPipelineView()]
@@ -214,11 +191,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
             key_hint = api_key[:8] if len(api_key) >= 8 else api_key
             integration_name = f"Cursor Cloud Agent ({key_hint}...)"
 
-        integration_service.update_integration(
-            integration_id=self.model.id, name=integration_name, metadata=metadata.dict()
-        )
-        self.model.metadata = metadata.dict()
-
+        self._persist_metadata(metadata, name=integration_name)
         super().update_organization_config({})
 
     def get_client(self):

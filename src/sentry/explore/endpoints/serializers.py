@@ -177,7 +177,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
     interval = serializers.CharField(
         required=False, allow_null=True, help_text="Resolution of the time series."
     )
-    query = ListField(child=QuerySerializer(), required=False, allow_null=True)
+    query = ListField(child=QuerySerializer(), required=True, min_length=1)
 
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids

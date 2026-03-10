@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {DateTime} from 'sentry/components/dateTime';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
@@ -172,7 +171,8 @@ const Wrapper = styled('dl')`
 `;
 
 const PlanLabel = styled('dt')<{hasChanged?: boolean; isTotal?: boolean}>`
-  padding: ${p => (p.isTotal ? space(1) : `${space(0.5)} ${space(1)}`)};
+  padding: ${p =>
+    p.isTotal ? p.theme.space.md : `${p.theme.space.xs} ${p.theme.space.md}`};
 
   font-weight: ${p => (p.hasChanged || p.isTotal ? 'bold' : 'normal')};
   background: ${p =>
@@ -185,7 +185,7 @@ const PlanValue = styled(PlanLabel)`
   & > svg {
     position: relative;
     top: 1px;
-    margin-inline: ${space(0.5)};
+    margin-inline: ${p => p.theme.space.xs};
   }
 `;
 

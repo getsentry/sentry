@@ -20,7 +20,6 @@ import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueCategory, IssueType} from 'sentry/types/group';
@@ -338,8 +337,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // - The previous environments are not the same as the current environments
       if (
         !groupData &&
-        previousInstance?.cachedGroup &&
-        previousInstance.cachedGroup.id === groupId &&
+        previousInstance?.cachedGroup?.id === groupId &&
         !isEqual(previousInstance.previousEnvironments, environments)
       ) {
         return {
@@ -523,7 +521,8 @@ function useTrackView({
   project?: Project;
 }) {
   const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, query} = location.query;
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
+    location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -547,6 +546,8 @@ function useTrackView({
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_streamlined_ui: hasStreamlinedUI,
     has_seer_access: hasAutofixQuota,
+    notification_uuid:
+      typeof notification_uuid === 'string' ? notification_uuid : undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -938,7 +939,7 @@ function GroupDetails() {
 export default Sentry.withProfiler(GroupDetails);
 
 const StyledLoadingError = styled(LoadingError)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
 `;
 
 const GroupTabPanels = styled(TabPanels)`

@@ -19,7 +19,6 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -344,7 +343,7 @@ const ContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const MemberEmail = styled('div')`

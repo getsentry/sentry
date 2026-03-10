@@ -16,7 +16,6 @@ import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegr
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -291,9 +290,7 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions:
-    | DifferentialFlamegraphModel['increasedFrames']
-    | DifferentialFlamegraphModel['newFrames'];
+  functions: FlamegraphFrame[];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;
@@ -420,10 +417,10 @@ const DifferentialFlamegraphFunctionsWrapper = styled('div')`
   flex: 1;
   width: 50%;
   &:first-child {
-    padding-right: ${space(0.5)};
+    padding-right: ${p => p.theme.space.xs};
   }
   &:nth-child(2) {
-    padding-left: ${space(0.5)};
+    padding-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -433,7 +430,7 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   border-radius: 2px;
   display: inline-block;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.green400};
 `;
 
@@ -482,8 +479,8 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(0.5)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} 0;
 
   > *:first-child {
     min-width: 0;
@@ -513,7 +510,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
@@ -599,8 +596,8 @@ const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
 `;
 
 const DifferentialFlamegraphPaginationButton = styled(Button)`
-  padding-left: ${space(0.75)};
-  padding-right: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
+  padding-right: ${p => p.theme.space.sm};
 `;
 
 const ErrorMessageContainer = styled('div')`
@@ -613,7 +610,7 @@ const ErrorMessageContainer = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const StyledPanel = styled(Panel)`

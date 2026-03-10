@@ -34,6 +34,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -95,23 +96,30 @@ def looks_like_short_id(value):
     return _short_id_re.match((value or "").strip()) is not None
 
 
-def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organization=None):
+def get_group_with_redirect(
+    id_or_qualified_short_id: int | str,
+    queryset: BaseQuerySet[Group, Group] | None = None,
+    organization: Organization | None = None,
+) -> tuple[Group, bool]:
     """
     Retrieve a group by ID, checking the redirect table if the requested group
     does not exist. Returns a two-tuple of ``(object, redirected)``.
     """
     if queryset is None:
         if organization:
-            queryset = Group.objects.filter(project__organization=organization)
-            getter = queryset.get
+            updated_qs = Group.objects.filter(project__organization=organization)
+            getter = updated_qs.get
         else:
-            queryset = Group.objects.all()
+            updated_qs = Group.objects.all()
             # When not passing a queryset, we want to read from cache
             getter = Group.objects.get_from_cache
     else:
         if organization:
-            queryset = queryset.filter(project__organization=organization)
-        getter = queryset.get
+            updated_qs = queryset.filter(project__organization=organization)
+        else:
+            # No updates!
+            updated_qs = queryset
+        getter = updated_qs.get
 
     if not (isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()):
         short_id = parse_short_id(id_or_qualified_short_id)
@@ -137,6 +145,8 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         from sentry.models.groupredirect import GroupRedirect
 
         if short_id:
+            # Known because we only set short_id in a path that raises if org is None
+            assert organization is not None
             params = {
                 "id__in": GroupRedirect.objects.filter(
                     organization_id=organization.id,
@@ -152,7 +162,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
             }
 
         try:
-            return queryset.get(**params), True
+            return updated_qs.get(**params), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
 
@@ -224,15 +234,15 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["project_id", "-timestamp", "-event_id"]
-    OLDEST = ["project_id", "timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-id"]
+    OLDEST = ["project_id", "timestamp", "id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
         "num_processing_errors",
         "-profile.id",
         "-timestamp",
-        "-event_id",
+        "-id",
     ]
 
 

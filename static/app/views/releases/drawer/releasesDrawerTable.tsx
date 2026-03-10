@@ -22,7 +22,6 @@ import GridEditable from 'sentry/components/tables/gridEditable';
 import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -253,5 +252,5 @@ const PaginationNoMargin = styled(Pagination)`
 const ReleaseLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

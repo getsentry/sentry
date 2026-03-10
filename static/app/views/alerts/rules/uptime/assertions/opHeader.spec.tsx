@@ -1,9 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  ComparisonType,
-  OpType,
-  type HeaderCheckOp,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeHeaderCheckOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionsDndContext} from './dragDrop';
@@ -13,9 +13,9 @@ describe('AssertionOpHeader', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const op = OpType.HEADER_CHECK;
+  const op = UptimeOpType.HEADER_CHECK;
 
-  const renderOp = async (value: HeaderCheckOp) => {
+  const renderOp = async (value: UptimeHeaderCheckOp) => {
     const result = render(
       <AssertionOpHeader value={value} onChange={mockOnChange} onRemove={mockOnRemove} />
     );
@@ -31,9 +31,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -45,9 +45,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: ''},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
 
@@ -59,9 +59,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: ''},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
 
@@ -72,9 +72,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: ''},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
 
@@ -83,10 +83,10 @@ describe('AssertionOpHeader', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'a'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
   });
@@ -95,9 +95,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -110,9 +110,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -123,9 +123,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.ALWAYS},
+      key_op: {cmp: UptimeComparisonType.ALWAYS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.ALWAYS},
+      value_op: {cmp: UptimeComparisonType.ALWAYS},
       value_operand: {header_op: 'none'},
     });
 
@@ -139,9 +139,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'glob', pattern: {value: 'X-*'}},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
 
@@ -153,9 +153,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -168,10 +168,10 @@ describe('AssertionOpHeader', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.NOT_EQUAL},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.NOT_EQUAL},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
   });
@@ -180,9 +180,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -195,10 +195,10 @@ describe('AssertionOpHeader', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'glob', pattern: {value: 'Content-Type'}},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
   });
@@ -207,9 +207,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -222,10 +222,10 @@ describe('AssertionOpHeader', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.ALWAYS},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.ALWAYS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.ALWAYS},
+      value_op: {cmp: UptimeComparisonType.ALWAYS},
       value_operand: {header_op: 'none'},
     });
   });
@@ -234,9 +234,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.ALWAYS},
+      key_op: {cmp: UptimeComparisonType.ALWAYS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.ALWAYS},
+      value_op: {cmp: UptimeComparisonType.ALWAYS},
       value_operand: {header_op: 'none'},
     });
 
@@ -249,10 +249,10 @@ describe('AssertionOpHeader', () => {
 
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: ''},
     });
   });
@@ -263,9 +263,9 @@ describe('AssertionOpHeader', () => {
     await renderOp({
       id: 'test-id-1',
       op,
-      key_op: {cmp: ComparisonType.EQUALS},
+      key_op: {cmp: UptimeComparisonType.EQUALS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.EQUALS},
+      value_op: {cmp: UptimeComparisonType.EQUALS},
       value_operand: {header_op: 'literal', value: 'application/json'},
     });
 
@@ -279,10 +279,10 @@ describe('AssertionOpHeader', () => {
     // key_operand should be preserved, value_operand should be set to 'none'
     expect(mockOnChange).toHaveBeenCalledWith({
       id: 'test-id-1',
-      op: OpType.HEADER_CHECK,
-      key_op: {cmp: ComparisonType.ALWAYS},
+      op: UptimeOpType.HEADER_CHECK,
+      key_op: {cmp: UptimeComparisonType.ALWAYS},
       key_operand: {header_op: 'literal', value: 'Content-Type'},
-      value_op: {cmp: ComparisonType.ALWAYS},
+      value_op: {cmp: UptimeComparisonType.ALWAYS},
       value_operand: {header_op: 'none'},
     });
   });
@@ -294,9 +294,9 @@ describe('AssertionOpHeader', () => {
           value={{
             id: 'test-id-1',
             op,
-            key_op: {cmp: ComparisonType.EQUALS},
+            key_op: {cmp: UptimeComparisonType.EQUALS},
             key_operand: {header_op: 'literal', value: 'Content-Type'},
-            value_op: {cmp: ComparisonType.EQUALS},
+            value_op: {cmp: UptimeComparisonType.EQUALS},
             value_operand: {header_op: 'literal', value: 'application/json'},
           }}
           onChange={mockOnChange}

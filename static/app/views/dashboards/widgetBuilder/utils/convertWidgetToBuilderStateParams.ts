@@ -1,4 +1,4 @@
-import {explodeField, parseFunction} from 'sentry/utils/discover/fields';
+import {explodeField} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
   WidgetType,
@@ -6,6 +6,8 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
 import {
   serializeFields,
   serializeThresholds,
@@ -43,28 +45,15 @@ export function convertWidgetToBuilderStateParams(
   if (usesTimeSeriesData(widget.displayType)) {
     field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   } else {
-    // For TRACEMETRICS table/big_number widgets, use raw field strings directly
-    // because stringifyFields loses the 4th argument (unit: "-")
-    if (widget.widgetType === WidgetType.TRACEMETRICS && firstWidgetQuery?.fields) {
-      field = firstWidgetQuery.fields;
-    } else {
-      field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
-    }
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
 
     yAxis = [];
     legendAlias = [];
   }
 
-  let traceMetric: TraceMetric | undefined = undefined;
+  let traceMetric: TraceMetric | null = null;
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    const traceMetricReferenceAggregate = firstWidgetQuery?.aggregates[0];
-    if (traceMetricReferenceAggregate) {
-      const func = parseFunction(traceMetricReferenceAggregate);
-      traceMetric = {
-        name: func?.arguments?.[1] ?? '',
-        type: func?.arguments?.[2] ?? '',
-      };
-    }
+    traceMetric = extractTraceMetricFromWidget(widget);
   }
 
   return {
@@ -81,5 +70,6 @@ export function convertWidgetToBuilderStateParams(
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
+    axisRange: getAxisRange(widget.axisRange) ?? 'auto',
   };
 }

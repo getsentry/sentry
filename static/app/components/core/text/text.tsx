@@ -14,6 +14,13 @@ export interface BaseTextProps {
    */
   align?: Responsive<'left' | 'center' | 'right' | 'justify'>;
   bold?: boolean;
+
+  /**
+   * Determines the cursor style when hovering over the text.
+   * @default 'default'
+   */
+  cursor?: 'default' | 'pointer' | 'text' | 'move' | 'not-allowed' | 'wait' | 'help';
+
   /**
    * Density determines the line height of the text.
    * Defaults to 1.2, but supports the following density variants:
@@ -143,7 +150,7 @@ interface TextAttributes<T extends TextPrimitive = 'span'>
   style?: React.CSSProperties;
 }
 
-type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time';
+type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
@@ -164,6 +171,7 @@ export const Text = styled(
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};
+  cursor: ${p => p.cursor ?? undefined};
 
   color: ${p =>
     p.variant

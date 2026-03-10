@@ -14,7 +14,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -266,7 +265,7 @@ const Header = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${space(1)} 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
@@ -280,7 +279,7 @@ const Body = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: 0 0 ${space(1)} 0;
+      padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
@@ -288,30 +287,26 @@ const Section = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.SIDEBAR &&
     css`
-      padding: 0 ${space(1)};
+      padding: 0 ${p.theme.space.md};
     `}
 
   &:first-child {
-    padding-top: ${space(1)};
-
-    > hr:first-child {
-      display: none;
-    }
+    padding-top: ${p => p.theme.space.md};
   }
 
   &:last-child {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p.theme.space.sm} ${p.theme.space.md};
   width: 100%;
   ${p.isMobile &&
   css`
-    padding: ${space(1)} ${space(1.5)} ${space(1)} 48px;
+    padding: ${p.theme.space.md} ${p.theme.space.lg} ${p.theme.space.md} 48px;
   `}
 `;
 
@@ -351,15 +346,15 @@ interface ItemProps extends LinkProps {
 
 const Item = styled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
-      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
-      : `${space(0.75)} ${space(1.5)}`};
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
+      : `${p.theme.space.sm} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -375,7 +370,7 @@ const Item = styled(Link)<ItemProps>`
     transform: translateY(-50%) translateX(100%);
     width: 4px;
     height: 20px;
-    left: -${space(1.5)};
+    left: -${p => p.theme.space.lg};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
@@ -414,12 +409,12 @@ const ItemText = styled('span')`
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: ${space(1)} 0;
+      padding: ${p.theme.space.md} 0;
     `}
 `;

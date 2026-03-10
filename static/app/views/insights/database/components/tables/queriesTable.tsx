@@ -162,7 +162,7 @@ function renderBodyCell(
     return (
       <SpanDescriptionCell
         moduleName={ModuleName.DB}
-        description={row['sentry.normalized_description']}
+        description={row['sentry.normalized_description'] ?? ''}
         group={row['span.group']}
         projectId={row['project.id']}
         system={system}

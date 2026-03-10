@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import type {Op} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeOp} from 'sentry/views/alerts/rules/uptime/types';
 
 export type ConnectorType = 'vertical' | 'horizontal';
 
@@ -9,7 +9,7 @@ export type Connector = {
   type: ConnectorType;
 };
 
-export abstract class TreeNode<T extends Op = Op> {
+export abstract class TreeNode<T extends UptimeOp = UptimeOp> {
   value: T;
   parent: TreeNode | null;
   children: TreeNode[];
@@ -29,7 +29,7 @@ export abstract class TreeNode<T extends Op = Op> {
     return this.value.id;
   }
 
-  get nextOps(): Op[] {
+  get nextOps(): UptimeOp[] {
     return 'children' in this.value ? this.value.children : [];
   }
 

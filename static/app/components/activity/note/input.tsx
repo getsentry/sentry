@@ -10,7 +10,6 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -304,7 +303,7 @@ const Footer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   justify-content: space-between;
-  padding-left: ${space(1.5)};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const FooterButton = styled(Button)<{error?: boolean}>`
@@ -335,7 +334,7 @@ const ErrorMessage = styled('span')`
 const MarkdownIndicator = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

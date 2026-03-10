@@ -40,7 +40,6 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
   const buildUrl =
     getSizeBuildPath({
       organizationSlug: organization.slug,
-      projectId: String(projectId),
       baseArtifactId: buildId,
     }) ?? '';
   const platform = buildDetails.app_info?.platform ?? null;

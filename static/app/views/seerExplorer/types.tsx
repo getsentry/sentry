@@ -1,4 +1,4 @@
-import type {FilePatch} from 'sentry/components/events/autofix/types';
+import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
 
 export interface TodoItem {
   content: string;
@@ -10,22 +10,56 @@ export interface ExplorerFilePatch {
   repo_name: string;
 }
 
-export interface RepoPRState {
-  repo_name: string;
-  branch_name?: string;
-  commit_sha?: string;
-  pr_creation_error?: string;
-  pr_creation_status?: 'creating' | 'completed' | 'error';
-  pr_id?: number;
-  pr_number?: number;
-  pr_url?: string;
-  title?: string;
+export function isExplorerFilePatch(value: unknown): value is ExplorerFilePatch {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return isFilePatch(obj.patch) && typeof obj.repo_name === 'string';
 }
 
-export interface Artifact {
-  data: Record<string, unknown> | null;
+export interface RepoPRState {
+  branch_name: string | null;
+  commit_sha: string | null;
+  pr_creation_error: string | null;
+  pr_creation_status: 'creating' | 'completed' | 'error' | null;
+  pr_id: number | null;
+  pr_number: number | null;
+  pr_url: string | null;
+  repo_name: string;
+  title: string | null;
+}
+
+export function isRepoPRState(value: unknown): value is RepoPRState {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.repo_name === 'string' &&
+    (obj.branch_name === null || typeof obj.branch_name === 'string') &&
+    (obj.commit_sha === null || typeof obj.commit_sha === 'string') &&
+    (obj.pr_creation_error === null || typeof obj.pr_creation_error === 'string') &&
+    (obj.pr_creation_status === null || typeof obj.pr_creation_status === 'string') &&
+    (obj.pr_id === null || typeof obj.pr_id === 'number') &&
+    (obj.pr_number === null || typeof obj.pr_number === 'number') &&
+    (obj.pr_url === null || typeof obj.pr_url === 'string') &&
+    (obj.title === null || typeof obj.title === 'string')
+  );
+}
+
+export interface Artifact<T = Record<string, unknown>> {
+  data: T | null;
   key: string;
   reason: string;
+}
+
+export function isArtifact(value: unknown): value is Artifact {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return 'data' in obj && typeof obj.key === 'string' && typeof obj.reason === 'string';
 }
 
 export interface Block {

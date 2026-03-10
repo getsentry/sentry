@@ -163,7 +163,7 @@ function ProductSelectionAvailabilityContainer({
     },
   });
 
-  const disabledProducts: DisabledProducts = useMemo(
+  const disabledProducts = useMemo(
     () =>
       getDisabledProducts({
         organization,

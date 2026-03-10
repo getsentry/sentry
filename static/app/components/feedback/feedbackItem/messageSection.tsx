@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,10 +37,10 @@ const Blockquote = styled('blockquote')`
 
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   border-left: 2px solid ${p => p.theme.tokens.graphics.accent.vibrant};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   & > pre {
     margin-bottom: 0;

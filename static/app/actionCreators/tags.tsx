@@ -44,7 +44,7 @@ export function loadOrganizationTags(
 ): Promise<void> {
   TagStore.reset();
 
-  const query: Query = selection.datetime
+  const query = selection.datetime
     ? {...normalizeDateTimeParams(selection.datetime)}
     : {};
   query.use_cache = '1';
