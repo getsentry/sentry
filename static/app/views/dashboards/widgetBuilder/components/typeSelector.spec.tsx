@@ -54,9 +54,6 @@ describe('TypeSelector', () => {
         <TypeSelector />
       </WidgetBuilderProvider>,
       {
-        organization: {
-          features: ['dashboards-issue-widget-series-display-type'],
-        },
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
