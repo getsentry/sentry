@@ -449,25 +449,6 @@ export interface ControlProps<
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
-/**
- * Compare two option values. For objects with an `id` property, compare by `id`
- * only — this allows the select to match an initial value (e.g. from a saved
- * mapping) against option objects whose other fields may differ.
- */
-function optionValuesMatch(a: unknown, b: unknown): boolean {
-  if (
-    a !== null &&
-    b !== null &&
-    typeof a === 'object' &&
-    typeof b === 'object' &&
-    'id' in a &&
-    'id' in b
-  ) {
-    return (a as {id: unknown}).id === (b as {id: unknown}).id;
-  }
-  return a === b;
-}
-
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: ControlProps<OptionType>
 ) {
@@ -535,12 +516,20 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
+    // When getOptionValue is provided, use it to extract a comparable key
+    // from each option and from the raw form value. This allows
+    // object-valued selects to match by a derived key (e.g. an id)
+    // instead of reference equality.
+    const getOptVal: ((opt: any) => any) | undefined = (rest as any).getOptionValue;
+    const findOption = getOptVal
+      ? (val: any) =>
+          flatOptions.find(option => getOptVal(option) === getOptVal({value: val}))
+      : (val: any) => flatOptions.find(option => option.value === val);
+
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val =>
-            flatOptions.find(option => optionValuesMatch(option.value, val))
-          )
-        : flatOptions.find(opt => optionValuesMatch(opt.value, value)) || value;
+        ? value.map(val => findOption(val))
+        : findOption(value) || value;
   }
 
   // Override the default style with in-field labels if they are provided
