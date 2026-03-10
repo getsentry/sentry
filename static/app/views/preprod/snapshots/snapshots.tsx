@@ -31,8 +31,8 @@ import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const {snapshotId} = useParams<{
-    snapshotId: string;
+  const {preprodArtifactId} = useParams<{
+    preprodArtifactId: string;
   }>();
 
   const {data, isPending, isError, refetch} = useApiQuery<SnapshotDetailsApiResponse>(
@@ -42,14 +42,14 @@ export default function SnapshotsPage() {
         {
           path: {
             organizationIdOrSlug: organization.slug,
-            snapshotId,
+            snapshotId: preprodArtifactId,
           },
         }
       ),
     ],
     {
       staleTime: 0,
-      enabled: !!snapshotId,
+      enabled: !!preprodArtifactId,
     }
   );
 
@@ -182,7 +182,7 @@ export default function SnapshotsPage() {
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
-              snapshotId={snapshotId}
+              snapshotId={preprodArtifactId}
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
