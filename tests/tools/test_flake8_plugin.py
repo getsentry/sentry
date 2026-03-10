@@ -240,3 +240,41 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S015() -> None:
+    # bad: no viewer_context keyword
+    src = """\
+make_signed_seer_api_request(pool, "/path", b"body")
+"""
+    expected = [
+        "t.py:1:0: S015 Pass `viewer_context=` explicitly (use None if no user/org context is available)"
+    ]
+    assert _run(src) == expected
+
+    # bad: attribute-style call without viewer_context
+    src = """\
+signed_seer_api.make_signed_seer_api_request(pool, "/path", b"body")
+"""
+    expected = [
+        "t.py:1:0: S015 Pass `viewer_context=` explicitly (use None if no user/org context is available)"
+    ]
+    assert _run(src) == expected
+
+    # ok: viewer_context passed as keyword with a value
+    src = """\
+make_signed_seer_api_request(pool, "/path", b"body", viewer_context=ctx)
+"""
+    assert _run(src) == []
+
+    # ok: viewer_context explicitly set to None
+    src = """\
+make_signed_seer_api_request(pool, "/path", b"body", viewer_context=None)
+"""
+    assert _run(src) == []
+
+    # ok: unrelated function call
+    src = """\
+make_other_request(pool, "/path", b"body")
+"""
+    assert _run(src) == []

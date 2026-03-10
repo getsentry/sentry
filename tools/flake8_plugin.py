@@ -40,6 +40,8 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 
 S014_msg = "S014 Use `unittest.mock` instead"
 
+S015_msg = "S015 Pass `viewer_context=` explicitly (use None if no user/org context is available)"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -157,6 +159,14 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        # S015: make_signed_seer_api_request must pass viewer_context explicitly
+        if (isinstance(node.func, ast.Name) and node.func.id == "make_signed_seer_api_request") or (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "make_signed_seer_api_request"
+        ):
+            if not any(kw.arg == "viewer_context" for kw in node.keywords):
+                self.errors.append((node.lineno, node.col_offset, S015_msg))
 
         self.generic_visit(node)
 
