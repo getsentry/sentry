@@ -419,10 +419,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme}: {theme: Theme}) {
+export function GlobalStyles({theme}: {theme: Theme}) {
   const invertedTheme = useInvertedTheme();
   const darkTheme = theme.type === 'dark' ? theme : invertedTheme;
   return <Global styles={styles(theme, darkTheme)} />;
 }
-
-export default GlobalStyles;

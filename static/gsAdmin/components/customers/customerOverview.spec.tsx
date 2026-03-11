@@ -19,7 +19,7 @@ import {
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import CustomerOverview from 'admin/components/customers/customerOverview';
+import {CustomerOverview} from 'admin/components/customers/customerOverview';
 import * as constants from 'getsentry/constants';
 import {AddOnCategory, PlanTier} from 'getsentry/types';
 

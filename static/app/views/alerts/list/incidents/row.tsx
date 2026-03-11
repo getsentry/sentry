@@ -6,9 +6,9 @@ import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
@@ -26,7 +26,7 @@ type Props = {
   projectsLoaded: boolean;
 };
 
-function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
+export function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
   const slug = incident.projects[0]!;
   const started = moment(incident.dateStarted);
   const duration = moment
@@ -125,5 +125,3 @@ const TeamWrapper = styled('span')`
 const StyledActorAvatar = styled(ActorAvatar)`
   margin-right: ${p => p.theme.space.md};
 `;
-
-export default AlertListRow;

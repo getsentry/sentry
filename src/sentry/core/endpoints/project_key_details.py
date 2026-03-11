@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project_key import ProjectKeyEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializer
@@ -28,7 +28,7 @@ from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
 @extend_schema(tags=["Projects"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

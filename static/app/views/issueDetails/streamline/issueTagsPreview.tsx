@@ -13,7 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   backend,
   featureFlagDrawerPlatforms,
@@ -223,7 +223,7 @@ function DistributionsDrawerButton({
   );
 }
 
-export default function IssueTagsPreview({
+export function IssueTagsPreview({
   groupId,
   environments,
   project,

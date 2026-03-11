@@ -9,7 +9,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   precision?: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'years';
 }
 
-function Duration({
+export function Duration({
   seconds,
   fixedDigits,
   abbreviation,
@@ -25,5 +25,3 @@ function Duration({
     </span>
   );
 }
-
-export default Duration;

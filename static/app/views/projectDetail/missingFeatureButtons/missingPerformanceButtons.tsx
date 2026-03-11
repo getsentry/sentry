@@ -8,8 +8,9 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 import {
   getPerformanceBaseUrl,
@@ -22,8 +23,9 @@ type Props = {
   organization: Organization;
 };
 
-function MissingPerformanceButtons({organization}: Props) {
-  const router = useRouter();
+export function MissingPerformanceButtons({organization}: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {projects} = useProjects();
   const {
     selection: {projects: selectedProjects},
@@ -62,7 +64,8 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             navigateTo(
               `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
-              router
+              navigate,
+              location
             );
           }}
         >
@@ -91,5 +94,3 @@ function MissingPerformanceButtons({organization}: Props) {
     </Feature>
   );
 }
-
-export default MissingPerformanceButtons;

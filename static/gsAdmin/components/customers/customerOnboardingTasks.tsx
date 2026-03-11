@@ -24,7 +24,7 @@ const tagPriority: Record<Status, StatusTag> = {
   complete: {icon: <IconCheckmark size="xs" />, tagType: 'success'},
 };
 
-function CustomerOnboardingTasks({orgId, ...props}: Props) {
+export function CustomerOnboardingTasks({orgId, ...props}: Props) {
   const allTasks = getOnboardingTasks({organization: {slug: orgId, features: []} as any});
 
   return (
@@ -68,5 +68,3 @@ function CustomerOnboardingTasks({orgId, ...props}: Props) {
     />
   );
 }
-
-export default CustomerOnboardingTasks;

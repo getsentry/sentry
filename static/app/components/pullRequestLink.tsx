@@ -32,7 +32,7 @@ type Props = {
   inline?: boolean;
 };
 
-function PullRequestLink({pullRequest, repository, inline}: Props) {
+export function PullRequestLink({pullRequest, repository, inline}: Props) {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
   if (!pullRequest.externalUrl) {
@@ -65,5 +65,3 @@ const ExternalPullLink = styled(ExternalLink)`
     flex-shrink: 0;
   }
 `;
-
-export default PullRequestLink;

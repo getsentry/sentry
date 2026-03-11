@@ -172,7 +172,7 @@ function useReminderCopywriting() {
   return descriptionByStep[Steps.SETUP_ROOT_CAUSE_ANALYSIS];
 }
 
-export default function PrimaryNavSeerConfigReminder() {
+export function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
   const {
     isOpen,

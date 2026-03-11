@@ -11,7 +11,7 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 
-function UnmaskAlert() {
+export function UnmaskAlert() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {data, isError, isPending} = useUserViewedReplays();
 
@@ -45,8 +45,6 @@ function UnmaskAlert() {
     </UnmaskAlertContainer>
   );
 }
-
-export default UnmaskAlert;
 
 const UnmaskAlertContainer = styled('div')`
   position: absolute;

@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import Table from 'sentry/views/performance/table';
+import {Table} from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 

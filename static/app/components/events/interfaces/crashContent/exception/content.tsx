@@ -32,7 +32,7 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {LineCoverageLegend} from './lineCoverageLegend';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
-import StackTrace from './stackTrace';
+import {StackTrace} from './stackTrace';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 

@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import NotFound from 'sentry/components/errors/notFound';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';

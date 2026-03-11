@@ -21,7 +21,7 @@ interface Props {
   tab: DrawerTab;
 }
 
-export default function GroupDistributionCrumbs({group, project, tab}: Props) {
+export function GroupDistributionCrumbs({group, project, tab}: Props) {
   const location = useLocation();
   const {tagKey} = useParams<{tagKey: string}>();
 

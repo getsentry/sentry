@@ -1,6 +1,5 @@
 import zoneinfo
 from datetime import timedelta
-from typing import cast
 from unittest import mock
 
 import pytest
@@ -26,7 +25,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
-    ProjectContext,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
     organization_project_issue_substatus_summaries,
@@ -322,7 +320,7 @@ class WeeklyReportsTest(
         user_project_ownership(ctx)
         organization_project_issue_substatus_summaries(ctx)
 
-        project_ctx = cast(ProjectContext, ctx.projects_context_map[self.project.id])
+        project_ctx = ctx.projects_context_map[self.project.id]
 
         assert project_ctx.new_substatus_count == 1
         assert project_ctx.escalating_substatus_count == 0

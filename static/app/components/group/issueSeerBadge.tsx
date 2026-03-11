@@ -17,7 +17,7 @@ interface IssueSeerBadgeProps {
   group: Group;
 }
 
-function IssueSeerBadge({group}: IssueSeerBadgeProps) {
+export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const organization = useOrganization();
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const location = useLocation();
@@ -65,5 +65,3 @@ const SeerLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   position: relative;
 `;
-
-export default IssueSeerBadge;

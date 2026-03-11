@@ -7,14 +7,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import DebounceSearch from 'admin/components/debounceSearch';
-import Overview from 'admin/views/overview';
+import {DebounceSearch} from 'admin/components/debounceSearch';
+import {Overview} from 'admin/views/overview';
 
-export default function HomePage() {
+export function HomePage() {
   const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);

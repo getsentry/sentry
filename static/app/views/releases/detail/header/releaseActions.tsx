@@ -10,7 +10,7 @@ import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconMegaphone, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
@@ -30,7 +30,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
+export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -264,5 +264,3 @@ const ProjectsWrapper = styled('div')`
 const ModalHeaderContainer = styled('h4')`
   max-width: 100%;
 `;
-
-export default ReleaseActions;

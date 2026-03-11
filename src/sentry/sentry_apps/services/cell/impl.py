@@ -16,7 +16,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryApp
-from sentry.sentry_apps.services.region.model import (
+from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
     RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
@@ -25,11 +25,11 @@ from sentry.sentry_apps.services.region.model import (
     RpcServiceHookProjectsResult,
     RpcTimeSeriesPoint,
 )
-from sentry.sentry_apps.services.region.serial import (
+from sentry.sentry_apps.services.cell.serial import (
     serialize_platform_external_issue,
     serialize_service_hook_project,
 )
-from sentry.sentry_apps.services.region.service import SentryAppRegionService
+from sentry.sentry_apps.services.cell.service import SentryAppCellService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
@@ -37,7 +37,7 @@ from sentry.users.services.user import RpcUser
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
-class DatabaseBackedSentryAppRegionService(SentryAppRegionService):
+class DatabaseBackedSentryAppCellService(SentryAppCellService):
     def get_select_options(
         self,
         *,

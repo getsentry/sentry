@@ -54,7 +54,7 @@ function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
   };
 }
 
-export default function IssueTrackingSignals({group}: Props) {
+export function IssueTrackingSignals({group}: Props) {
   const {linkedIssues} = useHasLinkedIssues({
     group,
     event: {} as Event,

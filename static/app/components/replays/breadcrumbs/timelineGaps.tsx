@@ -16,7 +16,7 @@ interface Props {
   videoEvents: VideoEvent[];
 }
 
-export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
+export function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
   const organization = useOrganization();
 
   const gaps = useMemo(() => {

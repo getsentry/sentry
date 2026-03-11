@@ -5,10 +5,10 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
 import ScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
 import useScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 export default function OrganizationRepositories() {
   const organization = useOrganization();

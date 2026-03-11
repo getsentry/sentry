@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics, audit_log
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import OwnerActorField
@@ -93,7 +93,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
+import {GroupActivityItem} from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
   group: Group;
@@ -23,7 +23,7 @@ type Props = {
   placeholderText: string;
 };
 
-function ActivitySection(props: Props) {
+export function ActivitySection(props: Props) {
   const {group, placeholderText, onCreate, onDelete, onUpdate} = props;
   const organization = useOrganization();
 
@@ -119,5 +119,3 @@ function ActivitySection(props: Props) {
     </Fragment>
   );
 }
-
-export default ActivitySection;

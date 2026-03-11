@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -34,6 +34,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const aiAutofix = useExplorerAutofix(group.id);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
+  const handleRestart = useHandleRestart({aiAutofix});
 
   return (
     <Flex
@@ -44,10 +45,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       direction="column"
       background="secondary"
     >
-      <SeerDrawerHeader
-        onCopyMarkdown={handleCopyMarkdown}
-        onReset={aiAutofix.runState ? aiAutofix.reset : undefined}
-      />
+      <SeerDrawerHeader onCopyMarkdown={handleCopyMarkdown} onReset={handleRestart} />
       <SeerDrawerBody>
         <InnerSeerDrawer
           group={group}
@@ -142,4 +140,16 @@ function useHandleCopyMarkdown({
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
   }, [aiAutofix, copy]);
+}
+
+function useHandleRestart({
+  aiAutofix,
+}: {
+  aiAutofix: ReturnType<typeof useExplorerAutofix>;
+}): () => void {
+  const {startStep} = aiAutofix;
+
+  return useCallback(() => {
+    startStep('root_cause');
+  }, [startStep]);
 }

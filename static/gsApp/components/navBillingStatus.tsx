@@ -354,7 +354,11 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+export function PrimaryNavigationQuotaExceeded({
+  organization,
+}: {
+  organization: Organization;
+}) {
   const subscription = useSubscription();
   const exceededCategories = (
     sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
@@ -546,8 +550,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     </Fragment>
   );
 }
-
-export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

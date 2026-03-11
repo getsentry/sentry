@@ -7,16 +7,16 @@ import type {
 } from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-import InnerIntentForm from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
+import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
 import type {Subscription} from 'getsentry/types';
 
-function SetupIntentForm(props: IntentFormProps) {
+export function SetupIntentForm(props: IntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
@@ -119,5 +119,3 @@ function SetupIntentForm(props: IntentFormProps) {
     />
   );
 }
-
-export default SetupIntentForm;

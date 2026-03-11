@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -19,13 +19,7 @@ interface Props {
   platform?: PlatformKey;
 }
 
-export default function RawContent({
-  eventId,
-  projectSlug,
-  type,
-  platform,
-  values,
-}: Props) {
+export function RawContent({eventId, projectSlug, type, platform, values}: Props) {
   const organization = useOrganization();
 
   const isNative =

@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -26,7 +26,7 @@ type Props = {
   showSecondaryPoints?: boolean;
 };
 
-function GroupChart({
+export function GroupChart({
   stats,
   height = 24,
   secondaryStats = EMPTY_STATS,
@@ -113,5 +113,3 @@ function GroupChart({
     </LazyRender>
   );
 }
-
-export default GroupChart;

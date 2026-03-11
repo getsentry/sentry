@@ -5,7 +5,7 @@ import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/uti
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {IssueConfigField} from 'sentry/types/integrations';
 import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';

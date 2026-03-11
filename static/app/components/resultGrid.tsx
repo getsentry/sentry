@@ -167,7 +167,7 @@ type State = {
   sortBy: string;
 };
 
-function ResultGrid(props: Props) {
+export function ResultGrid(props: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
   const navigate = useNavigate();
@@ -348,8 +348,6 @@ function ResultGrid(props: Props) {
     </ResultGridContainer>
   );
 }
-
-export default ResultGrid;
 
 /**
  * Styles migrated from sentry/result-grid.less

@@ -12,23 +12,23 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
-import AskUserQuestionBlock from 'sentry/views/seerExplorer/askUserQuestionBlock';
-import BlockComponent from 'sentry/views/seerExplorer/blockComponents';
-import EmptyState from 'sentry/views/seerExplorer/emptyState';
+import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/askUserQuestionBlock';
+import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import {EmptyState} from 'sentry/views/seerExplorer/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/explorerMenu';
-import FileChangeApprovalBlock from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
+import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/fileChangeApprovalBlock';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePanelSizing} from 'sentry/views/seerExplorer/hooks/usePanelSizing';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-import InputSection from 'sentry/views/seerExplorer/inputSection';
+import {InputSection} from 'sentry/views/seerExplorer/inputSection';
 import {useExternalOpen} from 'sentry/views/seerExplorer/openSeerExplorer';
 import PanelContainers, {
   BlocksContainer,
 } from 'sentry/views/seerExplorer/panelContainers';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/prWidget';
-import SeerFab from 'sentry/views/seerExplorer/seerFab';
-import TopBar from 'sentry/views/seerExplorer/topBar';
+import {SeerFab} from 'sentry/views/seerExplorer/seerFab';
+import {TopBar} from 'sentry/views/seerExplorer/topBar';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
@@ -39,7 +39,7 @@ import {
   usePageReferrer,
 } from 'sentry/views/seerExplorer/utils';
 
-function ExplorerPanel() {
+export function ExplorerPanel() {
   const {isOpen: isVisible, openExplorerPanel} = useExplorerPanel();
   const {getPageReferrer} = usePageReferrer();
   const organization = useOrganization({allowNull: true});
@@ -770,5 +770,3 @@ function ExplorerPanel() {
     document.body
   );
 }
-
-export default ExplorerPanel;

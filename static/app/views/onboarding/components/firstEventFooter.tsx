@@ -20,7 +20,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import GenericFooter from './genericFooter';
+import {GenericFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
@@ -29,7 +29,7 @@ interface FirstEventFooterProps {
   project: Project;
 }
 
-export default function FirstEventFooter({
+export function FirstEventFooter({
   organization,
   project,
   onClickSetupLater,

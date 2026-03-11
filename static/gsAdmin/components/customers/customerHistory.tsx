@@ -18,7 +18,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerHistory({orgId, ...props}: Props) {
+export function CustomerHistory({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -186,5 +186,3 @@ function CustomerHistory({orgId, ...props}: Props) {
 const DisplayName = styled('span')`
   margin-left: ${p => p.theme.space.xs};
 `;
-
-export default CustomerHistory;

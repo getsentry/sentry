@@ -16,7 +16,7 @@ import {DataCategory} from 'sentry/types/core';
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 
 describe('ProductBreakdownPanel', () => {
   const organization = OrganizationFixture();

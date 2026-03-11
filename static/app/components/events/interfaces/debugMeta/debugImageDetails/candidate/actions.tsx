@@ -31,7 +31,7 @@ type Props = {
   projSlug: Project['slug'];
 };
 
-function Actions({
+export function Actions({
   candidate,
   organization,
   isInternalSource,
@@ -95,5 +95,3 @@ function Actions({
     </Tooltip>
   );
 }
-
-export default Actions;

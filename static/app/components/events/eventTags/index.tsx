@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
+import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';

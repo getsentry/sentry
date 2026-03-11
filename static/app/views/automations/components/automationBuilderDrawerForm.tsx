@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
+import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,

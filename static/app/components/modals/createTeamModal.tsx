@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createTeam} from 'sentry/actionCreators/teams';
-import CreateTeamForm from 'sentry/components/teams/createTeamForm';
+import {CreateTeamForm} from 'sentry/components/teams/createTeamForm';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
