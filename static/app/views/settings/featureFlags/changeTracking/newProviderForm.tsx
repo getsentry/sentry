@@ -35,11 +35,19 @@ import {
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
 const schema = z.object({
-  provider: z.enum(WebhookProviderEnum, t('Provider is required')),
+  provider: z
+    .enum(WebhookProviderEnum)
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
   secret: z.string().min(1, t('Secret is required')).max(100),
 });
 
-type CreateSecretData = z.infer<typeof schema>;
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+  secret: '',
+};
+
+type CreateSecretData = z.output<typeof schema>;
 
 interface Props {
   canSaveSecret: boolean;
@@ -106,10 +114,10 @@ export default function NewProviderForm({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {provider: '' as WebhookProviderEnum, secret: ''},
+    defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      return mutation.mutateAsync(value).catch((error: RequestError) => {
+      return mutation.mutateAsync(schema.parse(value)).catch((error: RequestError) => {
         const responseJSON = error.responseJSON;
         if (responseJSON?.secret || responseJSON?.provider) {
           const extractMessage = (val: unknown): string => {
@@ -159,7 +167,7 @@ export default function NewProviderForm({
                 />
               </field.Layout.Row>
               <WebhookUrlField
-                provider={field.state.value}
+                provider={field.state.value ?? ''}
                 organizationSlug={organization.slug}
               />
             </div>
