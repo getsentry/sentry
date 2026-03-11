@@ -95,7 +95,7 @@ def has_seer_entrypoint_access(
     )
 
 
-class SeerOperator[CachePayloadT]:
+class SeerAutofixOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
     It does this to ensure all entrypoints have consistent behavior and responses.
@@ -601,7 +601,7 @@ def process_autofix_updates(
 
         organization = group.project.organization
 
-        if not SeerOperator.has_access(organization=organization):
+        if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 

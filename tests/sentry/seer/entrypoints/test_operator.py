@@ -11,7 +11,7 @@ from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint
 from sentry.seer.entrypoints.operator import (
     AUTOFIX_FALLBACK_CAUSE_ID,
-    SeerOperator,
+    SeerAutofixOperator,
     get_autofix_explorer_status,
     process_autofix_updates,
 )
@@ -70,7 +70,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
 class SeerOperatorTest(TestCase):
     def setUp(self):
         self.entrypoint = MockAutofixEntrypoint()
-        self.operator = SeerOperator(self.entrypoint)
+        self.operator = SeerAutofixOperator(self.entrypoint)
 
     @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True)
     def test_has_access_with_seer(self, _mock_has_seer_access):
@@ -87,21 +87,21 @@ class SeerOperatorTest(TestCase):
                 clear=True,
             ),
         ):
-            assert SeerOperator.has_access(organization=self.group.project.organization)
-            assert SeerOperator.has_access(
+            assert SeerAutofixOperator.has_access(organization=self.group.project.organization)
+            assert SeerAutofixOperator.has_access(
                 organization=self.group.project.organization,
                 entrypoint_key=MockAutofixEntrypoint.key,
             )
-            assert not SeerOperator.has_access(
+            assert not SeerAutofixOperator.has_access(
                 organization=self.group.project.organization,
                 entrypoint_key=MockNoAccessEntrypoint.key,
             )
 
     @patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=False)
     def test_has_access_without_seer(self, _mock_has_seer_access):
-        assert not SeerOperator.has_access(organization=self.group.project.organization)
+        assert not SeerAutofixOperator.has_access(organization=self.group.project.organization)
         for entrypoint_key in autofix_entrypoint_registry.registrations.keys():
-            assert not SeerOperator.has_access(
+            assert not SeerAutofixOperator.has_access(
                 organization=self.group.project.organization,
                 entrypoint_key=cast(SeerEntrypointKey, entrypoint_key),
             )
@@ -273,7 +273,7 @@ class SeerOperatorTest(TestCase):
             cache_payload=self.entrypoint.create_autofix_cache_payload(),
         )
 
-    @patch.object(SeerOperator, "has_access", return_value=True)
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch.dict(
         "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
         {MockAutofixEntrypoint.key: MockAutofixEntrypoint},
@@ -313,7 +313,7 @@ class SeerOperatorTest(TestCase):
             )
             mock_on_autofix_update.assert_not_called()
 
-    @patch.object(SeerOperator, "has_access", return_value=True)
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
     def test_process_autofix_updates(self, mock_autofix_cache_get, _mock_has_access):
         cache_payload = self.entrypoint.create_autofix_cache_payload()
@@ -348,7 +348,7 @@ class SeerOperatorTest(TestCase):
         event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
 
         with (
-            patch.object(SeerOperator, "has_access", return_value=False),
+            patch.object(SeerAutofixOperator, "has_access", return_value=False),
             patch.dict(
                 "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
                 {MockAutofixEntrypoint.key: mock_entrypoint_cls},
@@ -364,7 +364,7 @@ class SeerOperatorTest(TestCase):
         mock_entrypoint_cls.has_access.assert_not_called()
         mock_entrypoint_cls.on_autofix_update.assert_not_called()
 
-    @patch.object(SeerOperator, "has_access", return_value=True)
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
     def test_process_autofix_updates_skips_entrypoint_without_access(
         self, mock_autofix_cache_get, _mock_has_access
@@ -462,7 +462,7 @@ class SeerOperatorTest(TestCase):
         assert payload["cause_id"] == 34
 
     def test_can_trigger_autofix_returns_false_without_seer_access(self):
-        assert SeerOperator.can_trigger_autofix(group=self.group) is False
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_true_when_all_conditions_met(self, mock_quota):
@@ -471,7 +471,7 @@ class SeerOperatorTest(TestCase):
                 "organizations:gen-ai-features": True,
             }
         ):
-            assert SeerOperator.can_trigger_autofix(group=self.group) is True
+            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     def test_can_trigger_autofix_returns_false_for_ineligible_category(self, mock_quota):
@@ -483,7 +483,7 @@ class SeerOperatorTest(TestCase):
                 "organizations:gen-ai-features": True,
             }
         ):
-            assert SeerOperator.can_trigger_autofix(group=feedback_group) is False
+            assert SeerAutofixOperator.can_trigger_autofix(group=feedback_group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota):
@@ -492,7 +492,7 @@ class SeerOperatorTest(TestCase):
                 "organizations:gen-ai-features": True,
             }
         ):
-            assert SeerOperator.can_trigger_autofix(group=self.group) is False
+            assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
 
 class TestGetAutofixExplorerStatus(TestCase):
