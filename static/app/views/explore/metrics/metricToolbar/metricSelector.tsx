@@ -214,6 +214,9 @@ export function MetricSelector({
       switch (e.key) {
         case 'ArrowDown': {
           e.preventDefault();
+          if (displayedOptions.length === 0) {
+            break;
+          }
           const next = Math.min(focusedIndex + 1, displayedOptions.length - 1);
           setFocusedIndex(next);
           virtualizer.scrollToIndex(next);
@@ -221,6 +224,9 @@ export function MetricSelector({
         }
         case 'ArrowUp': {
           e.preventDefault();
+          if (displayedOptions.length === 0) {
+            break;
+          }
           const next = Math.max(focusedIndex - 1, 0);
           setFocusedIndex(next);
           virtualizer.scrollToIndex(next);
