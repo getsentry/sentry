@@ -156,6 +156,7 @@ class ReleaseTestCase(ActivityTestCase):
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
+        assert email.title == f"Deployed version {email.version_parsed} to {self.environment.name}"
 
         with self.tasks():
             email.send()
