@@ -10,12 +10,13 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -56,7 +57,7 @@ function Issue(props: IssueProps) {
     error,
   } = useApiQuery<Group>(
     [
-      `/issues/${props.issue.issue_id}/`,
+      getApiUrl(`/issues/$issueId/`, {path: {issueId: props.issue.issue_id}}),
       {
         query: {
           collapse: 'release',
@@ -70,8 +71,7 @@ function Issue(props: IssueProps) {
     }
   );
 
-  const iconClassName: string =
-    props.issue.event_type === 'error' ? props.issue.level : 'occurence';
+  const iconClassName = getTraceIssueSeverityClassName(props.issue);
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -116,7 +116,7 @@ const IconBackground = styled('div')`
 
 const IconWrapper = styled('div')`
   border-radius: 50%;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
 
   &.info {
     border: 1px solid var(--info);
@@ -143,10 +143,10 @@ const IconWrapper = styled('div')`
       background-color: var(--error);
     }
   }
-  &.occurence {
-    border: 1px solid var(--occurence);
+  &.occurrence {
+    border: 1px solid var(--occurrence);
     ${IconBackground} {
-      background-color: var(--occurence);
+      background-color: var(--occurrence);
     }
   }
   &.default {
@@ -164,7 +164,7 @@ const IconWrapper = styled('div')`
 
   &.info,
   &.warning,
-  &.occurence,
+  &.occurrence,
   &.default,
   &.unknown {
     svg {
@@ -218,9 +218,9 @@ const StyledPanel = styled(Panel)`
 const IssuesWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: left;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 
   ${StyledPanel} {
     margin-bottom: 0;
@@ -232,7 +232,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   min-height: 76px;
 
   /* Add a border between two rows of loading issue states */
@@ -244,14 +244,15 @@ const StyledLoadingIndicatorWrapper = styled('div')`
 const StyledLegacyPanelItem = styled(PanelItem)`
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   line-height: 1.1;
 `;
 
 const StyledPanelItem = styled(StyledLegacyPanelItem)`
   justify-content: left;
   align-items: flex-start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   height: fit-content;
-  padding: ${space(1)} ${space(2)} ${space(1.5)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.lg}
+    ${p => p.theme.space.md};
 `;

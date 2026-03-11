@@ -100,7 +100,7 @@ export function useGetTraceItemAttributeKeys({
   return getTraceItemAttributeKeys;
 }
 
-export function getTraceItemTagCollection(
+function getTraceItemTagCollection(
   result: Tag[],
   type: UseGetTraceItemAttributeKeysProps['type']
 ): TagCollection {

@@ -38,7 +38,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
         data = {
             "label": "New Label",
             "allowed_origins": "sentry.io",
-            "scope_list": ["a", "b", "c", "d"],
+            "scope_list": ["project:read", "project:write", "org:read", "team:read"],
         }
         self.get_success_response(self.organization.slug, self.api_key.id, **data)
 
@@ -46,7 +46,24 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
 
         assert api_key.label == "New Label"
         assert api_key.allowed_origins == "sentry.io"
-        assert api_key.get_scopes() == ["a", "b", "c", "d"]
+        assert api_key.get_scopes() == ["org:read", "project:read", "project:write", "team:read"]
+
+    def test_update_api_key_rejects_invalid_scopes(self) -> None:
+        data = {"scope_list": ["a", "b", "c", "d"]}
+        response = self.get_error_response(
+            self.organization.slug, self.api_key.id, status_code=400, **data
+        )
+        assert "scope_list" in response.data
+
+        api_key = ApiKey.objects.get(id=self.api_key.id, organization_id=self.organization.id)
+        assert api_key.get_scopes() == sorted(DEFAULT_SCOPES)
+
+    def test_update_api_key_rejects_mixed_valid_and_invalid_scopes(self) -> None:
+        data = {"scope_list": ["org:read", "superuser:admin", "project:read"]}
+        response = self.get_error_response(
+            self.organization.slug, self.api_key.id, status_code=400, **data
+        )
+        assert "scope_list" in response.data
 
     def test_update_api_key_details_legacy_data(self) -> None:
         # Some old api keys have this psql special format string
@@ -65,11 +82,11 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
                 "team:read",
             ]
 
-        data = {"scope_list": ["a", "b", "c", "d"]}
+        data = {"scope_list": ["project:read", "project:write", "org:read", "team:read"]}
         self.get_success_response(self.organization.slug, self.api_key.id, **data)
 
         api_key = ApiKey.objects.get(id=self.api_key.id, organization_id=self.organization.id)
-        assert api_key.get_scopes() == ["a", "b", "c", "d"]
+        assert api_key.get_scopes() == ["org:read", "project:read", "project:write", "team:read"]
 
 
 @control_silo_test

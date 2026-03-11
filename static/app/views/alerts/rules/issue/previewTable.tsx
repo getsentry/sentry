@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,26 +12,27 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;
+  groups: Group[];
   isLoading: boolean;
   issueCount: number;
   members: Member[] | undefined;
+  onAssigneeChange: (groupId: string, newAssignee: AssignableEntity | null) => void;
   onCursor: CursorHandler;
   page: number;
   pageLinks: string;
-  previewGroups: string[];
 };
 
 function PreviewTable({
-  previewGroups,
+  groups,
   members,
   pageLinks,
   onCursor,
+  onAssigneeChange,
   issueCount,
   page,
   isLoading,
@@ -48,7 +50,7 @@ function PreviewTable({
         </EmptyStateWarning>
       );
     }
-    if (issueCount === 0) {
+    if (groups.length === 0) {
       return (
         <EmptyStateWarning>
           <p>{t("We couldn't find any issues that would've triggered your rule")}</p>
@@ -56,31 +58,28 @@ function PreviewTable({
       );
     }
     const memberList = indexMembersByProject(members);
-    return previewGroups.map(id => {
-      const group = GroupStore.get(id) as Group | undefined;
-
-      return (
-        <StreamGroup
-          key={id}
-          id={id}
-          hasGuideAnchor={false}
-          memberList={group?.project ? memberList[group.project.slug] : undefined}
-          displayReprocessingLayout={false}
-          useFilteredStats
-          withChart={false}
-          canSelect={false}
-          showLastTriggered
-          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
-        />
-      );
-    });
+    return groups.map(group => (
+      <StreamGroup
+        key={group.id}
+        group={group}
+        hasGuideAnchor={false}
+        memberList={group.project ? memberList[group.project.slug] : undefined}
+        displayReprocessingLayout={false}
+        useFilteredStats
+        withChart={false}
+        canSelect={false}
+        showLastTriggered
+        withColumns={['assignee', 'event', 'lastTriggered', 'users']}
+        onAssigneeChange={newAssignee => onAssigneeChange(group.id, newAssignee)}
+      />
+    ));
   };
 
   const renderCaption = () => {
-    if (isLoading || error || !previewGroups) {
+    if (isLoading || error || !groups) {
       return null;
     }
-    const pageIssues = page * 5 + previewGroups.length;
+    const pageIssues = page * 5 + groups.length;
     return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
   };
 

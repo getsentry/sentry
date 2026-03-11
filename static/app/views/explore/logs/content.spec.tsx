@@ -70,7 +70,7 @@ describe('LogsPage', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -222,7 +222,7 @@ describe('LogsPage', () => {
             groupBy: ['severity'],
             interval: '5m',
             partial: 1,
-            project: [],
+            project: [parseInt(project.id, 10)],
             query: '',
             referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',

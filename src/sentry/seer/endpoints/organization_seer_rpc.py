@@ -39,6 +39,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
     get_organization_project_ids,
     get_organization_slug,
+    has_repo_code_mappings,
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.explorer.index_data import (
@@ -51,8 +52,11 @@ from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
+    get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -79,6 +83,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_organization_slug": map_org_id_param(get_organization_slug),
     #
     # Bug prediction
+    "has_repo_code_mappings": has_repo_code_mappings,
     "get_issues_by_function_name": by_function_name.fetch_issues,
     "get_issues_related_to_exception_type": by_error_type.fetch_issues,
     "get_issues_by_raw_query": by_text_query.fetch_issues,
@@ -101,11 +106,14 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "execute_trace_table_query": execute_trace_table_query,
     "execute_issues_query": map_org_id_param(execute_issues_query),
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "get_replay_metadata": get_replay_metadata,
     "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": map_org_id_param(get_metric_attributes_for_trace),
     "get_issues_stats": map_org_id_param(get_issues_stats),
+    "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
 }
 

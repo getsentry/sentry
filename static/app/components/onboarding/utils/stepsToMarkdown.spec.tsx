@@ -412,6 +412,15 @@ describe('contentBlockToMarkdown', () => {
     const result = contentBlockToMarkdown(block);
     expect(result).toContain('Custom React content');
   });
+
+  it('prefers CustomBlock markdown field over content', () => {
+    const block: ContentBlock = {
+      type: 'custom',
+      content: React.createElement('div', null, 'Rendered UI'),
+      markdown: 'DSN: `https://key@sentry.io/123`',
+    };
+    expect(contentBlockToMarkdown(block)).toBe('DSN: `https://key@sentry.io/123`');
+  });
 });
 
 describe('stepsToMarkdown', () => {

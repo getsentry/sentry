@@ -52,7 +52,7 @@ function setUpTests() {
     body: [],
   });
   MockApiClient.addMockResponse({
-    url: `/subscriptions/org-slug/`,
+    url: `/customers/org-slug/`,
     body: {},
   });
   MockApiClient.addMockResponse({
@@ -1186,7 +1186,6 @@ describe('GSBanner', () => {
       },
     });
     // Modal does the navigation
-    // @ts-expect-error renderGlobalModal not currently returning correct types
     const {router} = renderGlobalModal();
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();

@@ -18,8 +18,15 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
-from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
-from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
+from sentry.integrations.github.constants import (
+    GITHUB_API_ACCEPT_HEADER,
+    ISSUE_LOCKED_ERROR_MESSAGE,
+    RATE_LIMITED_MESSAGE,
+)
+from sentry.integrations.github.integration import (
+    GitHubIntegrationProvider,
+    build_repository_query,
+)
 from sentry.integrations.github.issue_sync import GitHubIssueSyncSpec
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.types import GitHubIssueStatus
@@ -51,10 +58,7 @@ def get_user_info(url, access_token):
     with http.build_session() as session:
         resp = session.get(
             f"https://{url}/api/v3/user",
-            headers={
-                "Accept": "application/vnd.github.machine-man-preview+json",
-                "Authorization": f"token {access_token}",
-            },
+            headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
             verify=False,
         )
         resp.raise_for_status()
@@ -176,6 +180,10 @@ class GitHubEnterpriseIntegration(
     @property
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
+
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
 
     def get_client(self):
         if not self.org_integration:
@@ -667,10 +675,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         pass
 
     def _get_ghe_installation_info(self, installation_data, access_token, installation_id):
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
+        headers = {"Accept": GITHUB_API_ACCEPT_HEADER}
         headers.update(
             jwt.authorization_header(
                 get_jwt(
@@ -691,7 +696,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             resp = session.get(
                 f"https://{installation_data['url']}/api/v3/user/installations",
                 headers={
-                    "Accept": "application/vnd.github.machine-man-preview+json",
+                    "Accept": GITHUB_API_ACCEPT_HEADER,
                     "Authorization": f"token {access_token}",
                 },
                 verify=installation_data["verify_ssl"],

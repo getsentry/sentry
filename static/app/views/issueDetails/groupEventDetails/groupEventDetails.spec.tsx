@@ -347,7 +347,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: '/subscriptions/org-slug/',
+    url: '/customers/org-slug/',
     method: 'GET',
     body: {},
   });
@@ -466,7 +466,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Span Evidence section for Performance Issues', async () => {
     const props = makeDefaultMockData();
-    const group: Group = GroupFixture({
+    const group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
@@ -491,7 +491,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Function Evidence section for Profile Issues', async () => {
     const props = makeDefaultMockData();
-    const group: Group = GroupFixture({
+    const group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });

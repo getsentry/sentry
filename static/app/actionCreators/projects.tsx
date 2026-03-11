@@ -47,19 +47,9 @@ export function update(api: Client, params: UpdateParams) {
     );
 }
 
-type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
-
-export function loadStats(api: Client, params: StatsParams) {
-  const endpoint = `/organizations/${params.orgId}/stats/`;
-  api.request(endpoint, {
-    query: params.query,
-    success: data => ProjectsStore.onStatsLoadSuccess(data),
-  });
-}
-
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-export const _projectStatsToFetch: Set<string> = new Set();
+export const _projectStatsToFetch = new Set<string>();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout
@@ -87,7 +77,7 @@ const _queryForStats = (
 
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
-    const storedProjects: Record<string, Project> = ProjectsStatsStore.getAll();
+    const storedProjects = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
       project => !existingProjectStats.includes(project)

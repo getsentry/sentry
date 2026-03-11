@@ -14,6 +14,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import ApiSource from './sources/apiSource';
 import CommandSource from './sources/commandSource';
+import DsnLookupSource from './sources/dsnLookupSource';
 import FormSource from './sources/formSource';
 import OrganizationsSource from './sources/organizationsSource';
 import RouteSource from './sources/routeSource';
@@ -150,7 +151,12 @@ function Search({
               ...item.to,
               pathname: replaceRouterParams(item.to.pathname, params),
             };
-      navigateTo(nextTo, router, item.configUrl);
+      if (item.configUrl) {
+        // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (comes from api response)
+        navigateTo(nextTo, router, [item.configUrl]);
+      } else {
+        navigateTo(nextTo, router);
+      }
     },
     [entryPoint, router, params, onAction]
   );
@@ -203,6 +209,7 @@ function Search({
                     RouteSource,
                     OrganizationsSource,
                     CommandSource,
+                    DsnLookupSource,
                   ]
                 }
               >

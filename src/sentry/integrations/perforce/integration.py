@@ -172,6 +172,10 @@ class PerforceIntegration(RepositoryIntegration, CommitContextIntegration):
 
     integration_name = "perforce"
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def __init__(
         self,
         model: Integration,

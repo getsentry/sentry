@@ -17,7 +17,7 @@ function PaymentIntentForm(props: IntentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {intentData, isLoading, isError, error} = usePaymentIntentData({
-    endpoint: props.intentDataEndpoint,
+    queryKey: props.intentDataQueryKey,
   });
 
   useEffect(() => {

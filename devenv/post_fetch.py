@@ -44,7 +44,7 @@ def main(context: dict[str, str]) -> int:
             # set up the devenv is colima and docker-cli.
             # This is also required for arm64 macOS GHA runners.
             # We manage colima, so just need to install docker + qemu here.
-            proc.run(("brew", "install", "docker", "qemu"))
+            proc.run(("brew", "install", "docker", "qemu", "uv"))
         else:
             proc.run(
                 (f"{constants.homebrew_bin}/brew", "bundle"),

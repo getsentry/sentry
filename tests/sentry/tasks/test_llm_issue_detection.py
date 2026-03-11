@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.issues.grouptype import LLMDetectedExperimentalGroupType
+from sentry.issues.grouptype import LLMDetectedExperimentalGroupTypeV2
 from sentry.tasks.llm_issue_detection import (
     DetectedIssue,
     create_issue_occurrence_from_detection,
@@ -24,7 +24,6 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -45,7 +44,7 @@ class LLMIssueDetectionTest(TestCase):
         )
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
@@ -63,7 +62,7 @@ class LLMIssueDetectionTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     def test_detect_llm_issues_no_traces(self, mock_seer_request, mock_spans_query):
         mock_spans_query.side_effect = [
             # First call: Return a transaction
@@ -82,7 +81,7 @@ class LLMIssueDetectionTest(TestCase):
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
     def test_create_issue_occurrence_from_detection(self, mock_produce_occurrence):
         detected_issue = DetectedIssue(
-            title="Database Connection Pool Exhaustion",
+            title="Slow Database Query",
             explanation="Your application is running out of database connections",
             impact="High - may cause request failures",
             evidence="Connection pool at 95% capacity",
@@ -93,6 +92,7 @@ class LLMIssueDetectionTest(TestCase):
             subcategory="Connection Pool Exhaustion",
             category="Database",
             verification_reason="Problem is correctly identified",
+            group_for_fingerprint="Slow Database Query",
         )
 
         create_issue_occurrence_from_detection(
@@ -106,18 +106,14 @@ class LLMIssueDetectionTest(TestCase):
         assert call_kwargs["payload_type"].value == "occurrence"
 
         occurrence = call_kwargs["occurrence"]
-        assert occurrence.type == LLMDetectedExperimentalGroupType
-        assert occurrence.issue_title == "Database Connection Pool Exhaustion"
+        assert occurrence.type == LLMDetectedExperimentalGroupTypeV2
+        assert occurrence.issue_title == "Slow Database Query"
         assert occurrence.subtitle == "Your application is running out of database connections"
         assert occurrence.project_id == self.project.id
         assert occurrence.culprit == "test_transaction"
         assert occurrence.level == "warning"
 
-        assert len(occurrence.fingerprint) == 1
-        assert (
-            occurrence.fingerprint[0]
-            == "llm-detected-database-connection-pool-exhaustion-test_transaction"
-        )
+        assert occurrence.fingerprint == ["llm-detected-slow-database-query"]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
         assert occurrence.evidence_data["transaction"] == "test_transaction"
@@ -147,10 +143,35 @@ class LLMIssueDetectionTest(TestCase):
         assert "received" in event_data
         assert "timestamp" in event_data
 
+    @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
+    def test_create_issue_occurrence_uses_group_for_fingerprint_when_set(
+        self, mock_produce_occurrence
+    ):
+        detected_issue = DetectedIssue(
+            title="N+1 Database Queries",
+            explanation="Multiple queries in loop",
+            impact="Medium",
+            evidence="5 queries",
+            missing_telemetry=None,
+            offender_span_ids=[],
+            trace_id="trace456",
+            transaction_name="GET /api",
+            subcategory="N+1",
+            category="Performance",
+            verification_reason="Verified",
+            group_for_fingerprint="N+1 Database Queries",
+        )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
+        occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
+        assert occurrence.fingerprint == ["llm-detected-n+1-database-queries"]
+
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
     @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
@@ -207,13 +228,11 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
         assert mock_seer_request.call_count == 1  # Single batch request
 
-        seer_call = mock_seer_request.call_args.kwargs
-        assert seer_call["path"] == "/v1/automation/issue-detection/analyze"
-        request_body = json.loads(seer_call["body"].decode("utf-8"))
-        assert request_body["project_id"] == self.project.id
-        assert request_body["organization_id"] == self.project.organization_id
-        assert len(request_body["traces"]) == 2
-        trace_ids = {t["trace_id"] for t in request_body["traces"]}
+        seer_request = mock_seer_request.call_args[0][0]
+        assert seer_request.project_id == self.project.id
+        assert seer_request.organization_id == self.project.organization_id
+        assert len(seer_request.traces) == 2
+        trace_ids = {t.trace_id for t in seer_request.traces}
         assert trace_ids == {"trace_id_1", "trace_id_2"}
 
         assert mock_mark_processed.call_count == 1
@@ -222,7 +241,7 @@ class LLMIssueDetectionTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
     @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     @patch("sentry.tasks.llm_issue_detection.detection.logger.error")

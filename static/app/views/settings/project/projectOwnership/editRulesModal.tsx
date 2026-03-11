@@ -5,7 +5,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
@@ -54,11 +53,11 @@ export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModa
 
 const StyledPre = styled('pre')`
   word-break: break-word;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   line-height: 1.6;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

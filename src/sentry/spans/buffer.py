@@ -68,6 +68,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
+import time
 from collections.abc import Generator, MutableMapping, Sequence
 from typing import Any, NamedTuple
 
@@ -81,45 +82,22 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
-from sentry.spans.buffer_logger import BufferLogger, EvalshaData, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    EvalshaData,
+    FlusherLogEntry,
+    FlusherLogger,
+    emit_observability_metrics,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
+from sentry.spans.segment_key import SegmentKey, parse_segment_key, segment_key_to_span_id
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
-
-# SegmentKey is an internal identifier used by the redis buffer that is also
-# directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
-# redis client is bytes.
-#
-# The segment ID in the Kafka protocol is only the span ID.
-SegmentKey = bytes
 
 QueueKey = bytes
 
 logger = logging.getLogger(__name__)
-
-
-def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
-    return parse_segment_key(segment_key)[-1]
-
-
-def parse_segment_key(segment_key: SegmentKey) -> tuple[bytes, bytes, bytes]:
-    segment_key_parts = segment_key.split(b":")
-
-    if len(segment_key_parts) == 5:
-        project_id = segment_key_parts[2][1:]
-        trace_id = segment_key_parts[3][:-1]
-        span_id = segment_key_parts[4]
-    elif len(segment_key_parts) == 6:
-        # Temporary format with partition on index 2
-        project_id = segment_key_parts[3]
-        trace_id = segment_key_parts[4]
-        span_id = segment_key_parts[5]
-    else:
-        raise ValueError("unsupported segment key format")
-
-    return project_id, trace_id, span_id
 
 
 def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -139,6 +117,7 @@ class Span(NamedTuple):
     payload: bytes
     end_timestamp: float
     is_segment_span: bool = False
+    partition: int = 0
 
     def effective_parent_id(self):
         # Note: For the case where the span's parent is in another project, we
@@ -157,6 +136,7 @@ class OutputSpan(NamedTuple):
 class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
+    project_id: int  # Used to track outcomes
 
 
 class SpansBuffer:
@@ -165,10 +145,12 @@ class SpansBuffer:
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
         self.any_shard_at_limit = False
+        self._last_decompress_latency_ms = 0
         self._current_compression_level = None
         self._zstd_compressor: zstandard.ZstdCompressor | None = None
         self._zstd_decompressor = zstandard.ZstdDecompressor()
         self._buffer_logger = BufferLogger()
+        self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
 
     @cached_property
@@ -203,7 +185,7 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
-        debug_traces = set(options.get("spans.buffer.debug-traces"))
+        zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
 
         result_meta = []
         is_root_span_count = 0
@@ -231,9 +213,9 @@ class SpansBuffer:
             for batch in tree_batches:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
-                        prepared = self._prepare_payloads(subsegment)
+                        set_members = self._prepare_payloads(subsegment)
                         set_key = self._get_span_key(project_and_trace, parent_span_id)
-                        p.sadd(set_key, *prepared.keys())
+                        p.sadd(set_key, *set_members.keys())
 
                     p.execute()
 
@@ -249,16 +231,14 @@ class SpansBuffer:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         byte_count = sum(len(span.payload) for span in subsegment)
 
-                        _, _, trace_id = project_and_trace.partition(":")
-                        if trace_id in debug_traces:
-                            try:
-                                if self._debug_trace_logger is None:
-                                    self._debug_trace_logger = DebugTraceLogger(self.client)
-                                self._debug_trace_logger.log_subsegment_info(
-                                    project_and_trace, parent_span_id, subsegment
-                                )
-                            except Exception:
-                                logger.exception("Failed to log debug trace info")
+                        try:
+                            if self._debug_trace_logger is None:
+                                self._debug_trace_logger = DebugTraceLogger(self.client)
+                            self._debug_trace_logger.log_subsegment_info(
+                                project_and_trace, parent_span_id, subsegment
+                            )
+                        except Exception:
+                            logger.exception("process_spans: Failed to log debug trace info")
 
                         span_ids = [span.span_id for span in subsegment]
                         is_segment_span = (
@@ -276,11 +256,16 @@ class SpansBuffer:
                             redis_ttl,
                             max_segment_bytes,
                             byte_count,
+                            zero_copy_threshold,
                             *span_ids,
                         )
 
                         is_root_span_count += sum(span.is_segment_span for span in subsegment)
-                        result_meta.append((project_and_trace, parent_span_id))
+
+                        # All spans in a subsegment share the same trace_id,
+                        # so they all came from the same Kafka partition.
+                        partition = subsegment[0].partition
+                        result_meta.append((project_and_trace, parent_span_id, partition))
 
                     results.extend(p.execute())
 
@@ -298,7 +283,7 @@ class SpansBuffer:
 
             assert len(result_meta) == len(results)
 
-            for (project_and_trace, parent_span_id), result in zip(result_meta, results):
+            for (project_and_trace, parent_span_id, partition), result in zip(result_meta, results):
                 (
                     segment_key,
                     has_root_span,
@@ -309,9 +294,9 @@ class SpansBuffer:
 
                 latency_entries.append((project_and_trace, evalsha_latency_ms))
 
-                shard = self.assigned_shards[
-                    int(project_and_trace.split(":")[1], 16) % len(self.assigned_shards)
-                ]
+                # The Kafka partition is used directly as the queue shard
+                # so that routing is stable across rebalances.
+                shard = partition
                 queue_key = self._get_queue_key(shard)
 
                 # if the currently processed span is a root span, OR the buffer
@@ -323,7 +308,31 @@ class SpansBuffer:
                     offset = timeout
 
                 zadd_items = queue_adds.setdefault(queue_key, {})
-                zadd_items[segment_key] = now + offset
+
+                new_deadline = now + offset
+                zadd_items[segment_key] = new_deadline
+
+                # Debug logging
+                try:
+                    old_deadline = None
+                    if self._debug_trace_logger is None:
+                        self._debug_trace_logger = DebugTraceLogger(self.client)
+                    if self._debug_trace_logger._should_log_trace(project_and_trace):
+                        old_deadline_score = self.client.zscore(queue_key, segment_key)
+                        old_deadline = (
+                            int(old_deadline_score) if old_deadline_score is not None else None
+                        )
+
+                    self._debug_trace_logger.log_deadline_update(
+                        segment_key=segment_key,
+                        project_and_trace=project_and_trace,
+                        old_deadline=old_deadline,
+                        new_deadline=new_deadline,
+                        message_timestamp=now,
+                        has_root_span=has_root_span,
+                    )
+                except Exception:
+                    logger.exception("process_spans: Failed to log deadline update")
 
                 subsegment_spans = trees[project_and_trace, parent_span_id]
                 delete_set = queue_deletes.setdefault(queue_key, set())
@@ -426,6 +435,10 @@ class SpansBuffer:
         return trees
 
     def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
+        """
+        Prepare span payloads for storage. Returns set_members mapping
+        payload bytes to their minimum timestamp.
+        """
         if self._zstd_compressor is None:
             return {span.payload: span.end_timestamp for span in spans}
 
@@ -443,6 +456,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
         min_timestamp = min(span.end_timestamp for span in spans)
+
         return {compressed: min_timestamp}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
@@ -482,8 +496,11 @@ class SpansBuffer:
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
+        max_flush_segments_per_trace = options.get("spans.buffer.max-flush-segments-per-trace")
+        flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
+        ids_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
@@ -492,23 +509,29 @@ class SpansBuffer:
                     queue_keys.append(key)
 
                 result = p.execute()
+        load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
         segment_keys: list[tuple[int, QueueKey, SegmentKey]] = []
         for shard, queue_key, keys in zip(self.assigned_shards, queue_keys, result):
             for segment_key in keys:
                 segment_keys.append((shard, queue_key, segment_key))
 
+        segment_keys = self._apply_per_trace_limit(segment_keys, max_flush_segments_per_trace, now)
+
+        data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             segments = self._load_segment_data([k for _, _, k in segment_keys])
+        load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
         num_has_root_spans = 0
         any_shard_at_limit = False
+        flusher_log_entries: list[FlusherLogEntry] = []
 
         for shard, queue_key, segment_key in segment_keys:
-            segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
+            segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
-
+            project_id, _, _ = parse_segment_key(segment_key)
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 
@@ -521,7 +544,9 @@ class SpansBuffer:
                 span = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    span.setdefault("attributes", {})["sentry.segment.id"] = {
+                    if not isinstance(span.get("attributes"), dict):
+                        span["attributes"] = {}
+                    span["attributes"]["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }
@@ -536,8 +561,46 @@ class SpansBuffer:
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
             )
-            return_segments[segment_key] = FlushedSegment(queue_key=queue_key, spans=output_spans)
+            return_segments[segment_key] = FlushedSegment(
+                queue_key=queue_key,
+                spans=output_spans,
+                project_id=int(project_id.decode("ascii")),
+            )
             num_has_root_spans += int(has_root_span)
+
+            try:
+                if self._debug_trace_logger is None:
+                    self._debug_trace_logger = DebugTraceLogger(self.client)
+                self._debug_trace_logger.log_flush_info(
+                    segment_key,
+                    segment_span_id,
+                    has_root_span,
+                    len(segment),
+                    shard,
+                    queue_key,
+                    now,
+                )
+            except Exception:
+                logger.exception("flush_segments: Failed to log debug trace flush info")
+
+            if flusher_logger_enabled and segment:
+                project_id, trace_id, _ = parse_segment_key(segment_key)
+                project_and_trace = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                flusher_log_entries.append(
+                    FlusherLogEntry(
+                        project_and_trace,
+                        len(segment),
+                        sum(len(s) for s in segment),
+                    )
+                )
+
+        if flusher_logger_enabled and flusher_log_entries:
+            self._flusher_logger.log(
+                flusher_log_entries,
+                load_ids_latency_ms,
+                load_data_latency_ms,
+                self._last_decompress_latency_ms,
+            )
 
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
@@ -545,13 +608,53 @@ class SpansBuffer:
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
+    def _apply_per_trace_limit(
+        self,
+        segment_keys: list[tuple[int, QueueKey, SegmentKey]],
+        max_per_trace: int,
+        now: int,
+    ) -> list[tuple[int, QueueKey, SegmentKey]]:
+        """
+        Limits how many segments a single trace can be flushed in one cycle.
+        Prevents a trace from monopolizing the cycle and concentrating all
+        operations on one Redis node.
+
+        Deferred segments have their score set to ``now`` so they no longer
+        sit at the front of the sorted set.  This avoids head-of-line
+        blocking where a hot trace's overdue segments are re-fetched and
+        re-discarded every cycle.
+        """
+        if max_per_trace <= 0:
+            return segment_keys
+        trace_counts: dict[bytes, int] = {}
+        accepted: list[tuple[int, QueueKey, SegmentKey]] = []
+        deferred: list[tuple[int, QueueKey, SegmentKey]] = []
+        for shard, queue_key, segment_key in segment_keys:
+            _, trace_id, _ = parse_segment_key(segment_key)
+            count = trace_counts.get(trace_id, 0)
+            if count < max_per_trace:
+                accepted.append((shard, queue_key, segment_key))
+                trace_counts[trace_id] = count + 1
+            else:
+                deferred.append((shard, queue_key, segment_key))
+
+        if deferred:
+            num_deferred = len(deferred)
+            metrics.incr("spans.buffer.flush_segments.deferred", amount=num_deferred)
+            with self.client.pipeline(transaction=False) as p:
+                for shard, queue_key, segment_key in deferred:
+                    p.zadd(queue_key, {segment_key: now})
+                p.execute()
+
+        return accepted
+
     def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
 
         :param segment_keys: List of segment keys to load.
-        :return: Dictionary mapping segment keys to lists of span payloads.
+        :return: payloads mapping segment keys to lists of span payloads.
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
@@ -559,7 +662,31 @@ class SpansBuffer:
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         cursors = {key: 0 for key in segment_keys}
-        sizes = {key: 0 for key in segment_keys}
+        sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
+        self._last_decompress_latency_ms = 0
+        decompress_latency_ms = 0.0
+
+        def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
+            """
+            Decompress and add spans to the segment. Returns False if the
+            segment exceeded max_segment_bytes and was dropped.
+            """
+            nonlocal decompress_latency_ms
+
+            decompress_start = time.monotonic()
+            decompressed = self._decompress_batch(raw_data)
+            decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
+
+            sizes[key] = sizes.get(key, 0) + sum(len(span) for span in decompressed)
+            if sizes[key] > max_segment_bytes:
+                metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
+                logger.warning("Skipping too large segment, byte size %s", sizes[key])
+                payloads.pop(key, None)
+                sizes.pop(key, None)
+                return False
+
+            payloads[key].extend(decompressed)
+            return True
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -571,22 +698,15 @@ class SpansBuffer:
                 scan_results = p.execute()
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
-                decompressed_spans = []
-
+                size_exceeded = False
                 for scan_value in scan_values:
-                    decompressed_spans.extend(self._decompress_batch(scan_value))
+                    if key in payloads:
+                        if not _add_spans(key, scan_value):
+                            size_exceeded = True
 
-                sizes[key] += sum(len(span) for span in decompressed_spans)
-                if sizes[key] > max_segment_bytes:
-                    metrics.incr("spans.buffer.flush_segments.segment_size_exceeded")
-                    logger.warning("Skipping too large segment, byte size %s", sizes[key])
-
-                    del payloads[key]
-                    del cursors[key]
-                    continue
-
-                payloads[key].extend(decompressed_spans)
-                if cursor == 0:
+                if size_exceeded:
+                    cursors.pop(key, None)
+                elif cursor == 0:
                     del cursors[key]
                 else:
                     cursors[key] = cursor
@@ -650,18 +770,21 @@ class SpansBuffer:
                 # worst-case.
                 metrics.incr("spans.buffer.empty_segments")
 
+        self._last_decompress_latency_ms = int(decompress_latency_ms)
+
         return payloads
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
+            queue_removals: dict[bytes, list[SegmentKey]] = {}
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
                     p.delete(b"span-buf:hrs:" + segment_key)
                     p.delete(b"span-buf:ic:" + segment_key)
                     p.delete(b"span-buf:ibc:" + segment_key)
                     p.unlink(segment_key)
-                    p.zrem(flushed_segment.queue_key, segment_key)
+                    queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
@@ -669,5 +792,9 @@ class SpansBuffer:
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
                         p.hdel(redirect_map_key, *span_ids)
+
+                for queue_key, keys in queue_removals.items():
+                    for key_batch in itertools.batched(keys, 100):
+                        p.zrem(queue_key, *key_batch)
 
                 p.execute()

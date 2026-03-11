@@ -86,7 +86,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Poll for state
   const {data: apiData, isPending} = useApiQuery<AskSeerPollingResponse<T>>(
-    queryKey ?? ['__disabled__', {}],
+    queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       retry: false,

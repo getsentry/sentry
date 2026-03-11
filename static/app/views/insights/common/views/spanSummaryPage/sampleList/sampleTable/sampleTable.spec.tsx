@@ -128,7 +128,7 @@ describe('SampleTable', () => {
   describe('When there is missing data', () => {
     it('should display no query results', async () => {
       MockApiClient.addMockResponse({
-        url: '/api/0/organizations/org-slug/spans-samples/',
+        url: '/organizations/org-slug/spans-samples/',
         method: 'GET',
         match: [
           MockApiClient.matchQuery({
@@ -233,7 +233,7 @@ const initializeMockRequests = () => {
     ],
   });
   MockApiClient.addMockResponse({
-    url: '/api/0/organizations/org-slug/spans-samples/',
+    url: '/organizations/org-slug/spans-samples/',
     method: 'GET',
     match: [
       MockApiClient.matchQuery({

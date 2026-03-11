@@ -163,7 +163,7 @@ describe('WidgetTemplatesList', () => {
   });
 
   it('should pre-select widget based on widgetTemplateId query parameter', async () => {
-    mockGetTopNConvertedDefaultWidgets.mockReturnValueOnce([
+    mockGetTopNConvertedDefaultWidgets.mockReturnValue([
       {
         id: 'duration-distribution',
         title: 'Duration Distribution',

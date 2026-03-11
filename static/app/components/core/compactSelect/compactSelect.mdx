@@ -1,7 +1,7 @@
 ---
 title: CompactSelect
 description: A versatile dropdown select component for non-form contexts, supporting sections, search, multi-select, custom triggers, and performance optimizations.
-category: forms
+category: controls
 source: '@sentry/scraps/compactSelect'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
@@ -19,9 +19,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/compactSelect';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/compactSelect');
 
 `<CompactSelect>` is a general-purpose dropdown select component designed for use outside of forms. It's highly capable, supporting features like sections, search, multi-select, custom triggers, virtualization, and more.
 

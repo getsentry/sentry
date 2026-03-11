@@ -22,7 +22,7 @@ describe('SubscriptionStore', () => {
 
   it('should load data', async () => {
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       body: subscription,
     });
 
@@ -35,7 +35,7 @@ describe('SubscriptionStore', () => {
 
   it('should mark trial started and clear trial', async () => {
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       body: subscription,
     });
 

@@ -7,7 +7,6 @@ import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -74,7 +73,7 @@ export function SortBySelectors({
   const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
-    sortBy: `${EQUATION_PREFIX}`,
+    sortBy: EQUATION_PREFIX,
     sortDirection: values.sortDirection,
   });
   useEffect(() => {
@@ -238,7 +237,7 @@ export function SortBySelectors({
                   ) {
                     // Select the default value if it exists, otherwise get the first option from
                     // the new valid options
-                    const defaultValue: string =
+                    const defaultValue =
                       newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
                       newValidOptions[0]?.value ??
                       '';
@@ -294,7 +293,7 @@ export function SortBySelectors({
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 200px 1fr;

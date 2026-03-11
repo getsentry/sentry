@@ -4,12 +4,18 @@ from typing import TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
+from django.http import HttpResponseRedirect
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
-from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler
+from sentry.auth.helper import (
+    ERR_IDENTITY_CONFLICT,
+    OK_LINK_IDENTITY,
+    AuthHelper,
+    AuthIdentityHandler,
+)
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -542,6 +548,45 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert context["existing_user"] == existing_user
         assert "login_form" in context
 
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_new_user_duplicate_email_shows_error(
+        self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        self.create_user(email=self.email, is_test_user=False)
+        self.request.POST = {"op": "newuser"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            ERR_IDENTITY_CONFLICT,
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_merge_user_mismatch_shows_error(
+        self, mock_render: mock.MagicMock, mock_messages: mock.MagicMock
+    ) -> None:
+        from sentry.auth.helper import ERR_MERGE_FAILED
+
+        # Log in as a different user than the one resolved by identity email
+        different_user = self.create_user(email="other@example.com")
+        self.request.user = different_user
+        # Create the user that matches the identity email
+        self.create_user(email=self.email)
+
+        self.request.POST = {"op": "confirm"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert response is mock_render.return_value
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            ERR_MERGE_FAILED,
+        )
+
     # TODO: More test cases for various values of request.POST.get("op")
 
 
@@ -596,6 +641,53 @@ class AuthHelperTest(TestCase):
     def test_referrer_state(self, mock_messages: mock.MagicMock) -> None:
         final_step = self._test_pipeline(flow=FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch(
+        "sentry.auth.helper.AuthIdentityHandler.handle_existing_identity",
+        side_effect=IntegrityError(),
+    )
+    def test_existing_identity_integrity_error_shows_error(
+        self,
+        mock_handle_existing: mock.MagicMock,
+        mock_messages: mock.MagicMock,
+    ) -> None:
+        user = self.create_user(email="test@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=self.auth_provider_inst,
+            user=user,
+            ident="test@example.com",
+        )
+
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_LOGIN,
+            "provider_model_id": self.auth_provider_inst.id,
+            "provider_key": None,
+            "referrer": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
+        helper.initialize()
+
+        helper.bind_state("email", "test@example.com")
+        helper.bind_state("email_verified", True)
+
+        # Skip provider views, go straight to finish_pipeline
+        helper.state.step_index = len(helper.pipeline_views)
+        result = helper.current_step()
+
+        assert result.status_code == 302
+        assert isinstance(result, HttpResponseRedirect)
+        assert result.url == f"/auth/login/{self.organization.slug}/"
+        mock_messages.add_message.assert_called_once_with(
+            self.request,
+            mock_messages.ERROR,
+            f"Authentication error: {ERR_IDENTITY_CONFLICT}",
+        )
 
 
 @control_silo_test
@@ -735,3 +827,51 @@ class ProviderMismatchTest(TestCase):
         for call in mock_messages.add_message.call_args_list:
             if call[0][1] == mock_messages.WARNING:
                 assert "SSO" not in str(call)
+
+
+@control_silo_test
+class InactiveUserIdentityTest(AuthIdentityHandlerTest):
+    """Tests that inactive-user AuthIdentity always routes through handle_unknown_identity."""
+
+    def _create_inactive_user_with_identity(self):
+        """Create an inactive user with an AuthIdentity matching self.identity."""
+        inactive_user = self.create_user(is_active=False)
+        auth_identity = self.create_auth_identity(
+            user=inactive_user,
+            auth_provider=self.auth_provider_inst,
+            ident=self.identity["id"],
+        )
+        return inactive_user, auth_identity
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_inactive_identity_unauthenticated_shows_confirmation(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """Unauthenticated request + inactive-user identity shows confirmation page."""
+        self._create_inactive_user_with_identity()
+
+        self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.called
+        template = mock_render.call_args.args[0]
+        assert template == "sentry/auth-confirm-identity.html"
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_inactive_identity_authenticated_request_shows_confirmation(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """Authenticated request + inactive-user identity routes through
+        handle_unknown_identity and shows confirmation page, not a redirect."""
+        inactive_user, auth_identity = self._create_inactive_user_with_identity()
+        attacker = self.set_up_user()
+
+        result = self.handler.handle_unknown_identity(self.state)
+
+        assert result is mock_render.return_value
+        template = mock_render.call_args.args[0]
+        assert template == "sentry/auth-confirm-link.html"
+
+        # AuthIdentity still points to the original inactive user, not the attacker
+        auth_identity.refresh_from_db()
+        assert auth_identity.user_id == inactive_user.id
+        assert auth_identity.user_id != attacker.id

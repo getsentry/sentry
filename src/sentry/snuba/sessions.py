@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
 
-def _make_stats(start, rollup, buckets, default=0):
+def _make_stats(start: datetime, rollup: int, buckets: int, default: int = 0) -> list[list[int]]:
     rv = []
-    start = int(start.timestamp() // rollup + 1) * rollup
+    start_ts = int(start.timestamp() // rollup + 1) * rollup
     for x in range(buckets):
-        rv.append([start, default])
-        start += rollup
+        rv.append([start_ts, default])
+        start_ts += rollup
     return rv
 
 
@@ -23,9 +23,9 @@ STATS_PERIODS = {
 }
 
 
-def get_rollup_starts_and_buckets(period, now=None):
-    if period is None:
-        return None, None, None
+def get_rollup_starts_and_buckets(
+    period: str, now: datetime | None = None
+) -> tuple[int, datetime, int]:
     if period not in STATS_PERIODS:
         raise TypeError("Invalid stats period")
     seconds, buckets = STATS_PERIODS[period]

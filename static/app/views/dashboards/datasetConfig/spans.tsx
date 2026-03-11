@@ -15,12 +15,13 @@ import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
   type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {Container} from 'sentry/utils/discover/styles';
+import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -43,8 +44,15 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {
+  DisplayType,
+  type DashboardFilters,
+  type Widget,
+  type WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {
+  isEventsStats,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
@@ -59,7 +67,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -133,21 +141,27 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
+const INTERNAL_ERROR_COUNT_FIELD = 'count_if(span.status,equals,internal_error)';
+
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: organization.features.includes('visibility-explore-view'),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'string'
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'number'
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'boolean'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -194,7 +208,16 @@ function extractSeriesMetadata<T>({
     }
   });
 
-  if (isMultiSeriesEventsStats(data)) {
+  if (isEventsStats(data)) {
+    // Plain EventsStats: single aggregate, no grouping. Meta is at the top level.
+    if (data.meta) {
+      widgetQuery.aggregates?.forEach(aggregate => {
+        if (aggregate && !(aggregate in result)) {
+          result[aggregate] = getMetaField(data.meta, aggregate);
+        }
+      });
+    }
+  } else if (isMultiSeriesEventsStats(data)) {
     // If there's only one aggregate and multiple groupings, series names are group names
     // In this case, we can use the first meta value for all series
     const firstMeta = widgetQuery.fieldMeta?.find(meta => meta !== null);
@@ -291,6 +314,13 @@ export const SpansConfig: DatasetConfig<
       )
     ) {
       return renderTransactionAsLinkable;
+    }
+    const strippedField = stripEquationPrefix(field);
+    if (
+      field === INTERNAL_ERROR_COUNT_FIELD ||
+      strippedField === INTERNAL_ERROR_COUNT_FIELD
+    ) {
+      return renderInternalErrorCount(widget, dashboardFilters);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
@@ -443,7 +473,11 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
     filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    filters.addFilterValue('http.method', data[SpanFields.REQUEST_METHOD]);
+    const isEap = organization.features.includes('performance-transaction-summary-eap');
+    filters.addFilterValue(
+      isEap ? 'request.method' : 'http.method',
+      data[SpanFields.REQUEST_METHOD]
+    );
   }
 
   const target = transactionSummaryRouteWithQuery({
@@ -459,6 +493,52 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
       <Container>{transaction}</Container>
     </Link>
   );
+}
+
+// Renders the count of internal errors for a given widget and dashboard filters.
+// Displays 0 if a row receives null count.
+// Returns a link to the explore page with the internal error filter applied.
+function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardFilters) {
+  return function (data: EventData, baggage: RenderFunctionBaggage) {
+    const {organization, eventView} = baggage;
+    const selection = eventView?.getPageFilters();
+    const value =
+      data[INTERNAL_ERROR_COUNT_FIELD] ?? data[`equation|${INTERNAL_ERROR_COUNT_FIELD}`];
+    const count = typeof value === 'number' ? value : 0;
+
+    if (count === 0) {
+      return <NumberContainer>0</NumberContainer>;
+    }
+
+    if (!widget || !selection) {
+      return <NumberContainer>{count}</NumberContainer>;
+    }
+
+    const baseConditions = widget.queries[0]?.conditions ?? '';
+    const errorQuery = new MutableSearch(baseConditions);
+    errorQuery.addStringFilter('span.status:internal_error');
+    const widgetWithErrorFilter: Widget = {
+      ...widget,
+      queries: widget.queries.map(q => ({
+        ...q,
+        conditions: errorQuery.formatString(),
+      })),
+    };
+
+    const getRowExploreUrl = getWidgetTableRowExploreUrlFunction(
+      selection,
+      widgetWithErrorFilter,
+      organization,
+      dashboardFilters
+    );
+    const target = getRowExploreUrl(data);
+
+    return (
+      <NumberContainer>
+        <Link to={target}>{count}</Link>
+      </NumberContainer>
+    );
+  };
 }
 
 function transformSeries(

@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,11 +16,11 @@ export function useGenerateIssueViewTitle({
   enabled = true,
 }: GenerateIssueViewTitleParams) {
   const organization = useOrganization();
-  const hasGenerateIssueViewTitleFeature =
-    !organization.hideAiFeatures && organization.features.includes('issue-view-ai-title');
   return useApiQuery<GenerateIssueViewTitleResponse>(
     [
-      `/organizations/${organization.slug}/issue-view-title/generate/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/issue-view-title/generate/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'POST',
         data: {query},
@@ -27,7 +28,7 @@ export function useGenerateIssueViewTitle({
     ],
     {
       staleTime: 5 * 60 * 1000,
-      enabled: hasGenerateIssueViewTitleFeature && enabled && !!query,
+      enabled: !organization.hideAiFeatures && enabled && !!query,
       retry: false,
     }
   );

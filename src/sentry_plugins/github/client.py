@@ -3,6 +3,7 @@ import datetime
 import time
 
 from sentry import options
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
@@ -66,8 +67,7 @@ class GithubPluginClient(GithubPluginClientMixin, AuthApiClient):
         return self.delete(f"/repos/{repo}/hooks/{id}")
 
     def get_installations(self):
-        # TODO(jess): remove this whenever it's out of preview
-        headers = {"Accept": "application/vnd.github.machine-man-preview+json"}
+        headers = {"Accept": GITHUB_API_ACCEPT_HEADER}
 
         return self._request("GET", "/user/installations", headers=headers)
 
@@ -108,16 +108,12 @@ class GithubPluginAppsClient(GithubPluginClientMixin, ApiClient):
         if headers is None:
             headers = {
                 "Authorization": "token %s" % self.get_token(),
-                # TODO(jess): remove this whenever it's out of preview
-                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Accept": GITHUB_API_ACCEPT_HEADER,
             }
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_token(self):
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
+        headers = {"Accept": GITHUB_API_ACCEPT_HEADER}
         headers.update(jwt.authorization_header(self.get_jwt()))
         return self.post(
             f"/app/installations/{self.integration.external_id}/access_tokens",

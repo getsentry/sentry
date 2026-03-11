@@ -733,4 +733,53 @@ describe('OrganizationMembersList', () => {
       expect(leaveButton).toBeEnabled();
     });
   });
+
+  describe('Members with null users (eventual consistency)', () => {
+    it('calculates isOnlyOwner correctly when owner member has null user', async () => {
+      const currentUserMember = MemberFixture({
+        id: '1',
+        email: 'currentUser@email.com',
+        name: 'Current User',
+        user: UserFixture({email: 'currentUser@email.com'}),
+        orgRole: 'owner',
+      });
+
+      // Another owner whose user was deleted
+      const deletedOwner = MemberFixture({
+        id: '2',
+        email: 'deleted-owner@sentry.io',
+        name: 'Deleted Owner',
+        user: null,
+        orgRole: 'owner',
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [currentUserMember],
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [currentUserMember, deletedOwner],
+        match: [MockApiClient.matchQuery({query: 'role:owner isInvited:false'})],
+      });
+
+      ConfigStore.set('user', currentUserMember.user!);
+
+      render(<OrganizationMembersList />, {
+        organization,
+      });
+      renderGlobalModal();
+
+      // Page should render without crashing
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+
+      // Current user should be able to leave since the deleted owner doesn't count
+      // (they have null user, so filtered out of ownership check)
+      const leaveButton = screen.getByRole('button', {name: 'Leave'});
+      expect(leaveButton).toBeDisabled(); // Disabled because they're the only valid owner
+    });
+  });
 });

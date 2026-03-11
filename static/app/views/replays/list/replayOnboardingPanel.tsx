@@ -15,12 +15,11 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
@@ -48,7 +47,7 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {isCollapsed} = useNavContext();
+  const {isCollapsed} = useNavigationContext();
 
   const supportedPlatforms = replayPlatforms;
 
@@ -347,13 +346,13 @@ const ButtonList = styled((props: GridProps) => (
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
-  margin: ${space(4)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space['3xl']} 0 ${p => p.theme.space.md} 0;
 `;
 
 const AnswerContent = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const QuestionContent = styled('div')`
@@ -366,6 +365,6 @@ const StyledHeaderContainer = styled(HeaderContainer)`
   font-size: ${p => p.theme.font.size.lg};
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;

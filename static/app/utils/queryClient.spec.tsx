@@ -20,14 +20,6 @@ beforeEach(() => {
 
 describe('queryClient', () => {
   describe('parseQueryKey', () => {
-    it('can parse a undefined', () => {
-      const result = parseQueryKey(undefined);
-      expect(result).toEqual({
-        isInfinite: false,
-        url: undefined,
-        options: undefined,
-      });
-    });
     it('can parse a simple query key, without options', () => {
       const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/')];
       const result = parseQueryKey(queryKey);

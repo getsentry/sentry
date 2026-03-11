@@ -17,7 +17,6 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
@@ -148,16 +147,16 @@ export function ProjectInstallPlatform({project, platform}: Props) {
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   width: max-content;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: auto;
-    grid-row-gap: ${space(1)};
+    grid-row-gap: ${p => p.theme.space.md};
     grid-auto-flow: row;
   }
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;

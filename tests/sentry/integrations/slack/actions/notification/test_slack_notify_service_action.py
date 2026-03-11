@@ -23,7 +23,7 @@ class TestInit(RuleTestCase):
 
     def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
-            self.organization = self.create_organization(id=1, owner=self.user)
+            self.organization = self.create_organization(owner=self.user)
             self.project = self.create_project(organization=self.organization)
 
         with assume_test_silo_mode(SiloMode.CONTROL):

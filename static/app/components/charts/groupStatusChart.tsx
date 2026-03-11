@@ -77,7 +77,7 @@ function GroupStatusChart({
         color: theme.tokens.content.secondary,
         fontFamily: 'Rubik',
         fontSize: 10,
-        formatter: `${formattedMarkLine}`,
+        formatter: formattedMarkLine,
       },
     });
 

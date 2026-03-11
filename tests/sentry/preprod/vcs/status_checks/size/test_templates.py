@@ -51,7 +51,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
                 )
 
                 assert title == "Size Analysis"
-                assert subtitle == "1 app processing"
+                assert subtitle == "1 component processing"
                 assert "Processing..." in summary
                 assert "com.example.app" in summary
                 assert "1.0.0 (1)" in summary
@@ -98,7 +98,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         assert "N/A" in summary
@@ -153,7 +153,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps processing"
+        assert subtitle == "2 components processing"
         assert "Processing..." in summary
         assert "com.example.app0" in summary
         assert "com.example.app1" in summary
@@ -197,7 +197,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed, 1 app processing"
+        assert subtitle == "1 component analyzed, 1 component processing"
         # Should have two rows - main app shows sizes, watch shows processing
         assert "`com.example.app`" in summary
         assert "(Android, Watch)" in summary or "(iOS, Watch)" in summary
@@ -231,7 +231,7 @@ class ProcessingStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app processing"
+        assert subtitle == "1 component processing"
 
         # Verify processing state is shown in table
         assert "com.example.processing" in summary
@@ -265,7 +265,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app errored"
+        assert subtitle == "1 component errored"
         assert "Build timeout" in summary
         assert "com.example.app" in summary
         assert "1.0.0 (1)" in summary
@@ -343,7 +343,7 @@ class ErrorStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed, 1 app processing, 1 app errored"
+        assert subtitle == "1 component analyzed, 1 component processing, 1 component errored"
         assert "Processing..." in summary  # Non-failed artifacts show as processing
         assert "Upload timeout" in summary  # Failed artifact error
         assert "com.example.processed" in summary
@@ -386,7 +386,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         assert "1.0 MB" in summary  # First artifact download size
         assert "2.1 MB" in summary  # Second artifact download size
         assert "com.example.app0" in summary
@@ -429,7 +429,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         # Should have two rows - main app and watch app
         assert "`com.example.app`" in summary  # Both main and watch show app_id
         assert ", Watch)" in summary  # Watch app label (with platform prefix)
@@ -487,7 +487,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "2 apps analyzed"
+        assert subtitle == "2 components analyzed"
         # Should have two rows - main app and dynamic feature
         assert "`com.example.android`" in summary  # Main app and dynamic feature both show app_id
         assert ", Dynamic Feature)" in summary  # Dynamic feature label (with platform prefix)
@@ -495,6 +495,50 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         assert "1.0 MB" in summary  # Dynamic feature download
         assert "8.4 MB" in summary  # Main app install
         assert "2.1 MB" in summary  # Dynamic feature install (note: rounds to 2.1 not 2.0)
+
+    def test_app_clip_metrics(self):
+        """Test formatting with App Clip metrics."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.ios",
+            build_version="1.0.0",
+            build_number=1,
+        )
+
+        main_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=4 * 1024 * 1024,
+            max_download_size=4 * 1024 * 1024,
+            min_install_size=8 * 1024 * 1024,
+            max_install_size=8 * 1024 * 1024,
+        )
+
+        app_clip_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=1024 * 1024,
+            max_download_size=1024 * 1024,
+            min_install_size=2 * 1024 * 1024,
+            max_install_size=2 * 1024 * 1024,
+            identifier="com.example.ios.clip",
+        )
+
+        size_metrics_map = {artifact.id: [main_metrics, app_clip_metrics]}
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact], size_metrics_map, StatusCheckStatus.SUCCESS, self.project, {}, {}
+        )
+
+        assert title == "Size Analysis"
+        assert subtitle == "2 components analyzed"
+        assert "`com.example.ios`" in summary
+        assert ", App Clip)" in summary
+        assert "4.2 MB" in summary
+        assert "1.0 MB" in summary
 
     def test_size_changes_with_base_artifacts(self):
         """Test size change calculations when base artifacts exist for comparison."""
@@ -565,7 +609,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
 
         # Verify that size changes are calculated and displayed
         # (4.2MB - 4.0MB = 209.7KB, 8.6MB - 8.3MB = 314.6KB)
@@ -602,7 +646,7 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
         )
 
         assert title == "Size Analysis"
-        assert subtitle == "1 app analyzed"
+        assert subtitle == "1 component analyzed"
         assert "1.0 MB" in summary
         assert "2.1 MB" in summary
         # Should show N/A for changes when no base exists
@@ -919,8 +963,8 @@ class SuccessStateFormattingTest(StatusCheckTestBase):
             {},
         )
 
-        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}?project={self.project.slug}"
-        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}?project={self.project.slug}"
+        android_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{android_artifact.id}"
+        ios_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{ios_artifact.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/"
 
         expected = f"""\
@@ -1254,6 +1298,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             artifact_id=artifact.id,
             app_id="com.example.app",
             platform="Android",
+            build_configuration_name=None,
         )
 
         title, subtitle, summary = format_status_check_messages(
@@ -1266,7 +1311,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=[triggered_rule],
         )
 
-        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        artifact_url = (
+            f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}"
+        )
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
@@ -1291,6 +1338,55 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == ""
         assert summary == expected
+
+    def test_triggered_rule_includes_artifact_type_details(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        watch_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="com.example.app.watchapp",
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [watch_metrics]}
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="download_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.app",
+            platform="iOS",
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            identifier="com.example.app.watchapp",
+        )
+
+        _, _, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=[triggered_rule],
+        )
+
+        assert "— Watch App" in summary
 
     def test_multiple_triggered_rules_url_formatting(self):
         """Test that multiple triggered rules format the URL correctly with expanded params."""
@@ -1326,6 +1422,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1337,6 +1434,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1348,6 +1446,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact.id,
                 app_id="com.example.app",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
@@ -1361,11 +1460,13 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}?project={self.project.slug}"
+        artifact_url = (
+            f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact.id}"
+        )
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-download-absolute&expanded=rule-install-diff&expanded=rule-download-percent"
 
         expected = f"""\
-## ❌ 1 Failed Size Check
+## ❌ 3 Failed Size Checks
 
 ### Android Builds
 
@@ -1443,6 +1544,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact1.id,
                 app_id="com.example.app1",
                 platform="iOS",
+                build_configuration_name=None,
             ),
             TriggeredRule(
                 rule=StatusCheckRule(
@@ -1454,6 +1556,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=artifact2.id,
                 app_id="com.example.app2",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
@@ -1467,8 +1570,12 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        artifact1_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}?project={self.project.slug}"
-        artifact2_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}?project={self.project.slug}"
+        artifact1_url = (
+            f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact1.id}"
+        )
+        artifact2_url = (
+            f"http://testserver/organizations/{self.organization.slug}/preprod/size/{artifact2.id}"
+        )
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1&expanded=rule-2"
 
         expected = f"""\
@@ -1557,6 +1664,7 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
                 artifact_id=failed_artifact.id,
                 app_id="com.example.failed",
                 platform="Android",
+                build_configuration_name=None,
             ),
         ]
 
@@ -1570,8 +1678,8 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
             triggered_rules=triggered_rules,
         )
 
-        failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}?project={self.project.slug}"
-        passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}?project={self.project.slug}"
+        failed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{failed_artifact.id}"
+        passed_url = f"http://testserver/organizations/{self.organization.slug}/preprod/size/{passed_artifact.id}"
         settings_url = f"http://testserver/settings/projects/{self.project.slug}/mobile-builds/?expanded=rule-1"
 
         expected = f"""\
@@ -1604,3 +1712,187 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
         assert title == "Size Analysis"
         assert subtitle == ""
         assert summary == expected
+
+    def test_single_triggered_rule_with_build_configuration(self):
+        """Test that a triggered rule with build_configuration shows config in header."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [size_metrics]}
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="install_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.app",
+            platform="iOS",
+            build_configuration_name="Release",
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=[triggered_rule],
+        )
+
+        assert "`com.example.app` | Release (iOS)" in summary
+        assert "<summary>1 Failed Check</summary>" in summary
+
+    def test_same_app_different_configurations_grouped_separately(self):
+        """Test that same app with different build configs shows separate groups."""
+        artifact1 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.emergetools.hackernews",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+        artifact2 = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.emergetools.hackernews",
+            build_version="1.0.0",
+            build_number=2,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+        )
+
+        metrics1 = self.create_preprod_artifact_size_metrics(
+            artifact1,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=2 * 1024 * 1024,
+            max_download_size=2 * 1024 * 1024,
+            min_install_size=3 * 1024 * 1024,
+            max_install_size=3 * 1024 * 1024,
+        )
+        metrics2 = self.create_preprod_artifact_size_metrics(
+            artifact2,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=2 * 1024 * 1024,
+            max_download_size=2 * 1024 * 1024,
+            min_install_size=3 * 1024 * 1024,
+            max_install_size=3 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            artifact1.id: [metrics1],
+            artifact2.id: [metrics2],
+        }
+
+        triggered_rules = [
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-1",
+                    metric="install_size",
+                    measurement="absolute",
+                    value=1.5 * 1024 * 1024,
+                ),
+                artifact_id=artifact1.id,
+                app_id="com.emergetools.hackernews",
+                platform="iOS",
+                build_configuration_name="Release",
+            ),
+            TriggeredRule(
+                rule=StatusCheckRule(
+                    id="rule-1",
+                    metric="install_size",
+                    measurement="absolute",
+                    value=1.5 * 1024 * 1024,
+                ),
+                artifact_id=artifact2.id,
+                app_id="com.emergetools.hackernews",
+                platform="iOS",
+                build_configuration_name="AdHoc",
+            ),
+        ]
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact1, artifact2],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=triggered_rules,
+        )
+
+        # Two separate groups for the same app, different configurations
+        assert "`com.emergetools.hackernews` | Release (iOS)" in summary
+        assert "`com.emergetools.hackernews` | AdHoc (iOS)" in summary
+        assert "<summary>2 Failed Checks</summary>" in summary
+
+    def test_triggered_rule_without_build_configuration_unchanged(self):
+        """Test that None build_configuration renders header same as before."""
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.example.app",
+            build_version="1.0.0",
+            build_number=1,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+        )
+
+        size_metrics = self.create_preprod_artifact_size_metrics(
+            artifact,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            min_download_size=100 * 1024 * 1024,
+            max_download_size=100 * 1024 * 1024,
+            min_install_size=200 * 1024 * 1024,
+            max_install_size=200 * 1024 * 1024,
+        )
+
+        size_metrics_map = {artifact.id: [size_metrics]}
+
+        triggered_rule = TriggeredRule(
+            rule=StatusCheckRule(
+                id="rule-1",
+                metric="download_size",
+                measurement="absolute",
+                value=50 * 1024 * 1024,
+            ),
+            artifact_id=artifact.id,
+            app_id="com.example.app",
+            platform="Android",
+            build_configuration_name=None,
+        )
+
+        title, subtitle, summary = format_status_check_messages(
+            [artifact],
+            size_metrics_map,
+            StatusCheckStatus.FAILURE,
+            self.project,
+            {},
+            {},
+            triggered_rules=[triggered_rule],
+        )
+
+        # No pipe or config name — same format as before
+        assert "`com.example.app` (Android)" in summary
+        assert " | " not in summary.split("<details>")[1]

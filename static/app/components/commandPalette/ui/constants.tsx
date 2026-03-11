@@ -7,6 +7,9 @@ export const COMMAND_PALETTE_GROUP_KEY_CONFIG: Record<
     label: string;
   }
 > = {
+  'search-result': {
+    label: t('Search Results'),
+  },
   navigate: {
     label: t('Go to…'),
   },

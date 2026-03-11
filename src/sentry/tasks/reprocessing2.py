@@ -231,7 +231,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
     from sentry.models.groupredirect import GroupRedirect
 
     with transaction.atomic(router.db_for_write(Group)):
-        group = Group.objects.get(id=group_id)
+        group = Group.objects.select_for_update().get(id=group_id)
 
         # While we migrated all associated models at the beginning of
         # reprocessing, there is still the "reprocessing" activity that we need
@@ -243,7 +243,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 
-        new_group = Group.objects.get(id=new_group_id)
+        new_group = Group.objects.select_for_update().get(id=new_group_id)
 
         # Remove the marker that indicates that the new group is currently being reprocessed to.
         # Thus making it re-processable.

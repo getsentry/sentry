@@ -3,11 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Count from 'sentry/components/count';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
@@ -17,7 +18,6 @@ import GridEditable from 'sentry/components/tables/gridEditable';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -111,15 +111,25 @@ export default function ReleaseHealthTable({
       if (column.key === 'error_count') {
         return (value as number) > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
-            <GlobalSelectionLink
-              to={getReleaseNewIssuesUrl(
-                organization.slug,
-                dataRow.project_id,
-                dataRow.release
-              )}
+            <Link
+              to={{
+                ...getReleaseNewIssuesUrl(
+                  organization.slug,
+                  dataRow.project_id,
+                  dataRow.release
+                ),
+                query: {
+                  ...extractSelectionParameters(location.query),
+                  ...getReleaseNewIssuesUrl(
+                    organization.slug,
+                    dataRow.project_id,
+                    dataRow.release
+                  ).query,
+                },
+              }}
             >
               <Count value={value as number} />
-            </GlobalSelectionLink>
+            </Link>
           </Tooltip>
         ) : (
           <Count value={value as number} />
@@ -185,10 +195,10 @@ const Title = styled('div')`
 const MessageContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-items: center;
   text-align: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const CellWrapper = styled('div')`

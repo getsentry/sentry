@@ -39,9 +39,17 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
-from sentry.seer.autofix.coding_agent import poll_github_copilot_agents
+from sentry.seer.autofix.coding_agent import (
+    poll_claude_code_agents,
+    poll_github_copilot_agents,
+)
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixPostResponse, AutofixStateResponse
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_autofix_state
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    CodingAgentProviderType,
+    get_autofix_state,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -252,6 +260,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             # This event_id is the event that the user is looking at when they click the "Fix" button
             event_id=data.get("event_id"),
             user=request.user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=data.get("instruction"),
             pr_to_comment_on_url=data.get("pr_to_comment_on_url"),
             stopping_point=stopping_point,
@@ -301,7 +310,16 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             return Response({"autofix": None})
 
         if state.coding_agents and request.user.id:
-            poll_github_copilot_agents(coding_agents=state.coding_agents, user_id=request.user.id)
+            agent_providers = {a.provider for a in state.coding_agents.values()}
+            if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
+                poll_github_copilot_agents(
+                    coding_agents=state.coding_agents, user_id=request.user.id
+                )
+            if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
+                poll_claude_code_agents(
+                    coding_agents=state.coding_agents,
+                    organization_id=group.organization.id,
+                )
 
         # Return the Explorer state directly - frontend will handle the format
         return Response(
@@ -351,7 +369,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             raise PermissionDenied("You are not authorized to access this autofix state")
 
         if autofix_state and autofix_state.coding_agents and request.user.id:
-            poll_github_copilot_agents(autofix_state, user_id=request.user.id)
+            agent_providers = {a.provider for a in autofix_state.coding_agents.values()}
+            if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
+                poll_github_copilot_agents(autofix_state, user_id=request.user.id)
+            if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
+                poll_claude_code_agents(autofix_state=autofix_state)
 
         if check_repo_access:
             cache.set(access_check_cache_key, True, timeout=60)  # 1 minute timeout

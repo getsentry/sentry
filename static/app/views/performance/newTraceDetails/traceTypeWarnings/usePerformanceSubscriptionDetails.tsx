@@ -1,3 +1,4 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -45,7 +46,11 @@ export function usePerformanceSubscriptionDetails({
   const organization = useOrganization();
 
   const {data: subscription, ...rest} = useApiQuery<Subscription>(
-    [`/subscriptions/${organization.slug}/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: Infinity,
     }

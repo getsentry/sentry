@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
-from sentry import features, quotas
+from sentry import features, options, quotas
 from sentry.constants import (
     ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
@@ -30,8 +30,8 @@ class PreflightDenialReason(StrEnum):
     REPO_CODE_REVIEW_DISABLED = "repo_code_review_disabled"
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
-    ORG_CONTRIBUTOR_IS_BOT = "org_contributor_is_bot"
     ORG_CONTRIBUTOR_NOT_FOUND = "org_contributor_not_found"
+    PR_AUTHOR_EXCLUDED = "pr_author_excluded"
 
 
 @dataclass
@@ -126,7 +126,7 @@ class CodeReviewPreflightService:
 
     def _check_billing(self) -> PreflightDenialReason | None:
         """
-        Check if contributor exists and is not a bot, and if there's either a seat or quota available.
+        Check if contributor exists and if there's either a seat or quota available.
         NOTE: We explicitly check billing as the source of truth because if the contributor exists,
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
@@ -143,9 +143,11 @@ class CodeReviewPreflightService:
         except OrganizationContributors.DoesNotExist:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
-        # Bot check applies to all organization types
-        if contributor.is_bot:
-            return PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
+        # Excluded author check applies to all organization types
+        if contributor.alias and contributor.alias in options.get(
+            "seer.code-review.excluded-pr-author-logins"
+        ):
+            return PreflightDenialReason.PR_AUTHOR_EXCLUDED
 
         # Code review beta and legacy usage-based plan orgs are exempt from quota checks
         # as long as they haven't purchased the new seat-based plan

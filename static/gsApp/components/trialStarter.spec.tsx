@@ -53,7 +53,7 @@ describe('TrialStarter', () => {
     });
 
     const reloadSubsMock = MockApiClient.addMockResponse({
-      url: `/subscriptions/${org.slug}/`,
+      url: `/customers/${org.slug}/`,
       method: 'GET',
       body: sub,
     });

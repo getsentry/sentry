@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';
@@ -306,7 +305,7 @@ function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode
  */
 const Container = styled('div')`
   > div {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 

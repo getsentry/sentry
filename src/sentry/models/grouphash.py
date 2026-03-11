@@ -20,7 +20,6 @@ from sentry.db.models.base import sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.grouping.ingest.caching import (
-    get_grouphash_cache_version,
     get_grouphash_object_cache_key,
     invalidate_grouphash_cache_on_save,
     invalidate_grouphash_caches_on_delete,
@@ -52,8 +51,12 @@ class GroupHashQuerySet(BaseQuerySet):
             )
         ]
 
-        # TODO: We can remove the version once we've settled on a good retention period
-        cache.delete_many(cache_keys, version=get_grouphash_cache_version("object"))
+        try:
+            cache.delete_many(cache_keys)
+        except Exception:
+            # If we can't delete from the cache, likely we couldn't have put the grouphashes there
+            # in the first place. Regardless, we don't want this to block the `update` call.
+            pass
 
         return len(cache_keys)
 

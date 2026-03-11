@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -61,12 +60,12 @@ export default function VitalPercents(props: Props) {
 const VitalSet = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const VitalStatus = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
 `;

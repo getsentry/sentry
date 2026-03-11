@@ -9,11 +9,11 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -23,7 +23,7 @@ import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
-import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
@@ -177,13 +177,14 @@ function ProjectLatestAlerts({
       <SectionHeadingWrapper>
         <SectionHeading>{t('Latest Alerts')}</SectionHeading>
         {/* as this is a link to latest alerts, we want to only preserve project and environment */}
-        <SectionHeadingLink
+        <StyledIconLink
           to={{
             pathname: makeAlertsPathname({
               path: `/`,
               organization,
             }),
             query: {
+              ...extractSelectionParameters(location.query),
               statsPeriod: undefined,
               start: undefined,
               end: undefined,
@@ -192,7 +193,7 @@ function ProjectLatestAlerts({
           }}
         >
           <IconOpen aria-label={t('Metric Alert History')} />
-        </SectionHeadingLink>
+        </StyledIconLink>
       </SectionHeadingWrapper>
 
       <div>{renderAlertRules()}</div>
@@ -200,19 +201,23 @@ function ProjectLatestAlerts({
   );
 }
 
+const StyledIconLink = styled(Link)`
+  display: flex;
+`;
+
 const AlertRowLink = styled(Link)`
   display: flex;
   align-items: center;
   height: 40px;
-  margin-bottom: ${space(3)};
-  margin-left: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space['2xl']};
+  margin-left: ${p => p.theme.space.xs};
   &,
   &:hover,
   &:focus {
     color: inherit;
   }
   &:first-child {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 
@@ -232,7 +237,7 @@ const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
 
 const AlertDetails = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space.lg};
   display: block;
   width: 100%;
   white-space: nowrap;

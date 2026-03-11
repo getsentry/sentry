@@ -11,7 +11,6 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,8 +46,8 @@ export default function RelatedIssues({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Add environment to the query parameters to be picked up by GlobalSelectionLink
-  // GlobalSelectionLink uses the current query parameters to build links to issue details
+  // Add environment to the query parameters to be picked up by extractSelectionParameters
+  // Links using extractSelectionParameters will preserve these query parameters when navigating to issue details
   useEffect(() => {
     const env = rule.environment ?? '';
     if (env !== (location.query.environment ?? '')) {
@@ -146,9 +145,9 @@ export default function RelatedIssues({
 }
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space.md};
   }
 `;

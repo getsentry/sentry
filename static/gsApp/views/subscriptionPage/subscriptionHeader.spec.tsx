@@ -26,7 +26,7 @@ describe('SubscriptionHeader', () => {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/org-slug/`,
+      url: `/customers/org-slug/`,
       method: 'GET',
       body: [],
     });

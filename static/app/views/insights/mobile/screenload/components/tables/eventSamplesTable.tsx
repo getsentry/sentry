@@ -17,7 +17,6 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -229,13 +228,13 @@ export function EventSamplesTable({
 }
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;
 
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
   height: 26px;
 `;
@@ -249,21 +248,21 @@ const IconWrapper = styled('div')`
 // Not pretty but we need to override gridEditable styles since the original
 // styles have too much padding for small spaces
 const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   th {
-    padding: 0 ${space(1)};
+    padding: 0 ${p => p.theme.space.md};
   }
   th:first-child {
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
   }
   th:last-child {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
   td {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   }
   td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
+    padding-right: ${p => p.theme.space.md};
+    padding-left: ${p => p.theme.space.xl};
   }
 `;

@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
-import PasswordForm from 'sentry/views/settings/account/passwordForm';
+import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -91,7 +91,7 @@ export default function AccountSecurity() {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={`${routePrefix}`}>
+                <TabList.Item key="settings" to={routePrefix}>
                   {t('Settings')}
                 </TabList.Item>
                 <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>

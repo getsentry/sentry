@@ -102,12 +102,10 @@ function ExplorerPanel() {
     createPR,
   } = useSeerExplorer();
 
-  const copySessionEnabled = Boolean(
-    sessionData?.status === 'completed' && !!runId && !!organization?.slug
-  );
-
+  const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks || [],
+    blocks: sessionData?.blocks,
+    status: sessionData?.status,
     organization,
     projects,
     enabled: copySessionEnabled,
@@ -330,10 +328,7 @@ function ExplorerPanel() {
   }, [setFocusedBlockIndex, textareaRef, setIsMinimized]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
-  const conversationsUrl =
-    runId && organization?.slug
-      ? getConversationsUrl(organization.slug, runId)
-      : undefined;
+  const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
 
   const handleOpenLangfuse = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -341,6 +336,13 @@ function ExplorerPanel() {
       window.open(langfuseUrl, '_blank');
     }
   }, [langfuseUrl]);
+
+  const handleOpenConversations = useCallback(() => {
+    // Command handler. Disabled in slash command menu for non-employees
+    if (conversationsUrl) {
+      window.open(conversationsUrl, '_blank');
+    }
+  }, [conversationsUrl]);
 
   const openFeedbackForm = useFeedbackForm();
 
@@ -376,6 +378,7 @@ function ExplorerPanel() {
         onNew: startNewSession,
         onFeedback: openFeedbackForm ? handleFeedback : undefined,
         onLangfuse: handleOpenLangfuse,
+        onConversations: handleOpenConversations,
       },
       onChangeSession: switchToRun,
       menuAnchorRef: sessionHistoryButtonRef,
@@ -488,10 +491,7 @@ function ExplorerPanel() {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
 
       if (e.key === 'Escape') {
-        if (isPolling && !readOnly && !interruptRequested && !isFileApprovalPending) {
-          e.preventDefault();
-          interruptRun();
-        } else if (readOnly || !isFileApprovalPending) {
+        if (readOnly || !isFileApprovalPending) {
           // Don't minimize if file approval is pending (Escape is used to reject)
           e.preventDefault();
           setIsMinimized(true);
@@ -529,11 +529,8 @@ function ExplorerPanel() {
   }, [
     isVisible,
     isMenuOpen,
-    isPolling,
     readOnly,
     focusedBlockIndex,
-    interruptRun,
-    interruptRequested,
     isMinimized,
     isFileApprovalPending,
     isQuestionPending,

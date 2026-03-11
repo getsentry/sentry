@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -14,16 +13,16 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
+} from 'sentry/views/navigation/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/primaryButtonOverlay';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
@@ -161,10 +160,10 @@ function useReminderCopywriting() {
     [Steps.SETUP_CODE_REVIEW]: {
       title: t('Start using Seer\u2019s AI Code Review'),
       description: t(
-        'Seer is enabled but Code Review is not configured for any repos. Configure Seer to automatically review PRs and flag potential issues.'
+        'Seer is enabled but Code Review is not configured. Configure Seer to automatically review PRs and flag potential issues.'
       ),
       pathname: hasLegacySeer
-        ? `/settings/${organization.slug}/seer/?tab=repos`
+        ? `/settings/${organization.slug}/#enablePrReviewTestGeneration`
         : `/settings/${organization.slug}/seer/onboarding/`,
     },
     [Steps.SETUP_DEFAULTS]: null,
@@ -189,7 +188,7 @@ export default function PrimaryNavSeerConfigReminder() {
     state,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -210,26 +209,28 @@ export default function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SeerButton
+      <SidebarButton
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          icon: <IconSeer />,
+        }}
       >
-        <IconSeer />
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
         />
-      </SeerButton>
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
-            <Flex justify="end">
+            <Flex justify="start">
               <LinkButton
-                to={{pathname: copy.pathname}}
+                to={copy.pathname}
                 priority="primary"
                 onClick={() => state.close()}
                 analyticsEventName="Seer Config Reminder: Configure Now Clicked"
@@ -244,12 +245,3 @@ export default function PrimaryNavSeerConfigReminder() {
     </Fragment>
   );
 }
-
-const SeerButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
-`;

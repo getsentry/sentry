@@ -13,17 +13,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import capture_exception
 
-from sentry import analytics, roles
+from sentry import analytics, audit_log, roles
 from sentry.analytics.events.user_removed import UserRemovedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
+from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -355,9 +357,14 @@ class UserDetailsEndpoint(UserEndpoint):
 
             if is_updating_superuser or is_updating_staff:
                 if not user_can_elevate(user):
+                    # Revoke superuser/staff privileges if the user is not a member of the default organization.
+                    # Clear validated_data so only the revocation fields are persisted,
+                    # avoiding side effects from other fields in the rejected request.
+                    serializer.validated_data.clear()
+                    serializer.save(is_superuser=False, is_staff=False)
                     return Response(
                         {
-                            "detail": "User must be a member to the default organization to enable SuperUser mode."
+                            "detail": "User must be a member to the default organization to enable SuperUser mode. Superuser/staff privileges have been revoked."
                         },
                         status=status.HTTP_403_FORBIDDEN,
                     )
@@ -459,6 +466,19 @@ class UserDetailsEndpoint(UserEndpoint):
                     organization_id=member_mapping.organization_id,
                     organization_member_id=member_mapping.organizationmember_id,
                 )
+                log_service.record_audit_log(
+                    event=AuditLogEvent(
+                        organization_id=member_mapping.organization_id,
+                        date_added=django_timezone.now(),
+                        event_id=audit_log.get_event_id("MEMBER_REMOVE"),
+                        actor_user_id=request.user.id,
+                        actor_label=request.user.username,
+                        ip_address=request.META["REMOTE_ADDR"],
+                        target_object_id=member_mapping.organizationmember_id,
+                        target_user_id=user.id,
+                        data={"email": user.email},
+                    )
+                )
 
         logging_data = {
             "actor_id": request.user.id,
@@ -493,6 +513,8 @@ class UserDetailsEndpoint(UserEndpoint):
             )
         else:
             User.objects.filter(id=user.id).update(is_active=False)
+            for auth_identity in AuthIdentity.objects.filter(user_id=user.id):
+                auth_identity.delete()
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,

@@ -313,7 +313,7 @@ describe('useConversation', () => {
     const node = result.current.nodes[0];
     const value = node?.value as {description?: string; name?: string};
     expect(value?.description).toBe('AI generation');
-    expect(value?.name).toBe('My AI Agent');
+    expect(value?.name).toBe('AI generation');
   });
 
   it('filters to only gen_ai spans', async () => {

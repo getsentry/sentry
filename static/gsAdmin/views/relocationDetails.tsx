@@ -57,7 +57,7 @@ type RelocationArtifact = {
 };
 
 // A map of each expected relocation artifact to a user-legible description of what it is.
-const expectedRelocationArtifacts: Map<string, string> = new Map(
+const expectedRelocationArtifacts = new Map<string, string>(
   Object.entries({
     'conf/cloudbuild.yaml':
       'The execution script that Google CloudBuild will run when validating this relocation.',
@@ -398,12 +398,12 @@ function RelocationDetails() {
           </DetailLabel>
           <DetailLabel title="Autopause">
             {relocationData.scheduledPauseAtStep
-              ? `${titleCase(relocationData.scheduledPauseAtStep)}`
+              ? titleCase(relocationData.scheduledPauseAtStep)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Owner Notified Of">
             {relocationData.latestNotified
-              ? `${titleCase(relocationData.latestNotified)}`
+              ? titleCase(relocationData.latestNotified)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Unclaimed Users Last Notified">
@@ -438,7 +438,7 @@ function RelocationDetails() {
         }
 
         acc.push(
-          <span key={`${step}`}>
+          <span key={step}>
             {acc.length > 0 ? <span> | </span> : null}
             {text}
           </span>

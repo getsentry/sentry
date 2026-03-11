@@ -8,23 +8,23 @@ import {
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -70,6 +70,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     isUnhandled,
   } = data as Group;
   const organization = useOrganization();
+  const location = useLocation();
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
@@ -122,16 +123,17 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
-        <GlobalSelectionLink
+        <Link
           to={{
             pathname: issuesPath,
             query: {
+              ...extractSelectionParameters(location.query),
               query: `logger:${logger}`,
             },
           }}
         >
           {logger}
-        </GlobalSelectionLink>
+        </Link>
       </LoggerAnnotation>
     ) : null,
     ...(annotations?.map((annotation, key) => (
@@ -165,14 +167,14 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
 const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   line-height: 1.2;
-  min-height: ${space(2)};
+  min-height: ${p => p.theme.space.xl};
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
@@ -204,7 +206,7 @@ const ShadowlessProjectBadge = styled(ProjectBadge)`
 
 const CommentsLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.tokens.content.primary};

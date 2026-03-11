@@ -15,7 +15,6 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger(__name__)
 
 SLOW_CONDITION_MATCHES = ["event_frequency"]
-PROJECT_ID_BUFFER_LIST_KEY = "project_id_buffer_list"
 
 
 def get_match_function(match_name: str) -> Callable[..., bool] | None:

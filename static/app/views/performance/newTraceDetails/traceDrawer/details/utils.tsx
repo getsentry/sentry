@@ -4,7 +4,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction, Level} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
@@ -15,6 +15,8 @@ import {
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {
@@ -64,7 +66,7 @@ export function getSearchInExploreTarget(
   if (kind === TraceDrawerActionKind.INCLUDE) {
     search.setFilterValues(key, [value]);
   } else if (kind === TraceDrawerActionKind.EXCLUDE) {
-    search.setFilterValues(`!${key}`, [`${value}`]);
+    search.setFilterValues(`!${key}`, [value]);
   } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {
@@ -258,4 +260,50 @@ export function tryParseJson(value: unknown): unknown {
   } catch {
     return value;
   }
+}
+
+function containsFilteredPlaceholder(value: string): boolean {
+  return value.includes('[Filtered]');
+}
+export function parseJsonWithFix(value: string): {
+  fixedInvalidJson: boolean;
+  parsed: any;
+} {
+  try {
+    const parsed = JSON.parse(value);
+    return {parsed, fixedInvalidJson: false};
+  } catch {
+    // Only treat [Filtered] as unfixable when JSON.parse actually fails.
+    // Valid JSON that happens to contain "[Filtered]" in a quoted string
+    // will have been parsed successfully above.
+    if (containsFilteredPlaceholder(value)) {
+      return {parsed: null, fixedInvalidJson: true};
+    }
+
+    try {
+      const fixed = fixJson(value);
+      const parsed = JSON.parse(fixed);
+      return {parsed, fixedInvalidJson: true};
+    } catch {
+      // fixJson could not repair the string (e.g. bad escape sequences).
+      // Return a graceful result so the caller can fall back to the raw string.
+      return {parsed: null, fixedInvalidJson: true};
+    }
+  }
+}
+
+export type TraceIssueSeverityClassName = Level | 'occurrence' | 'default';
+
+export function getTraceIssueSeverityClassName(
+  issue: TraceTree.TraceIssue
+): TraceIssueSeverityClassName {
+  const level = issue.level;
+
+  if (issue.event_type === 'error') {
+    return level;
+  }
+
+  // Only consider error and fatal levels for non-error issues,
+  // otherwise return 'occurrence'
+  return ['error', 'fatal'].includes(level) ? level : 'occurrence';
 }

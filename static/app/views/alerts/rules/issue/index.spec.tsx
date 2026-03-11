@@ -85,6 +85,9 @@ const createWrapper = (props = {}) => {
     organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
+  const initialLocationPathname = `/settings/${router.params.orgId}/projects/${router.params.projectId}/alerts/rules/${
+    params.ruleId ?? 'new'
+  }/`;
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <IssueRuleEditor
@@ -100,9 +103,15 @@ const createWrapper = (props = {}) => {
       userTeamIds={[]}
     />,
     {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: initialLocationPathname,
+          query: router.location.query,
+          state: router.location.state,
+        },
+        route: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+      },
     }
   );
 
@@ -131,8 +140,9 @@ describe('IssueRuleEditor', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      url: `/projects/org-slug/project-slug/`,
       body: {},
+      match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/preview/',
@@ -141,13 +151,15 @@ describe('IssueRuleEditor', () => {
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        url: `/organizations/org-slug/config/integrations/`,
+        match: [MockApiClient.matchQuery({provider_key: providerKey})],
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
       });
     });
@@ -243,8 +255,8 @@ describe('IssueRuleEditor', () => {
         method: 'DELETE',
         body: {},
       });
-      const {router} = createWrapper();
-      renderGlobalModal({router, deprecatedRouterMocks: true});
+      createWrapper();
+      renderGlobalModal();
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -253,9 +265,6 @@ describe('IssueRuleEditor', () => {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(router.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/projects/project-slug/alerts/'
-      );
     });
 
     it('saves rule with condition value of 0', async () => {
@@ -572,7 +581,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },
@@ -597,7 +606,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },

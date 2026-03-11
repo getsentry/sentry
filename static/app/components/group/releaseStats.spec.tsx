@@ -12,6 +12,15 @@ describe('GroupReleaseStats', () => {
   const project = ProjectFixture();
   const group = GroupFixture();
 
+  const defaultProps = {
+    group,
+    project,
+    organization,
+    allEnvironments: GroupFixture(),
+    environments: [],
+    currentRelease: undefined,
+  } satisfies React.ComponentProps<typeof GroupReleaseStats>;
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
@@ -19,22 +28,8 @@ describe('GroupReleaseStats', () => {
     });
   });
 
-  const createWrapper = (
-    props: Partial<React.ComponentProps<typeof GroupReleaseStats>>
-  ) =>
-    render(
-      <GroupReleaseStats
-        group={group}
-        project={project}
-        organization={organization}
-        allEnvironments={GroupFixture()}
-        environments={[]}
-        {...props}
-      />
-    );
-
   it('renders all environments', () => {
-    createWrapper({});
+    render(<GroupReleaseStats {...defaultProps} />);
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
@@ -45,9 +40,12 @@ describe('GroupReleaseStats', () => {
   });
 
   it('renders specific environments', () => {
-    createWrapper({
-      environments: EnvironmentsFixture().map(environment => environment.displayName),
-    });
+    render(
+      <GroupReleaseStats
+        {...defaultProps}
+        environments={EnvironmentsFixture().map(environment => environment.displayName)}
+      />
+    );
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();

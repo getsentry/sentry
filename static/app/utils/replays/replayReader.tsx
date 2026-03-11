@@ -4,7 +4,6 @@ import memoize from 'lodash/memoize';
 import {duration, type Duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
-import {domId} from 'sentry/utils/domId';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
@@ -214,7 +213,7 @@ export default class ReplayReader {
     clipWindow,
     eventTimestampMs,
   }: RequiredNotNull<ReplayReaderParams>) {
-    this._cacheKey = domId('replayReader-');
+    this._cacheKey = 'replayReader-' + Math.random().toString(36).substring(2, 12);
     this._fetching = fetching;
 
     if (replayRecord.is_archived) {

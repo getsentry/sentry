@@ -33,7 +33,6 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import {space} from 'sentry/styles/space';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
@@ -364,7 +363,7 @@ function NativeFrame({
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
             ) : isDartAsyncSuspensionFrame ? (
-              `${t('Dart')}`
+              t('Dart')
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -541,24 +540,24 @@ const RowHeader = styled('span')<{
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Adjusted to account for the extra element */
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Adjusted to account for the extra element */
   grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
-  column-gap: ${space(1)};
+  column-gap: ${p => p.theme.space.md};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.secondary}`};
+      ? p.theme.colors.surface200
+      : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
-    padding: ${space(0.5)} ${space(1.5)};
+    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${p => p.theme.space.xl}; /* Matches the updated desktop layout */
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
     min-height: 32px;
   }
 `;
@@ -580,7 +579,7 @@ const ShowHideButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};
   }

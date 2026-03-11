@@ -15,7 +15,6 @@ import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -56,11 +55,6 @@ type Props = {
    * Defaults to `/organizations/${orgSlug}/issues/`
    */
   endpointPath?: string;
-  /**
-   * Extra query params to include in the issue details link.
-   * Useful for feature-specific deep-linking.
-   */
-  issueLinkExtraQuery?: Record<string, string>;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -104,7 +98,6 @@ function GroupList({
   renderEmptyMessage,
   renderErrorMessage,
   customStatsPeriod,
-  issueLinkExtraQuery,
   queryFilterDescription,
   source,
   query,
@@ -298,8 +291,8 @@ function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns: GroupListColumn[] = useMemo(
-    () => [...withColumns, 'firstSeen', 'lastSeen'],
+  const columns = useMemo(
+    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
     [withColumns]
   );
 
@@ -350,7 +343,6 @@ function GroupList({
                 return (
                   <StreamGroup
                     key={group.id}
-                    id={group.id}
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
@@ -362,7 +354,6 @@ function GroupList({
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}
-                    issueLinkExtraQuery={issueLinkExtraQuery}
                     query={query}
                     onAssigneeChange={newAssignee =>
                       updateQueryCacheAssigneeChange(group.id, newAssignee)
@@ -385,7 +376,7 @@ function GroupList({
 export default GroupList;
 
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};

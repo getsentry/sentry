@@ -178,8 +178,7 @@ export const GridHeadCellStatic = styled('th')`
   justify-content: center;
 
   &:first-child {
-    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
-      ${p => p.theme.space['2xl']};
+    padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
   }
 `;
 
@@ -240,8 +239,7 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md}
-      ${p => p.theme.space['2xl']};
+    padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
   }
 `;
 
@@ -288,11 +286,11 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   height: ${p => {
     const numOfRows = p.dataRows;
     // 1px for the border
-    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
-    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
+    const fixedBodyHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+    const fallbackTotalHeight = GRID_HEAD_ROW_HEIGHT + fixedBodyHeight;
 
-    return height;
-  }}px;
+    return `var(--grid-editable-resizer-height, ${fallbackTotalHeight}px)`;
+  }};
 
   padding-left: 5px;
   padding-right: 5px;

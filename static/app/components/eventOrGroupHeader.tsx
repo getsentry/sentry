@@ -9,7 +9,6 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -27,11 +26,6 @@ interface EventOrGroupHeaderProps {
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  /**
-   * Extra query params to include in the issue details link.
-   * Useful for feature-specific deep-linking.
-   */
-  issueLinkExtraQuery?: Record<string, string>;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -81,7 +75,6 @@ function usePreloadGroupOnHover({
  */
 function EventOrGroupHeader({
   data,
-  issueLinkExtraQuery,
   query,
   onClick,
   hideIcons,
@@ -133,7 +126,6 @@ function EventOrGroupHeader({
       referrer: source,
       location,
       query,
-      extraQuery: issueLinkExtraQuery,
     });
 
     return (
@@ -163,7 +155,7 @@ function EventOrGroupHeader({
 }
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.font.size.lg};
   & em {
     font-size: ${p => p.theme.font.size.md};

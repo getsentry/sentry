@@ -1,4 +1,5 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
@@ -33,7 +34,12 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/autofix/setup/${checkWriteAccess ? '?check_write_access=true' : ''}`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/`, {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+    }),
+    {
+      query: checkWriteAccess ? {check_write_access: true} : undefined,
+    },
   ];
 }
 

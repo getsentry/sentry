@@ -47,10 +47,8 @@ type ChartProcessingContext = {
 /**
  * Creates grid helpers for ASCII rendering
  */
-function createGridHelpers(rows: number, cols: number): GridHelpers {
-  const grid: string[][] = Array.from({length: rows}, () =>
-    Array.from({length: cols}, () => ' ')
-  );
+export function createGridHelpers(rows: number, cols: number): GridHelpers {
+  const grid = Array.from({length: rows}, () => Array.from({length: cols}, () => ' '));
 
   const setCell = (r: number, c: number, ch: string) => {
     if (r < 0 || r >= grid.length) return;
@@ -122,7 +120,7 @@ function computeLeftShiftPx(viewportWidth: number): number {
  */
 function createIsExcluded(): (el: Element | null) => boolean {
   return (el: Element | null): boolean => {
-    let node: Element | null = el;
+    let node = el;
     while (node) {
       if ((node as HTMLElement).dataset?.seerExplorerRoot !== undefined) {
         return true;
@@ -704,7 +702,7 @@ function renderTextNodes(
   } = context;
 
   const isWithinChart = (el: Element | null): boolean => {
-    let node: Element | null = el;
+    let node = el;
     while (node) {
       if (chartContainers.has(node)) {
         return true;
@@ -715,7 +713,7 @@ function renderTextNodes(
   };
 
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node: Node | null = walker.nextNode();
+  let node = walker.nextNode();
 
   while (node) {
     const textNode = node as Text;
@@ -834,13 +832,31 @@ function renderTextNodes(
 /**
  * Builds the final result string with footnotes
  */
-function buildResult(
+export function buildResult(
   gridHelpers: GridHelpers,
   chartTables: string[],
   projectSlugs: string[]
 ): string {
   const url = window.location.href;
-  let result = url + '\n' + gridHelpers.grid.map(row => row.join('')).join('\n');
+
+  // Step 1: Strip trailing spaces from each row. The grid is initialized as
+  // all-space cells so rows are always full-width;
+  let lines = gridHelpers.grid.map(row => row.join('').trimEnd());
+
+  // Step 2: Remove the common leading whitespace shared by every non-empty
+  // row. After the nav-bar left-shift, all content starts at the same offset
+  // which produces a useless left margin of spaces.
+  const minIndent = lines
+    .filter(l => l.length > 0)
+    .reduce((min, l) => Math.min(min, l.length - l.trimStart().length), Infinity);
+  if (minIndent > 0 && Number.isFinite(minIndent)) {
+    lines = lines.map(l => (l.length > 0 ? l.slice(minIndent) : l));
+  }
+
+  // Step 3: Drop all blank rows
+  const nonBlank = lines.filter(l => l.length > 0);
+
+  let result = url + '\n' + nonBlank.join('\n');
 
   if (chartTables.length > 0 || projectSlugs.length > 0) {
     result += '\n\n=== FOOTNOTES ===\n\n';

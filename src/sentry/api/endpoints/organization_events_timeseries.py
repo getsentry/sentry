@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -8,7 +7,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -98,30 +97,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             }
         }
     )
-
-    def get_features(
-        self, organization: Organization, request: Request
-    ) -> Mapping[str, bool | None]:
-        feature_names = [
-            "organizations:performance-use-metrics",
-            "organizations:dashboards-mep",
-            "organizations:mep-rollout-flag",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=request.user,
-        )
-        return (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {
-                feature_name: features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-                for feature_name in feature_names
-            }
-        )
 
     def get_request_querysource(self, request: Request, referrer: str) -> QuerySource:
         if referrer in SENTRY_BACKEND_REFERRERS:
@@ -300,20 +275,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
         self._emit_analytics_event(organization, referrer)
 
-        batch_features = self.get_features(organization, request)
-        use_metrics = (
-            batch_features.get("organizations:performance-use-metrics", False)
-            or batch_features.get("organizations:dashboards-mep", False)
-            or (
-                batch_features.get("organizations:mep-rollout-flag", False)
-                and features.has(
-                    "organizations:dynamic-sampling",
-                    organization=organization,
-                    actor=request.user,
-                )
-            )
-        )
-
         if top_events > 0:
             raw_groupby = self.get_field_list(organization, request, param_name="groupBy")
             raw_orderby = self.get_orderby(request)
@@ -379,7 +340,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             zerofill_results=True,
             comparison_delta=comparison_delta,
             allow_metric_aggregates=allow_metric_aggregates,
-            has_metrics=use_metrics,
+            has_metrics=True,
             query_source=query_source,
             fallback_to_transactions=True,
             transform_alias_to_input_format=True,

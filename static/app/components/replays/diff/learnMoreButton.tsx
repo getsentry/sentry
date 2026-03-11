@@ -1,5 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
-import {ClassNames} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -9,7 +9,6 @@ import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function Resource({
   title,
@@ -63,6 +62,7 @@ function Buttons() {
 export default function LearnMoreButton(
   hoverCardProps: Partial<ComponentProps<typeof Hovercard>>
 ) {
+  const theme = useTheme();
   return (
     <ClassNames>
       {({css}) => (
@@ -71,7 +71,7 @@ export default function LearnMoreButton(
             {...hoverCardProps}
             body={<Buttons />}
             bodyClassName={css`
-              padding: ${space(1)};
+              padding: ${theme.space.md};
             `}
           >
             <Button
@@ -93,7 +93,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`
@@ -107,6 +107,6 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   height: auto;
 `;

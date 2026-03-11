@@ -14,7 +14,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -326,7 +325,7 @@ function ResolveActions({
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
-        projectSlug={projectSlug}
+        projectSlug={projectSlug!}
       />
     ));
   }
@@ -399,9 +398,9 @@ const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
 const SetupReleases = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   text-align: center;
   color: ${p => p.theme.colors.gray500};
   width: 250px;
@@ -411,7 +410,7 @@ const SetupReleases = styled('div')`
 
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`

@@ -139,6 +139,15 @@ export type PermissionObj = {
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
+export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'Distribution',
+  help: 'Pre-release app distribution for trusted testers.',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['project:distribution']},
+  },
+};
+
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
 // User-friendly way here.
@@ -171,14 +180,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       admin: {label: 'Admin', scopes: ['project:releases']},
     },
   },
-  {
-    resource: 'Distribution',
-    help: 'Pre-release app distribution for trusted testers.',
-    choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['project:distribution']},
-    },
-  },
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
   {
     resource: 'Event',
     label: 'Issue & Event',
@@ -729,7 +731,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
-export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
+export const USE_TANSTACK_DEVTOOL = process.env.USE_TANSTACK_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

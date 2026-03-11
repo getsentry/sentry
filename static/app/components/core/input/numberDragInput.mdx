@@ -19,9 +19,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/input';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/input');
 
 `<NumberDragInput>` is a specialized numeric input that combines typing and dragging interactions. Users can enter values directly or click and drag the arrow indicators to adjust values dynamically. This provides an intuitive, continuous way to explore numeric ranges.
 

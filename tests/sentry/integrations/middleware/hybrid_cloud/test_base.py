@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from pytest import raises
 from rest_framework import status
@@ -17,13 +18,13 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
 
-def error_regions(region: Region, invalid_region_names: Iterable[str]) -> str:
+def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
-    return region.name
+    return HttpResponse(region.name, status=200)
 
 
 class ExampleRequestParser(BaseRequestParser):
@@ -34,8 +35,8 @@ class ExampleRequestParser(BaseRequestParser):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = [
-        Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
     ]
     factory = RequestFactory()
 
@@ -67,13 +68,15 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos(self, mock__get_response: MagicMock) -> None:
-        mock__get_response.side_effect = lambda region: region.name
+        mock__get_response.side_effect = lambda region: HttpResponse(region.name, status=200)
 
         response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
 
         for region in self.region_config:
-            assert response_map[region.name].response == region.name
+            response = response_map[region.name].response
+            assert isinstance(response, HttpResponse)
+            assert response.content == region.name.encode()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_region_silo")
@@ -84,7 +87,9 @@ class BaseRequestParserTest(TestCase):
 
         response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
-        assert response_map["us"].response == "us"
+        us_response = response_map["us"].response
+        assert isinstance(us_response, HttpResponse)
+        assert us_response.content == b"us"
         assert type(response_map["eu"].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -119,7 +124,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 2
         for payload in payloads:
-            assert payload.region_name in ["us", "eu"]
+            assert payload.cell_name in ["us", "eu"]
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
@@ -138,7 +143,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 1
         for payload in payloads:
-            assert payload.region_name is None
+            assert payload.cell_name is None
             assert payload.mailbox_name == "github:codecov:1"
             assert payload.request_path
             assert payload.request_method

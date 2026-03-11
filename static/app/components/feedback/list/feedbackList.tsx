@@ -16,10 +16,10 @@ import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems'
 import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import type {InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 function NoFeedback() {
   return (
@@ -38,7 +38,7 @@ interface Props {
 export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? ['infinite', ''],
+    queryKey: listQueryKey ?? (['infinite', ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 
@@ -109,7 +109,7 @@ const Centered = styled('div')`
 `;
 
 const NoFeedbackWrapper = styled('div')`
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
 

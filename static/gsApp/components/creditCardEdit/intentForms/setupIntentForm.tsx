@@ -27,7 +27,7 @@ function SetupIntentForm(props: IntentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: props.intentDataEndpoint,
+    endpoint: props.intentDataQueryKey[0],
   });
 
   const {mutateAsync: updateSubscription} = useMutation({

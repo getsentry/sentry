@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
@@ -12,13 +13,12 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   SessionFieldWithOperation,
   SessionStatus,
@@ -503,13 +503,24 @@ export default function ReleaseComparisonChart({
         <Fragment>
           {defined(issuesTotals?.handled) ? (
             <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseHandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  release.version,
-                  {start, end, period: period ?? undefined}
-                )}
+              <Link
+                to={{
+                  ...getReleaseHandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    release.version,
+                    {start, end, period: period ?? undefined}
+                  ),
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    ...getReleaseHandledIssuesUrl(
+                      organization.slug,
+                      project.id,
+                      release.version,
+                      {start, end, period: period ?? undefined}
+                    ).query,
+                  },
+                }}
               >
                 {tct('[count] handled [issues]', {
                   count: issuesTotals?.handled
@@ -519,18 +530,29 @@ export default function ReleaseComparisonChart({
                     : 0,
                   issues: tn('issue', 'issues', issuesTotals?.handled),
                 })}
-              </GlobalSelectionLink>
+              </Link>
             </Tooltip>
           ) : null}
           {defined(issuesTotals?.unhandled) ? (
             <Tooltip title={t('Open in issues')}>
-              <GlobalSelectionLink
-                to={getReleaseUnhandledIssuesUrl(
-                  organization.slug,
-                  project.id,
-                  release.version,
-                  {start, end, period: period ?? undefined}
-                )}
+              <Link
+                to={{
+                  ...getReleaseUnhandledIssuesUrl(
+                    organization.slug,
+                    project.id,
+                    release.version,
+                    {start, end, period: period ?? undefined}
+                  ),
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    ...getReleaseUnhandledIssuesUrl(
+                      organization.slug,
+                      project.id,
+                      release.version,
+                      {start, end, period: period ?? undefined}
+                    ).query,
+                  },
+                }}
               >
                 {tct('[count] unhandled [issues]', {
                   count: issuesTotals?.unhandled
@@ -540,7 +562,7 @@ export default function ReleaseComparisonChart({
                     : 0,
                   issues: tn('issue', 'issues', issuesTotals?.unhandled),
                 })}
-              </GlobalSelectionLink>
+              </Link>
             </Tooltip>
           ) : null}
         </Fragment>
@@ -1167,7 +1189,7 @@ const ShowMoreWrapper = styled('div')`
     cursor: pointer;
   }
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
@@ -1180,6 +1202,6 @@ const ShowMoreTitle = styled('div')`
   align-items: center;
   justify-content: flex-start;
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space['2xs']};
   }
 `;

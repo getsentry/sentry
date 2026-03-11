@@ -173,7 +173,7 @@ describe('TransactionsList', () => {
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');
-      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
+      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
 
     it('renders a trend view', async () => {
@@ -294,7 +294,7 @@ describe('TransactionsList', () => {
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');
-      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
+      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
       const filterDropdown = screen.getByRole('button', {
         name: 'Filter Transactions',
@@ -329,7 +329,7 @@ describe('TransactionsList', () => {
         // now the sort is descending by count
         expect(
           screen.getAllByTestId('grid-cell').map(e => e.textContent?.trim())
-        ).toEqual(['/b', '1000', '/a', '100']);
+        ).toEqual(['/b', '1,000', '/a', '100']);
       });
     });
 
@@ -393,7 +393,7 @@ describe('TransactionsList', () => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');
-      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
+      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
   });
 });

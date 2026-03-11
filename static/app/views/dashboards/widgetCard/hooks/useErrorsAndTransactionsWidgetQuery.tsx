@@ -8,6 +8,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -73,6 +74,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     skipDashboardFilterParens,
     mepSetting,
     onDemandControlContext,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -101,7 +103,8 @@ export function useErrorsAndTransactionsSeriesQuery(
         organization,
         pageFilters,
         isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.DISCOVER,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       const splitDiscoverExtras = getQueryExtraForSplittingDiscover(
@@ -140,7 +143,9 @@ export function useErrorsAndTransactionsSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -148,7 +153,14 @@ export function useErrorsAndTransactionsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, isMEPEnabled, useOnDemandMetrics]);
+  }, [
+    filteredWidget,
+    organization,
+    pageFilters,
+    isMEPEnabled,
+    useOnDemandMetrics,
+    widgetInterval,
+  ]);
 
   const createQueryFn = useCallback(
     (queryIndex: number) =>
@@ -160,7 +172,8 @@ export function useErrorsAndTransactionsSeriesQuery(
             organization,
             pageFilters,
             DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType)
+            getReferrer(filteredWidget.displayType),
+            widgetInterval
           );
 
           requestData.queryExtras = {
@@ -209,7 +222,7 @@ export function useErrorsAndTransactionsSeriesQuery(
 
         return fetchDataQuery<ErrorsAndTransactionsSeriesResponse>(context);
       },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue]
+    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue, widgetInterval]
   );
 
   const hasQueueFeature = organization.features.includes(
@@ -310,7 +323,7 @@ export function useErrorsAndTransactionsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -402,7 +415,9 @@ export function useErrorsAndTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -523,7 +538,7 @@ export function useErrorsAndTransactionsTableQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

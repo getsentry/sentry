@@ -347,7 +347,7 @@ describe('HTTPSamplesPanel', () => {
       });
 
       samplesRequestMock = MockApiClient.addMockResponse({
-        url: `/api/0/organizations/${organization.slug}/spans-samples/`,
+        url: `/organizations/${organization.slug}/spans-samples/`,
         method: 'GET',
         body: {
           data: [
@@ -404,7 +404,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(samplesRequestMock).toHaveBeenNthCalledWith(
         1,
-        `/api/0/organizations/${organization.slug}/spans-samples/`,
+        `/organizations/${organization.slug}/spans-samples/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({

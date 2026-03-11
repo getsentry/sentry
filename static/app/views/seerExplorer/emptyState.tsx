@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface EmptyStateProps {
   isError?: boolean;
@@ -46,12 +45,12 @@ const Container = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   text-align: center;
 `;
 
 const Text = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;

@@ -21,7 +21,6 @@ import {
   IconSearch,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventsStats} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -109,7 +108,7 @@ export function mapResponseToTree(response: TreeResponseItem[]): TreeContainer {
   // Each item of the response is a component in the tree with a path
   for (const item of response) {
     const path = item['function.nextjs.path'];
-    let currentFolder: TreeContainer = root;
+    let currentFolder = root;
 
     // Custom spans with span.op:function.nextjs will not have a component type and cannot be added to the tree
     const componentType = item['function.nextjs.component_type'];
@@ -340,7 +339,7 @@ function TreeNodeRenderer({
                 showUnderline={!exploreLink}
                 body={
                   <OneLineCodeBlock>
-                    <code>{`${itemPath.join('/')}`}</code>
+                    <code>{itemPath.join('/')}</code>
                     <Button
                       size="zero"
                       priority="transparent"
@@ -382,7 +381,7 @@ function TreeNodeRenderer({
 }
 
 const HeaderCell = styled('div')`
-  padding: ${space(2)} ${space(0.75)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.sm};
   text-transform: uppercase;
   font-weight: 600;
   color: ${p => p.theme.tokens.content.secondary};
@@ -398,7 +397,7 @@ const HeaderCell = styled('div')`
 const PathWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   & > svg {
     flex-shrink: 0;
@@ -419,8 +418,8 @@ const OneLineCodeBlock = styled('pre')`
   justify-content: space-between;
   font-size: ${p => p.theme.font.size.sm};
   font-family: ${p => p.theme.font.family.mono};
-  gap: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   margin: 0;
   width: max-content;
   max-width: 100%;
@@ -433,19 +432,19 @@ const TreeGrid = styled('div')`
 
   & > * {
     text-align: right;
-    padding: ${space(0.75)} ${space(1.5)};
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
     background-color: ${p => p.theme.tokens.background.primary};
     line-height: 1.1;
   }
 
   & > *:nth-child(4n + 1) {
     text-align: left;
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
     min-width: 0;
   }
 
   & > *:nth-child(4n) {
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
 
   & > *:nth-child(8n + 1),
@@ -459,5 +458,5 @@ const TreeGrid = styled('div')`
 const StyledPanel = styled(Panel)`
   max-height: 400px;
   overflow-y: auto;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

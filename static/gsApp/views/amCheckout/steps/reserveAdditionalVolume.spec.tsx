@@ -75,8 +75,8 @@ describe('ReserveAdditionalVolume', () => {
 
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
     billingConfig.planList = billingConfig.planList.filter(plan => plan.userSelectable);
-    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business')!;
-    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf')!;
+    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business');
+    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
       checkoutTier: PlanTier.AM2,
@@ -105,7 +105,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });
@@ -210,7 +210,7 @@ describe('ReserveAdditionalVolume', () => {
     let subscription: Subscription;
 
     const billingConfig = BillingConfigFixture(PlanTier.AM3);
-    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business')!;
+    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
       checkoutTier: PlanTier.AM3,
@@ -240,7 +240,7 @@ describe('ReserveAdditionalVolume', () => {
         body: {},
       });
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${organization.slug}/`,
+        url: `/customers/${organization.slug}/`,
         method: 'GET',
         body: {},
       });

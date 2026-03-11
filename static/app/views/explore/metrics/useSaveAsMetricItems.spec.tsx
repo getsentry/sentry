@@ -10,8 +10,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
+import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
+import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -24,7 +28,7 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'tracemetrics-saved-queries'],
+    features: ['tracemetrics-enabled', 'tracemetrics-overlay-charts-ui'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
@@ -154,30 +158,50 @@ describe('useSaveAsMetricItems', () => {
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
   });
 
-  it('should return empty array when metrics saved queries UI is not enabled', () => {
-    const orgWithoutFeature = OrganizationFixture({
-      features: [],
+  it('formats add-to-dashboard submenu labels for multiple visualizes', () => {
+    const yAxis1 = 'p50(value,metric.a,counter,-)';
+    const yAxis2 = 'p75(value,metric.a,counter,-)';
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        cursor: '',
+        fields: [],
+        sortBys: [],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction(yAxis1), new VisualizeFunction(yAxis2)],
+        aggregateSortBys: [{field: yAxis1, kind: 'desc'}],
+      }),
     });
 
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
           interval: '5m',
-        }),
-      {
-        wrapper: function ({children}: {children?: React.ReactNode}) {
-          return (
-            <OrganizationContext.Provider value={orgWithoutFeature}>
-              <QueryClientProvider client={queryClient}>
-                <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
-              </QueryClientProvider>
-            </OrganizationContext.Provider>
-          );
+          metric: [encodedMetricQuery],
         },
-      }
+      })
     );
 
-    const saveAsItems = result.current;
-    expect(saveAsItems).toEqual([]);
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
+
+    const addToDashboardItem = result.current.find(
+      item => item.key === 'add-to-dashboard'
+    ) as {children?: Array<{key: string; label: string}>} | undefined;
+
+    expect(addToDashboardItem).toBeDefined();
+    expect(addToDashboardItem?.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'add-to-dashboard-0',
+          label: 'A: p50, p75(metric.a)',
+        }),
+      ])
+    );
   });
 });

@@ -22,7 +22,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -115,11 +114,10 @@ export default function GroupSidebar({
     const issues: React.ReactNode[] = [];
     (group.pluginIssues || []).forEach(plugin => {
       const issue = plugin.issue;
-      // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
           <Fragment key={plugin.slug}>
-            <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
+            <span>{`${plugin.shortName || plugin.name}: `}</span>
             <a href={issue.url}>
               {typeof issue.label === 'object' ? issue.label.id : issue.label}
             </a>
@@ -316,12 +314,12 @@ const Container = styled('div')`
 const ExternalIssues = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const TitleNumber = styled('span')`

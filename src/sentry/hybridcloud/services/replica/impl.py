@@ -262,7 +262,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 slug=slug_reservation.slug,
                 organization_id=slug_reservation.organization_id,
                 user_id=slug_reservation.user_id,
-                region_name=slug_reservation.region_name,
+                cell_name=slug_reservation.region_name,
                 reservation_type=slug_reservation.reservation_type,
                 organization_slug_reservation_id=slug_reservation.id,
             )

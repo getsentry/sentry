@@ -5,11 +5,12 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -17,8 +18,9 @@ export function GithubCopilotIntegrationCta() {
   const organization = useOrganization();
   const user = useUser();
 
-  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
 
   const handleInstallClick = useCallback(() => {
     trackAnalytics('coding_integration.install_clicked', {

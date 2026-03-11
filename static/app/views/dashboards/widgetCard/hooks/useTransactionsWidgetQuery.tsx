@@ -9,6 +9,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -61,6 +62,7 @@ export function useTransactionsSeriesQuery(
     skipDashboardFilterParens,
     mepSetting,
     onDemandControlContext,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -89,7 +91,8 @@ export function useTransactionsSeriesQuery(
         organization,
         pageFilters,
         isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.TRANSACTIONS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       // Handle on-demand metrics
@@ -124,7 +127,9 @@ export function useTransactionsSeriesQuery(
 
       // Build the API query key for events-stats endpoint
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -132,7 +137,14 @@ export function useTransactionsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, isMEPEnabled, useOnDemandMetrics]);
+  }, [
+    filteredWidget,
+    organization,
+    pageFilters,
+    isMEPEnabled,
+    useOnDemandMetrics,
+    widgetInterval,
+  ]);
 
   // Create stable queryFn that uses queue
   const createQueryFn = useCallback(
@@ -146,7 +158,8 @@ export function useTransactionsSeriesQuery(
             organization,
             pageFilters,
             DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType)
+            getReferrer(filteredWidget.displayType),
+            widgetInterval
           );
 
           requestData.queryExtras = {
@@ -189,7 +202,7 @@ export function useTransactionsSeriesQuery(
         // Fallback: call directly if queue not available
         return fetchDataQuery<TransactionsSeriesResponse>(context);
       },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue]
+    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue, widgetInterval]
   );
 
   // Check if organization has the async queue feature
@@ -257,7 +270,7 @@ export function useTransactionsSeriesQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -368,7 +381,9 @@ export function useTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -474,7 +489,7 @@ export function useTransactionsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

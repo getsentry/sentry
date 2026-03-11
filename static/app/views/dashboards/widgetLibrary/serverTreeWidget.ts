@@ -22,6 +22,7 @@ export const SERVER_TREE_WIDGET_TEMPLATE: WidgetTemplate = {
       conditions: '',
       aggregates: [],
       columns: [],
+      fields: [],
       orderby: '',
     },
   ],

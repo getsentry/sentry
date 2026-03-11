@@ -36,7 +36,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -728,11 +727,11 @@ function getMetricChartTooltipFormatter({
 }
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledChartControls = styled(ChartControls)`
@@ -743,13 +742,13 @@ const StyledChartControls = styled(ChartControls)`
 
 const StyledInlineContainer = styled(InlineContainer)`
   grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const ChartFilters = styled('div')`
@@ -762,7 +761,7 @@ const ChartFilters = styled('div')`
 `;
 
 const Filters = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const QueryFilters = styled('span')`
@@ -777,17 +776,17 @@ const QueryFilters = styled('span')`
 const StyledSectionValue = styled(SectionValue)`
   display: grid;
   grid-template-columns: repeat(4, auto);
-  gap: ${space(1.5)};
-  margin: 0 0 0 ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
+  margin: 0 0 0 ${p => p.theme.space.lg};
 `;
 
 const ValueItem = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
-  text-underline-offset: ${space(4)};
+  text-underline-offset: ${p => p.theme.space['3xl']};
 `;
 
 /* Override padding to make chart appear centered */
@@ -798,9 +797,9 @@ const StyledPanelBody = styled(PanelBody)`
 const TriggerChartPlaceholder = styled(Placeholder)`
   height: 200px;
   text-align: center;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  text-underline-offset: ${space(0.5)} !important;
+  text-underline-offset: ${p => p.theme.space.xs} !important;
 `;

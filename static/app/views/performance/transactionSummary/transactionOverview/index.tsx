@@ -25,7 +25,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
@@ -40,7 +40,7 @@ import {
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
-import SummaryContent, {OTelSummaryContent} from './content';
+import SummaryContent, {EAPSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
 // as string | number
@@ -89,10 +89,10 @@ function EAPCardinalityLoadingWrapper() {
     return <LoadingContainer isLoading />;
   }
 
-  return <OTelOverviewContentWrapper />;
+  return <EAPOverviewContentWrapper />;
 }
 
-function OTelOverviewContentWrapper() {
+function EAPOverviewContentWrapper() {
   const {
     organization,
     eventView,
@@ -174,7 +174,7 @@ function OTelOverviewContentWrapper() {
   totals = {...totals, ...totalCountData};
 
   return (
-    <OTelSummaryContent
+    <EAPSummaryContent
       location={location}
       organization={organization}
       eventView={eventView}

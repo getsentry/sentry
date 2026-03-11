@@ -5,13 +5,18 @@ from uuid import uuid4
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
@@ -19,7 +24,9 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 logger = logging.getLogger(__name__)
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as ProtoAttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeValue as ProtoAttributeValue,
+)
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
@@ -345,6 +352,32 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["level"] == "error"
         assert error_event["issue_id"] == error.group_id
         assert error_event["start_timestamp"] == error_data["timestamp"]
+
+    def test_with_missing_group(self) -> None:
+        self.load_trace()
+        _, start = self.get_start_end_from_day_ago(123)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            with mock.patch("sentry.snuba.trace.Group.objects.get", side_effect=Group.DoesNotExist):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        assert len(data[0]["errors"]) == 0
 
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
         self.load_trace()
@@ -765,3 +798,57 @@ class OrganizationEventsTraceEndpointTest(
         data = response.data
 
         self.assert_expected_results(data, [uptime_result], expected_children_ids=["root"])
+
+    def test_uptime_occurrences(self):
+        """Test that uptime occurrences are included in the response"""
+        self.load_trace()
+
+        check_id = "check-occur-1"
+        uptime_result = self._create_uptime_result_with_original_url(
+            organization=self.organization,
+            project=self.project,
+            trace_id=self.trace_id,
+            guid=check_id,
+            check_id=check_id,
+            subscription_id="sub-occur-1",
+            check_status="failure",
+            http_status_code=500,
+            request_sequence=0,
+            request_url="https://test.com",
+            scheduled_check_time=self.day_ago,
+            check_duration_us=200000,
+        )
+        self.store_uptime_results([uptime_result])
+
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            resource_id=None,
+            project_id=self.project.id,
+            event_id=self.root_event.event_id,
+            fingerprint=[uuid4().hex],
+            type=UptimeDomainCheckFailure,
+            issue_title="Downtime detected for https://test.com",
+            subtitle="Your monitored domain is down",
+            evidence_display=[],
+            evidence_data={"check_id": check_id},
+            culprit="",
+            detection_time=timezone.now(),
+            level="error",
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), self.root_event)
+        assert group_info is not None
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"timestamp": self.day_ago, "include_uptime": "1"})
+
+        assert response.status_code == 200, response.content
+        data = response.data
+
+        uptime_checks = self._find_uptime_checks(data)
+        assert len(uptime_checks) == 1
+
+        occurrences = uptime_checks[0]["occurrences"]
+        assert len(occurrences) == 1
+        occurrence = occurrences[0]
+        assert occurrence["transaction"] == "uptime.check"
+        assert occurrence["level"] == "error"

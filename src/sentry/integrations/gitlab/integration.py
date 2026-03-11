@@ -39,6 +39,8 @@ from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
+    ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationProviderError,
 )
@@ -123,6 +125,10 @@ class GitlabIntegration(
     def integration_name(self) -> str:
         return IntegrationProviderSlug.GITLAB
 
+    @property
+    def integration_id(self) -> int:
+        return self.model.id
+
     def get_client(self) -> GitLabApiClient:
         try:
             # eagerly populate this just for the error message
@@ -155,10 +161,15 @@ class GitlabIntegration(
     def get_repositories(
         self, query: str | None = None, page_number_limit: int | None = None
     ) -> list[dict[str, Any]]:
-        # Note: gitlab projects are the same things as repos everywhere else
-        group = self.get_group_id()
-        resp = self.get_client().search_projects(group, query)
-        return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
+        try:
+            # Note: gitlab projects are the same things as repos everywhere else
+            group = self.get_group_id()
+            resp = self.get_client().search_projects(group, query)
+            return [
+                {"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp
+            ]
+        except (ApiForbiddenError, ApiUnauthorized) as e:
+            raise IntegrationConfigurationError(self.message_from_error(e)) from e
 
     def source_url_matches(self, url: str) -> bool:
         return url.startswith("https://{}".format(self.model.metadata["domain_name"]))

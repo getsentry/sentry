@@ -36,13 +36,17 @@ def wrap_event_response(
     conditions: list[Condition] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
-) -> GroupEventDetailsResponse:
+) -> GroupEventDetailsResponse | None:
     event_data = serialize(
         event,
         request_user,
         IssueEventSerializer(),
         include_full_release_data=include_full_release_data,
     )
+
+    if event_data is None:
+        return None
+
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -146,6 +150,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             start=start,
             end=end,
         )
+        if data is None:
+            return Response({"detail": "Failed to load event"}, status=500)
         return Response(data)
 
 

@@ -20,7 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -52,7 +52,7 @@ def test_caching_function() -> None:
         assert next_user == old_u
 
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_user.key_from(old_u.id)
+            region_name=get_local_cell().name, key=get_user.key_from(old_u.id)
         )
 
     cached_users = [get_user.get_one(u.id) for u in users]
@@ -177,8 +177,8 @@ def test_caching_many() -> None:
     users = [Factories.create_user() for _ in range(3)]
     user_ids = [u.id for u in users]
 
-    wrapped_result = get_users(user_ids)
-    direct_result = get_users.cb(user_ids)
+    wrapped_result = sorted(get_users(user_ids), key=lambda u: u.id)
+    direct_result = sorted(get_users.cb(user_ids), key=lambda u: u.id)
     assert len(wrapped_result) == len(direct_result)
     for wrapped, direct in zip(wrapped_result, direct_result):
         assert wrapped == direct
@@ -193,11 +193,12 @@ def test_caching_many() -> None:
         assert not u.username.endswith("moo")
         # Clear cache simulating outbox logic
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_users.key_from(u.id)
+            region_name=get_local_cell().name, key=get_users.key_from(u.id)
         )
 
-    cached_users = get_users(user_ids)
-    for user, cached in zip(users, cached_users):
+    cached_users = sorted(get_users(user_ids), key=lambda u: u.id)
+    users_by_id = sorted(users, key=lambda u: u.id)
+    for user, cached in zip(users_by_id, cached_users):
         assert cached
         assert cached.username.endswith("moo")
         assert cached.username == user.username
@@ -271,7 +272,7 @@ def test_caching_many_versioning() -> None:
     # Clear cache to simulate outbox processing
     for user in users:
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_users.key_from(user.id)
+            region_name=get_local_cell().name, key=get_users.key_from(user.id)
         )
 
     # Read from the cache directly and drain the generator
@@ -303,8 +304,8 @@ def test_caching_list() -> None:
             Factories.create_member(organization=org, user=user, role="owner") for user in users
         ]
 
-    wrapped_result = get_org_members(org.id)
-    direct_result = get_org_members.cb(org.id)
+    wrapped_result = sorted(get_org_members(org.id), key=lambda m: m.id)
+    direct_result = sorted(get_org_members.cb(org.id), key=lambda m: m.id)
 
     assert len(wrapped_result) == len(direct_result)
     for wrapped, direct in zip(wrapped_result, direct_result):

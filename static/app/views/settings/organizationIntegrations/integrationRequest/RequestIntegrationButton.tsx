@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationType} from 'sentry/types/integrations';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
@@ -59,5 +58,5 @@ export default function RequestIntegrationButton(props: Props) {
 }
 
 const StyledRequestIntegrationButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;

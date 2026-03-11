@@ -67,11 +67,14 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             method=method, url=f"{self.bitbucket_client.base_url}{path}", params=params
         ).prepare()
         self.bitbucket_client.finalize_request(prepared_request=prepared_request)
-        raw_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmJpdGJ1Y2tldCIsImlhdCI6MTY3MjUzNDg2MSwiZXhwIjoxNjcyNTM1MTYxLCJxc2giOiJiMGQxYzk0NjRhZGZhOWZlYzg5ZjRmMGM3YjY5MzAxMmZhYTdmN2EyMDRkNzU5NjJkY2FjZGRhM2M2MjY4NzViIiwic3ViIjoiY29ubmVjdGlvbjoxMjMifQ.E3xU7-AgZ2sM-s_yoGAiOGmFZQg63IJJ76YrDwk2qBw"
-        assert prepared_request.headers["Authorization"] == f"JWT {raw_jwt}"
+
+        # Extract JWT from Authorization header
+        auth_header = prepared_request.headers["Authorization"]
+        assert auth_header.startswith("JWT ")
+        actual_jwt = auth_header.split(" ", 1)[1]
 
         decoded_jwt = jwt.decode(
-            raw_jwt,
+            actual_jwt,
             key=self.integration.metadata["shared_secret"],
             algorithms=["HS256"],
         )

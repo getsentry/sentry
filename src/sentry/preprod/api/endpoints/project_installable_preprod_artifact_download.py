@@ -68,7 +68,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
         if format_type == "plist":
             app_id = preprod_artifact.app_id
 
-            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
             build_version = mobile_app_info.build_version if mobile_app_info else None
             app_name = mobile_app_info.app_name if mobile_app_info else None
             if not app_id or not build_version or not app_name:
@@ -138,7 +138,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
-            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
             build_version = mobile_app_info.build_version if mobile_app_info else None
             if build_version:
                 filename += f"@{build_version}"

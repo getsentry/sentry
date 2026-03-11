@@ -10,12 +10,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
@@ -47,8 +45,7 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
-  const showOtlpTraces =
-    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (
@@ -128,7 +125,7 @@ const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin: 0;
   > *:last-child {
-    padding-bottom: ${space(3)};
+    padding-bottom: ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -139,13 +136,13 @@ const PanelHeaderLink = styled(Link)`
 const Title = styled('div')<{disabled: boolean}>`
   flex: 1;
   ${p => (p.disabled ? 'opacity: 0.5;' : '')};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Controls = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
 `;
 

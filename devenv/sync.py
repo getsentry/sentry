@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import importlib.metadata
 import json
 import os
 import shlex
 import shutil
 import subprocess
+import tempfile
+import urllib.request
+import zipfile
 
 from devenv.lib import colima, config, fs, limactl, proc
 
@@ -74,14 +76,69 @@ failed command (code {p.returncode}):
     return all_good
 
 
-# Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str) -> bool:
-    version = importlib.metadata.version("sentry-devenv")
+def sync_chromedriver(reporoot: str) -> int:
+    if not constants.DARWIN:
+        print(
+            "not on macOS; for acceptance testing you'll need to install Google Chrome and chromedriver of the same version"
+        )
+        return 0
 
-    parsed_version = tuple(map(int, version.split(".")))
-    parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
+    CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    install = f"{reporoot}/.devenv/bin/chromedriver"
 
-    return parsed_version >= parsed_minimum_version
+    try:
+        chrome_ver = subprocess.check_output([CHROME, "--version"], text=True).split()[-1]
+    except FileNotFoundError:
+        print(f"{CHROME} not found; install Google Chrome to enable acceptance testing")
+        return 1
+
+    major = chrome_ver.split(".")[0]
+    with urllib.request.urlopen(
+        "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+    ) as r:
+        versions = json.load(r)["versions"]
+
+    entry = next(
+        (
+            v
+            for v in reversed(versions)
+            if v["version"].split(".")[0] == major and "chromedriver" in v["downloads"]
+        ),
+        None,
+    )
+    if not entry:
+        print(f"no ChromeDriver release found for Chrome {major}.x")
+        return 1
+
+    url = next(
+        (d["url"] for d in entry["downloads"]["chromedriver"] if d["platform"] == "mac-arm64"), None
+    )
+    if not url:
+        print(f"no mac-arm64 ChromeDriver download available for {entry['version']}")
+        return 1
+
+    try:
+        if (
+            subprocess.check_output([install, "--version"], text=True).split()[1]
+            == entry["version"]
+        ):
+            return 0
+    except (FileNotFoundError, subprocess.CalledProcessError, IndexError):
+        pass
+
+    print(f"⏳ chromedriver {entry['version']}")
+    tmpdir = tempfile.mkdtemp()
+    try:
+        tmp = os.path.join(tmpdir, "chromedriver.zip")
+        urllib.request.urlretrieve(url, tmp)
+        with zipfile.ZipFile(tmp) as zf:
+            extracted = zf.extract("chromedriver-mac-arm64/chromedriver", tmpdir)
+        shutil.move(extracted, install)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    os.chmod(install, 0o755)
+    print(f"✅ chromedriver {entry['version']}")
+    return 0
 
 
 def installed_pnpm(version: str, binroot: str) -> bool:
@@ -120,20 +177,6 @@ exec {binroot}/node-env/bin/pnpm "$@"
 
 
 def main(context: dict[str, str]) -> int:
-    minimum_version = "1.22.0"
-    if not check_minimum_version(minimum_version):
-        raise SystemExit(
-            f"""
-In order to use uv, devenv must be at least version {minimum_version}.
-
-Please run the following to update your global devenv:
-devenv update
-
-Then, use it to run sync this time:
-{constants.root}/bin/devenv sync
-"""
-        )
-
     repo = context["repo"]
     reporoot = context["reporoot"]
     cfg = config.get_repo(reporoot)
@@ -143,20 +186,22 @@ Then, use it to run sync this time:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
+    IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
         binroot = f"{reporoot}/.devenv/bin"
         colima.uninstall(binroot)
         limactl.uninstall(binroot)
 
-    from devenv.lib import uv
+    if os.path.exists(f"{reporoot}/.devenv/bin/uv"):
+        os.remove(f"{reporoot}/.devenv/bin/uv")
 
-    uv.install(
-        cfg["uv"]["version"],
-        cfg["uv"][constants.SYSTEM_MACHINE],
-        cfg["uv"][f"{constants.SYSTEM_MACHINE}_sha256"],
-        reporoot,
-    )
+    if os.path.exists(f"{reporoot}/.devenv/bin/uvx"):
+        os.remove(f"{reporoot}/.devenv/bin/uvx")
+
+    if not shutil.which("uv"):
+        print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
+        return 1
 
     from devenv.lib import node
 
@@ -174,6 +219,10 @@ Then, use it to run sync this time:
 
     # TODO: move pnpm install into devenv
     install_pnpm(pnpm_version, reporoot)
+
+    # chromedriver required for acceptance testing
+    if sync_chromedriver(reporoot) != 0:
+        return 1
 
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
@@ -248,7 +297,24 @@ Then, use it to run sync this time:
     ):
         return 1
 
-    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+    # Agent skills are non-fatal — private skill repos may not be accessible in CI
+    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
+        "pnpm", path=f"{reporoot}/.devenv/bin"
+    ):
+        if not run_procs(
+            repo,
+            reporoot,
+            venv_dir,
+            (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "install"), {}),),
+            verbose,
+        ):
+            print("⚠️  agent skills failed to install (non-fatal)")
+
+    if not IN_GIT_WORKTREE:
+        fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
+        fs.ensure_symlink(
+            "../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout"
+        )
 
     sentry_conf = os.environ.get("SENTRY_CONF", f"{constants.home}/.sentry")
 

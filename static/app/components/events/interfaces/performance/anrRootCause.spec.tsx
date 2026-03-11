@@ -176,7 +176,7 @@ describe('anrRootCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
+      url: '/customers/org-slug/',
       method: 'GET',
       body: {},
     });
@@ -242,8 +242,7 @@ describe('anrRootCause', () => {
       },
     ]);
     const {organization} = initializeOrg();
-    const org = {...organization, features: ['anr-analyze-frames']};
-    render(<AnrRootCause event={event} organization={org} />, {wrapper});
+    render(<AnrRootCause event={event} organization={organization} />, {wrapper});
 
     expect(
       screen.getByText(

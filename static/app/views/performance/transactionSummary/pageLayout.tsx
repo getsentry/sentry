@@ -17,7 +17,6 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,7 +34,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useRouter from 'sentry/utils/useRouter';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -66,7 +65,7 @@ type Props = {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
-    shouldUseOTelFriendlyUI: boolean;
+    shouldUseEAP: boolean;
     theme: Theme;
     transactionName: string;
   }) => EventView;
@@ -182,7 +181,7 @@ function PageLayout(props: Props) {
     [getNewRoute, tab, organization, location, projects]
   );
 
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const shouldUseEAP = useTransactionSummaryEAP();
 
   if (!defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
@@ -193,7 +192,7 @@ function PageLayout(props: Props) {
     location,
     organization,
     transactionName,
-    shouldUseOTelFriendlyUI,
+    shouldUseEAP,
     theme,
   });
 
@@ -360,12 +359,12 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
     css`
       display: flex;
       flex-direction: column;
-      gap: ${space(3)};
+      gap: ${p.theme.space['2xl']};
 
       @media (min-width: ${p.theme.breakpoints.lg}) {
         display: flex;
         flex-direction: column;
-        gap: ${space(3)};
+        gap: ${p.theme.space['2xl']};
       }
     `}
 `;

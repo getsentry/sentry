@@ -14,6 +14,13 @@ export interface BaseTextProps {
    */
   align?: Responsive<'left' | 'center' | 'right' | 'justify'>;
   bold?: boolean;
+
+  /**
+   * Determines the cursor style when hovering over the text.
+   * @default 'default'
+   */
+  cursor?: 'default' | 'pointer' | 'text' | 'move' | 'not-allowed' | 'wait' | 'help';
+
   /**
    * Density determines the line height of the text.
    * Defaults to 1.2, but supports the following density variants:
@@ -94,7 +101,7 @@ export type ExclusiveTextEllipsisProps =
   | {ellipsis?: true; wrap?: never}
   | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
-interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
+interface TextAttributes<T extends TextPrimitive = 'span'>
   extends
     BaseTextProps,
     Omit<
@@ -119,6 +126,8 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
    * Forbid color HTML attribute from being passed to the component, all usage should be variant-based.
    */
   color?: never;
+  dateTime?: T extends 'time' ? string : never;
+
   /**
    * This could have been avoided by using React.JSX.IntrinsicElements<T>, however doing so would be
    * grosely inefficient, as it would cause type helpers like DistributedOmit to traverse the entire
@@ -141,11 +150,13 @@ interface TextAttributes<T extends 'span' | 'p' | 'label' | 'div' = 'span'>
   style?: React.CSSProperties;
 }
 
-export type TextProps<T extends 'span' | 'p' | 'label' | 'div'> = TextAttributes<T> &
+type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
+
+export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
 export const Text = styled(
-  <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(props: TextProps<T>) => {
+  <T extends TextPrimitive = 'span'>(props: TextProps<T>) => {
     const {children, ...rest} = props;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
@@ -160,6 +171,7 @@ export const Text = styled(
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
   text-decoration: ${p => getTextDecoration(p)};
+  cursor: ${p => p.cursor ?? undefined};
 
   color: ${p =>
     p.variant
@@ -212,6 +224,6 @@ export const Text = styled(
    * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
    * https://github.com/styled-components/styled-components/issues/1803
    */
-` as unknown as <T extends 'span' | 'p' | 'label' | 'div' = 'span'>(
+` as unknown as <T extends TextPrimitive = 'span'>(
   props: TextProps<T>
 ) => React.ReactElement;

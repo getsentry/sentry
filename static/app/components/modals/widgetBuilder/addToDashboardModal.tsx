@@ -22,7 +22,6 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -136,6 +135,13 @@ function AddToDashboardModal({
   // Check if we have multiple widgets to adjust UI accordingly
   const hasMultipleWidgets = widgets.length > 1;
 
+  // Check if the widget is a static widget from a widget template
+  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
+  const shouldOpenWidgetLibrary =
+    !isWidgetEditable(widget.displayType) ||
+    (widgetTemplate && widgetTemplate.isCustomizable === false);
+
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
     setOrderBy(newOrderBy);
@@ -207,16 +213,6 @@ function AddToDashboardModal({
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
     const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
-
-    // For non-customizable widgets (e.g., Performance Score), open the widget library
-    // instead of the widget builder
-    const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
-    const widgetTemplate = widgetTemplates.find(
-      w => w.displayType === widget.displayType
-    );
-    const shouldOpenWidgetLibrary =
-      !isWidgetEditable(widget.displayType) ||
-      (widgetTemplate && widgetTemplate.isCustomizable === false);
 
     navigate(
       normalizeUrl({
@@ -557,7 +553,9 @@ function AddToDashboardModal({
               disabled={!canSubmit}
               tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
-              {t('Open in Widget Builder')}
+              {shouldOpenWidgetLibrary
+                ? t('Open in Widget Library')
+                : t('Open in Widget Builder')}
             </Button>
           )}
         </StyledButtonBar>
@@ -569,7 +567,7 @@ function AddToDashboardModal({
 export default AddToDashboardModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledButtonBar = styled((props: GridProps) => (
@@ -577,7 +575,7 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

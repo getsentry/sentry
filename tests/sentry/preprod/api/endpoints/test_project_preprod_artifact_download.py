@@ -1,4 +1,5 @@
 from io import BytesIO
+from unittest.mock import patch
 
 from django.test import override_settings
 
@@ -11,6 +12,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.login_as(self.user)
 
         # Create a test file
         self.file = self.create_file(
@@ -189,3 +191,23 @@ class ProjectPreprodArtifactDownloadEndpointTest(TestCase):
         response = self.client.get(url, HTTP_RANGE="invalid-range-header", **headers)
 
         assert response.status_code == 416
+
+    def test_staff_can_download_artifact(self) -> None:
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user)
+
+        url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.preprod_artifact.id}/"
+
+        with (
+            patch("sentry.api.permissions.is_active_staff", return_value=True),
+            patch(
+                "sentry.preprod.api.bases.preprod_artifact_endpoint.is_active_staff",
+                return_value=True,
+            ),
+        ):
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/octet-stream"
+
+        close_streaming_response(response)

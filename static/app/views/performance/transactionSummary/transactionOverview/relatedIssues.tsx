@@ -14,12 +14,11 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -39,7 +38,7 @@ function RelatedIssues({
   end,
   statsPeriod,
 }: Props) {
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
+  const isEAP = useTransactionSummaryEAP();
 
   const getIssuesEndpointQueryParams = () => {
     const queryParams = {
@@ -51,6 +50,12 @@ function RelatedIssues({
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
     const currentFilter = new MutableSearch(decodeScalar(location.query.query, ''));
+    if (isEAP) {
+      // Issues and EAP spans disagree on what to call the HTTP request method
+      // parameter, and it's commonly present in the query since the Insights
+      // landing pages add it for HTTP transactions.
+      currentFilter.renameFilter('request.method', 'http.method');
+    }
     removeTracingKeysFromSearch(currentFilter);
     currentFilter
       .addFreeText('is:unresolved')
@@ -82,10 +87,7 @@ function RelatedIssues({
         <PanelBody>
           <EmptyStateWarning>
             <p>
-              {tct('No new issues for this [identifier] for the [timePeriod].', {
-                identifier: shouldUseOTelFriendlyUI
-                  ? 'service entry span'
-                  : 'transaction',
+              {tct('No new issues for this transaction for the [timePeriod].', {
                 timePeriod: displayedPeriod,
               })}
             </p>
@@ -131,10 +133,10 @@ function RelatedIssues({
 }
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space.md};
   }
 `;
 

@@ -2,9 +2,9 @@ import {useCallback, useMemo} from 'react';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -74,7 +74,7 @@ function useMultiQueryTimeseriesImpl({
 
   const mode = getQueryMode(groupBys);
 
-  const fields: string[] = useMemo(() => {
+  const fields = useMemo(() => {
     if (mode === Mode.SAMPLES) {
       return [];
     }

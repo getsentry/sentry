@@ -24,11 +24,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.typings.notification_action import (
-    ActionTarget,
-    ActionType,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, ProjectAccessTestMixin
 
 
@@ -149,7 +145,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -170,7 +165,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert action.type == Action.Type.SENTRY_APP
         assert action.config == {
-            "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             "target_identifier": str(self.sentry_app.id),
             "target_type": ActionTarget.SENTRY_APP.value,
         }
@@ -184,7 +178,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             "enabled": True,
             "config": {},
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {"type": "first_seen_event", "comparison": True, "conditionResult": True},
                 ],
@@ -733,7 +727,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             **self.valid_workflow,
             "actionFilters": [
                 {
-                    "logicType": "any",
+                    "logicType": "any-short",
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,

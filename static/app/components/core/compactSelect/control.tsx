@@ -27,14 +27,20 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectKey, SelectOptionOrSection} from './types';
+import type {
+  SearchConfig,
+  SearchMatchResult,
+  SelectKey,
+  SelectOptionOrSection,
+  SelectOptionWithKey,
+} from './types';
+import {getSearchConfig} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -56,18 +62,30 @@ interface ControlContextValue {
    * Search string to determine whether an option should be rendered in the select list.
    */
   search: string;
+  /**
+   * Whether the select has a search input field.
+   */
+  searchable: boolean;
   disabled?: boolean;
   /**
    * The control's overlay state. Useful for opening/closing the menu from inside the
    * selector.
    */
   overlayState?: OverlayTriggerState;
+  /**
+   * Custom function to determine whether an option matches the search query.
+   */
+  searchMatcher?: (
+    option: SelectOptionWithKey<SelectKey>,
+    search: string
+  ) => SearchMatchResult;
   size?: FormSize;
 }
 
 export const ControlContext = createContext<ControlContextValue>({
   overlayIsOpen: false,
   search: '',
+  searchable: false,
 });
 
 export interface ControlProps
@@ -98,12 +116,6 @@ export interface ControlProps
    * If true, there will be a "Clear" button in the menu header.
    */
   clearable?: boolean;
-  /**
-   * Whether to disable the search input's filter function (applicable only when
-   * `searchable` is true). This is useful for implementing custom search behaviors,
-   * like fetching new options on search (via the onSearch() prop).
-   */
-  disableSearchFilter?: boolean;
   disabled?: boolean;
   /**
    * Message to be displayed when all options have been filtered out (via search).
@@ -165,19 +177,11 @@ export interface ControlProps
    */
   onOpenChange?: (newOpenState: boolean) => void;
   /**
-   * Called when the search input's value changes (applicable only when `searchable`
-   * is true).
+   * Search configuration. When provided, enables the search input.
+   * Pass `true` to enable search with default settings, or a config object
+   * to customise placeholder, filtering, or the onChange callback.
    */
-  onSearch?: (value: string) => void;
-  /**
-   * The search input's placeholder text (applicable only when `searchable` is true).
-   */
-  searchPlaceholder?: string;
-  /**
-   * If true, there will be a search box on top of the menu, useful for quickly finding
-   * menu items.
-   */
-  searchable?: boolean;
+  search?: boolean | SearchConfig<SelectKey>;
   size?: FormSize;
 
   /**
@@ -223,10 +227,7 @@ export function Control({
 
   // Select props
   size = 'md',
-  searchable = false,
-  searchPlaceholder = 'Search…',
-  disableSearchFilter = false,
-  onSearch,
+  search: searchConfig,
   clearable = false,
   onClear,
   loading = false,
@@ -240,6 +241,12 @@ export function Control({
   value?: SelectKey | SelectKey[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const normalizedSearch = getSearchConfig(searchConfig);
+  const searchEnabled = normalizedSearch !== undefined;
+  const searchFilter =
+    typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
+
   /**
    * Search/filter value, used to filter out the list of displayed elements
    */
@@ -247,12 +254,10 @@ export function Control({
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
   const updateSearch = (newValue: string) => {
-    onSearch?.(newValue);
-
+    normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
-    if (!disableSearchFilter) {
+    if (normalizedSearch?.filter !== false) {
       setSearch(newValue);
-      return;
     }
   };
 
@@ -320,7 +325,7 @@ export function Control({
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
           // Focus on search box if present
-          if (searchable) {
+          if (searchEnabled) {
             searchRef.current?.focus();
             return;
           }
@@ -459,10 +464,12 @@ export function Control({
       overlayState,
       overlayIsOpen,
       search,
+      searchable: searchEnabled,
       size,
       disabled,
+      searchMatcher: searchFilter,
     };
-  }, [overlayState, overlayIsOpen, search, size, disabled]);
+  }, [overlayState, overlayIsOpen, search, searchEnabled, size, disabled, searchFilter]);
 
   const theme = useTheme();
 
@@ -499,7 +506,7 @@ export function Control({
               maxHeight={overlayProps.style!.maxHeight}
               maxHeightProp={maxMenuHeight}
               data-menu-has-header={!!menuTitle || clearable}
-              data-menu-has-search={searchable}
+              data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
@@ -525,7 +532,7 @@ export function Control({
                     </MenuHeaderTrailingItems>
                   </MenuHeader>
                 )}
-                {searchable && (
+                {searchEnabled && (
                   <InputGroup>
                     <InputGroup.LeadingItems disablePointerEvents>
                       <Flex
@@ -540,7 +547,7 @@ export function Control({
                     </InputGroup.LeadingItems>
                     <SearchInput
                       ref={searchRef}
-                      placeholder={searchPlaceholder}
+                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
                       onFocus={onSearchFocus}
                       onBlur={onSearchBlur}
@@ -587,17 +594,18 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const headerVerticalPadding: Record<NonNullable<ControlProps['size']>, string> = {
-  xs: space(0.25),
-  sm: space(0.5),
-  md: space(0.75),
-};
 const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p =>
+      p.size === 'xs'
+        ? p.theme.space['2xs']
+        : p.size === 'sm'
+          ? p.theme.space.xs
+          : p.theme.space.sm}
+    ${p => p.theme.space.lg};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
 
@@ -616,14 +624,14 @@ const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
 const MenuHeaderTrailingItems = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.medium};
   white-space: nowrap;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -638,19 +646,19 @@ const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.25)} -${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;
 
 const SearchInput = styled(InputGroup.Input)`
   appearance: none;
-  width: calc(100% - ${space(0.5)} * 2);
-  margin: ${space(0.5)} ${space(0.5)};
+  width: calc(100% - ${p => p.theme.space.xs} * 2);
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border. Account for InputGroup wrapper div. */
   [data-menu-has-header='true'] > * > & {
-    margin-top: calc(${space(0.5)} + 1px);
+    margin-top: calc(${p => p.theme.space.xs} + 1px);
   }
 `;
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
@@ -692,6 +700,6 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 const MenuFooter = styled('div')`
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   z-index: 2;
 `;

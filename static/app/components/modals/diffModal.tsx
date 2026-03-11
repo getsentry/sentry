@@ -1,12 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,18 +36,12 @@ function DiffModal({
       <Header closeButton>
         <h4>{t('Issue Diff')}</h4>
       </Header>
-      <Flex height="100%" flex={1} align="center" justify="center">
-        {p => {
-          return (
-            <Body {...p}>
-              <IssueDiff
-                hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
-                {...props}
-              />
-            </Body>
-          );
-        }}
-      </Flex>
+      <Body>
+        <IssueDiff
+          hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
+          {...props}
+        />
+      </Body>
     </Fragment>
   );
 }
@@ -58,12 +49,20 @@ function DiffModal({
 const modalCss = css`
   position: absolute;
   padding: 0;
-  inset: ${space(3)};
-  width: calc(100% - 2 * ${space(3)});
+  inset: 24px;
+  width: calc(100% - 2 * 24px);
 
   [role='document'] {
     height: 100%;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    > section {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
   }
 `;
 

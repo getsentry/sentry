@@ -4,6 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -44,12 +45,13 @@ function renderFrameworkModalMockRequests({
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    url: `/organizations/${organization.slug}/integrations/`,
     body: [
       OrganizationIntegrationsFixture({
         name: "Moo Deng's Workspace",
       }),
     ],
+    match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
   });
 
   const projectCreationMockRequest = MockApiClient.addMockResponse({
@@ -88,8 +90,9 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [integration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
 
     MockApiClient.addMockResponse({
@@ -187,6 +190,209 @@ describe('CreateProject', () => {
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('another');
+  });
+
+  it('should not overwrite a user-entered project name when the name happens to match the current platform key', async () => {
+    // Regression test: previously, the check `projectName !== platform.key` would incorrectly
+    // treat the name as auto-generated if it matched the current platform slug, causing a
+    // platform switch to overwrite a name the user explicitly typed.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    render(<CreateProject />, {organization});
+
+    // User explicitly types a name that happens to match a platform id
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'apple-ios');
+
+    // User then selects a different platform
+    await userEvent.click(screen.getByTestId('platform-ruby-rails'));
+
+    // The name they typed should be preserved, not replaced with 'ruby-rails'
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+  });
+
+  it('should preserve user-entered project slug when filter bar auto-selects a platform', async () => {
+    // Regression test: PlatformPicker's debounceSearch captured setPlatform from the
+    // initial render. After the user typed a slug, handlePlatformChange was recreated with
+    // the new projectName — but debounceSearch still held the stale version with
+    // projectName='', so auto-selection via the filter bar would wipe the user's slug.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    jest.useFakeTimers();
+    render(<CreateProject />, {organization});
+
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-custom-slug', {
+      delay: null,
+    });
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
+
+    // Type a platform name that exactly matches "Android" (triggers debounce auto-selection)
+    await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'android', {
+      delay: null,
+    });
+
+    // Run all pending timers and flush React state updates
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    jest.useRealTimers();
+
+    // The user's slug must be preserved, not replaced by the auto-selected platform id
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
+  });
+
+  it('should allow platform to fill the project name again after the user clears it', async () => {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    render(<CreateProject />, {organization});
+
+    // User types a name
+    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-project');
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-project');
+
+    // User clears the field (signals they want the platform to drive the name again)
+    await userEvent.clear(screen.getByPlaceholderText('project-slug'));
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('');
+
+    // Now selecting a platform should fill the name
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+  });
+
+  it('should preserve user-entered project slug when returning via auto-fill after delayed route replace', async () => {
+    // Regression test: when the user clicks "Back to Platform Selection", the browser
+    // POP navigation fires first (without query params), mounting the component with
+    // autoFill=false. Then router.replace adds ?referrer=getting-started&project=<id>,
+    // transitioning autoFill to true. useRef only initializes once, so without the
+    // useEffect sync, hasUserModifiedProjectName stays false and platform changes
+    // overwrite the user's custom slug.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    // Simulate a previously created project stored in localStorage
+    window.localStorage.setItem(
+      'created-project-context',
+      JSON.stringify({
+        id: '12345',
+        name: 'my-custom-name',
+        team: teamWithAccess.slug,
+        platform: {
+          key: 'javascript-angular',
+          name: 'Angular',
+          type: 'framework',
+          language: 'javascript',
+          category: 'popular',
+        },
+        wasNameManuallyModified: true,
+      })
+    );
+
+    // Step 1: Mount WITHOUT query params (simulates the browser POP navigation)
+    const {router} = render(<CreateProject />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/projects/new/',
+        },
+      },
+    });
+
+    // Step 2: Navigate WITH query params (simulates router.replace)
+    router.navigate('/projects/new/?referrer=getting-started&project=12345');
+
+    // The slug field should be auto-filled with the stored name
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-name');
+    });
+
+    // Step 3: Click a different platform
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+
+    // The user's custom slug must be preserved, not replaced with 'apple-ios'
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-name');
+
+    // Clean up localStorage
+    window.localStorage.removeItem('created-project-context');
+  });
+
+  it('should update project slug on platform change when slug was not manually modified', async () => {
+    // When the user didn't manually type a slug (wasNameManuallyModified: false),
+    // changing the platform should update the slug to the new platform's ID.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    window.localStorage.setItem(
+      'created-project-context',
+      JSON.stringify({
+        id: '12345',
+        name: 'javascript-angular',
+        team: teamWithAccess.slug,
+        platform: {
+          key: 'javascript-angular',
+          name: 'Angular',
+          type: 'framework',
+          language: 'javascript',
+          category: 'popular',
+        },
+        wasNameManuallyModified: false,
+      })
+    );
+
+    const {router} = render(<CreateProject />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/projects/new/',
+        },
+      },
+    });
+
+    router.navigate('/projects/new/?referrer=getting-started&project=12345');
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue(
+        'javascript-angular'
+      );
+    });
+
+    // Click a different platform — slug should update since user didn't manually modify it
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
+
+    window.localStorage.removeItem('created-project-context');
   });
 
   it('should display success message on proj creation', async () => {
@@ -403,8 +609,9 @@ describe('CreateProject', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      url: `/organizations/${organization.slug}/integrations/`,
       body: [discordIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
 
     MockApiClient.addMockResponse({

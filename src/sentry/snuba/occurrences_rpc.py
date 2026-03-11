@@ -93,7 +93,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     ) -> EAPResponse:
         """
         Runs a query with additional selected_columns of all tags in tags.
-        tags should be formatted appropriately - e.g. {tags[foo], tags[bar]}
+        tags should be formatted appropriately - e.g. {attr[foo], attr[bar]}
         """
 
         columns = cls.DEFINITIONS.columns.copy()

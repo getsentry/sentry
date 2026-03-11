@@ -11,7 +11,6 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -22,7 +21,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SavedQueryVersions} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -211,10 +209,13 @@ export function GroupTagValues() {
         <Fragment key={tagValueIdx}>
           <NameColumn>
             <NameWrapper data-test-id="group-tag-value">
-              <GlobalSelectionLink
+              <Link
                 to={{
                   pathname: `${baseUrl}events/`,
-                  query: {query: issuesQuery},
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    query: issuesQuery,
+                  },
                 }}
               >
                 {key === 'user' ? (
@@ -226,7 +227,7 @@ export function GroupTagValues() {
                 ) : (
                   <DeviceName value={tagName} />
                 )}
-              </GlobalSelectionLink>
+              </Link>
             </NameWrapper>
 
             {tagValue.email && (
@@ -365,13 +366,13 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   & > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   border-radius: 0;
   border-width: 1px 0;
 `;
@@ -390,7 +391,7 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 function Column(props: FlexProps) {

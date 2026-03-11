@@ -51,14 +51,19 @@ describe('EventsSearchBar', () => {
       }
     );
 
-    // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.type(input, 'has:p');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('has:p', {delay: null});
 
-    // Check that "p50" (a function tag) is NOT in the dropdown
-    expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
-    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit value for filter: has'})
+    );
+
+    // Assert we actually have has: dropdown options before checking exclusions.
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+
+    // p50 is a function and should not be suggested as a has: tag.
+    expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
@@ -86,11 +91,11 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-
-    await userEvent.type(input, 'count_uni');
+    await userEvent.click(input);
+    await userEvent.paste('count_uni', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByText('count_unique(...)')
+      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
     ).toBeInTheDocument();
   });
 
@@ -120,10 +125,11 @@ describe('EventsSearchBar', () => {
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.clear(input);
-    await userEvent.type(input, 'transact');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('transact', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByRole('option', {
+      await within(await screen.findByRole('listbox')).findByRole('option', {
         name: 'transaction',
       })
     ).toBeInTheDocument();

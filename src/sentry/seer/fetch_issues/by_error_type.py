@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from django.db.models.expressions import RawSQL
 
 from sentry.models.group import Group
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
 
 
@@ -42,7 +43,7 @@ def _fetch_issues_from_repo_projects(
 @utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     exception_type: str,
     owner: str,

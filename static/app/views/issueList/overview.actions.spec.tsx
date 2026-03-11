@@ -15,7 +15,6 @@ import {
 import Indicators from 'sentry/components/indicators';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import TagStore from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -31,7 +30,6 @@ describe('IssueListOverview (actions)', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     GroupStore.reset();
-    SelectedGroupStore.reset();
     IssueListCacheStore.reset();
 
     MockApiClient.addMockResponse({

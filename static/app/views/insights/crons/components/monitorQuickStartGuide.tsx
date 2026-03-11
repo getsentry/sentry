@@ -3,7 +3,7 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -277,21 +277,25 @@ export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           }
         )}
       </Text>
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
-        )}
-        searchable
-        options={exampleOptions}
-        value={selectedGuide}
-        onChange={({value}) => setSelectedGuide(value)}
-        size="sm"
-      />
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <CopyMarkdownButton getMarkdown={getGuideMarkdown} source="crons_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
+      <Flex justify="between" align="center">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Guide')} />
+          )}
+          search
+          options={exampleOptions}
+          value={selectedGuide}
+          onChange={({value}) => setSelectedGuide(value)}
+          size="sm"
+        />
+        <CopySetupInstructionsGate>
+          <CopyMarkdownButton
+            borderless
+            getMarkdown={getGuideMarkdown}
+            source="crons_onboarding"
+          />
+        </CopySetupInstructionsGate>
+      </Flex>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
       </div>

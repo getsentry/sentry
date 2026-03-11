@@ -76,7 +76,7 @@ function useGeneratedIssueViewName({
     cancelFormTypingAnimation();
   }, [cancelFormTypingAnimation]);
 
-  return {isGeneratingTitle, handleNameChange};
+  return {isGeneratingTitle, handleNameChange, generatedTitle: data?.title};
 }
 
 export function CreateIssueViewModal({
@@ -96,11 +96,13 @@ export function CreateIssueViewModal({
   const initialQuery = incomingQuery ?? 'is:unresolved';
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {isGeneratingTitle, handleNameChange} = useGeneratedIssueViewName({
-    formModel,
-    query: initialQuery,
-    enabled: !initialName.trim(),
-  });
+  const {isGeneratingTitle, handleNameChange, generatedTitle} = useGeneratedIssueViewName(
+    {
+      formModel,
+      query: initialQuery,
+      enabled: !initialName.trim(),
+    }
+  );
 
   const {
     mutate: createIssueView,
@@ -119,6 +121,8 @@ export function CreateIssueViewModal({
         organization,
         surface: analyticsSurface,
         starred: variables.starred ?? false,
+        ai_title_shown: !!generatedTitle,
+        ai_title_used: !!generatedTitle && variables.name === generatedTitle,
       });
       closeModal();
     },

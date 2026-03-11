@@ -332,11 +332,47 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         data = response.data["data"]
         assert len(data) == 3
+        assert data[0]["device.class"] == "low"
+        assert data[0]["count()"] == 1
+        assert data[1]["device.class"] == "medium"
+        assert data[1]["count()"] == 1
+        assert data[2]["device.class"] == "high"
+        assert data[2]["count()"] == 1
+
+    def test_device_class_sort_descending(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "3"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "2"}}, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "",
+                "orderby": "-device.class",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 3
         assert data[0]["device.class"] == "high"
         assert data[0]["count()"] == 1
-        assert data[1]["device.class"] == "low"
+        assert data[1]["device.class"] == "medium"
         assert data[1]["count()"] == 1
-        assert data[2]["device.class"] == "medium"
+        assert data[2]["device.class"] == "low"
         assert data[2]["count()"] == 1
 
     @pytest.mark.xfail(
@@ -7192,5 +7228,97 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "count(span.duration)": 1,
                 "equation|count(span.duration) + 0": 1,
                 "equation|0 * count(span.duration)": 0,
+            }
+        ]
+
+    def test_has_in_filter(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "os.name": "Android",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {
+                            "app_start_type": "warm",
+                            "os.name": "iOS",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"os.name": "Windows"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        response = self.do_request(
+            {
+                "field": ["app_start_type", "ttid", "os.name"],
+                "query": "has:[ttid,app_start_type]",
+                "orderby": "app_start_type",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+
+        ttid_row = next((r for r in data if r.get("ttid") == "ttid"), None)
+        app_start_row = next((r for r in data if r.get("app_start_type") == "warm"), None)
+        assert ttid_row is not None
+        assert ttid_row["os.name"] == "Android"
+        assert app_start_row is not None
+        assert app_start_row["os.name"] == "iOS"
+
+        assert meta["dataset"] == "spans"
+
+    def test_failure_count_and_rate_none(self):
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "failure_count()", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "failure_rate()": None,
+                "failure_count()": 0,
+                "count()": 0,
+            }
+        ]
+
+    def test_failure_count_and_rate_zero(self):
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "failure_count()", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "failure_rate()": 0,
+                "failure_count()": 0,
+                "count()": 1,
             }
         ]

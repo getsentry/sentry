@@ -39,8 +39,9 @@ describe('Command Palette Modal', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/plugins/?plugins=_all',
+      url: '/organizations/org-slug/plugins/',
       body: [],
+      match: [MockApiClient.matchQuery({plugins: '_all'})],
     });
 
     MockApiClient.addMockResponse({
@@ -87,6 +88,6 @@ describe('Command Palette Modal', () => {
 
     await userEvent.click(badges[0]!);
 
-    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything(), undefined);
+    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything());
   });
 });

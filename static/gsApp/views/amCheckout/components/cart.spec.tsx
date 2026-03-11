@@ -39,9 +39,9 @@ describe('Cart', () => {
     ...routerProps,
     navigate: jest.fn(),
   };
-  const businessPlan = PlanDetailsLookupFixture('am3_business')!;
-  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
-  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team')!;
+  const businessPlan = PlanDetailsLookupFixture('am3_business');
+  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
+  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
 
   const defaultFormData: CheckoutFormData = {
     plan: 'am3_business',
@@ -49,7 +49,7 @@ describe('Cart', () => {
       ...Object.fromEntries(
         Object.entries(businessPlan.planCategories).map(([category, buckets]) => [
           category,
-          buckets[0]!.events,
+          buckets[0].events,
         ])
       ),
       seerAutofix: 0,
@@ -68,7 +68,7 @@ describe('Cart', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

@@ -386,7 +386,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             )
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
-        self.use_metrics_layer = False
 
         self.on_demand_metrics_enabled = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -418,15 +417,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             return UseCaseID.SESSIONS
 
     def resolve_tag_key_if_needed(self, string: str) -> str:
-        if self.use_metrics_layer:
-            return string
-
         return resolve_tag_key(self._get_use_case_id(), self.org_id, string)
 
     def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[str | int]:
-        if self.use_metrics_layer:
-            return strings
-
         return resolve_tag_values(self._get_use_case_id(), self.org_id, strings)
 
     def build_query_builder(
@@ -456,11 +449,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             time_range_window=self.time_window,
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
-                use_metrics_layer=self.use_metrics_layer,
                 on_demand_metrics_enabled=self.on_demand_metrics_enabled,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
-                insights_metrics_override_metric_layer=True,
             ),
         )
 
@@ -546,17 +537,13 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return aggregated_results
 
     def get_snql_extra_conditions(self) -> list[Condition]:
-        # If we don't use the metrics layer we need to filter by metric here. The metrics layer does this automatically.
-        if not self.use_metrics_layer:
-            return [
-                Condition(
-                    Column("metric_id"),
-                    Op.EQ,
-                    resolve(UseCaseID.SESSIONS, self.org_id, self.metric_key.value),
-                )
-            ]
-
-        return []
+        return [
+            Condition(
+                Column("metric_id"),
+                Op.EQ,
+                resolve(UseCaseID.SESSIONS, self.org_id, self.metric_key.value),
+            )
+        ]
 
 
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):

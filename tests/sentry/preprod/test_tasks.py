@@ -911,6 +911,37 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         assert watch_metrics.max_download_size == 2000
         assert watch_metrics.max_install_size == 4000
 
+    def test_assemble_preprod_artifact_size_analysis_app_clip_component(self) -> None:
+        status, details = self._run_task_and_verify_status(
+            b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 3, "name": "App Clip", "app_id": "com.example.app.clip", "path": "/AppClips/AppClip.app", "download_size": 2000, "install_size": 4000}]}'
+        )
+
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        all_size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=self.preprod_artifact
+        ).order_by("metrics_artifact_type")
+        assert len(all_size_metrics) == 2
+
+        main_metrics = all_size_metrics[0]
+        assert (
+            main_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        )
+        assert main_metrics.identifier is None
+        assert main_metrics.max_download_size == 3000
+        assert main_metrics.max_install_size == 6000
+
+        app_clip_metrics = all_size_metrics[1]
+        assert (
+            app_clip_metrics.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT
+        )
+        assert app_clip_metrics.identifier == "com.example.app.clip"
+        assert app_clip_metrics.max_download_size == 2000
+        assert app_clip_metrics.max_install_size == 4000
+
     def test_assemble_preprod_artifact_size_analysis_removes_stale_metrics(self) -> None:
         status, details = self._run_task_and_verify_status(
             b'{"analysis_duration": 2.5, "download_size": 5000, "install_size": 10000, "treemap": null, "analysis_version": "1.0", "app_components": [{"component_type": 0, "name": "Main App", "app_id": "com.example.app", "path": "/", "download_size": 3000, "install_size": 6000}, {"component_type": 1, "name": "Watch App", "app_id": "com.example.app.watchkitapp", "path": "/Watch", "download_size": 2000, "install_size": 4000}]}'
@@ -1305,3 +1336,30 @@ class DetectExpiredPreprodArtifactsTest(TestCase):
             just_under_30_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
         )  # Still processing
         assert just_over_30_artifact.state == PreprodArtifact.ArtifactState.FAILED
+
+    def test_detect_expired_preprod_artifacts_skips_snapshot_artifacts(self):
+        from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+
+        current_time = timezone.now()
+        old_time = current_time - timedelta(minutes=35)
+
+        snapshot_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=snapshot_artifact.id).update(date_updated=old_time)
+        PreprodSnapshotMetrics.objects.create(preprod_artifact=snapshot_artifact)
+
+        regular_artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+        PreprodArtifact.objects.filter(id=regular_artifact.id).update(date_updated=old_time)
+
+        detect_expired_preprod_artifacts()
+
+        snapshot_artifact.refresh_from_db()
+        regular_artifact.refresh_from_db()
+
+        assert snapshot_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+        assert regular_artifact.state == PreprodArtifact.ArtifactState.FAILED

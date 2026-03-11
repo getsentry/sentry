@@ -6,8 +6,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BuildDetailsMainContent} from 'sentry/views/preprod/buildDetails/main/buildDetailsMainContent';
 import {BuildDetailsSidebarContent} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarContent';
@@ -26,14 +25,14 @@ export function PullRequestDetailsSizeContent({
     buildDetails[0]?.id
   );
 
-  const appSizeQuery: UseApiQueryResult<AppSizeApiResponse, RequestError> =
-    useApiQuery<AppSizeApiResponse>(
-      [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
-      {
-        staleTime: 0,
-        enabled: !!selectedBuildId,
-      }
-    );
+  const appSizeQuery = useApiQuery<AppSizeApiResponse>(
+    // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (should be organization prefix?)
+    [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
+    {
+      staleTime: 0,
+      enabled: !!selectedBuildId,
+    }
+  );
 
   if (buildDetails.length === 0 || !selectedBuildId) {
     return <div>No build details found</div>;

@@ -316,12 +316,12 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
     API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
 
-    # Service Entry Spans
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
-        "api.insights.service-entry-spans-table-with-category"
+    # Segment Spans
+    API_INSIGHTS_SEGMENT_SPANS_TABLE = "api.insights.segment-spans-table"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.segment-spans-table-with-category"
     )
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_COUNT = "api.insights.segment-spans-table-count"
 
     # Trace Panel
     API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
@@ -562,6 +562,8 @@ class Referrer(StrEnum):
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
     API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
+    API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
+    API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -646,9 +648,6 @@ class Referrer(StrEnum):
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
-    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
-        "dynamic_sampling.tasks.custom_rule_notifications"
-    )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
@@ -799,6 +798,7 @@ class Referrer(StrEnum):
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
     SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"

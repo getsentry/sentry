@@ -2,7 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {Organization} from 'sentry/types/organization';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {
+  formatTraceMetricsFunction,
+  TraceMetricsConfig,
+} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 describe('TraceMetricsConfig', () => {
@@ -10,6 +13,42 @@ describe('TraceMetricsConfig', () => {
   beforeEach(() => {
     organization = OrganizationFixture();
   });
+
+  describe('formatTraceMetricsFunction', () => {
+    it('formats a single parseable function string', () => {
+      expect(formatTraceMetricsFunction('avg(value,test_metric,millisecond,-)')).toBe(
+        'avg(test_metric)'
+      );
+    });
+
+    it('returns default value for unparseable string input', () => {
+      expect(formatTraceMetricsFunction('not-a-function', 'fallback')).toBe('fallback');
+    });
+
+    it('returns the raw value for unparseable string input when default is not provided', () => {
+      expect(formatTraceMetricsFunction('not-a-function')).toBe('not-a-function');
+    });
+
+    it('formats a single parseable function in an array', () => {
+      expect(formatTraceMetricsFunction(['avg(value,test_metric,millisecond,-)'])).toBe(
+        'avg(test_metric)'
+      );
+    });
+
+    it('formats multiple parseable functions in an array', () => {
+      expect(
+        formatTraceMetricsFunction([
+          'p50(value,test_metric,millisecond,-)',
+          'p75(value,test_metric,millisecond,-)',
+        ])
+      ).toBe('p50, p75(test_metric)');
+    });
+
+    it('handles unparseable function arrays gracefully', () => {
+      expect(formatTraceMetricsFunction(['not-a-function'])).toBe('(…)');
+    });
+  });
+
   describe('transformSeries', () => {
     it('uniquely identifies series with single yAxis and no groupings', () => {
       const data: EventsTimeSeriesResponse = {

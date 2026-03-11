@@ -13,6 +13,7 @@ import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQu
 import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
 import IssueWidgetQueries from './issueWidgetQueries';
+import LogsWidgetQueries from './logsWidgetQueries';
 import MobileAppSizeWidgetQueries from './mobileAppSizeWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
 import WidgetQueries from './widgetQueries';
@@ -20,6 +21,7 @@ import WidgetQueries from './widgetQueries';
 type Results = {
   loading: boolean;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
@@ -45,13 +47,17 @@ type Props = {
       | 'tableResults'
       | 'timeseriesResults'
       | 'timeseriesResultsTypes'
+      | 'timeseriesResultsUnits'
       | 'totalIssuesCount'
       | 'confidence'
+      | 'dataScanned'
+      | 'isSampled'
       | 'sampleCount'
     >
   ) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
+  widgetInterval?: string;
 };
 
 export function WidgetCardDataLoader({
@@ -63,6 +69,7 @@ export function WidgetCardDataLoader({
   onDataFetched,
   onWidgetSplitDecision,
   onDataFetchStart,
+  widgetInterval,
 }: Props) {
   if (widgetFetchesOwnData(widget.displayType)) {
     return children({loading: false});
@@ -77,6 +84,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {({
           tableResults,
@@ -108,6 +116,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
@@ -127,6 +136,7 @@ export function WidgetCardDataLoader({
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
         onDataFetchStart={onDataFetchStart}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </SpansWidgetQueries>
@@ -142,9 +152,26 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>
+    );
+  }
+
+  if (widget.widgetType === WidgetType.LOGS) {
+    return (
+      <LogsWidgetQueries
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </LogsWidgetQueries>
     );
   }
 
@@ -154,6 +181,7 @@ export function WidgetCardDataLoader({
         widget={widget}
         selection={selection}
         dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </MobileAppSizeWidgetQueries>
@@ -169,6 +197,7 @@ export function WidgetCardDataLoader({
       onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
       onWidgetSplitDecision={onWidgetSplitDecision}
+      widgetInterval={widgetInterval}
     >
       {({
         tableResults,

@@ -295,9 +295,10 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
+    // TOP_N is converted to AREA, so the discover URL no longer has display=top5
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -828,7 +829,7 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         organization={{
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         }}
         widget={multipleQueryWidget}
         selection={selection}

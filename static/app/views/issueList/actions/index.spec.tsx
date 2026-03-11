@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useLayoutEffect} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -13,10 +13,13 @@ import {
 
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {
+  IssueSelectionProvider,
+  useIssueSelectionActions,
+} from 'sentry/views/issueList/issueSelectionContext';
 import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 const organization = OrganizationFixture();
@@ -40,11 +43,45 @@ const defaultProps = {
   displayReprocessingActions: false,
 };
 
-function WrappedComponent(props: any) {
+const EMPTY_SELECTED_IDS: string[] = [];
+
+function SelectionInitializer({
+  allSelected = false,
+  selectedIds = EMPTY_SELECTED_IDS,
+}: {
+  allSelected?: boolean;
+  selectedIds?: string[];
+}) {
+  const {toggleSelect, toggleSelectAllVisible} = useIssueSelectionActions();
+
+  useLayoutEffect(() => {
+    selectedIds.forEach(id => toggleSelect(id));
+    if (allSelected) {
+      toggleSelectAllVisible();
+    }
+  }, [allSelected, selectedIds, toggleSelect, toggleSelectAllVisible]);
+
+  return null;
+}
+
+function WrappedComponent({
+  selectedIds,
+  allSelected,
+  ...props
+}: {
+  [key: string]: any;
+  allSelected?: boolean;
+  selectedIds?: string[];
+}) {
+  const groupIds = props.groupIds ?? defaultProps.groupIds;
+
   return (
     <Fragment>
       <GlobalModal />
-      <IssueListActions {...defaultProps} {...props} />
+      <IssueSelectionProvider visibleGroupIds={groupIds}>
+        <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
+        <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+      </IssueSelectionProvider>
     </Fragment>
   );
 }
@@ -56,8 +93,6 @@ describe('IssueListActions', () => {
 
   beforeEach(() => {
     GroupStore.reset();
-    SelectedGroupStore.reset();
-    SelectedGroupStore.add(['1', '2', '3']);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -74,26 +109,21 @@ describe('IssueListActions', () => {
     });
 
     it('shows action buttons when any items are selected', () => {
-      SelectedGroupStore.toggleSelect('1');
-      render(<WrappedComponent />);
+      render(<WrappedComponent selectedIds={['1']} />);
 
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     });
 
     it('shows select all checkbox as checked when all items are selected', () => {
-      SelectedGroupStore.toggleSelect('1');
-      SelectedGroupStore.toggleSelect('2');
-      SelectedGroupStore.toggleSelect('3');
-      render(<WrappedComponent />);
+      render(<WrappedComponent selectedIds={['1', '2', '3']} />);
 
       // When all selected, label changes to "Deselect all"
       expect(screen.getByRole('checkbox', {name: 'Deselect all'})).toBeChecked();
     });
 
     it('shows select all checkbox as indeterminate when some items are selected', () => {
-      SelectedGroupStore.toggleSelect('1');
-      render(<WrappedComponent />);
+      render(<WrappedComponent selectedIds={['1']} />);
 
       const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
       expect(checkbox).toBePartiallyChecked();
@@ -228,9 +258,9 @@ describe('IssueListActions', () => {
           method: 'PUT',
         });
 
-        SelectedGroupStore.toggleSelect('1');
-
-        render(<WrappedComponent groupIds={['1', '2', '3', '6', '9']} />);
+        render(
+          <WrappedComponent groupIds={['1', '2', '3', '6', '9']} selectedIds={['1']} />
+        );
 
         const resolveButton = screen.getByRole('button', {name: 'Resolve'});
         expect(resolveButton).toBeEnabled();
@@ -255,9 +285,7 @@ describe('IssueListActions', () => {
       url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
-    SelectedGroupStore.toggleSelect('1');
-
-    render(<WrappedComponent {...defaultProps} />);
+    render(<WrappedComponent {...defaultProps} selectedIds={['1']} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
@@ -280,9 +308,7 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    SelectedGroupStore.toggleSelect('1');
-
-    render(<WrappedComponent {...defaultProps} />, {organization});
+    render(<WrappedComponent {...defaultProps} selectedIds={['1']} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
 
@@ -314,11 +340,12 @@ describe('IssueListActions', () => {
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
-    SelectedGroupStore.toggleSelect('1');
-
-    render(<WrappedComponent {...defaultProps} query="is:archived" />, {
-      organization,
-    });
+    render(
+      <WrappedComponent {...defaultProps} query="is:archived" selectedIds={['1']} />,
+      {
+        organization,
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
 
@@ -332,9 +359,6 @@ describe('IssueListActions', () => {
   });
 
   it('can resolve but not merge issues from different projects', async () => {
-    SelectedGroupStore.toggleSelect('1');
-    SelectedGroupStore.toggleSelect('2');
-    SelectedGroupStore.toggleSelect('3');
     jest.spyOn(GroupStore, 'get').mockImplementation(id => {
       switch (id) {
         case '1':
@@ -344,7 +368,7 @@ describe('IssueListActions', () => {
       }
     });
 
-    render(<WrappedComponent />);
+    render(<WrappedComponent selectedIds={['1', '2', '3']} />);
 
     // Can resolve but not merge issues from multiple projects
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
@@ -352,7 +376,6 @@ describe('IssueListActions', () => {
   });
 
   it('sets the project ID when My Projects is selected', async () => {
-    SelectedGroupStore.toggleSelect('1');
     jest
       .spyOn(GroupStore, 'get')
       .mockImplementation(id =>
@@ -366,6 +389,7 @@ describe('IssueListActions', () => {
 
     render(
       <WrappedComponent
+        selectedIds={['1']}
         selection={{
           // No selected projects => My Projects
           projects: [],
@@ -400,9 +424,6 @@ describe('IssueListActions', () => {
         method: 'PUT',
       });
 
-      SelectedGroupStore.toggleSelect('1');
-      SelectedGroupStore.toggleSelect('2');
-      SelectedGroupStore.toggleSelect('3');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({
           id,
@@ -413,7 +434,12 @@ describe('IssueListActions', () => {
           },
         });
       });
-      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
+      render(
+        <WrappedComponent
+          onActionTaken={mockOnActionTaken}
+          selectedIds={['1', '2', '3']}
+        />
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
       const reviewButton = screen.getByRole('menuitemradio', {name: 'Mark Reviewed'});
@@ -423,11 +449,9 @@ describe('IssueListActions', () => {
     });
 
     it('mark reviewed disabled for group that is already reviewed', async () => {
-      SelectedGroupStore.add(['1']);
-      SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
-      render(<WrappedComponent {...defaultProps} />);
+      render(<WrappedComponent {...defaultProps} groupIds={['1']} allSelected />);
 
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
       expect(
@@ -438,8 +462,6 @@ describe('IssueListActions', () => {
 
   describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
-      SelectedGroupStore.toggleSelect('1');
-      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
@@ -453,7 +475,7 @@ describe('IssueListActions', () => {
         }
       });
 
-      render(<WrappedComponent />);
+      render(<WrappedComponent selectedIds={['1', '2']} />);
 
       // Resolve and ignore are supported
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
@@ -478,13 +500,11 @@ describe('IssueListActions', () => {
     });
 
     it('disables delete if user does not have permission to delete issues', async () => {
-      SelectedGroupStore.toggleSelect('1');
-      SelectedGroupStore.toggleSelect('2');
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         return GroupFixture({id});
       });
 
-      render(<WrappedComponent />);
+      render(<WrappedComponent selectedIds={['1', '2']} />);
 
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
       expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
@@ -508,13 +528,9 @@ describe('IssueListActions', () => {
           method: 'DELETE',
         });
 
-        render(
-          <Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} query={DEFAULT_QUERY} queryCount={100} />
-          </Fragment>,
-          {organization: orgWithPerformanceIssues}
-        );
+        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
+          organization: orgWithPerformanceIssues,
+        });
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -558,13 +574,9 @@ describe('IssueListActions', () => {
           .spyOn(GroupStore, 'get')
           .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
-        render(
-          <Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} query={DEFAULT_QUERY} queryCount={100} />
-          </Fragment>,
-          {organization: orgWithPerformanceIssues}
-        );
+        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
+          organization: orgWithPerformanceIssues,
+        });
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -600,12 +612,7 @@ describe('IssueListActions', () => {
           .spyOn(GroupStore, 'get')
           .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
-        render(
-          <Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} queryCount={100} />
-          </Fragment>
-        );
+        render(<WrappedComponent queryCount={100} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 

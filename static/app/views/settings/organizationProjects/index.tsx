@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -10,20 +10,18 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
@@ -33,15 +31,13 @@ import ProjectStatsGraph from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
 
-type ProjectStats = Record<string, Required<Project['stats']>>;
-
 function OrganizationProjects() {
   const organization = useOrganization();
 
+  const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(Date.now());
   const {
     data: projectList,
     getResponseHeader,
@@ -57,30 +53,11 @@ function OrganizationProjects() {
           ...location.query,
           query,
           per_page: ITEMS_PER_PAGE,
+          statsPeriod: '24h',
         },
       },
     ],
     {staleTime: 0}
-  );
-
-  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          projectID: projectList?.map(p => p.id),
-          since: time.current / 1000 - 3600 * 24,
-          stat: 'generated',
-          group: 'project',
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      enabled: !!projectList,
-    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -90,13 +67,15 @@ function OrganizationProjects() {
     () =>
       debounce(
         (searchQuery: string) =>
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {...location.query, query: searchQuery, cursor: undefined},
-          }),
+          navigate(
+            {
+              query: {...location.query, query: searchQuery, cursor: undefined},
+            },
+            {replace: true}
+          ),
         DEFAULT_DEBOUNCE_DURATION
       ),
-    [location.pathname, location.query]
+    [location.query, navigate]
   );
 
   return (
@@ -124,18 +103,11 @@ function OrganizationProjects() {
                   <ProjectListItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  {isLoadingStats && <Placeholder height="25px" />}
-                  {projectStats && (
-                    <ProjectStatsGraph
-                      key={project.id}
-                      project={project}
-                      stats={projectStats[project.id]}
-                    />
-                  )}
+                  <ProjectStatsGraph project={project} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}
-          {projectList && projectList.length === 0 && (
+          {projectList?.length === 0 && (
             <EmptyMessage>{t('No projects found.')}</EmptyMessage>
           )}
         </PanelBody>
@@ -148,7 +120,7 @@ function OrganizationProjects() {
 export default OrganizationProjects;
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const GridPanelItem = styled(PanelItem)`
@@ -158,12 +130,12 @@ const GridPanelItem = styled(PanelItem)`
 `;
 
 const ProjectListItemWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   flex: 1;
 `;
 
 const ProjectStatsGraphWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   width: 25%;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
