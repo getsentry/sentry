@@ -64,8 +64,6 @@ class SlackExplorerCachePayload(TypedDict):
     message_ts: str
 
 
-@autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
-@explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)
 class SlackEntrypoint(
     SeerAutofixEntrypoint[SlackEntrypointCachePayload],
     SeerExplorerEntrypoint[SlackExplorerCachePayload],
@@ -531,3 +529,8 @@ def prepare_slack_thread_for_autofix_updates(
         "seer.entrypoint.slack.prepare_thread.cache_populated",
         tags={"cache_source": cache_result["source"]},
     )
+
+
+# Register after class definition to avoid decorator type-narrowing when stacking two registries.
+autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackEntrypoint)
+explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackEntrypoint)
