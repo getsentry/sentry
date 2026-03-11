@@ -258,7 +258,9 @@
       "@sentry-internal/node-cpu-profiler",
       "@sentry/cli",
       "core-js",
-      "esbuild"
+      "esbuild",
+      "odiff-bin",
+      "unrs-resolver"
     ]
   },
   "optionalDependencies": {
