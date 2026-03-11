@@ -16,7 +16,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useReorderStarredDashboards} from 'sentry/views/dashboards/hooks/useReorderStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import ProjectIcon from 'sentry/views/navigation/projectIcon';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
 type DashboardsNavigationItemsProps = {
@@ -124,7 +123,7 @@ export function DashboardsNavigationItems({
                     />
                     <IconGrabbable variant="muted" />
                   </GrabHandleWrapper>
-                  <ProjectIcon
+                  <SecondaryNavigation.ProjectIcon
                     projectPlatforms={dashboardProjectPlatforms}
                     allProjects={
                       dashboard.projects.length === 1 && dashboard.projects[0] === -1

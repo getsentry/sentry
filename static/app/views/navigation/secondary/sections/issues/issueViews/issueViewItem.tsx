@@ -15,7 +15,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import ProjectIcon from 'sentry/views/navigation/projectIcon';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
@@ -131,7 +130,7 @@ export function IssueViewItem({
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <IconGrabbable variant="muted" />
             </GrabHandleWrapper>
-            <ProjectIcon
+            <SecondaryNavigation.ProjectIcon
               projectPlatforms={projectPlatforms}
               allProjects={view.projects.length === 1 && view.projects[0] === -1}
             />
