@@ -50,6 +50,7 @@ class SlackEntrypointInteractionType(StrEnum):
     PROCESS_THREAD_UPDATE = "process_thread_update"
     SCHEDULE_ALL_THREAD_UPDATES = "schedule_all_thread_updates"
     UPDATE_EXISTING_MESSAGE = "update_existing_message"
+    PROCESS_MENTION = "process_mention"
 
 
 @dataclass

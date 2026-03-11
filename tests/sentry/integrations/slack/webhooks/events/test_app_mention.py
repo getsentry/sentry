@@ -11,6 +11,10 @@ APP_MENTION_EVENT = {
     "event_ts": "1234567890.123456",
 }
 
+AUTHORIZATIONS_DATA = {
+    "authorizations": [{"user_id": "U0BOT", "is_bot": True}],
+}
+
 THREADED_APP_MENTION_EVENT = {
     **APP_MENTION_EVENT,
     "thread_ts": "1234567890.000001",
@@ -21,7 +25,7 @@ class AppMentionEventTest(BaseEventTest):
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_dispatches_task(self, mock_apply_async):
         with self.feature("organizations:seer-slack-explorer"):
-            resp = self.post_webhook(event_data=APP_MENTION_EVENT)
+            resp = self.post_webhook(event_data=APP_MENTION_EVENT, data=AUTHORIZATIONS_DATA)
 
         assert resp.status_code == 200
         mock_apply_async.assert_called_once()
@@ -33,6 +37,17 @@ class AppMentionEventTest(BaseEventTest):
         assert kwargs["message_ts"] == "1234567890.123456"
         assert kwargs["text"] == APP_MENTION_EVENT["text"]
         assert kwargs["slack_user_id"] == "U1234567890"
+        assert kwargs["bot_user_id"] == "U0BOT"
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_dispatches_task_no_authorizations(self, mock_apply_async):
+        with self.feature("organizations:seer-slack-explorer"):
+            resp = self.post_webhook(event_data=APP_MENTION_EVENT)
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+        kwargs = mock_apply_async.call_args[1]["kwargs"]
+        assert kwargs["bot_user_id"] == ""
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_threaded(self, mock_apply_async):

@@ -353,6 +353,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not channel_id or not text:
             return self.respond()
 
+        authorizations = slack_request.data.get("authorizations") or []
+        bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
+
         from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
         process_mention_for_slack.apply_async(
@@ -364,6 +367,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 "message_ts": message_ts,
                 "text": text,
                 "slack_user_id": slack_request.user_id,
+                "bot_user_id": bot_user_id,
             }
         )
 
