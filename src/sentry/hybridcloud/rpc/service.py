@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Cell, RegionMappingNotFound
+from sentry.types.region import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -118,7 +118,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
         try:
             region = self._region_resolution.resolve(arguments)
             return _RegionResolutionResult(region)
-        except RegionMappingNotFound:
+        except CellMappingNotFound:
             if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
                 return _RegionResolutionResult(None, is_early_halt=True)
             else:

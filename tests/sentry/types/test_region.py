@@ -15,15 +15,15 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
     Cell,
+    CellConfigurationError,
+    CellDirectory,
+    CellResolutionError,
     Locality,
     RegionCategory,
-    RegionConfigurationError,
-    RegionDirectory,
-    RegionResolutionError,
     find_all_cell_names,
-    find_all_multitenant_region_names,
+    find_all_multitenant_cell_names,
     find_cells_for_sentry_app,
-    find_regions_for_user,
+    find_cells_for_user,
     get_cell_by_name,
     get_cell_for_organization,
     get_local_cell,
@@ -32,11 +32,11 @@ from sentry.types.region import (
 )
 
 
-class RegionDirectoryTest(TestCase):
+class CellDirectoryTest(TestCase):
     """Test region config parsing and setup.
 
     Note: Because this test case is targeted at the logic of setting up the
-    RegionDirectory, it uses a lot of `override_settings` in ways that most test
+    CellDirectory, it uses a lot of `override_settings` in ways that most test
     cases shouldn't. If you are having difficulty with region setup in other test
     cases, please don't follow this class as an example, but instead use the
     utilities in testutils/silo.py and testutils/region.py.
@@ -71,7 +71,7 @@ class RegionDirectoryTest(TestCase):
 
     @staticmethod
     @contextmanager
-    def _in_global_state(directory: RegionDirectory) -> Generator[None]:
+    def _in_global_state(directory: CellDirectory) -> Generator[None]:
         with get_test_env_directory().swap_state(tuple(directory.cells)):
             yield
 
@@ -84,7 +84,7 @@ class RegionDirectoryTest(TestCase):
         with self._in_global_state(directory):
             assert get_cell_by_name("eu") == self._EXPECTED_OUTPUTS[1]
 
-            with pytest.raises(RegionResolutionError):
+            with pytest.raises(CellResolutionError):
                 get_cell_by_name("nowhere")
 
     def test_region_config_parsing_in_control(self) -> None:
@@ -120,7 +120,7 @@ class RegionDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
             mapping.update(cell_name="az")
-            with pytest.raises(RegionResolutionError):
+            with pytest.raises(CellResolutionError):
                 # Cell does not exist
                 get_cell_for_organization(self.organization.slug)
 
@@ -133,7 +133,7 @@ class RegionDirectoryTest(TestCase):
             assert cell == self._EXPECTED_OUTPUTS[1]
 
             mapping.delete()
-            with pytest.raises(RegionResolutionError):
+            with pytest.raises(CellResolutionError):
                 # OrganizationMapping does not exist
                 get_cell_for_organization(self.organization.slug)
 
@@ -153,17 +153,17 @@ class RegionDirectoryTest(TestCase):
     @patch("sentry.types.region.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:
         assert sentry_sdk_mock.capture_exception.call_count == 0
-        with pytest.raises(RegionConfigurationError):
+        with pytest.raises(CellConfigurationError):
             load_from_config(["invalid"], [])  # type: ignore[list-item]
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_invalid_historic_region_setting(self) -> None:
-        with pytest.raises(RegionConfigurationError):
+        with pytest.raises(CellConfigurationError):
             with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
                 load_from_config(self._INPUTS, [])
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_regions_for_user(self) -> None:
+    def test_find_cells_for_user(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
@@ -175,14 +175,14 @@ class RegionDirectoryTest(TestCase):
                 default_org_role=organization.default_role,
                 user_id=user.id,
             )
-            actual_regions = find_regions_for_user(user_id=user.id)
+            actual_regions = find_cells_for_user(user_id=user.id)
             assert actual_regions == {"us"}
 
         with (
             override_settings(SILO_MODE=SiloMode.REGION),
             pytest.raises(SiloLimit.AvailabilityError),
         ):
-            find_regions_for_user(user_id=user.id)
+            find_cells_for_user(user_id=user.id)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
@@ -226,15 +226,15 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_region_names(self) -> None:
+    def test_find_all_multitenant_cell_names(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            result = find_all_multitenant_region_names()
+            result = find_all_multitenant_cell_names()
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_region_names_non_visible(self) -> None:
+    def test_find_all_multitenant_cell_names_non_visible(self) -> None:
         inputs: list[CellConfig] = [
             *self._INPUTS,
             {
@@ -248,7 +248,7 @@ class RegionDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(inputs, [])
         with self._in_global_state(directory):
-            result = find_all_multitenant_region_names()
+            result = find_all_multitenant_cell_names()
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
