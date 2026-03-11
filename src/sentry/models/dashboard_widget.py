@@ -94,6 +94,15 @@ class DashboardWidgetTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+class DashboardWidgetLegendType(str, Enum):
+    DEFAULT = "default"
+    BREAKDOWN = "breakdown"
+
+    @classmethod
+    def as_text_choices(cls):
+        return [(member.value, member.value) for member in cls]
+
+
 class DatasetSourcesTypes(Enum):
     """
     Ambiguous queries that haven't been or couldn't be categorized into a

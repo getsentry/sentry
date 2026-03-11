@@ -23,6 +23,7 @@ from sentry.models.dashboard_widget import (
     DashboardFieldLink,
     DashboardWidget,
     DashboardWidgetDisplayTypes,
+    DashboardWidgetLegendType,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
@@ -310,6 +311,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     layout = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
+        required=False,
+        allow_null=True,
+    )
+    legend_type = serializers.ChoiceField(
+        choices=DashboardWidgetLegendType.as_text_choices(),
         required=False,
         allow_null=True,
     )
@@ -884,6 +890,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             detail={
                 "layout": widget_data.get("layout"),
                 "axis_range": widget_data.get("axis_range"),
+                "legend_type": widget_data.get("legend_type"),
             },
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
@@ -962,11 +969,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         This can be further optimized, currently we are doing one bulk update for every widget query, but we could do one bulk update for all widget queries at once.
         In practice a table typically has only one query, so this is not a big deal.
         """
-
         organization = self.context["organization"]
-        user = self.context["request"].user
-        if not features.has("organizations:dashboards-drilldown-flow", organization, actor=user):
-            return
 
         with sentry_sdk.start_span(
             op="function", name="dashboard.update_or_create_field_links"
@@ -976,6 +979,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             field_links_to_create = []
 
             widget_display_type = widget.display_type
+            legend_type = widget.detail.get("legend_type") if widget.detail else None
             span.set_data(
                 "linked_dashboards",
                 [
@@ -987,19 +991,30 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             span.set_data("query_id", query.id)
             span.set_data("widget_id", widget.id)
 
-            if (
-                widget_display_type is not DashboardWidgetDisplayTypes.TABLE
-                and len(linked_dashboards) > 0
-            ):
+            is_breakdown_chart = (
+                widget_display_type
+                in (
+                    DashboardWidgetDisplayTypes.LINE_CHART,
+                    DashboardWidgetDisplayTypes.BAR_CHART,
+                )
+                and legend_type == DashboardWidgetLegendType.BREAKDOWN
+            )
+            supports_field_links = (
+                widget_display_type is DashboardWidgetDisplayTypes.TABLE or is_breakdown_chart
+            )
+
+            if not supports_field_links and len(linked_dashboards) > 0:
                 raise serializers.ValidationError(
-                    "Field links are only supported for table widgets"
+                    "Field links are only supported for table widgets and breakdown charts"
                 )
 
-            if (
-                widget_display_type is not DashboardWidgetDisplayTypes.TABLE
-                and len(linked_dashboards) < 1
-            ):
+            if not supports_field_links and len(linked_dashboards) < 1:
                 return
+
+            # Validate no duplicate fields in linked dashboards
+            linked_fields = [ld.get("field") for ld in linked_dashboards]
+            if len(linked_fields) != len(set(linked_fields)):
+                raise serializers.ValidationError("Duplicate fields in linked dashboards")
 
             # check if the linked dashboard appears in the fields of the query
             if not all(
@@ -1075,6 +1090,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     def update_widget(self, widget, data):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
+        prev_legend_type = widget.detail.get("legend_type") if widget.detail else None
         is_text_widget = data.get("display_type") == DashboardWidgetDisplayTypes.TEXT
 
         widget.title = data.get("title", widget.title)
@@ -1092,6 +1108,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget.detail = {
             "layout": data.get("layout", prev_layout),
             "axis_range": data.get("axis_range", prev_axis_range),
+            "legend_type": data.get("legend_type", prev_legend_type),
         }
 
         # Text widgets don't have widget_type or dataset_source
