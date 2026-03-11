@@ -305,7 +305,7 @@ function ReplayOverlay({
 
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
-    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    ? nextReplay.user.display_name || t('Anonymous User')
     : undefined;
 
   if (!nextReplayText || !replayCount) {

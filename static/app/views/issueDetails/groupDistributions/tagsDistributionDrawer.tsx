@@ -9,7 +9,6 @@ import {
   EventNavigator,
   EventStickyControls,
 } from 'sentry/components/events/eventDrawer';
-import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSort} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -43,9 +42,6 @@ export default function TagsDistributionDrawer({
   const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
 
-  // If we're showing the suspect section at all
-  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
-
   const [search, setSearch] = useState('');
 
   return (
@@ -67,10 +63,6 @@ export default function TagsDistributionDrawer({
         ) : null}
       </EventNavigator>
       <EventDrawerBody>
-        {!tagKey && enableSuspectFlags ? (
-          <SuspectTable environments={environments} group={group} />
-        ) : null}
-
         {tagKey ? null : (
           <EventStickyControls>
             {includeFeatureFlagsTab ? (

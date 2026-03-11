@@ -80,7 +80,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_tasks
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.task import Task
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
@@ -288,7 +288,7 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
             # Send out the cross-region request.
             control_relocation_export_service.request_new_export(
                 relocation_uuid=str(uuid),
-                requesting_region_name=get_local_region().name,
+                requesting_region_name=get_local_cell().name,
                 replying_region_name=replying_region_name,
                 org_slug=org_slug,
                 encrypt_with_public_key=public_key_pem,
@@ -1164,7 +1164,7 @@ def validating_start(uuid: str) -> None:
             timeout=_parse_duration(cb_conf["timeout"]),
             options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
             tags=[
-                f"relocation-into-{get_local_region().name}",
+                f"relocation-into-{get_local_cell().name}",
                 f"relocation-id-{uuid}",
             ],
         )
