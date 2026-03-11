@@ -164,6 +164,29 @@ class SeerAutofixTrigger(NotificationData):
 
 
 @dataclass(frozen=True)
+class SeerExplorerError(NotificationData):
+    error_message: str
+    error_title: str = "Seer had some trouble..."
+    source: NotificationSource = NotificationSource.SEER_EXPLORER_ERROR
+
+
+@template_registry.register(SeerExplorerError.source)
+class SeerExplorerErrorTemplate(NotificationTemplate[SeerExplorerError]):
+    category = NotificationCategory.SEER
+    example_data = SeerExplorerError(
+        error_title="Seer had some trouble...",
+        error_message="Seer could not explore your organization.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerExplorerError) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=data.error_title,
+            body=[ParagraphBlock(blocks=[PlainTextBlock(text=data.error_message)])],
+        )
+
+
+@dataclass(frozen=True)
 class SeerExplorerResponse(NotificationData):
     """Notification data for Explorer completion response in Slack."""
 

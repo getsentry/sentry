@@ -712,3 +712,31 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         self.installation.remove_reaction(
             channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
         )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.assistant_threads_setStatus")
+    def test_set_thread_status_success(self, mock_set_status: MagicMock) -> None:
+        self.installation.set_thread_status(
+            channel_id=self.channel_id, thread_ts=self.thread_ts, status="Thinking..."
+        )
+        mock_set_status.assert_called_once_with(
+            channel_id=self.channel_id, thread_ts=self.thread_ts, status="Thinking..."
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.assistant_threads_setStatus")
+    def test_set_thread_status_error_is_swallowed(self, mock_set_status: MagicMock) -> None:
+        mock_set_status.side_effect = SlackApiError("not_allowed", MagicMock())
+        self.installation.set_thread_status(
+            channel_id=self.channel_id, thread_ts=self.thread_ts, status="Thinking..."
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.assistant_threads_setStatus")
+    def test_clear_thread_status_success(self, mock_set_status: MagicMock) -> None:
+        self.installation.clear_thread_status(channel_id=self.channel_id, thread_ts=self.thread_ts)
+        mock_set_status.assert_called_once_with(
+            channel_id=self.channel_id, thread_ts=self.thread_ts, status=""
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.assistant_threads_setStatus")
+    def test_clear_thread_status_error_is_swallowed(self, mock_set_status: MagicMock) -> None:
+        mock_set_status.side_effect = SlackApiError("not_allowed", MagicMock())
+        self.installation.clear_thread_status(channel_id=self.channel_id, thread_ts=self.thread_ts)

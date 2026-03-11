@@ -19,14 +19,18 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
 )
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache, SeerOperatorExplorerCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
-from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
+from sentry.seer.entrypoints.registry import (
+    autofix_entrypoint_registry,
+    explorer_entrypoint_registry,
+)
 from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -633,3 +637,57 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
 
     # The most recent cause is at the end of the list
     return root_causes[-1].get("id", AUTOFIX_FALLBACK_CAUSE_ID)
+
+
+class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
+    """Completion hook that notifies all entrypoints when an Explorer run finishes.
+
+    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
+    registry and calls on_explorer_update for each entrypoint that has access and
+    has a cached payload for this run.
+    """
+
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        from sentry.seer.explorer.client_utils import fetch_run_status
+
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_EXPLORER_COMPLETION,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "run_id": str(run_id),
+                    "organization_id": organization.id,
+                }
+            )
+
+            summary = None
+            try:
+                state = fetch_run_status(run_id, organization)
+                for block in reversed(state.blocks):
+                    if block.message.role == "assistant" and block.message.content:
+                        summary = block.message.content
+                        break
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
+                return
+
+            for (
+                entrypoint_key,
+                entrypoint_cls,
+            ) in explorer_entrypoint_registry.registrations.items():
+                if not entrypoint_cls.has_access(organization=organization):
+                    continue
+
+                cache_payload = SeerOperatorExplorerCache.get(
+                    entrypoint_key=str(entrypoint_key),
+                    run_id=run_id,
+                )
+                if not cache_payload:
+                    continue
+
+                entrypoint_cls.on_explorer_update(
+                    cache_payload=cache_payload,
+                    summary=summary,
+                    run_id=run_id,
+                )
