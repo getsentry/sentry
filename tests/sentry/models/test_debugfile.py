@@ -15,6 +15,7 @@ from django.urls import reverse
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
+    create_dif_alias,
     create_dif_from_id,
     detect_dif_from_path,
 )
@@ -339,6 +340,39 @@ class CreateDebugFileTest(APITestCase):
         assert created1
         assert not created2
         assert dif1 == dif2
+
+    def test_create_dif_alias_reuses_existing_file(self) -> None:
+        checksum = "dc1e3f3e411979d336c3057cce64294f3420f93a"
+        source_debug_id = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
+        alias_debug_id = "5f9e2d3c-4ea7-4fc9-bcef-939afcb58d53"
+        file = self.create_file(
+            name="mapping.bcsymbolmap",
+            type="project.dif",
+            headers={"Content-Type": "application/x-bcsymbolmap"},
+            checksum=checksum,
+        )
+        source_dif = self.create_dif_file(
+            project=self.project,
+            debug_id=source_debug_id,
+            object_name="mapping.bcsymbolmap",
+            cpu_name="any",
+            data=None,
+            file=file,
+        )
+
+        aliased_dif, created = create_dif_alias(self.project, alias_debug_id, source_dif)
+
+        assert created
+        assert aliased_dif.file_id == source_dif.file_id
+        assert aliased_dif.checksum == source_dif.checksum
+        assert aliased_dif.object_name == source_dif.object_name
+        assert aliased_dif.cpu_name == source_dif.cpu_name
+        assert aliased_dif.data is None
+
+        same_alias, created_again = create_dif_alias(self.project, alias_debug_id, source_dif)
+
+        assert not created_again
+        assert same_alias.id == aliased_dif.id
 
     def test_remove_redundant_dif(self) -> None:
         file = self.create_file(

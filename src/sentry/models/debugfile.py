@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
+ALIAS_SAFE_DIF_FORMATS = frozenset({"proguard", "bcsymbolmap", "il2cpp", "dartsymbolmap"})
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
@@ -352,6 +353,42 @@ def create_dif_from_id(
     clean_redundant_difs(project, meta.debug_id)
 
     return dif, True
+
+
+def create_dif_alias(
+    project: Project, debug_id: str, source_dif: ProjectDebugFile
+) -> tuple[ProjectDebugFile, bool]:
+    if source_dif.file_format not in ALIAS_SAFE_DIF_FORMATS:
+        raise TypeError(f"{source_dif.file_format} does not support debug file aliasing")
+
+    dif = (
+        ProjectDebugFile.objects.select_related("file")
+        .filter(project_id=project.id, debug_id=debug_id, checksum=source_dif.checksum)
+        .order_by("-id")
+        .first()
+    )
+
+    if dif is not None:
+        return dif, False
+
+    dif = ProjectDebugFile.objects.create(
+        file=source_dif.file,
+        checksum=source_dif.checksum,
+        debug_id=debug_id,
+        code_id=source_dif.code_id,
+        cpu_name=source_dif.cpu_name,
+        object_name=source_dif.object_name,
+        project_id=project.id,
+        data=source_dif.data,
+    )
+
+    clean_redundant_difs(project, debug_id)
+
+    return dif, True
+
+
+def supports_dif_aliasing(source_dif: ProjectDebugFile) -> bool:
+    return source_dif.file_format in ALIAS_SAFE_DIF_FORMATS
 
 
 def _analyze_progard_filename(filename: str | None) -> str | None:

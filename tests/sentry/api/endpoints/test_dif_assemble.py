@@ -209,6 +209,87 @@ class DifAssembleEndpoint(APITestCase):
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
 
+    @patch("sentry.tasks.assemble.assemble_dif")
+    def test_existing_bcsymbolmap_checksum_with_new_uuid_aliases_existing_file(
+        self, mock_assemble_dif: MagicMock
+    ) -> None:
+        checksum = sha1(b"mapping").hexdigest()
+        existing_debug_id = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
+        new_debug_id = "5f9e2d3c-4ea7-4fc9-bcef-939afcb58d53"
+        file = self.create_file(
+            name="mapping.bcsymbolmap",
+            type="project.dif",
+            headers={"Content-Type": "application/x-bcsymbolmap"},
+            checksum=checksum,
+        )
+        existing_dif = self.create_dif_file(
+            project=self.project,
+            debug_id=existing_debug_id,
+            object_name="mapping.bcsymbolmap",
+            cpu_name="any",
+            data=None,
+            file=file,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {"name": "mapping.bcsymbolmap", "debug_id": new_debug_id, "chunks": []}
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+        assert response.data[checksum]["dif"]["uuid"] == new_debug_id
+
+        aliased_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id, debug_id=new_debug_id
+        )
+        assert aliased_dif.file_id == existing_dif.file_id
+        assert aliased_dif.checksum == existing_dif.checksum
+        assert (
+            ProjectDebugFile.objects.filter(project_id=self.project.id, checksum=checksum).count()
+            == 2
+        )
+        mock_assemble_dif.apply_async.assert_not_called()
+
+    @patch("sentry.tasks.assemble.assemble_dif")
+    def test_existing_native_checksum_with_new_uuid_does_not_alias(
+        self, mock_assemble_dif: MagicMock
+    ) -> None:
+        checksum = sha1(b"mapping").hexdigest()
+        existing_debug_id = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
+        new_debug_id = "5f9e2d3c-4ea7-4fc9-bcef-939afcb58d53"
+        file = self.create_file(
+            name="shared.dSYM",
+            type="project.dif",
+            headers={"Content-Type": "application/x-mach-binary"},
+            checksum=checksum,
+        )
+        self.create_dif_file(
+            project=self.project,
+            debug_id=existing_debug_id,
+            object_name="shared.dSYM",
+            cpu_name="x86_64",
+            data={"features": ["debug"]},
+            file=file,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={checksum: {"name": "shared.dSYM", "debug_id": new_debug_id, "chunks": []}},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.NOT_FOUND
+        assert response.data[checksum]["missingChunks"] == []
+        assert not ProjectDebugFile.objects.filter(
+            project_id=self.project.id, debug_id=new_debug_id
+        ).exists()
+        mock_assemble_dif.apply_async.assert_not_called()
+
     def test_dif_response(self) -> None:
         sym_file = self.load_fixture("crash.sym")
         blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)

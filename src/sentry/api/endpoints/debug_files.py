@@ -32,7 +32,9 @@ from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.debugfile import (
     ProguardArtifactRelease,
     ProjectDebugFile,
+    create_dif_alias,
     create_files_from_dif_zip,
+    supports_dif_aliasing,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
@@ -459,20 +461,51 @@ def batch_assemble(project, files):
     checksums_to_check -= checksums_with_status
 
     # 2. Check if this project already owns the `ProjectDebugFile` for each file.
-    debug_files = ProjectDebugFile.objects.filter(
-        project_id=project.id,
-        checksum__in=checksums_to_check,
-    ).select_related("file")
+    debug_files = (
+        ProjectDebugFile.objects.filter(
+            project_id=project.id,
+            checksum__in=checksums_to_check,
+        )
+        .select_related("file")
+        .order_by("-id")
+    )
+
+    latest_debug_file_by_checksum: dict[str, ProjectDebugFile] = {}
+    alias_source_by_checksum: dict[str, ProjectDebugFile] = {}
+    debug_files_by_checksum_and_id: dict[tuple[str, str], ProjectDebugFile] = {}
+    for debug_file in debug_files:
+        latest_debug_file_by_checksum.setdefault(debug_file.checksum, debug_file)
+        debug_files_by_checksum_and_id[(debug_file.checksum, debug_file.debug_id)] = debug_file
+        if supports_dif_aliasing(debug_file):
+            alias_source_by_checksum.setdefault(debug_file.checksum, debug_file)
 
     checksums_with_debug_files = set()
-    for debug_file in debug_files:
-        file_response[debug_file.checksum] = {
+    for checksum, existing_debug_file in latest_debug_file_by_checksum.items():
+        _, requested_debug_id, _ = get_file_info(files, checksum) or (None, None, None)
+
+        matching_debug_file = None
+        if requested_debug_id is None:
+            matching_debug_file = existing_debug_file
+        else:
+            matching_debug_file = debug_files_by_checksum_and_id.get((checksum, requested_debug_id))
+
+            if matching_debug_file is None:
+                alias_source = alias_source_by_checksum.get(checksum)
+                if alias_source is not None:
+                    matching_debug_file, _ = create_dif_alias(
+                        project, requested_debug_id, alias_source
+                    )
+
+        if matching_debug_file is None:
+            continue
+
+        file_response[checksum] = {
             "state": ChunkFileState.OK,
             "detail": None,
             "missingChunks": [],
-            "dif": serialize(debug_file),
+            "dif": serialize(matching_debug_file),
         }
-        checksums_with_debug_files.add(debug_file.checksum)
+        checksums_with_debug_files.add(checksum)
 
     checksums_to_check -= checksums_with_debug_files
 
