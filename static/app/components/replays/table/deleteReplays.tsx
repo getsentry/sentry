@@ -12,7 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import Duration from 'sentry/components/duration/duration';
+import {Duration} from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
@@ -41,7 +41,7 @@ interface Props {
   selectedIds: 'all' | string[];
 }
 
-export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
   const organization = useOrganization();

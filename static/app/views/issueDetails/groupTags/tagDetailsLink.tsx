@@ -9,7 +9,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
-export default function TagDetailsLink({
+export function TagDetailsLink({
   tag,
   groupId,
   children,

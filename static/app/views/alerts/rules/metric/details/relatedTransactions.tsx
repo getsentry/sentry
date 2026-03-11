@@ -30,7 +30,7 @@ interface RelatedTransactionsProps {
   timePeriod: TimePeriodType;
 }
 
-function RelatedTransactions({
+export function RelatedTransactions({
   organization,
   projects,
   timePeriod,
@@ -139,8 +139,6 @@ function RelatedTransactions({
     </DiscoverQuery>
   );
 }
-
-export default RelatedTransactions;
 
 const HeaderCell = styled('div')<{align: Alignments}>`
   display: block;

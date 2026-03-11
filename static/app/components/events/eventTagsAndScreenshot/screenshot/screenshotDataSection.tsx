@@ -8,7 +8,7 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
+import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';

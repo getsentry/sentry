@@ -7,14 +7,14 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import Hook from 'sentry/components/hook';
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import Redirect from 'sentry/components/redirect';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Redirect} from 'sentry/components/redirect';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
@@ -29,17 +29,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
-import Stepper from './components/stepper';
+import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
-import SetupDocs from './setupDocs';
+import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import TargetedOnboardingWelcome from './welcome';
+import {TargetedOnboardingWelcome} from './welcome';
 
 export const onboardingSteps: StepDescriptor[] = [
   {

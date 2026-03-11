@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import NetworkDetailsContent from 'sentry/views/replays/detail/network/details/content';
+import {NetworkDetailsContent} from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');

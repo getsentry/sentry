@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 
 interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
@@ -8,7 +8,7 @@ interface Props extends React.ComponentProps<typeof Panel> {
   noCenter?: boolean;
 }
 
-function OnboardingPanel({image, noCenter, children, ...props}: Props) {
+export function OnboardingPanel({image, noCenter, children, ...props}: Props) {
   return (
     <Panel {...props}>
       <Container>
@@ -64,5 +64,3 @@ const IlloBox = styled(StyledBox)`
     max-width: auto;
   }
 `;
-
-export default OnboardingPanel;

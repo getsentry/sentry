@@ -1,9 +1,9 @@
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
-import PaymentIntentForm from 'getsentry/components/creditCardEdit/intentForms/paymentIntentForm';
-import SetupIntentForm from 'getsentry/components/creditCardEdit/intentForms/setupIntentForm';
+import {PaymentIntentForm} from 'getsentry/components/creditCardEdit/intentForms/paymentIntentForm';
+import {SetupIntentForm} from 'getsentry/components/creditCardEdit/intentForms/setupIntentForm';
 import type {CreditCardSetupProps} from 'getsentry/components/creditCardEdit/setup';
-import StripeWrapper from 'getsentry/components/stripeWrapper';
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 
 export interface CreditCardFormProps extends CreditCardSetupProps {
   /**

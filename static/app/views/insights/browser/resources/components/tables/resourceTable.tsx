@@ -32,7 +32,7 @@ import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {ResourceSizeCell} from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -86,7 +86,7 @@ type Props = {
   defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort, defaultResourceTypes}: Props) {
+export function ResourceTable({sort, defaultResourceTypes}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -261,5 +261,3 @@ function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
   }
   return <PlatformIcon platform="unknown" />;
 }
-
-export default ResourceTable;

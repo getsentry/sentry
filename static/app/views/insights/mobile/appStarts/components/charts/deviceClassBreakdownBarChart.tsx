@@ -45,7 +45,7 @@ interface DeviceClassBreakdownBarChartProps {
   chartHeight?: number;
 }
 
-function DeviceClassBreakdownBarChart({
+export function DeviceClassBreakdownBarChart({
   chartHeight,
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
@@ -229,5 +229,3 @@ function DeviceClassBreakdownBarChart({
     </ChartContainer>
   );
 }
-
-export default DeviceClassBreakdownBarChart;

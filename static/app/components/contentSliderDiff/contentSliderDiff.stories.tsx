@@ -5,7 +5,7 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 
 import {Flex} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as Storybook from 'sentry/stories';
 
 import {ContentSliderDiff} from '.';

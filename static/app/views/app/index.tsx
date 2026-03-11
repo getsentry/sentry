@@ -36,7 +36,7 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
 import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
@@ -46,7 +46,7 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App() {
+export function App() {
   useColorscheme();
 
   const api = useApi();
@@ -262,8 +262,6 @@ function App() {
     </Profiler>
   );
 }
-
-export default App;
 
 const MainContainer = styled('div')`
   display: flex;

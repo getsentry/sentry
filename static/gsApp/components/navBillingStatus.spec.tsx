@@ -9,7 +9,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
 
-import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
+import {PrimaryNavigationQuotaExceeded} from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 

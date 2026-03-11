@@ -2,7 +2,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import localStorageWrapper from 'sentry/utils/localStorage';
 

@@ -53,7 +53,7 @@ type LogsWidgetQueriesImplProps = LogsWidgetQueriesProps & {
   };
 };
 
-function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
+export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       let seriesConfidence: Confidence | null;
@@ -174,5 +174,3 @@ function LogsWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default LogsWidgetQueries;

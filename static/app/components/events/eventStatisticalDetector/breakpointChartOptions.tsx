@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import VisualMap from 'sentry/components/charts/components/visualMap';
+import {VisualMap} from 'sentry/components/charts/components/visualMap';
 import type {EventsStatsData, EventsStatsSeries} from 'sentry/types/organization';
 import {
   axisLabelFormatter,

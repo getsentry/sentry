@@ -3,8 +3,8 @@ import {Outlet, useOutletContext} from 'react-router-dom';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';

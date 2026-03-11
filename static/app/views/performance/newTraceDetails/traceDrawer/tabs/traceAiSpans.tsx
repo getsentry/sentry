@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,7 +18,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-function TraceAiSpans({traceSlug}: {traceSlug: string}) {
+export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -128,8 +128,6 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
     </Wrapper>
   );
 }
-
-export default TraceAiSpans;
 
 const Wrapper = styled('div')`
   display: grid;

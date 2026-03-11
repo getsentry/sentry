@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function ReleaseTableSearch() {
+export function ReleaseTableSearch() {
   const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});

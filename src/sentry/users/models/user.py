@@ -376,7 +376,7 @@ class User(Model, AbstractBaseUser):
             user_regions = find_regions_for_user(identifier)
 
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            region_names=user_regions,
+            cell_names=user_regions,
             object_identifier=identifier,
             shard_identifier=identifier,
         )
@@ -621,7 +621,7 @@ class User(Model, AbstractBaseUser):
                 is_active=self.is_active,
                 email=self.email,
             ),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
 

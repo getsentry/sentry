@@ -1,4 +1,4 @@
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import {crashReportCallout} from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {

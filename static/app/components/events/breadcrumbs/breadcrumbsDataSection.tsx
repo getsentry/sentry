@@ -5,13 +5,13 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,
   BreadcrumbsDrawer,
 } from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -44,7 +44,7 @@ interface BreadcrumbsDataSectionProps {
   initialCollapse?: boolean;
 }
 
-export default function BreadcrumbsDataSection({
+export function BreadcrumbsDataSection({
   event,
   group,
   project,

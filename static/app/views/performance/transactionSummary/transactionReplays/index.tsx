@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import TransactionReplays from './transactionReplays';
+import {TransactionReplays} from './transactionReplays';
 
 function renderNoAccess() {
   return (

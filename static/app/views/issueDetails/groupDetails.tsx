@@ -8,13 +8,13 @@ import * as qs from 'query-string';
 import {Container} from '@sentry/scraps/layout';
 import {TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
+import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import useDrawer from 'sentry/components/globalDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {featureFlagDrawerPlatforms} from 'sentry/data/platformCategories';
@@ -55,7 +55,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import GroupHeader from 'sentry/views/issueDetails/header';
+import {GroupHeader} from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourContext,

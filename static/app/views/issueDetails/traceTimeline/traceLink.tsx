@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

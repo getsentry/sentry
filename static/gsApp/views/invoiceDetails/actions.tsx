@@ -26,7 +26,7 @@ type Props = {
   reloadInvoice: () => void;
 };
 
-function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
+export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const api = useApi();
   const location = useLocation();
 
@@ -115,8 +115,6 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
     </Fragment>
   );
 }
-
-export default InvoiceDetailsActions;
 
 const EmailForm = styled('form')`
   display: grid;

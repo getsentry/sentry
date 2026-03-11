@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
@@ -118,7 +118,7 @@ type TransactionData = {
   threshold: number;
 };
 
-export default function Table({
+export function Table({
   columnTitles = COLUMN_TITLES_OPTIONAL_TOOLTIP,
   organization,
   location,

@@ -4,7 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';

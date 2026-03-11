@@ -11,9 +11,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -26,8 +26,8 @@ import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import SeerRepoTableHeader from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
-import SeerRepoTableRow from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
+import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
+import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
@@ -36,7 +36,7 @@ const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 60;
 
-export default function SeerRepoTable() {
+export function SeerRepoTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const scrollBodyRef = useRef<HTMLDivElement>(null);

@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
@@ -22,7 +22,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
-export default function ReplayDetailsUserBadge({readerResult}: Props) {
+export function ReplayDetailsUserBadge({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
 
   const badge = replayRecord ? (

@@ -31,7 +31,7 @@ interface Props {
   replay: ReplayReader;
 }
 
-export default function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
+export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   const organization = useOrganization();
 
   const replayRecord = replay.getReplay();

@@ -10,7 +10,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ConfigStore from 'sentry/stores/configStore';
 import * as useNavigateModule from 'sentry/utils/useNavigate';
 
-import RelocationDetails from 'admin/views/relocationDetails';
+import {RelocationDetails} from 'admin/views/relocationDetails';
 
 jest.mock('sentry/actionCreators/indicator');
 

@@ -1,7 +1,7 @@
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,9 +16,9 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
+import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
-import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
+import {Projects} from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';

@@ -39,23 +39,23 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import AxisRangeSection from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
+import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
-import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
-import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
   type ThresholdMetaState,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
-import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
+import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
@@ -82,7 +82,7 @@ type WidgetBuilderSlideoutProps = {
   thresholdMetaState?: ThresholdMetaState;
 };
 
-function WidgetBuilderSlideout({
+export function WidgetBuilderSlideout({
   onClose,
   onSave,
   onQueryConditionChange,
@@ -472,8 +472,6 @@ function WidgetBuilderSlideout({
     </SlideOverPanel>
   );
 }
-
-export default WidgetBuilderSlideout;
 
 function Section({children}: {children: React.ReactNode}) {
   return (

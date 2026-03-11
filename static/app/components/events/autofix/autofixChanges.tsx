@@ -8,9 +8,9 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightPopup} from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
@@ -26,7 +26,7 @@ import {
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

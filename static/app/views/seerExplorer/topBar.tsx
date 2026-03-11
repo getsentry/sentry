@@ -36,7 +36,7 @@ interface TopBarProps {
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-function TopBar({
+export function TopBar({
   isPolling,
   isEmptyState,
   isSeerDrawerOpen,
@@ -156,8 +156,6 @@ function TopBar({
     </Flex>
   );
 }
-
-export default TopBar;
 
 const CenterSection = styled(motion.div)`
   position: absolute;

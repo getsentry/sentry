@@ -10,8 +10,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -126,7 +126,7 @@ export function GithubInstallationSelect({
               name={installation.github_account}
             />
           )}
-          <span>{`${installation.github_account}`}</span>
+          <span>{installation.github_account}</span>
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}

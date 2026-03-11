@@ -6,10 +6,10 @@ import type {Location} from 'history';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -61,13 +61,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'status', name: 'status'},
 ];
 
-export default function ReleaseHealthTable({
-  data,
-  isError,
-  isLoading,
-  location,
-  meta,
-}: Props) {
+export function ReleaseHealthTable({data, isError, isLoading, location, meta}: Props) {
   const theme = useTheme();
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import DeleteReplays from 'sentry/components/replays/table/deleteReplays';
+import {DeleteReplays} from 'sentry/components/replays/table/deleteReplays';
 import {
   ReplaySelectColumn,
   type ReplayTableColumn,
@@ -24,7 +24,7 @@ type Props = {
   stickyHeader?: boolean;
 };
 
-export default function ReplayTableHeader({
+export function ReplayTableHeader({
   columns,
   replays,
   onSortClick,

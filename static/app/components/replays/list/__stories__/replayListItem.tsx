@@ -23,7 +23,7 @@ interface Props {
   rowIndex: number;
 }
 
-export default function ReplayListItem({replay, onClick}: Props) {
+export function ReplayListItem({replay, onClick}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 

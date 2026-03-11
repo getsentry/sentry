@@ -22,13 +22,13 @@ import {
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
 import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
-export default function OurLogs() {
+export function OurLogs() {
   const replay = useReplayReader();
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;

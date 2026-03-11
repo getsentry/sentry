@@ -13,7 +13,7 @@ type Props = {
 /**
  * ControlState (i.e. loading/error icons) for connected form components
  */
-function FormFieldControlState({model, name, hideErrorMessage}: Props) {
+export function FormFieldControlState({model, name, hideErrorMessage}: Props) {
   return (
     <Observer>
       {() => {
@@ -33,5 +33,3 @@ function FormFieldControlState({model, name, hideErrorMessage}: Props) {
     </Observer>
   );
 }
-
-export default FormFieldControlState;

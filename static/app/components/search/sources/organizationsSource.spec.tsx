@@ -4,7 +4,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
-import OrganizationsSource from './organizationsSource';
+import {OrganizationsSource} from './organizationsSource';
 
 describe('OrganizationsSource', () => {
   const orgs = OrganizationsFixture();

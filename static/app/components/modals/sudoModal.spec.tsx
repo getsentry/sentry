@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import App from 'sentry/views/app';
+import {App} from 'sentry/views/app';
 
 describe('Sudo Modal', () => {
   const setHasPasswordAuth = (hasPasswordAuth: boolean) =>

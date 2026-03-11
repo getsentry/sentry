@@ -54,11 +54,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: t('Error Rate'),
           conditions: AGENT_FILTER,
-          fields: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
-          aggregates: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          fields: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          aggregates: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
           columns: [],
           fieldAliases: [t('Error Rate')],
-          orderby: `-${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
+          orderby: `-equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
         },
       ],
     },
@@ -215,4 +215,9 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

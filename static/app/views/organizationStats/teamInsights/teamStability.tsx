@@ -6,9 +6,9 @@ import round from 'lodash/round';
 import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -31,7 +31,7 @@ interface TeamStabilityProps extends DateTimeObject {
   projects: Project[];
 }
 
-function TeamStability({
+export function TeamStability({
   organization,
   projects,
   period,
@@ -251,8 +251,6 @@ function TeamStability({
     </StyledPanelTable>
   );
 }
-
-export default TeamStability;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;

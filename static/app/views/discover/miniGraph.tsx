@@ -14,7 +14,7 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';

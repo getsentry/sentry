@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -16,9 +16,9 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-import ConfirmClientDeleteModal from './components/confirmClientDeleteModal';
+import {ConfirmClientDeleteModal} from './components/confirmClientDeleteModal';
 
 type ClientDetails = {
   allowedOrigins: string | null;
@@ -38,7 +38,7 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
-function InstanceLevelOAuthDetails() {
+export function InstanceLevelOAuthDetails() {
   const api = useApi();
   const router = useRouter();
 
@@ -177,8 +177,6 @@ function InstanceLevelOAuthDetails() {
     </div>
   );
 }
-
-export default InstanceLevelOAuthDetails;
 
 const StyledButton = styled(Button)`
   margin-top: 20px;

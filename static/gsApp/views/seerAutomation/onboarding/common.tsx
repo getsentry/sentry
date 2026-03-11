@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 
 export const MaxWidthPanel = styled(Panel)`
   max-width: 600px;

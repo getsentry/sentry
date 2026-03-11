@@ -30,7 +30,7 @@ import {useParams} from 'sentry/utils/useParams';
  *
  * Whenever https://orgslug.sentry.io/ is accessed in the browser, then both conditions above will be satisfied.
  */
-export default function withDomainRequired<P>(WrappedComponent: RouteComponent) {
+export function withDomainRequired<P>(WrappedComponent: RouteComponent) {
   return function WithDomainRequiredWrapper(props: P) {
     const params = useParams();
     const {features, customerDomain, links} = ConfigStore.getState();

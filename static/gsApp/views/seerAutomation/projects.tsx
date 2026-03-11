@@ -2,11 +2,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {t, tct} from 'sentry/locale';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import SeerProjectTable from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
-import SeerSettingsPageContent from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
-import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import {SeerProjectTable} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTable';
+import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 
 export default function SeerAutomationProjects() {
   return (

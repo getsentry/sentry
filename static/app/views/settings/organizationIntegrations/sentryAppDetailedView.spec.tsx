@@ -97,7 +97,7 @@ describe('SentryAppDetailedView', () => {
         url: `/organizations/${organization.slug}/sentry-app-installations/`,
         body: {
           status: 'installed',
-          organization: {slug: `${organization.slug}`},
+          organization: {slug: organization.slug},
           app: {uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526', slug: 'clickup'},
           code: '1dc8b0a28b7f45959d01bbc99d9bd568',
           uuid: '687323fd-9fa4-4f8f-9bee-ca0089224b3e',

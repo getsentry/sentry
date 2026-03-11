@@ -18,7 +18,7 @@ import type useOverlay from 'sentry/utils/useOverlay';
 import {DropdownMenu} from './index';
 import type {MenuItemProps} from './item';
 import DropdownMenuItem from './item';
-import DropdownMenuSection from './section';
+import {DropdownMenuSection} from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 

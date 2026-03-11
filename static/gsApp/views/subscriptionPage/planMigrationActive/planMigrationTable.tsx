@@ -17,14 +17,14 @@ import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
-import PlanMigrationRow from './planMigrationRow';
+import {PlanMigrationRow} from './planMigrationRow';
 
 type Props = {
   migration: PlanMigration;
   subscription: Subscription;
 };
 
-function PlanMigrationTable({subscription, migration}: Props) {
+export function PlanMigrationTable({subscription, migration}: Props) {
   if (!migration?.cohort?.nextPlan) {
     return null;
   }
@@ -297,5 +297,3 @@ const Credits = styled('p')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default PlanMigrationTable;

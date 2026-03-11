@@ -8,7 +8,8 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.grouping.parameterization import Parameterizer
+from sentry.grouping.parameterization import experimental_parameterizer
+from sentry.grouping.parameterization import parameterizer as default_parameterizer
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -62,27 +63,23 @@ def normalize_message_for_grouping(
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-    parameterizer = Parameterizer(
-        use_experimental_regexes=in_rollout_group(
-            "grouping.experimental_parameterization", event.project_id
-        ),
+    parameterizer = (
+        experimental_parameterizer
+        if in_rollout_group("grouping.experimental_parameterization", event.project_id)
+        else default_parameterizer
     )
 
     if trim_message:
         # If there are multiple lines, grab the first two non-empty ones
         trimmed = _trim_extra_lines(message)
         normalized = parameterizer.parameterize(trimmed)
+        message_parameterized = normalized != trimmed
     else:
         normalized = parameterizer.parameterize(message)
+        message_parameterized = normalized != message
 
-    parameterization_counts = parameterizer.matches_counter.items()
-    if parameterization_counts:
+    if message_parameterized:
         metrics.incr("grouping.message_parameterized", tags={"source": reason})
-
-        for key, value in parameterization_counts:
-            # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-            # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-            metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
 
     return normalized
 

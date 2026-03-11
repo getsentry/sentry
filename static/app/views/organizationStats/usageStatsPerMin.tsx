@@ -27,7 +27,7 @@ type Props = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-function UsageStatsPerMin({
+export function UsageStatsPerMin({
   organization,
   projectIds,
   dataCategory,
@@ -97,8 +97,6 @@ function UsageStatsPerMin({
     </Wrapper>
   );
 }
-
-export default UsageStatsPerMin;
 
 const Wrapper = styled('div')`
   display: inline-block;
