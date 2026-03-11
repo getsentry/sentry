@@ -90,20 +90,20 @@ class BroadcastListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get("/api/0/broadcasts/?show=latest&limit=2")
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=2")
         assert response.status_code == 200
         assert len(response.data) == 2
 
     def test_show_latest_invalid_limit(self) -> None:
         self.login_as(user=self.user)
 
-        response = self.client.get("/api/0/broadcasts/?show=latest&limit=abc")
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=abc")
         assert response.status_code == 400
 
     def test_show_latest_negative_limit(self) -> None:
         self.login_as(user=self.user)
 
-        response = self.client.get("/api/0/broadcasts/?show=latest&limit=-1")
+        response = self.client.get("/api/0/broadcasts/?show=latest&per_page=-1")
         assert response.status_code == 400
 
     def test_show_latest_does_not_require_admin(self) -> None:

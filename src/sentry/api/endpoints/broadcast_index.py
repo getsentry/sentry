@@ -7,7 +7,6 @@ from operator import or_
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -69,17 +68,13 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self, request: Request, organization: RpcOrganization | None = None, **kwargs
     ) -> Response:
-        try:
-            limit = int(request.GET.get("limit", 3))
-        except (ValueError, TypeError):
-            raise ParseError(detail="Invalid limit parameter")
-        if limit < 1 or limit > 100:
-            raise ParseError(detail="Invalid limit parameter")
+        limit = self.get_per_page(request, default_per_page=3, max_per_page=100)
 
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
         elif request.GET.get("show") == "latest":
+            # Used to show broadcasts in the sidebar and avoid an empty state when users have seen all broadcasts already
             queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")
         else:
             # only allow active broadcasts if they're not a superuser
@@ -143,6 +138,8 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             order_by=order_by,
             on_results=lambda x: self._serialize_objects(x, request),
             paginator_cls=paginator_cls,
+            default_per_page=3,
+            max_per_page=100,
         )
 
     def put(self, request: Request) -> Response:
