@@ -7,7 +7,6 @@ import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -17,13 +16,11 @@ import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/c
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {isLinkActive} from 'sentry/views/navigation/utils';
 
 const MAX_STARRED_QUERIES_DISPLAYED = 20;
 
 export function ExploreSecondaryNavigation() {
   const organization = useOrganization();
-  const location = useLocation();
   const {projects} = useProjects();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
@@ -80,7 +77,6 @@ export function ExploreSecondaryNavigation() {
               <SecondaryNavigation.Item
                 to={`${baseUrl}/traces/`}
                 analyticsItemName="explore_traces"
-                isActive={isLinkActive(`${baseUrl}/traces/`, location.pathname)}
               >
                 {t('Traces')}
               </SecondaryNavigation.Item>

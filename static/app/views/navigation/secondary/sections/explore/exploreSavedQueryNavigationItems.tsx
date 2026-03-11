@@ -15,7 +15,6 @@ import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext
 import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
-import ProjectIcon from 'sentry/views/navigation/projectIcon';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
 type Props = {
@@ -103,7 +102,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
                   <StyledInteractionStateLayer isPressed={isDragging === query.id} />
                   <IconGrabbable variant="muted" />
                 </GrabHandleWrapper>
-                <ProjectIcon
+                <SecondaryNavigation.ProjectIcon
                   projectPlatforms={projects
                     .filter(p => query.projects.map(String).includes(p.id))
                     .map(p => p.platform)

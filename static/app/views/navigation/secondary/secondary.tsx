@@ -3,15 +3,16 @@ import type {To} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconChevron} from 'sentry/icons';
+import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -20,8 +21,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/navigation/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
+import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
-import {isLinkActive} from 'sentry/views/navigation/utils';
 
 type SecondaryNavigationProps = {
   children: ReactNode;
@@ -214,7 +215,8 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
 }: SecondaryNavigationItemProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
+  const isActive =
+    incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavigationContext();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
@@ -269,6 +271,98 @@ function SectionSeparator() {
     </SeparatorWrapper>
   );
 }
+
+interface SidebarProjectIconProps {
+  projectPlatforms: string[];
+  allProjects?: boolean;
+  className?: string;
+}
+
+SecondaryNavigation.ProjectIcon = function SidebarProjectIcon({
+  projectPlatforms,
+  allProjects,
+  className,
+}: SidebarProjectIconProps) {
+  let renderedIcons: React.ReactNode;
+
+  switch (projectPlatforms.length) {
+    case 0:
+      renderedIcons = allProjects ? (
+        <IconAllProjects size="md" />
+      ) : (
+        <IconMyProjects size="md" />
+      );
+      break;
+    case 1:
+      renderedIcons = (
+        <IconContainer>
+          <StyledPlatformIcon platform={projectPlatforms[0]!} size={18} />
+          <BorderOverlay />
+        </IconContainer>
+      );
+      break;
+    default:
+      renderedIcons = (
+        <IconContainer>
+          {projectPlatforms.slice(0, 2).map((platform, index) => (
+            <PlatformIconWrapper key={platform} index={index}>
+              <StyledPlatformIcon platform={platform} size={14} />
+              <BorderOverlay />
+            </PlatformIconWrapper>
+          ))}
+        </IconContainer>
+      );
+  }
+
+  return (
+    <Stack
+      justify="center"
+      align="center"
+      flexShrink={0}
+      className={className}
+      data-project-icon
+    >
+      {renderedIcons}
+    </Stack>
+  );
+};
+
+const IconContainer = styled('div')`
+  position: relative;
+  display: grid;
+  width: 18px;
+  height: 18px;
+`;
+
+const BorderOverlay = styled('div')`
+  position: absolute;
+  inset: 0;
+  border: 1px solid ${p => p.theme.colors.gray100};
+  border-radius: 3px;
+  pointer-events: none;
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  display: block;
+`;
+
+const PlatformIconWrapper = styled('div')<{index: number}>`
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  ${p =>
+    p.index === 0 &&
+    css`
+      top: 0;
+      left: 0;
+    `}
+  ${p =>
+    p.index === 1 &&
+    css`
+      bottom: 0;
+      right: 0;
+    `}
+`;
 
 const Wrapper = styled('div')`
   display: grid;

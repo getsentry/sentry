@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
@@ -11,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,51 +24,6 @@ import {useNavigationContext} from 'sentry/views/navigation/context';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {NavigationLayout} from 'sentry/views/navigation/types';
-import {isLinkActive} from 'sentry/views/navigation/utils';
-
-interface SidebarItemLinkProps {
-  analyticsKey: string;
-  group: PrimaryNavigationGroup;
-  to: string;
-  activeTo?: string;
-  analyticsParams?: Record<string, unknown>;
-  children?: React.ReactNode;
-}
-
-interface SidebarItemDropdownProps {
-  analyticsKey: string;
-  items: MenuItemProps[];
-  label: string;
-  analyticsParams?: Record<string, unknown>;
-  children?: React.ReactNode;
-  disableTooltip?: boolean;
-  icon?: React.ReactNode;
-  onOpen?: MouseEventHandler<HTMLButtonElement>;
-  size?: ButtonProps['size'];
-  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
-}
-
-interface SidebarButtonProps {
-  analyticsKey: string;
-  label: string;
-  analyticsParams?: Record<string, unknown>;
-  buttonProps?: Omit<ButtonProps, 'aria-label'>;
-  children?: React.ReactNode;
-  className?: string;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
-}
-
-function recordPrimaryItemClick(
-  analyticsKey: string,
-  organization: Organization,
-  analyticsParams?: Record<string, unknown>
-) {
-  trackAnalytics('navigation.primary_item_clicked', {
-    item: analyticsKey,
-    organization,
-    ...analyticsParams,
-  });
-}
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -105,9 +60,17 @@ function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarIt
   );
 }
 
-// Stable module-level component to avoid remounts when used as `renderWrapAs`
-function PassthroughWrapper({children}: {children: React.ReactNode}) {
-  return children;
+interface SidebarMenuProps {
+  analyticsKey: string;
+  items: MenuItemProps[];
+  label: string;
+  analyticsParams?: Record<string, unknown>;
+  children?: React.ReactNode;
+  disableTooltip?: boolean;
+  icon?: React.ReactNode;
+  onOpen?: MouseEventHandler<HTMLButtonElement>;
+  size?: ButtonProps['size'];
+  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 export function SidebarMenu({
@@ -121,7 +84,7 @@ export function SidebarMenu({
   icon,
   size,
   triggerWrap: TriggerWrap = Fragment,
-}: SidebarItemDropdownProps) {
+}: SidebarMenuProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavigationContext();
@@ -160,7 +123,11 @@ export function SidebarMenu({
                 size={size}
                 onClick={event => {
                   if (organization) {
-                    recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
+                    trackAnalytics('navigation.primary_item_clicked', {
+                      item: analyticsKey,
+                      organization,
+                      ...analyticsParams,
+                    });
                   }
                   triggerProps.onClick?.(event);
                   onOpen?.(event);
@@ -179,51 +146,13 @@ export function SidebarMenu({
   );
 }
 
-function SidebarNavigationLink({
-  children,
-  to,
-  activeTo = to,
-  analyticsKey,
-  analyticsParams,
-  group,
-}: SidebarItemLinkProps) {
-  const organization = useOrganization();
-  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
-  const location = useLocation();
-  const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
-
-  // Reload the page when the frontend is stale to ensure users get the latest version
-  const {state: appState} = useFrontendVersion();
-
-  return (
-    <NavigationLink
-      to={to}
-      reloadDocument={appState === 'stale'}
-      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
-      aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === NavigationLayout.MOBILE}
-      onClick={() => {
-        recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
-      }}
-      {...{
-        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
-      }}
-    >
-      {layout === NavigationLayout.MOBILE ? (
-        <Fragment>
-          {children}
-          {label}
-        </Fragment>
-      ) : (
-        <Fragment>
-          <NavigationLinkIconContainer>{children}</NavigationLinkIconContainer>
-          <NavigationLinkLabel>{label}</NavigationLinkLabel>
-        </Fragment>
-      )}
-    </NavigationLink>
-  );
+interface SidebarItemLinkProps {
+  analyticsKey: string;
+  group: PrimaryNavigationGroup;
+  to: string;
+  activeTo?: string;
+  analyticsParams?: Record<string, unknown>;
+  children?: React.ReactNode;
 }
 
 export function SidebarLink({
@@ -252,6 +181,70 @@ export function SidebarLink({
   );
 }
 
+function SidebarNavigationLink({
+  children,
+  to,
+  activeTo = to,
+  analyticsKey,
+  analyticsParams,
+  group,
+}: SidebarItemLinkProps) {
+  const organization = useOrganization();
+  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
+  const location = useLocation();
+  const isActive = isSidebarLinkActive(
+    normalizeUrl(activeTo, location),
+    location.pathname
+  );
+  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
+
+  // Reload the page when the frontend is stale to ensure users get the latest version
+  const {state: appState} = useFrontendVersion();
+
+  return (
+    <NavigationLink
+      to={to}
+      reloadDocument={appState === 'stale'}
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
+      aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
+      aria-current={isActive ? 'page' : undefined}
+      isMobile={layout === NavigationLayout.MOBILE}
+      onClick={() => {
+        trackAnalytics('navigation.primary_item_clicked', {
+          item: analyticsKey,
+          organization,
+          ...analyticsParams,
+        });
+      }}
+      {...{
+        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
+    >
+      {layout === NavigationLayout.MOBILE ? (
+        <Fragment>
+          {children}
+          {label}
+        </Fragment>
+      ) : (
+        <Fragment>
+          <NavigationLinkIconContainer>{children}</NavigationLinkIconContainer>
+          <NavigationLinkLabel>{label}</NavigationLinkLabel>
+        </Fragment>
+      )}
+    </NavigationLink>
+  );
+}
+
+interface SidebarButtonProps {
+  analyticsKey: string;
+  label: string;
+  analyticsParams?: Record<string, unknown>;
+  buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+}
+
 export function SidebarButton({
   className,
   analyticsKey,
@@ -274,7 +267,11 @@ export function SidebarButton({
         className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
+          trackAnalytics('navigation.primary_item_clicked', {
+            item: analyticsKey,
+            organization,
+            ...analyticsParams,
+          });
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
@@ -517,3 +514,22 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
     width: 100%;
   }
 `;
+
+export function isSidebarLinkActive(
+  to: LocationDescriptor | string,
+  pathname: string,
+  options: {end?: boolean} = {end: false}
+): boolean {
+  const toPathname = normalizeUrl(typeof to === 'string' ? to : (to.pathname ?? '/'));
+
+  if (options.end) {
+    return pathname === toPathname;
+  }
+
+  return pathname.startsWith(toPathname);
+}
+
+// Stable module-level component to avoid remounts when used as `renderWrapAs`
+function PassthroughWrapper({children}: {children: React.ReactNode}) {
+  return children;
+}
