@@ -3,6 +3,7 @@ import type {To} from 'react-router-dom';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,14 +16,75 @@ import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Collapsible} from 'sentry/views/navigation/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
+
+function Collapsible({
+  children,
+  collapsed,
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  collapsed: boolean;
+  disabled?: boolean;
+}) {
+  if (disabled) {
+    return children;
+  }
+  const visualDuration = 0.4;
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {!collapsed && (
+        <CollapsableWrapper
+          key="collapsible-content"
+          variants={{
+            collapsed: {
+              height: 0,
+              overflow: 'hidden',
+            },
+            expanded: {
+              // overflow: 'visible',
+              height: 'auto',
+            },
+          }}
+          initial="collapsed"
+          animate="expanded"
+          exit="collapsed"
+          transition={testableTransition({
+            type: 'spring',
+            damping: 50,
+            stiffness: 600,
+            bounce: 0,
+            visualDuration,
+          })}
+        >
+          {/*
+            We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
+            from applying to the children, which may cause the children's order to be reversed
+          */}
+          <div>{children}</div>
+        </CollapsableWrapper>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const CollapsableWrapper = styled(motion.div)`
+  display: flex;
+  /*
+    This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
+    when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
+  */
+  flex-direction: column-reverse;
+  margin: 0;
+`;
 
 type SecondaryNavigationProps = {
   children: ReactNode;

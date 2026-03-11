@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Navigation} from 'sentry/views/navigation';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({

@@ -12,14 +12,14 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import MobileTopbar from 'sentry/views/navigation/mobileTopbar';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
+import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {Sidebar} from 'sentry/views/navigation/sidebar';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
@@ -72,7 +72,7 @@ function UserAndOrganizationNavigation() {
       }}
       {...hoverProps}
     >
-      {layout === NavigationLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
+      {layout === NavigationLayout.SIDEBAR ? <DesktopNavigation /> : <MobileNavigation />}
     </Flex>
   );
 }

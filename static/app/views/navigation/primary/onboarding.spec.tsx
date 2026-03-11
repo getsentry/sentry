@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 

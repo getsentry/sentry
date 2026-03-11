@@ -15,7 +15,7 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   useNavigationTour,
   useNavigationTourModal,
@@ -25,35 +25,35 @@ import {OrganizationDropdown} from 'sentry/views/navigation/primary/organization
 import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
-export function Sidebar() {
+export function Navigation() {
   const theme = useTheme();
   const organization = useOrganization();
-  const {isCollapsed: isCollapsedState} = useNavigationContext();
 
-  // Avoid showing superuser UI on certain organizations
-  const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
-    organization
-  );
+  const collapsedNavigation = useCollapsedNavigation();
+  const navigationContext = useNavigationContext();
+
+  useNavigationTourModal();
+
   const showSuperuserWarning =
-    isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
-  const {currentStepId: currentStepId} = useNavigationTour();
-
-  const tourIsActive = currentStepId !== null;
-  const forceExpanded = tourIsActive;
-  const isCollapsed = forceExpanded ? false : isCollapsedState;
-  const {isOpen} = useCollapsedNavigation();
+  const {currentStepId} = useNavigationTour();
+  const isCollapsed = currentStepId === null ? navigationContext.isCollapsed : false;
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
 
-  useNavigationTourModal();
-
   const sidebarAnimationProps = useMemo(
-    () => makeCollapsedSecondaryWrapperAnimationProps(isOpen, secondarySidebarWidth),
-    [isOpen, secondarySidebarWidth]
+    () =>
+      makeCollapsedSecondaryWrapperAnimationProps(
+        collapsedNavigation.isOpen,
+        secondarySidebarWidth
+      ),
+    [collapsedNavigation.isOpen, secondarySidebarWidth]
   );
 
   return (
@@ -66,7 +66,7 @@ export function Sidebar() {
         borderRight="primary"
         background="primary"
         direction="column"
-        style={{zIndex: tourIsActive ? undefined : theme.zIndex.sidebar}}
+        style={{zIndex: currentStepId === null ? theme.zIndex.sidebar : undefined}}
       >
         <Flex
           as="header"
@@ -96,7 +96,7 @@ export function Sidebar() {
       {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
-          data-visible={isOpen}
+          data-visible={collapsedNavigation.isOpen}
           data-test-id="collapsed-secondary-sidebar"
           height="100%"
           left={`${PRIMARY_SIDEBAR_WIDTH}px`}

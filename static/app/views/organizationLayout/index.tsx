@@ -19,7 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
