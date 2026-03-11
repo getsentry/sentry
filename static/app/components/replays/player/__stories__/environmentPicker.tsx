@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import useProjects from 'sentry/utils/useProjects';
 
-export default function EnvironmentPicker({
+export function EnvironmentPicker({
   environment,
   onChange,
   project,

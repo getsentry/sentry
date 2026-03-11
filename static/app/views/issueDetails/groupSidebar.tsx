@@ -8,7 +8,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
-import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -17,7 +17,7 @@ import TagFacets, {
   MOBILE_TAGS,
   TAGS_FORMATTER,
 } from 'sentry/components/group/tagFacets';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
@@ -41,7 +41,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type Props = {

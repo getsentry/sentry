@@ -7,13 +7,13 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function NewSecretHandler({
+export function NewSecretHandler({
   secret,
   provider,
   onGoBack,
@@ -95,5 +95,3 @@ const ButtonWrapper = styled('div')`
 const StyledPanelItem = styled(PanelItem)`
   padding: ${p => p.theme.space.lg};
 `;
-
-export default NewSecretHandler;

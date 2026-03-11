@@ -17,16 +17,16 @@ import {
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import NotFound from 'sentry/components/errors/notFound';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
@@ -40,13 +40,13 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import Teams from 'sentry/utils/teams';
+import {Teams} from 'sentry/utils/teams';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
 import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
 

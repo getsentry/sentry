@@ -5,22 +5,22 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Count} from 'sentry/components/count';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';

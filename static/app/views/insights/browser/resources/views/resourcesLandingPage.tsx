@@ -7,7 +7,7 @@ import {DataCategory} from 'sentry/types/core';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
-import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
+import {ResourceView} from 'sentry/views/insights/browser/resources/components/resourceView';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -22,7 +22,7 @@ import {ModulesOnboarding} from 'sentry/views/insights/common/components/modules
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;

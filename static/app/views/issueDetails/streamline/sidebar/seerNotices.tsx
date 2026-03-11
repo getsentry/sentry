@@ -15,7 +15,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {StarFixabilityViewButton} from 'sentry/components/events/autofix/seerCreateViewButton';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,

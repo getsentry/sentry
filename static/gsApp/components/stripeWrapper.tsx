@@ -7,7 +7,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 
-function StripeWrapper({
+export function StripeWrapper({
   paymentElementMode,
   amount,
   children,
@@ -70,5 +70,3 @@ function StripeWrapper({
     </Elements>
   );
 }
-
-export default StripeWrapper;

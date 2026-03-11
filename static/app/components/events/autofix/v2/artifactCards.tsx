@@ -31,7 +31,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {

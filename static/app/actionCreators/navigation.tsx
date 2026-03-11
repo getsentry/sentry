@@ -1,7 +1,7 @@
 import type {Location, Query} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ContextPickerModal from 'sentry/components/contextPickerModal';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';

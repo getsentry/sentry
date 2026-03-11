@@ -26,7 +26,7 @@ function handleChange(
   onBlur(id, e);
 }
 
-function SegmentedRadioField<Choices extends string = string>(
+export function SegmentedRadioField<Choices extends string = string>(
   props: SegmentedRadioFieldProps<Choices>
 ) {
   return (
@@ -180,5 +180,3 @@ const Description = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
-
-export default SegmentedRadioField;

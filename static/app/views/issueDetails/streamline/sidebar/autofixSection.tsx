@@ -33,7 +33,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {isExplorerFilePatch, isRepoPRState} from 'sentry/views/seerExplorer/types';
 

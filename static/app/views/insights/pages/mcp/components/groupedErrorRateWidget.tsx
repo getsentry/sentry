@@ -34,7 +34,7 @@ interface GroupedErrorRateWidgetProps {
   title: string;
 }
 
-export default function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProps) {
+export function GroupedErrorRateWidget(props: GroupedErrorRateWidgetProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',

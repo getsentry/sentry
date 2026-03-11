@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
-import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
+import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
@@ -24,7 +24,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import trackSpendVisibilityAnaltyics, {
   SpendVisibilityEvents,
@@ -37,7 +37,7 @@ import SpikeProtectionProjectToggle, {
   isSpikeProtectionEnabled,
 } from 'getsentry/views/spikeProtection/spikeProtectionProjectToggle';
 
-import AccordionRow from './components/accordionRow';
+import {AccordionRow} from './components/accordionRow';
 
 interface Props {
   subscription: Subscription;

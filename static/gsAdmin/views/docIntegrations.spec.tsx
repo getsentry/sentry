@@ -9,8 +9,8 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 
-import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
-import DocIntegrations from 'admin/views/docIntegrations';
+import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
+import {DocIntegrations} from 'admin/views/docIntegrations';
 
 describe('Doc Integrations', () => {
   it('renders', () => {

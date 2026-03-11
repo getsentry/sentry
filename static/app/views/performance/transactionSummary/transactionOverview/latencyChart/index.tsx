@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {ViewProps} from 'sentry/views/performance/types';
 
-import Content from './content';
+import {Content} from './content';
 
 type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
@@ -18,7 +18,7 @@ type Props = ViewProps & {
   totalCount?: number | null;
 };
 
-function LatencyChart({currentFilter, ...props}: Props) {
+export function LatencyChart({currentFilter, ...props}: Props) {
   const header = (
     <HeaderTitleLegend>
       {currentFilter === SpanOperationBreakdownFilter.NONE
@@ -43,5 +43,3 @@ function LatencyChart({currentFilter, ...props}: Props) {
     </Fragment>
   );
 }
-
-export default LatencyChart;

@@ -14,9 +14,9 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
@@ -24,9 +24,9 @@ import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
-import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
+import {AlertLastIncidentActivationInfo} from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
+import {AlertRuleStatus} from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import {CombinedAlertBadge} from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
@@ -48,7 +48,7 @@ type Props = {
   rule: CombinedAlerts;
 };
 
-function RuleListRow({
+export function RuleListRow({
   rule,
   projectsLoaded,
   projects,
@@ -448,5 +448,3 @@ const DisabledAlertName = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
   cursor: not-allowed;
 `;
-
-export default RuleListRow;

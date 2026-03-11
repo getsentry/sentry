@@ -24,8 +24,8 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {DurationChart} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import {SampleTable} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {

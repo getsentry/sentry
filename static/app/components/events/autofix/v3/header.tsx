@@ -2,7 +2,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';

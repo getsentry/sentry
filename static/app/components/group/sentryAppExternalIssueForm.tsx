@@ -23,7 +23,7 @@ type Props = {
   sentryAppInstallation: SentryAppInstallation;
 };
 
-function SentryAppExternalIssueForm({
+export function SentryAppExternalIssueForm({
   action,
   appName,
   config,
@@ -96,5 +96,3 @@ function SentryAppExternalIssueForm({
     />
   );
 }
-
-export default SentryAppExternalIssueForm;

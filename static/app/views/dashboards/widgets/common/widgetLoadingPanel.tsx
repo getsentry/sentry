@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 
 export function WidgetLoadingPanel({

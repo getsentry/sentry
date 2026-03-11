@@ -10,7 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import Feature from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';

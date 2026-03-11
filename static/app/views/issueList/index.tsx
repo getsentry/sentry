@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 import * as qs from 'query-string';
 
-import NotFound from 'sentry/components/errors/notFound';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -108,7 +108,7 @@ function IssueViewWrapper({children}: Props) {
   return <StreamWrapper>{children}</StreamWrapper>;
 }
 
-function IssueListContainer({children, title = t('Issues')}: Props) {
+export function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
 
   return (
@@ -117,5 +117,3 @@ function IssueListContainer({children, title = t('Issues')}: Props) {
     </SentryDocumentTitle>
   );
 }
-
-export default IssueListContainer;

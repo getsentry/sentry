@@ -23,15 +23,15 @@ import {
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -79,7 +79,7 @@ import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metrics
 import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
-import Controls from './controls';
+import {Controls} from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
 import FiltersBar from './filtersBar';
@@ -89,7 +89,7 @@ import {
   calculateColumnDepths,
   getDashboardLayout,
 } from './layoutUtils';
-import DashboardTitle from './title';
+import {DashboardTitle} from './title';
 import type {
   DashboardDetails,
   DashboardFilters,

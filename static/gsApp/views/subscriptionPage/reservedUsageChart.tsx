@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import barSeries from 'sentry/components/charts/series/barSeries';
-import lineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries as lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';

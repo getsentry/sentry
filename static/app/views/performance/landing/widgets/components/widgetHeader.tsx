@@ -4,8 +4,8 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import type {
   GenericPerformanceWidgetProps,

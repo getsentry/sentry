@@ -1,7 +1,7 @@
 import {CodeBlock} from '@sentry/scraps/code';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import ConfigStore from 'sentry/stores/configStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -14,7 +14,7 @@ type RelocationData = {
   contents: string;
 };
 
-export default function RelocationArtifactDetails() {
+export function RelocationArtifactDetails() {
   const {artifactKind, fileName, regionName, relocationUuid} = useParams<{
     artifactKind: string;
     fileName: string;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 
 interface Props {
   shortId: string;

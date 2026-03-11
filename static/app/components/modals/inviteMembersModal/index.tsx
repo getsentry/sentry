@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   ErrorAlert,
   InviteMessage,
 } from 'sentry/components/modals/inviteMembersModal/inviteHeaderMessages';
 import {InviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
-import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
+import {InviteMembersFooter} from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
+import {InviteRowControl} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInviteModal';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';

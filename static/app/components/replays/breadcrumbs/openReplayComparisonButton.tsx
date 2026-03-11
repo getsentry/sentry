@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';

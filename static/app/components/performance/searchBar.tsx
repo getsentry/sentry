@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
-import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
+import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';

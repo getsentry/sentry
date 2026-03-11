@@ -11,7 +11,7 @@ type Props = {
   projectId: string;
 };
 
-function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
+export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
   const getRow = (row: any) => {
     if (row.identifier === null) {
       return [];
@@ -79,5 +79,3 @@ function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
     />
   );
 }
-
-export default EventUsers;

@@ -1,4 +1,4 @@
-import Redirect from 'sentry/components/redirect';
+import {Redirect} from 'sentry/components/redirect';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getLastUsedDomainView} from 'sentry/views/insights/common/utils/domainRedirect';

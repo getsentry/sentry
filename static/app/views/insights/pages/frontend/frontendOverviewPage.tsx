@@ -11,7 +11,7 @@ import {
   DatePageFilter,
   type DatePageFilterProps,
 } from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';

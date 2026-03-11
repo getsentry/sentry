@@ -12,15 +12,15 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 
-import ApiSource from './sources/apiSource';
-import CommandSource from './sources/commandSource';
-import DsnLookupSource from './sources/dsnLookupSource';
+import {ApiSource} from './sources/apiSource';
+import {CommandSource} from './sources/commandSource';
+import {DsnLookupSource} from './sources/dsnLookupSource';
 import FormSource from './sources/formSource';
-import OrganizationsSource from './sources/organizationsSource';
-import RouteSource from './sources/routeSource';
+import {OrganizationsSource} from './sources/organizationsSource';
+import {RouteSource} from './sources/routeSource';
 import type {Result} from './sources/types';
-import List from './list';
-import SearchSources from './sources';
+import {List} from './list';
+import {SearchSources} from './sources';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 

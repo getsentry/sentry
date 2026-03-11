@@ -21,7 +21,12 @@ type Props = {
   subscription: Subscription;
 };
 
-function PlanTable({organization, previewData, reservations, subscription}: Props) {
+export function PlanTable({
+  organization,
+  previewData,
+  reservations,
+  subscription,
+}: Props) {
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   const planName = subscription.planDetails.name;
@@ -193,5 +198,3 @@ const EffectiveDate = styled('span')`
   font-size: ${p => p.theme.font.size.xs};
   text-align: right;
 `;
-
-export default PlanTable;

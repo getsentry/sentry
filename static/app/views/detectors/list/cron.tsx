@@ -11,11 +11,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
@@ -36,7 +36,7 @@ import {
   type MonitorViewContextValue,
 } from 'sentry/views/detectors/monitorViewContext';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
-import MonitorEnvironmentLabel from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from 'sentry/views/insights/crons/components/overviewTimeline/monitorEnvironmentLabel';
 import {GlobalMonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/globalMonitorProcessingErrors';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {

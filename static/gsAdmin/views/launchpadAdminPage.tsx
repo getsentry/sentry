@@ -18,9 +18,9 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-function LaunchpadAdminPage() {
+export function LaunchpadAdminPage() {
   const api = useApi();
   const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
   const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
@@ -523,5 +523,3 @@ const InfoDisplay = styled('div')`
     word-break: break-word;
   }
 `;
-
-export default LaunchpadAdminPage;

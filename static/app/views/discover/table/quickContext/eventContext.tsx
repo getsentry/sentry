@@ -35,7 +35,7 @@ interface EventContextProps extends BaseContextProps {
   projects?: Project[];
 }
 
-function EventContext(props: EventContextProps) {
+export function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
   const {isPending, isError, data} = useApiQuery<Event>(
     [
@@ -225,5 +225,3 @@ const StackTraceWrapper = styled('div')`
 const HttpStatusWrapper = styled('span')`
   margin-left: ${p => p.theme.space.xs};
 `;
-
-export default EventContext;

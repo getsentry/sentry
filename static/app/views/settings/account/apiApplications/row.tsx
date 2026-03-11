@@ -10,8 +10,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
@@ -24,7 +24,7 @@ type Props = {
   onRemove: (app: ApiApplication) => void;
 };
 
-function Row({app, onRemove}: Props) {
+export function Row({app, onRemove}: Props) {
   const api = useApi();
   const [isLoading, setLoading] = useState(false);
 
@@ -85,5 +85,3 @@ const ClientId = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default Row;

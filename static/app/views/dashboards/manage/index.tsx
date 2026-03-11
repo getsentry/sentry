@@ -20,13 +20,13 @@ import {
 } from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -67,7 +67,7 @@ import {
   DASHBOARD_TABLE_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
-import TemplateCard from './templateCard';
+import {TemplateCard} from './templateCard';
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 const SHOW_PREBUILT_KEY = 'dashboards-show-prebuilt';

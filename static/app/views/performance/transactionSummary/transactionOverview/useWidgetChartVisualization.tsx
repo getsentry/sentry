@@ -20,7 +20,7 @@ import {
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 
-import DurationPercentileChart from './durationPercentileChart/chart';
+import {Chart as DurationPercentileChart} from './durationPercentileChart/chart';
 
 const REFERRER = 'transaction-summary-charts-widget';
 

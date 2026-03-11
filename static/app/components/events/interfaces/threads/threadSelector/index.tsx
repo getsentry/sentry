@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import filterThreadInfo, {type ThreadInfo} from './filterThreadInfo';
-import Option from './option';
+import {Option} from './option';
 import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
 import {getMappedThreadState} from './threadStates';
 
@@ -46,7 +46,13 @@ function getThreadLabel(
   return details?.label || `<${t('unknown')}>`;
 }
 
-function ThreadSelector({threads, event, exception, activeThread, onChange}: Props) {
+export function ThreadSelector({
+  threads,
+  event,
+  exception,
+  activeThread,
+  onChange,
+}: Props) {
   const organization = useOrganization({allowNull: true});
   const [currentThread, setCurrentThread] = useState<Thread>(activeThread);
   const [sortAttribute, setSortAttribute] = useState<SortAttribute>(SortAttribute.ID);
@@ -231,8 +237,6 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
     />
   );
 }
-
-export default ThreadSelector;
 
 const ThreadName = styled('div')`
   display: flex;

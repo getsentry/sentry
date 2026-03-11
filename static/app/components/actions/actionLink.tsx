@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import ConfirmableAction from './confirmableAction';
+import {ConfirmableAction} from './confirmableAction';
 
 const StyledAction = styled('a')<{disabled?: boolean}>`
   display: flex;
@@ -42,7 +42,7 @@ type CommonProps = Omit<
 type Props = CommonProps &
   ({type?: 'button'} & Partial<Omit<ButtonProps, 'as' | 'children' | 'ref'>>);
 
-export default function ActionLink({
+export function ActionLink({
   message,
   className,
   onAction,

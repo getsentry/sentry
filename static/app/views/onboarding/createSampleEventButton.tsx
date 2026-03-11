@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
