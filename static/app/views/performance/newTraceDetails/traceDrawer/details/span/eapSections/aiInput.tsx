@@ -8,7 +8,6 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -119,14 +118,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         (message): message is Exclude<typeof message, null> =>
           message !== null && Boolean(message.content)
       );
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return messages;
   }
 }
@@ -158,14 +150,7 @@ function transformInputMessages(inputMessages: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -198,12 +183,7 @@ function transformPrompt(prompt: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -266,14 +246,7 @@ export function transformPartsMessages(messages: string): {
       result: JSON.stringify(transformed),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing gen_ai messages with parts format', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -667,5 +640,5 @@ const ButtonDivider = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(4)} 0;
+  margin: ${p => p.theme.space['3xl']} 0;
 `;

@@ -147,8 +147,7 @@ class OrganizationService(RpcService):
     def get_organizations_by_user_and_scope(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when getsentry is updated
-        region_name: str | None = None,  # TODO(cells): remove when getsentry is updated
+        cell_name: str,
         user: RpcUser,
         scope: str | None = None,
     ) -> list[RpcOrganization]:
@@ -486,9 +485,15 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+    def update_region_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+    ) -> None:
         """
-        Update all memberships in a region to reflect changes in user details.
+        Update all memberships in a cell to reflect changes in user details.
 
         Will sync is_active and email attributes.
         """

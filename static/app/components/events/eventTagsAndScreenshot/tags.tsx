@@ -77,7 +77,7 @@ export function EventTagsDataSection({
         onChange={handleTagFilterChange}
       >
         {[TagFilter.ALL, TagFilter.CUSTOM, ...availableFilters].map(v => (
-          <SegmentedControl.Item key={v}>{`${v}`}</SegmentedControl.Item>
+          <SegmentedControl.Item key={v}>{v}</SegmentedControl.Item>
         ))}
       </SegmentedControl>
     </Grid>

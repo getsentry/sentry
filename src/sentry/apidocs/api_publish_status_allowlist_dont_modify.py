@@ -654,7 +654,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET",
         "DELETE",
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-stats/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/processingissues/": {
         "GET",
         "DELETE",

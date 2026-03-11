@@ -11,7 +11,7 @@ import orjson
 from django.conf import settings
 from urllib3.exceptions import HTTPError
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -71,25 +71,30 @@ def convert_enum_keys_to_strings(obj: Any) -> Any:
 
 # These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
-    # https://github.com/getsentry/seer/blob/main/src/seer/routes/automation_request.py#L57
+    # Legacy; used when coding_workflows.code_review.seer.use_new_endpoints is False
     OVERWATCH_REQUEST = "/v1/automation/overwatch-request"
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
-    PR_REVIEW_RERUN = "/v1/automation/codegen/pr-review/rerun"
+    PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
+    # New dedicated endpoints (used when use_new_endpoints is True)
+    CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
+    CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
-def get_seer_endpoint_for_event(github_event: str) -> SeerEndpoint:
+def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> str:
     """
-    Get the appropriate Seer endpoint for a given GitHub webhook event.
+    Get the Seer API path for a webhook request based on event type and option.
 
-    Args:
-        github_event: The GitHub webhook event type (as string, after Celery deserialization)
-
-    Returns:
-        The SeerEndpoint to use for the event
+    When coding_workflows.code_review.seer.use_new_endpoints is False, PR/issue_comment
+    events use the legacy overwatch-request endpoint. When True, they use the dedicated
+    review-request or pr-closed endpoints. CHECK_RUN always uses the rerun endpoint.
     """
     if github_event == GithubWebhookType.CHECK_RUN.value:
-        return SeerEndpoint.PR_REVIEW_RERUN
-    return SeerEndpoint.OVERWATCH_REQUEST
+        return SeerEndpoint.PR_REVIEW_RERUN.value
+    if not options.get("coding_workflows.code_review.seer.use_new_endpoints"):
+        return SeerEndpoint.OVERWATCH_REQUEST.value
+    if payload.get("request_type") == "pr-closed":
+        return SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
+    return SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
 
 
 def make_seer_request(
@@ -337,8 +342,8 @@ def transform_pull_request_to_codegen_request(
     config = payload["data"]["config"]
     trigger_metadata = _get_trigger_metadata_for_pull_request(event_payload)
     # In Seer, used here:
-    # src/seer/automation/codegen/tasks.py
-    # src/seer/automation/codegen/pr_review_step.py
+    # src/code_review/tasks.py
+    # src/code_review/pr_review_step.py
     config["trigger"] = review_request_trigger.value
     config["trigger_user"] = trigger_metadata["trigger_user"]
     config["trigger_user_id"] = trigger_metadata["trigger_user_id"]

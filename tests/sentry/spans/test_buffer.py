@@ -9,7 +9,7 @@ import pytest
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.segment_key import SegmentKey, parse_segment_key
 from sentry.testutils.helpers.options import override_options
 
 DEFAULT_OPTIONS = {
@@ -31,7 +31,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
-    "spans.buffer.hdel-redirect-map-batch-size": 100,
+    "spans.buffer.max-flush-segments-per-trace": 0,
 }
 
 
@@ -1265,56 +1265,88 @@ def test_partition_routing_stable_across_rebalance() -> None:
         assert_clean(buf.client)
 
 
-@pytest.mark.parametrize("batch_size,expected_batches", [(2, 3), (3, 2), (5, 1)])
-def test_hdel_redirect_map_batch_size(batch_size: int, expected_batches: int) -> None:
-    """
-    Test that done_flush_segments correctly batches HDEL calls
-    """
-    with override_options(
-        {
-            **DEFAULT_OPTIONS,
-            "spans.buffer.hdel-redirect-map-batch-size": batch_size,
-        }
-    ):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
+def test_per_trace_flush_limit_throttles(buffer: SpansBuffer) -> None:
+    """A trace exceeding the per-trace limit is capped; other traces flush normally."""
+    spans_a = [
+        Span(
+            payload=_payload(f"a{i:015d}"),
+            trace_id="a" * 32,
+            span_id=f"a{i:015d}",
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        )
+        for i in range(3)
+    ]
+    spans_b = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="b" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=2,
+            end_timestamp=1700000000.0,
+        )
+    ]
 
-        spans = [
-            Span(
-                payload=_payload(f"{c}" * 16),
-                trace_id="a" * 32,
-                span_id=f"{c}" * 16,
-                parent_span_id="a" * 16 if c != "a" else None,
-                segment_id=None,
-                is_segment_span=(c == "a"),
-                project_id=1,
-                end_timestamp=1700000000.0,
-            )
-            for c in "abcde"
-        ]
+    process_spans(spans_a + spans_b, buffer, now=0)
 
-        process_spans(spans, buf, now=0)
+    with override_options({"spans.buffer.max-flush-segments-per-trace": 1}):
+        rv = buffer.flush_segments(now=11)
+        trace_a_key = ("a" * 32).encode()
+        trace_b_key = ("b" * 32).encode()
+        traces_flushed = set()
+        for seg_key in rv:
+            _, trace_id, _ = parse_segment_key(seg_key)
+            traces_flushed.add(trace_id)
+        assert trace_a_key in traces_flushed
+        assert trace_b_key in traces_flushed
+        assert len(rv) == 2
+        buffer.done_flush_segments(rv)
 
-        rv = buf.flush_segments(now=11)
-        _normalize_output(rv)
+        rv = buffer.flush_segments(now=12)
+        assert len(rv) == 1
+        buffer.done_flush_segments(rv)
 
-        seg_key = _segment_id(1, "a" * 32, "a" * 16)
-        assert seg_key in rv
-        assert len(rv[seg_key].spans) == 5
+        rv = buffer.flush_segments(now=13)
+        assert len(rv) == 1
+        buffer.done_flush_segments(rv)
 
-        batch_sizes_seen: list[int] = []
-        real_batched = itertools.batched
 
-        def tracking_batched(iterable, n):
-            for batch in real_batched(iterable, n):
-                batch_sizes_seen.append(n)
-                yield batch
+def test_per_trace_flush_limit_disabled(buffer: SpansBuffer) -> None:
+    """With default option (0), all segments flush in one cycle."""
+    spans_a = [
+        Span(
+            payload=_payload(f"a{i:015d}"),
+            trace_id="a" * 32,
+            span_id=f"a{i:015d}",
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        )
+        for i in range(3)
+    ]
+    spans_b = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="b" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=2,
+            end_timestamp=1700000000.0,
+        )
+    ]
 
-        with mock.patch("sentry.spans.buffer.itertools.batched", tracking_batched):
-            buf.done_flush_segments(rv)
+    process_spans(spans_a + spans_b, buffer, now=0)
 
-        assert len(batch_sizes_seen) == expected_batches
-        assert all(n == batch_size for n in batch_sizes_seen)
-
-        assert buf.flush_segments(now=30) == {}
-        assert_clean(buf.client)
+    rv = buffer.flush_segments(now=11)
+    buffer.done_flush_segments(rv)
+    assert len(rv) == 4

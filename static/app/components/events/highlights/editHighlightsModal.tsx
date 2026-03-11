@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
@@ -24,7 +24,6 @@ import {
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -342,6 +341,7 @@ export default function EditHighlightsModal({
   const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
@@ -351,7 +351,7 @@ export default function EditHighlightsModal({
       <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
-      <Body css={modalBodyCss}>
+      <Body css={modalBodyCss(theme)}>
         <EditPreviewHighlightSection
           event={event}
           highlightTags={highlightTags}
@@ -479,9 +479,9 @@ function SectionFilterInput(props: InputProps) {
   );
 }
 
-const modalBodyCss = css`
-  margin: 0 -${space(4)};
-  padding: 0 ${space(4)};
+const modalBodyCss = (theme: Theme) => css`
+  margin: 0 -${theme.space['3xl']};
+  padding: 0 ${theme.space['3xl']};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;
@@ -529,7 +529,7 @@ const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
-  margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
+  margin: ${p => (p.extraMargin ? p.theme.space['2xl'] : 0)} 0;
 `;
 
 const EditHighlightSection = styled('div')`

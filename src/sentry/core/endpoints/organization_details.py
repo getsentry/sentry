@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
@@ -500,11 +500,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def _validate_granular_replay_permissions(self):
-        organization = self.context["organization"]
         request = self.context["request"]
-
-        if not features.has("organizations:granular-replay-permissions", organization):
-            raise NotFound("This feature is not enabled for your organization.")
 
         if not request.access.has_scope("org:write"):
             raise PermissionDenied(

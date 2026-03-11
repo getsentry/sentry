@@ -32,7 +32,6 @@ import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -306,7 +305,7 @@ function ReplayOverlay({
 
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
-    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    ? nextReplay.user.display_name || t('Anonymous User')
     : undefined;
 
   if (!nextReplayText || !replayCount) {
@@ -338,7 +337,7 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
-      padding: ${space(1.5)};
+      padding: ${p.theme.space.lg};
     `}
 `;
 

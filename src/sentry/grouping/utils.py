@@ -11,6 +11,7 @@ from django.utils.encoding import force_bytes
 from sentry.grouping.parameterization import Parameterizer
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
@@ -55,34 +56,28 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, source: str, trim_message: bool
+    message: str, event: Event, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
     parameterizer = Parameterizer(
-        experimental=in_rollout_group("grouping.experimental_parameterization", event.project_id),
+        use_experimental_regexes=in_rollout_group(
+            "grouping.experimental_parameterization", event.project_id
+        ),
     )
 
     if trim_message:
         # If there are multiple lines, grab the first two non-empty ones
-        trimmed = "\n".join(
-            islice(
-                (x for x in message.splitlines() if x.strip()),
-                2,
-            )
-        )
-        if trimmed != message:
-            trimmed += "..."
-
-        normalized = parameterizer.parameterize_all(trimmed)
+        trimmed = _trim_extra_lines(message)
+        normalized = parameterizer.parameterize(trimmed)
     else:
-        normalized = parameterizer.parameterize_all(message)
+        normalized = parameterizer.parameterize(message)
 
     parameterization_counts = parameterizer.matches_counter.items()
     if parameterization_counts:
-        metrics.incr("grouping.message_parameterized", tags={"source": source})
+        metrics.incr("grouping.message_parameterized", tags={"source": reason})
 
         for key, value in parameterization_counts:
             # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
@@ -90,3 +85,33 @@ def normalize_message_for_grouping(
             metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
 
     return normalized
+
+
+def _trim_extra_lines(input_str: str) -> str:
+    """
+    Trim the given string by removing blank lines and then trimming the result to 2 lines.
+
+    This is a no-op for single-line strings and strings containing two non-empty lines.
+    """
+    trimmed = "\n".join(
+        islice(
+            (x for x in input_str.splitlines() if x.strip()),
+            2,
+        )
+    )
+    if trimmed != input_str:
+        trimmed += "..."
+    return trimmed
+
+
+def get_canonical_message_from_event(event: Event) -> str:
+    """
+    Get the event's message for purposes of grouping, i.e., what would be used as the value for
+    the `{{ message }}` variable. Returns an empty string if no message can be found.
+    """
+    return (
+        get_path(event.data, "logentry", "formatted")
+        or get_path(event.data, "logentry", "message")
+        or get_path(event.data, "exception", "values", -1, "value")
+        or ""
+    )

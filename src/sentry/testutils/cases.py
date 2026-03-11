@@ -83,7 +83,8 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstream.item_helpers import (
-    _build_occurrence_attributes,
+    _encode_attribute_data,
+    _gather_attribute_data_from_event_data,
 )
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -3592,16 +3593,20 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             "title": title,
             "type": occurrence_type,
         }
+        preprocessed: dict[str, Any] = {}
         if group_id is not None:
-            data["group_id"] = group_id
+            preprocessed["group_id"] = group_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
             data["transaction"] = transaction
         if attributes:
             data.update(attributes)
+        if tags is not None:
+            data["tags"] = tags.items()
 
-        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+        attr_data = _gather_attribute_data_from_event_data(data, preprocessed=preprocessed)
+        attributes_proto = _encode_attribute_data(attr_data)
 
         return TraceItem(
             organization_id=organization.id,
