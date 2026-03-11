@@ -72,7 +72,6 @@ export default function Create() {
   useEffect(() => {
     // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
     if (
-      hasMetricAlerts &&
       alertType === AlertRuleType.METRIC &&
       !(aggregate && dataset && eventTypes) &&
       !createFromDuplicate
@@ -94,7 +93,6 @@ export default function Create() {
     }
   }, [
     alertType,
-    hasMetricAlerts,
     aggregate,
     dataset,
     eventTypes,

@@ -1,5 +1,4 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
-import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
@@ -114,31 +113,7 @@ describe('ProjectAlertsCreate', () => {
 
   it('adds default parameters if wizard was skipped', async () => {
     const location = {query: {}};
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-meta/',
-      body: {count: 0},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/anomalies/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/alert-rules/available-actions/',
-      body: [],
-    });
-    const {router} = createWrapper({organization: {features: ['incidents']}}, location);
+    const {router} = createWrapper(undefined, location);
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
