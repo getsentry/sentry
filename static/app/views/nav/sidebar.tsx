@@ -14,16 +14,19 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
-import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
+import {
+  useNavigationTourModal,
+  useStackedNavigationTour,
+} from 'sentry/views/nav/tour/tour';
 import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 
 export function Sidebar() {
   const organization = useOrganization();
-  const {isCollapsed: isCollapsedState} = useNavContext();
+  const {isCollapsed: isCollapsedState} = useNavigationContext();
 
   // Avoid showing superuser UI on certain organizations
   const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
@@ -44,7 +47,7 @@ export function Sidebar() {
     SECONDARY_SIDEBAR_WIDTH
   );
 
-  useTourModal();
+  useNavigationTourModal();
 
   return (
     <Fragment>

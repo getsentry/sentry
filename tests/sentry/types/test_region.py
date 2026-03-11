@@ -14,8 +14,8 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
+    Cell,
     Locality,
-    Region,
     RegionCategory,
     RegionConfigurationError,
     RegionDirectory,
@@ -25,10 +25,10 @@ from sentry.types.region import (
     find_regions_for_sentry_app,
     find_regions_for_user,
     get_cell_by_name,
-    get_local_region,
-    get_region_for_organization,
+    get_cell_for_organization,
+    get_local_cell,
     load_from_config,
-    subdomain_is_region,
+    subdomain_is_locality,
 )
 
 
@@ -64,21 +64,21 @@ class RegionDirectoryTest(TestCase):
     ]
 
     _EXPECTED_OUTPUTS = (
-        Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
-        Region("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
+        Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("acme", 3, "http://acme.testserver", RegionCategory.SINGLE_TENANT),
     )
 
     @staticmethod
     @contextmanager
     def _in_global_state(directory: RegionDirectory) -> Generator[None]:
-        with get_test_env_directory().swap_state(tuple(directory.regions)):
+        with get_test_env_directory().swap_state(tuple(directory.cells)):
             yield
 
     def test_region_config_parsing_in_monolith(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
         assert directory.get_cell_by_name("nowhere") is None
 
         with self._in_global_state(directory):
@@ -93,49 +93,49 @@ class RegionDirectoryTest(TestCase):
             override_settings(SENTRY_MONOLITH_REGION="us"),
         ):
             directory = load_from_config(self._INPUTS, [])
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
+        assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
-    def test_get_local_region(self) -> None:
+    def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            assert get_local_region() == self._EXPECTED_OUTPUTS[0]
+            assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
 
     def test_get_generated_monolith_region(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
             self._in_global_state(load_from_config([], [])),
         ):
-            local_region = get_local_region()
-            assert local_region.name == "defaultland"
-            assert local_region.snowflake_id == 0
-            assert local_region.category == RegionCategory.MULTI_TENANT
+            local_cell = get_local_cell()
+            assert local_cell.name == "defaultland"
+            assert local_cell.snowflake_id == 0
+            assert local_cell.category == RegionCategory.MULTI_TENANT
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
-    def test_get_region_for_organization(self) -> None:
+    def test_get_cell_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         with self._in_global_state(directory):
-            mapping.update(region_name="az")
+            mapping.update(cell_name="az")
             with pytest.raises(RegionResolutionError):
-                # Region does not exist
-                get_region_for_organization(self.organization.slug)
+                # Cell does not exist
+                get_cell_for_organization(self.organization.slug)
 
-            mapping.update(region_name=self._EXPECTED_OUTPUTS[0].name)
-            region = get_region_for_organization(self.organization.slug)
-            assert region == self._EXPECTED_OUTPUTS[0]
+            mapping.update(cell_name=self._EXPECTED_OUTPUTS[0].name)
+            cell = get_cell_for_organization(self.organization.slug)
+            assert cell == self._EXPECTED_OUTPUTS[0]
 
-            mapping.update(region_name=self._EXPECTED_OUTPUTS[1].name)
-            region = get_region_for_organization(self.organization.slug)
-            assert region == self._EXPECTED_OUTPUTS[1]
+            mapping.update(cell_name=self._EXPECTED_OUTPUTS[1].name)
+            cell = get_cell_for_organization(self.organization.slug)
+            assert cell == self._EXPECTED_OUTPUTS[1]
 
             mapping.delete()
             with pytest.raises(RegionResolutionError):
                 # OrganizationMapping does not exist
-                get_region_for_organization(self.organization.slug)
+                get_cell_for_organization(self.organization.slug)
 
     def test_validate_region(self) -> None:
         for region in self._EXPECTED_OUTPUTS:
@@ -252,7 +252,7 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_subdomain_is_region(self) -> None:
+    def test_subdomain_is_locality(self) -> None:
         regions: list[CellConfig] = [
             {
                 "name": "us",
@@ -267,8 +267,8 @@ class RegionDirectoryTest(TestCase):
         with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")
-            assert subdomain_is_region(req)
+            assert subdomain_is_locality(req)
 
             req = rf.get("/")
             setattr(req, "subdomain", "acme")
-            assert not subdomain_is_region(req)
+            assert not subdomain_is_locality(req)

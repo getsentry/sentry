@@ -48,12 +48,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
     install_url: str | None = None
 
     if installable:
-        if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-            if extras.get("is_code_signature_valid") is not True:
-                installable = False
-
-        if installable:
-            install_url = get_download_url_for_artifact(artifact)
+        install_url = get_download_url_for_artifact(artifact)
 
     download_count = get_download_count_for_artifact(artifact) if installable else 0
     release_notes = extras.get("release_notes")
@@ -81,10 +76,15 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
-    # TODO: Adjust this logic when we have a better way to determine if an artifact is installable
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     build_number = mobile_app_info.build_number if mobile_app_info else None
-    return artifact.installable_app_file_id is not None and build_number is not None
+    if artifact.installable_app_file_id is None or build_number is None:
+        return False
+    if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+        extras = artifact.extras or {}
+        if extras.get("is_code_signature_valid") is not True:
+            return False
+    return True
 
 
 def get_download_count_for_artifact(artifact: PreprodArtifact) -> int:

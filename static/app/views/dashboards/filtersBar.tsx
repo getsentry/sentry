@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -283,52 +283,48 @@ export default function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {organization.features.includes('dashboards-global-filters') && (
-          <Fragment>
-            {activeGlobalFilters.map(filter => (
-              <GenericFilterSelector
-                disableRemoveFilter={
-                  isPrebuiltDashboard &&
-                  prebuiltDashboardFilters.some(
-                    prebuiltFilter =>
-                      prebuiltFilter.tag.key === filter.tag.key &&
-                      prebuiltFilter.dataset === filter.dataset
-                  )
-                }
-                key={filter.tag.key + filter.value}
-                globalFilter={filter}
-                searchBarData={getSearchBarData(filter.dataset)}
-                onUpdateFilter={updatedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.map(f =>
-                      globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                    )
-                  );
-                }}
-                onRemoveFilter={removedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.filter(
-                      f => !globalFilterKeysAreEqual(f, removedFilter)
-                    )
-                  );
-                  trackAnalytics('dashboards2.global_filter.remove', {
-                    organization,
-                  });
-                }}
-              />
-            ))}
-            <AddFilter
-              globalFilters={activeGlobalFilters}
-              getSearchBarData={getSearchBarData}
-              onAddFilter={newFilter => {
-                updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                trackAnalytics('dashboards2.global_filter.add', {
-                  organization,
-                });
-              }}
-            />
-          </Fragment>
-        )}
+        {activeGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
+              )
+            }
+            key={filter.tag.key + filter.value}
+            globalFilter={filter}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                )
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
+                organization,
+              });
+            }}
+          />
+        ))}
+        <AddFilter
+          globalFilters={activeGlobalFilters}
+          getSearchBarData={getSearchBarData}
+          onAddFilter={newFilter => {
+            updateGlobalFilters([...activeGlobalFilters, newFilter]);
+            trackAnalytics('dashboards2.global_filter.add', {
+              organization,
+            });
+          }}
+        />
         {!hasTemporaryFilters &&
           hasUnsavedChanges &&
           !isEditingDashboard &&
@@ -348,7 +344,7 @@ export default function FiltersBar({
                 disabled={!hasEditAccess}
                 busy={shouldBusySaveButton}
               >
-                {t('Save')}
+                {isPrebuiltDashboard ? t('Save for Everyone') : t('Save')}
               </Button>
               <Button
                 data-test-id="filter-bar-cancel"

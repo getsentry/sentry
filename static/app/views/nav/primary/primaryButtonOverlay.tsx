@@ -1,11 +1,11 @@
+import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 type PrimaryButtonOverlayProps = {
@@ -14,7 +14,7 @@ type PrimaryButtonOverlayProps = {
 };
 
 export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   return useOverlay({
     offset: 8,
@@ -36,16 +36,17 @@ export function PrimaryButtonOverlay({
   overlayProps,
 }: PrimaryButtonOverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
-  return (
-    <FocusScope autoFocus restoreFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+  return createPortal(
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.sidebarDropdownMenu} {...overlayProps}>
         <ScrollableOverlay isMobile={layout === NavLayout.MOBILE}>
           {children}
         </ScrollableOverlay>
       </PositionWrapper>
-    </FocusScope>
+    </FocusScope>,
+    document.body
   );
 }
 
@@ -54,8 +55,9 @@ const ScrollableOverlay = styled(Overlay, {
 })<{
   isMobile: boolean;
 }>`
+  overscroll-behavior: none;
   min-height: 150px;
   max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
   overflow-y: auto;
-  width: ${p => (p.isMobile ? `calc(100vw - ${space(4)})` : '400px')};
+  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
 `;

@@ -60,7 +60,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=invalid_scope"
+        assert resp["Location"] == "https://example.com/?error=invalid_scope"
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.user).exists()
 
@@ -89,12 +89,12 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(self.path, {"op": "approve"})
 
         grant = ApiGrant.objects.get(user=self.user)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         assert grant.application == self.application
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == f"https://example.com?code={grant.code}"
+        assert resp["Location"] == f"https://example.com/?code={grant.code}"
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
@@ -113,7 +113,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(self.path, {"op": "deny"})
 
         assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=access_denied"
+        assert resp["Location"] == "https://example.com/?error=access_denied"
         assert "code=" not in resp["Location"]
 
         assert not ApiGrant.objects.filter(user=self.user).exists()
@@ -133,7 +133,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(self.path, {"op": "approve"})
 
         grant = ApiGrant.objects.get(user=self.user)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         assert grant.application == self.application
         assert grant.get_scopes() == ["org:read"]
 
@@ -172,12 +172,12 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         grant = ApiGrant.objects.get(user=self.user)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         assert grant.application == self.application
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == f"https://example.com?code={grant.code}"
+        assert resp["Location"] == f"https://example.com/?code={grant.code}"
 
     def test_approve_flow_force_prompt(self) -> None:
         self.login_as(self.user)
@@ -250,12 +250,12 @@ class OAuthAuthorizeCodeTest(TestCase):
         resp = self.client.post(full_path, {"op": "approve"})
 
         grant = ApiGrant.objects.get(user=self.user)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         assert grant.application == self.application
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == f"https://example.com?code={grant.code}"
+        assert resp["Location"] == f"https://example.com/?code={grant.code}"
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
@@ -312,7 +312,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com#error=invalid_scope"
+        assert resp["Location"] == "https://example.com/#error=invalid_scope"
         assert "access_token" not in resp["Location"]
         assert not ApiToken.objects.filter(user=self.user).exists()
 
@@ -338,7 +338,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
-        assert location == "https://example.com"
+        assert location == "https://example.com/"
         fragment_d = parse_qs(fragment)
         assert fragment_d["access_token"] == [token.token]
         assert fragment_d["token_type"] == ["Bearer"]
@@ -363,7 +363,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 
         assert resp.status_code == 302
         location, fragment = resp["Location"].split("#", 1)
-        assert location == "https://example.com"
+        assert location == "https://example.com/"
         fragment_d = parse_qs(fragment)
         assert fragment_d == {"error": ["access_denied"]}
         assert "access_token" not in resp["Location"]
@@ -419,7 +419,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         assert grant.application == self.application
         assert grant.get_scopes() == ["org:read"]
         assert grant.organization_id == self.organization.id
@@ -442,7 +442,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         )
 
         assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=invalid_scope&state=foo"
+        assert resp["Location"] == "https://example.com/?error=invalid_scope&state=foo"
         assert "code=" not in resp["Location"]
         assert not ApiGrant.objects.filter(user=self.owner).exists()
 
@@ -471,7 +471,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         )
 
         grant = ApiGrant.objects.get(user=self.owner)
-        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.redirect_uri == "https://example.com/"
         # There is only one ApiAuthorization for this user and app which is related to the right organization
         api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
         assert api_auth.organization_id == self.organization.id
@@ -1674,6 +1674,62 @@ class OAuthAuthorizeSecurityTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user, application=self.application)
         assert grant is not None
         # organization_id may or may not be set depending on default behavior - we just verify grant exists
+        
+    def test_redirect_uses_normalized_uri(self) -> None:
+        """The redirect Location must use the normalized URI, not the raw input.
+
+        This prevents TOCTOU attacks where a non-canonical URI (with path
+        traversal or extra slashes) passes validation in normalized form but
+        redirects to a different raw URL.
+        """
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com/callback/",
+            version=0,
+        )
+        self.login_as(self.user)
+
+        # Submit a non-canonical redirect_uri with redundant slashes
+        resp = self.client.get(
+            f"{self.path}?response_type=code"
+            f"&client_id={app.client_id}"
+            f"&redirect_uri=https://example.com/callback//extra"
+        )
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+        assert resp.status_code == 302
+
+        location = resp["Location"]
+        parsed = urlparse(location)
+        # The path must be the normalized form (no double slash)
+        assert "//" not in parsed.path
+
+    def test_redirect_traversal_uses_normalized_uri(self) -> None:
+        """Path traversal in redirect_uri must be resolved in the Location header."""
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com/callback/",
+            version=0,
+        )
+        self.login_as(self.user)
+
+        # Submit a redirect_uri with path traversal that normalizes to a sub-path
+        resp = self.client.get(
+            f"{self.path}?response_type=code"
+            f"&client_id={app.client_id}"
+            f"&redirect_uri=https://example.com/callback/a/../b"
+        )
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+        assert resp.status_code == 302
+
+        location = resp["Location"]
+        parsed = urlparse(location)
+        # Traversal must be resolved: /callback/a/../b → /callback/b
+        assert ".." not in parsed.path
+        assert parsed.path.startswith("/callback/b")
 
 
 @control_silo_test

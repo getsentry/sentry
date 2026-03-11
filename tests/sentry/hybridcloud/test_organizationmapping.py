@@ -23,7 +23,7 @@ from sentry.testutils.silo import (
     create_test_regions,
     region_silo_test,
 )
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 
 
 def assert_matching_organization_mapping(
@@ -33,7 +33,7 @@ def assert_matching_organization_mapping(
     assert org_mapping.name == org.name
     assert org_mapping.slug == org.slug
     assert org_mapping.status == org.status
-    assert org_mapping.region_name
+    assert org_mapping.cell_name
     assert org_mapping.customer_id == customer_id
 
     if validate_flags:
@@ -171,7 +171,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 slug=temporary_slug,
                 organization_id=self.organization.id,
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,
-                region_name=primary_slug_res.region_name,
+                cell_name=primary_slug_res.cell_name,
                 user_id=user.id,
             ).save(unsafe_write=True)
 
@@ -211,7 +211,7 @@ class OrganizationMappingReplicationTest(TransactionTestCase):
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=update_organization_mapping_from_instance(
-                organization=self.organization, region=get_local_region()
+                organization=self.organization, region=get_local_cell()
             ),
         )
 

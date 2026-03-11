@@ -102,13 +102,15 @@ type AutoSaveFieldRenderArg<
  */
 
 interface AutoSaveFieldProps<
+  TData,
+  TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 > {
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactNode;
+  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactElement;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -119,9 +121,10 @@ interface AutoSaveFieldProps<
    * TanStack Query mutation options - mutationFn receives single-field data
    */
   mutationOptions: UseMutationOptions<
-    any, // it doesn't matter here what the mutation returns
+    TData,
     Error,
-    Record<TFieldName, z.infer<TSchema>[TFieldName]>
+    NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
+    TContext
   >;
 
   /**
@@ -154,9 +157,11 @@ interface AutoSaveFieldProps<
 }
 
 export function AutoSaveField<
+  TData,
+  TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->(props: AutoSaveFieldProps<TSchema, TFieldName>) {
+>(props: AutoSaveFieldProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);

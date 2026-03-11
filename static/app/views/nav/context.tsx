@@ -4,10 +4,11 @@ import {useTheme} from '@emotion/react';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
+import {NavigationTourContextProvider} from 'sentry/views/nav/tour/tour';
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
 
-interface NavContext {
+interface NavigationContext {
   activePrimaryNavGroup: PrimaryNavGroup | null;
   collapsedNavIsOpen: boolean;
   endInteraction: () => void;
@@ -18,12 +19,10 @@ interface NavContext {
   setActivePrimaryNavGroup: (activePrimaryNavGroup: PrimaryNavGroup | null) => void;
   setCollapsedNavIsOpen: (collapsedNavIsOpen: boolean) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  setShowTourReminder: (showTourReminder: boolean) => void;
-  showTourReminder: boolean;
   startInteraction: () => void;
 }
 
-const NavContext = createContext<NavContext>({
+const NavigationContext = createContext<NavigationContext>({
   navParentRef: {current: null},
   layout: NavLayout.SIDEBAR,
   isCollapsed: false,
@@ -31,19 +30,17 @@ const NavContext = createContext<NavContext>({
   isInteractingRef: {current: false},
   startInteraction: () => {},
   endInteraction: () => {},
-  showTourReminder: false,
-  setShowTourReminder: () => {},
   activePrimaryNavGroup: null,
   setActivePrimaryNavGroup: () => {},
   collapsedNavIsOpen: false,
   setCollapsedNavIsOpen: () => {},
 });
 
-export function useNavContext(): NavContext {
-  return useContext(NavContext);
+export function useNavigationContext(): NavigationContext {
+  return useContext(NavigationContext);
 }
 
-export function NavContextProvider({children}: {children: React.ReactNode}) {
+export function NavigationContextProvider({children}: {children: React.ReactNode}) {
   const navParentRef = useRef<HTMLDivElement>(null);
   const isInteractingRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
@@ -51,7 +48,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     false
   );
   const [collapsedNavIsOpen, setCollapsedNavIsOpen] = useState(false);
-  const [showTourReminder, setShowTourReminder] = useState(false);
   const [activePrimaryNavGroup, setActivePrimaryNavGroup] =
     useState<PrimaryNavGroup | null>(null);
 
@@ -75,8 +71,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       isInteractingRef,
       startInteraction,
       endInteraction,
-      showTourReminder,
-      setShowTourReminder,
       activePrimaryNavGroup,
       setActivePrimaryNavGroup,
       collapsedNavIsOpen,
@@ -88,8 +82,6 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       setIsCollapsed,
       startInteraction,
       endInteraction,
-      showTourReminder,
-      setShowTourReminder,
       activePrimaryNavGroup,
       setActivePrimaryNavGroup,
       collapsedNavIsOpen,
@@ -97,5 +89,9 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     ]
   );
 
-  return <NavContext value={value}>{children}</NavContext>;
+  return (
+    <NavigationTourContextProvider>
+      <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
+    </NavigationTourContextProvider>
+  );
 }

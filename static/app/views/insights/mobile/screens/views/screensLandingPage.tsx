@@ -8,7 +8,6 @@ import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -26,6 +25,7 @@ import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSe
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useMobileVitalsDrawer} from 'sentry/views/insights/common/utils/useMobileVitalsDrawer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -42,7 +42,6 @@ import {
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
-import useHasDashboardsPlatformizedMobileVitals from 'sentry/views/insights/mobile/screens/utils/useHasDashboardsPlatformizedMobileVitals';
 import {PlatformizedMobileVitalsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -338,16 +337,15 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: ${p => p.theme.space.md};
 `;
 
 function ScreensLandingPageWithPlatformization() {
-  const hasDashboardsPlatformizedMobileVitals =
-    useHasDashboardsPlatformizedMobileVitals();
-  if (hasDashboardsPlatformizedMobileVitals) {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
     return <PlatformizedMobileVitalsOverview />;
   }
   return <ScreensLandingPage />;

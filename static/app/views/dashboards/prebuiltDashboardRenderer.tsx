@@ -97,7 +97,6 @@ export function PrebuiltDashboardRenderer({
         dashboard={dashboard}
         dashboards={[]}
         initialState={DashboardState.EMBEDDED}
-        useTimeseriesVisualization
         storageNamespace={storageNamespace}
       />
     </LoadingContainer>

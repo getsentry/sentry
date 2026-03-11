@@ -12,6 +12,15 @@ import {IconInput, IconPause, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
+import {useSyncedD3Zoom} from './useD3Zoom';
+import {
+  ZoomableArea,
+  ZoomableImage,
+  ZoomContainer,
+  ZoomControls,
+  zoomTransformStyle,
+} from './zoomControls';
+
 export type DiffMode = 'split' | 'wipe' | 'onion';
 
 interface DiffImageDisplayProps {
@@ -81,7 +90,7 @@ export function DiffImageDisplay({
   const diffPercent = pair.diff === null ? null : `${(pair.diff * 100).toFixed(1)}%`;
 
   return (
-    <Flex direction="column" gap="lg" padding="xl" height="100%">
+    <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
       {diffPercent && (
         <Text variant="muted" size="sm">
           {t('Diff: %s', diffPercent)}
@@ -111,7 +120,7 @@ export function DiffImageDisplay({
         />
       )}
 
-      <Flex justify="center">
+      <Flex justify="center" flexShrink={0}>
         <SegmentedControl value={diffMode} onChange={onDiffModeChange}>
           <SegmentedControl.Item key="split" icon={<IconPause />}>
             {t('Split')}
@@ -143,37 +152,49 @@ function SplitView({
   overlayColor,
   diffMaskUrl,
 }: SplitViewProps) {
+  const [zoom1, zoom2] = useSyncedD3Zoom();
   return (
     <Grid columns="repeat(2, 1fr)" gap="xl" flex="1" minHeight="0">
-      <Flex direction="column" gap="sm">
+      <Flex direction="column" gap="sm" minHeight="0">
         <Heading as="h4">{t('Base')}</Heading>
-        <Flex
-          justify="center"
-          border="primary"
-          radius="md"
-          overflow="hidden"
-          background="secondary"
-        >
-          <ConstrainedImage src={baseImageUrl} alt={t('Base')} />
-        </Flex>
+        <ZoomableArea>
+          <ZoomContainer ref={zoom1.containerRef}>
+            <Flex
+              justify="center"
+              align="center"
+              paddingTop="xl"
+              style={zoomTransformStyle(zoom1.transform)}
+            >
+              <ZoomableImage src={baseImageUrl} alt={t('Base')} />
+            </Flex>
+          </ZoomContainer>
+        </ZoomableArea>
       </Flex>
 
-      <Flex direction="column" gap="sm">
+      <Flex direction="column" gap="sm" minHeight="0">
         <Heading as="h4">{t('Current Branch')}</Heading>
-        <Flex
-          justify="center"
-          border="primary"
-          radius="md"
-          overflow="hidden"
-          background="secondary"
-        >
-          <ImageWrapper>
-            <ConstrainedImage src={headImageUrl} alt={t('Current Branch')} />
-            {showOverlay && diffMaskUrl && (
-              <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
-            )}
-          </ImageWrapper>
-        </Flex>
+        <ZoomableArea>
+          <ZoomContainer ref={zoom2.containerRef}>
+            <Flex
+              justify="center"
+              align="center"
+              paddingTop="xl"
+              style={zoomTransformStyle(zoom2.transform)}
+            >
+              <ImageWrapper>
+                <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
+                {showOverlay && diffMaskUrl && (
+                  <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
+                )}
+              </ImageWrapper>
+            </Flex>
+          </ZoomContainer>
+          <ZoomControls
+            onZoomIn={zoom2.zoomIn}
+            onZoomOut={zoom2.zoomOut}
+            onReset={zoom2.resetZoom}
+          />
+        </ZoomableArea>
       </Flex>
     </Grid>
   );

@@ -95,7 +95,7 @@ export default function ReplayPreferenceDropdown({
         value={prefs.timestampType}
         onChange={opt => setPrefs({timestampType: opt.value})}
         options={REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-          label: `${toTitleCase(option)}`,
+          label: toTitleCase(option),
           value: option,
         }))}
       />

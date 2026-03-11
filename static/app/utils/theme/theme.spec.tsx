@@ -33,4 +33,21 @@ describe('theme', () => {
       >();
     });
   });
+
+  describe('swatch', () => {
+    it('should match old getColorPalette(9) colors for backward compatibility', () => {
+      const {result} = renderHookWithProviders(useTheme);
+      const theme = result.current;
+
+      const oldPalette = theme.chart.getColorPalette(9);
+      const swatchColors = new Set(theme.swatch.values());
+
+      expect(swatchColors.size).toBe(10);
+      expect(swatchColors.size).toBe(oldPalette.length);
+
+      for (const color of oldPalette) {
+        expect(swatchColors.has(color)).toBe(true);
+      }
+    });
+  });
 });

@@ -82,11 +82,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
     };
     const params = [
-      `${IssuesQuery.NEW}`,
-      `${IssuesQuery.ALL}`,
-      `${IssuesQuery.RESOLVED}`,
-      `${IssuesQuery.UNHANDLED}`,
-      `${IssuesQuery.REGRESSED}`,
+      IssuesQuery.NEW,
+      IssuesQuery.ALL,
+      IssuesQuery.RESOLVED,
+      IssuesQuery.UNHANDLED,
+      IssuesQuery.REGRESSED,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
@@ -106,11 +106,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     try {
       const data = await api.requestPromise(issueCountEndpoint);
       setIssuesCount({
-        all: data[`${IssuesQuery.ALL}`] || 0,
-        new: data[`${IssuesQuery.NEW}`] || 0,
-        resolved: data[`${IssuesQuery.RESOLVED}`] || 0,
-        unhandled: data[`${IssuesQuery.UNHANDLED}`] || 0,
-        regressed: data[`${IssuesQuery.REGRESSED}`] || 0,
+        all: data[IssuesQuery.ALL] || 0,
+        new: data[IssuesQuery.NEW] || 0,
+        resolved: data[IssuesQuery.RESOLVED] || 0,
+        unhandled: data[IssuesQuery.UNHANDLED] || 0,
+        regressed: data[IssuesQuery.REGRESSED] || 0,
       });
     } catch {
       // do nothing
@@ -170,7 +170,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
     ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
-    : [`${IssuesQuery.ALL}`, query].join(' ').trim();
+    : [IssuesQuery.ALL, query].join(' ').trim();
 
   const queryParams = {
     limit: 5,

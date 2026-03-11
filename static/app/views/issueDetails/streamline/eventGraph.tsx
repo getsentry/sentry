@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
@@ -82,7 +75,8 @@ interface EventGraphProps {
    * Enable/disables showing the event and user summary
    */
   showSummary?: boolean;
-  style?: CSSProperties;
+
+  style?: React.CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -474,9 +468,9 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert variant="danger" {...styleProps}>
+      <Alert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
-      </GraphAlert>
+      </Alert>
     );
   }
 
@@ -629,11 +623,4 @@ const ChartContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
-`;
-
-export const GraphAlert = styled(Alert)`
-  padding-left: ${p => p.theme.space['2xl']};
-  margin: 0 0 0 -${p => p.theme.space['2xl']};
-  border: 0;
-  border-radius: 0;
 `;

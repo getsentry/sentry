@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ReleaseSelector} from 'sentry/views/insights/common/components/releaseSelector';
@@ -25,7 +25,7 @@ type Query = {
 };
 
 export function ScreenSummaryContent() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const location = useLocation<Query>();
 
   const {transaction: transactionName, spanGroup} = location.query;
@@ -35,16 +35,19 @@ export function ScreenSummaryContent() {
     moduleName: ModuleName.OTHER,
     requiredParams: ['spanGroup', 'spanOp'],
     onClose: () => {
-      router.replace({
-        pathname: router.location.pathname,
-        query: omit(
-          router.location.query,
-          'spanGroup',
-          'transactionMethod',
-          'spanDescription',
-          'spanOp'
-        ),
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(
+            location.query,
+            'spanGroup',
+            'transactionMethod',
+            'spanDescription',
+            'spanOp'
+          ),
+        },
+        {replace: true}
+      );
     },
   });
 

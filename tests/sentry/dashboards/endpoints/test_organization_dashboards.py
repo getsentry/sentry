@@ -680,6 +680,91 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Initial dashboard"]
 
+    def test_get_multiple_filters_owned_and_exclude_prebuilt(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Custom",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Custom",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 1 Prebuilt",
+            created_by_id=None,
+            organization=self.organization,
+            prebuilt_id=1,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned", "excludePrebuilt"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Custom"]
+
+    def test_get_multiple_filters_single_filter(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        Dashboard.objects.create(
+            title="User 1 Dashboard",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="User 2 Dashboard",
+            created_by_id=user_2.id,
+            organization=self.organization,
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["User 1 Dashboard"]
+
+    def test_get_multiple_filters_favorites_and_owned(self) -> None:
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        owned_fav = Dashboard.objects.create(
+            title="Owned and Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        Dashboard.objects.create(
+            title="Owned Not Favorited",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        other_fav = Dashboard.objects.create(
+            title="Other Favorited",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=owned_fav
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization, user_id=user_1.id, dashboard=other_fav
+        )
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"filter": ["onlyFavorites", "owned"]})
+        assert response.status_code == 200, response.content
+        values = [row["title"] for row in response.data]
+        assert values == ["Owned and Favorited"]
+
     def test_get_owned_dashboards_can_pin_starred_at_top(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -2183,6 +2268,37 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
+
+    def test_endpoint_creates_favorites_for_pre_favorited_prebuilt_dashboards(self) -> None:
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
 
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):

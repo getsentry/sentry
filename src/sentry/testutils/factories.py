@@ -167,7 +167,7 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.region import Region, get_cell_by_name, get_local_region
+from sentry.types.region import Cell, get_cell_by_name, get_local_cell
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
@@ -378,15 +378,15 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
+    def create_organization(name=None, owner=None, region: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
         with contextlib.ExitStack() as ctx:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                region_name = get_local_region().name
+                region_name = get_local_cell().name
             else:
-                if isinstance(region, Region):
+                if isinstance(region, Cell):
                     region_name = region.name
                 else:
                     region_obj = get_cell_by_name(region)  # Verify it exists
@@ -403,7 +403,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)
@@ -2133,7 +2133,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(
-        mailbox_name: str, region_name: str | None, **kwargs
+        mailbox_name: str, cell_name: str | None, **kwargs
     ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
@@ -2143,7 +2143,7 @@ class Factories:
             **kwargs,
         }
         return WebhookPayload.objects.create(
-            mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+            mailbox_name=mailbox_name, cell_name=cell_name, **payload_kwargs
         )
 
     @staticmethod

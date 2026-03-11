@@ -10,7 +10,7 @@ class ApiOwner(Enum):
     ALERTS_NOTIFICATIONS = "alerts-notifications"
     BILLING = "revenue"
     CODECOV = "codecov"
-    CODING_WORKFLOWS = "coding-workflows"
+    CODING_WORKFLOWS = "coding-workflows-sentry-backend"
     CRONS = "crons"
     DASHBOARDS = "dashboards"
     DATA_BROWSING = "data-browsing"

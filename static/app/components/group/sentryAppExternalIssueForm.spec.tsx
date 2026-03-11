@@ -107,7 +107,7 @@ describe('SentryAppExternalIssueForm', () => {
           action="create"
         />
       );
-      expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(`${group.title}`);
+      expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(group.title);
 
       const url = addQueryParamsToExistingUrl(group.permalink, {
         referrer: sentryApp.name,

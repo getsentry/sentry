@@ -109,9 +109,7 @@ export function SpanDescription({
 
   const actions = exploreAttributeValue ? (
     <BodyContentWrapper
-      padding={
-        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
-      }
+      padding={resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : space(1)}
     >
       {node.value.is_transaction ? (
         <StyledLink
@@ -397,12 +395,12 @@ const ImageWrapper = styled('div')`
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.padding};
 `;
 
@@ -419,12 +417,12 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   word-break: break-word;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   justify-content: center;
 `;

@@ -1,7 +1,7 @@
 """
-Coding agent handoff support for Explorer runs.
+Coding agent launch support for Explorer runs.
 
-This module provides functions to launch coding agents (like Cursor) from Explorer runs.
+This module provides functions to launch coding agents from Explorer runs.
 It reuses the core coding agent infrastructure from sentry.seer.autofix.coding_agent.
 """
 
@@ -14,6 +14,7 @@ from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from sentry import features
+from sentry.integrations.claude_code.integration import PROVIDER_KEY as CLAUDE_CODE_PROVIDER_KEY
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -34,26 +35,68 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger(__name__)
 
 
+def _resolve_client(
+    organization: Organization,
+    integration_id: int | None,
+    provider: str | None,
+    user_id: int | None,
+) -> tuple[CodingAgentClient | None, CodingAgentIntegration | None]:
+    """
+    Resolve the coding agent client and/or installation for the given parameters.
+
+    For API-driven agents (GitHub Copilot, Claude Code), returns a client directly.
+    For UI-handoff agents (Cursor), returns an installation.
+
+    Returns:
+        Tuple of (client, installation). Exactly one will be non-None.
+    """
+    if provider == "github_copilot":
+        if not features.has("organizations:integrations-github-copilot-agent", organization):
+            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
+        user_access_token: str | None = None
+        if user_id is not None:
+            user_access_token = github_copilot_identity_service.get_access_token_for_user(
+                user_id=user_id
+            )
+        if not user_access_token:
+            raise PermissionDenied(
+                "GitHub Copilot requires user authorization. Please connect your GitHub account."
+            )
+        return GithubCopilotAgentClient(user_access_token), None
+
+    if integration_id is not None:
+        integration, installation = _validate_and_get_integration(organization, integration_id)
+
+        # API-driven agents (e.g., Claude Code) get a direct client
+        if integration.provider == CLAUDE_CODE_PROVIDER_KEY:
+            return installation.get_client(), None
+
+        # UI-handoff agents (e.g., Cursor) use installation.launch()
+        return None, installation
+
+    raise ValidationError("Either integration_id or provider must be provided")
+
+
 def launch_coding_agents(
     organization: Organization,
     integration_id: int | None,
     run_id: int,
     prompt: str,
-    repos: list[str],
+    repos: list[SeerRepoDefinition],
     branch_name_base: str = "explorer-fix",
     auto_create_pr: bool = False,
     provider: str | None = None,
     user_id: int | None = None,
 ) -> dict[str, list]:
     """
-    Launch third-party coding agents for an Explorer run.
+    Launch coding agents for an Explorer run.
 
     Args:
         organization: The organization
-        integration_id: The coding agent integration ID (for org-installed integrations like Cursor)
+        integration_id: The coding agent integration ID (for org-installed integrations)
         run_id: The Explorer run ID (used to store coding agent state)
         prompt: The instruction/prompt for the coding agent
-        repos: List of repo names to target (format: "owner/name")
+        repos: List of SeerRepoDefinition objects with full repo metadata
         branch_name_base: Base name for the branch (random suffix will be added)
         auto_create_pr: Whether to automatically create a PR when agent finishes
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
@@ -67,55 +110,15 @@ def launch_coding_agents(
         PermissionDenied: If GitHub Copilot is not enabled for the organization
         ValidationError: If integration is invalid
     """
-    integration = None
-    installation: CodingAgentIntegration | None = None
-    client: CodingAgentClient | None = None
+    client, installation = _resolve_client(organization, integration_id, provider, user_id)
     is_github_copilot = provider == "github_copilot"
-
-    if is_github_copilot:
-        if not features.has("organizations:integrations-github-copilot-agent", organization):
-            raise PermissionDenied("GitHub Copilot is not enabled for this organization")
-        user_access_token: str | None = None
-        if user_id is not None:
-            user_access_token = github_copilot_identity_service.get_access_token_for_user(
-                user_id=user_id
-            )
-        if not user_access_token:
-            raise PermissionDenied(
-                "GitHub Copilot requires user authorization. Please connect your GitHub account."
-            )
-        client = GithubCopilotAgentClient(user_access_token)
-    elif integration_id is not None:
-        integration, installation = _validate_and_get_integration(organization, integration_id)
-    else:
-        raise ValidationError("Either integration_id or provider must be provided")
 
     successes = []
     failures = []
     states_to_store: list[CodingAgentState] = []
 
-    for repo_name in repos:
-        # Parse repo_name into owner/name
-        parts = repo_name.split("/")
-        if len(parts) != 2:
-            failures.append(
-                {
-                    "repo_name": repo_name,
-                    "error_message": f"Invalid repository name format: {repo_name}",
-                    "failure_type": "generic",
-                }
-            )
-            continue
-
-        owner, name = parts
-
-        # Create a SeerRepoDefinition for the launch request
-        repo = SeerRepoDefinition(
-            provider="github",  # TODO: Support other providers
-            owner=owner,
-            name=name,
-            external_id=repo_name,  # Using full name as external_id for now
-        )
+    for repo in repos:
+        repo_name = f"{repo.owner}/{repo.name}"
 
         launch_request = CodingAgentLaunchRequest(
             prompt=prompt,
@@ -128,12 +131,15 @@ def launch_coding_agents(
             if client is not None:
                 # User-authenticated client (e.g., GitHub Copilot)
                 coding_agent_state = client.launch(webhook_url="", request=launch_request)
+                # Set integration_id here for org-installed integrations like Claude Code.
+                if integration_id is not None:
+                    coding_agent_state.integration_id = integration_id
             elif installation is not None:
                 # Org-installed integration (e.g., Cursor)
                 coding_agent_state = installation.launch(launch_request)
             else:
                 raise ValidationError("No valid client or installation available")
-        except (HTTPError, ApiError) as e:
+        except (HTTPError, ApiError, ValueError) as e:
             logger.exception(
                 "explorer.coding_agent.launch_error",
                 extra={
@@ -199,7 +205,7 @@ def launch_coding_agents(
             extra={
                 "organization_id": organization.id,
                 "run_id": run_id,
-                "repos": repos,
+                "repos": [f"{r.owner}/{r.name}" for r in repos],
             },
         )
 
@@ -208,7 +214,7 @@ def launch_coding_agents(
         extra={
             "organization_id": organization.id,
             "integration_id": integration_id,
-            "provider": provider or (integration.provider if integration else None),
+            "provider": provider,
             "run_id": run_id,
             "repos_succeeded": len(successes),
             "repos_failed": len(failures),

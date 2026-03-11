@@ -134,11 +134,6 @@ function useFilterKeySections({
   recentSearches: RecentSearch[] | undefined;
 }) {
   const {filterKeySections, query, disallowLogicalOperators} = useSearchQueryBuilder();
-  const organization = useOrganization();
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
-
   const sections = useMemo<Section[]>(() => {
     const definedSections = filterKeySections.map(section => ({
       value: section.value,
@@ -156,25 +151,19 @@ function useFilterKeySections({
         ...definedSections,
       ];
 
-      if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+      if (!disallowLogicalOperators) {
         recentSearchesSections.push(LOGIC_CATEGORY);
       }
       return recentSearchesSections;
     }
 
     const customSections: Section[] = [ALL_CATEGORY, ...definedSections];
-    if (!disallowLogicalOperators && hasConditionalsInCombobox) {
+    if (!disallowLogicalOperators) {
       customSections.push(LOGIC_CATEGORY);
     }
 
     return customSections;
-  }, [
-    disallowLogicalOperators,
-    filterKeySections,
-    hasConditionalsInCombobox,
-    query,
-    recentSearches?.length,
-  ]);
+  }, [disallowLogicalOperators, filterKeySections, query, recentSearches?.length]);
 
   const [selectedSection, setSelectedSection] = useState<string>(
     sections[0]?.value ?? ''
@@ -221,9 +210,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   });
 
   const organization = useOrganization();
-  const hasConditionalsInCombobox = organization.features.includes(
-    'search-query-builder-conditionals-combobox-menus'
-  );
 
   const filterKeyMenuItems = useMemo(() => {
     const recentFilterItems = makeRecentFilterItems({recentFilters});
@@ -245,11 +231,7 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
       ];
     }
 
-    if (
-      !disallowLogicalOperators &&
-      selectedSection === LOGIC_CATEGORY_VALUE &&
-      hasConditionalsInCombobox
-    ) {
+    if (!disallowLogicalOperators && selectedSection === LOGIC_CATEGORY_VALUE) {
       return [...askSeerItem, ...logicFilterItems];
     }
 
@@ -270,7 +252,6 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
     enableAISearch,
     filterKeys,
     getFieldDefinition,
-    hasConditionalsInCombobox,
     recentFilters,
     recentSearches,
     sectionedItems,

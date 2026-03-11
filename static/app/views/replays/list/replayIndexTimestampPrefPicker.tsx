@@ -17,7 +17,7 @@ export default function ReplayIndexTimestampPrefPicker() {
           key: t('Timestamps'),
           label: t('Timestamps'),
           options: REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-            label: `${toTitleCase(option)}`,
+            label: toTitleCase(option),
             value: option,
             key: option,
           })),

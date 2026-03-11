@@ -24,7 +24,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -36,7 +36,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         )
 
         self.region_name = (
-            "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_region().name
+            "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_cell().name
         )
 
     def generate_provisioning_args(

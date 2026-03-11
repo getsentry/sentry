@@ -156,6 +156,13 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="redirect_uri",
             )
 
+        # Canonicalize the redirect URI so the Location header in the redirect
+        # response matches exactly what was validated.  Without this, an attacker
+        # could submit a non-canonical URI (e.g. with path traversal or extra
+        # slashes) that normalizes to a registered URI for validation but
+        # redirects to a raw, different-looking URL.
+        redirect_uri = application.normalize_url(redirect_uri)
+
         if not application.is_allowed_response_type(response_type):
             return self.error(
                 request=request,

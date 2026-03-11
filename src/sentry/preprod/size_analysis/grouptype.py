@@ -41,7 +41,7 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
     if artifact.app_id:
         tags["app_id"] = artifact.app_id
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     if mobile_app_info is not None:
         if mobile_app_info.app_name:
             tags["app_name"] = mobile_app_info.app_name
@@ -236,7 +236,7 @@ class PreprodSizeAnalysisDetectorHandler(
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
-    pass
+    data_source_required = False
 
 
 @dataclass(frozen=True)

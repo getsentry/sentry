@@ -3,9 +3,9 @@ import {useCallback, useReducer} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
@@ -83,6 +83,7 @@ export function MEPSettingProvider({
   location?: Location;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const canUseMEP = canUseMetricsData(organization);
 
@@ -111,16 +112,19 @@ export function MEPSettingProvider({
       if (!location) {
         return;
       }
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          [METRIC_SETTING_PARAM]: settingState,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            [METRIC_SETTING_PARAM]: settingState,
+          },
         },
-      });
+        {replace: true}
+      );
       _setMetricSettingState(settingState);
     },
-    [location, _setMetricSettingState]
+    [location, navigate, _setMetricSettingState]
   );
 
   const [autoSampleState, setAutoSampleState] = useReducer(
@@ -137,7 +141,7 @@ export function MEPSettingProvider({
   const shouldQueryProvideMEPTransactionParams =
     canUseMEP && metricSettingState === MEPState.TRANSACTIONS_ONLY;
 
-  const memoizationKey = `${metricSettingState}`;
+  const memoizationKey = metricSettingState;
 
   return (
     <_MEPSettingProvider

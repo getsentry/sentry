@@ -16,9 +16,9 @@ import {mockMatchMedia} from 'sentry-test/utils';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import Nav from 'sentry/views/nav';
+import {Navigation} from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 
 jest.mock('sentry/utils/analytics', () => ({
   ...jest.requireActual('sentry/utils/analytics'),
@@ -100,10 +100,10 @@ describe('Nav', () => {
     route?: string;
   } = {}) {
     return render(
-      <NavContextProvider>
-        <Nav />
+      <NavigationContextProvider>
+        <Navigation />
         <div id="main" />
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {
         organization: OrganizationFixture({features}),
 
@@ -334,10 +334,10 @@ describe('Nav', () => {
     it('does not reload page on navigation when frontend is current', () => {
       render(
         <FrontendVersionProvider releaseVersion="frontend@abc123" force="current">
-          <NavContextProvider>
-            <Nav />
+          <NavigationContextProvider>
+            <Navigation />
             <div id="main" />
-          </NavContextProvider>
+          </NavigationContextProvider>
         </FrontendVersionProvider>,
         {
           organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
@@ -366,10 +366,10 @@ describe('Nav', () => {
     it('reloads page on primary navigation when frontend is stale', async () => {
       render(
         <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
-          <NavContextProvider>
-            <Nav />
+          <NavigationContextProvider>
+            <Navigation />
             <div id="main" />
-          </NavContextProvider>
+          </NavigationContextProvider>
         </FrontendVersionProvider>,
         {
           organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),

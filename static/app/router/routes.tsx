@@ -1184,6 +1184,11 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
         },
         {
+          path: 'scm/',
+          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
+          component: make(() => import('getsentry/views/seerAutomation/scm')),
+        },
+        {
           path: 'projects/',
           // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
           component: make(() => import('getsentry/views/seerAutomation/projects')),
@@ -2104,7 +2109,9 @@ function buildRoutes(): RouteObject[] {
     // Redirect old conversations links to the new explore location
     {
       path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
-      redirectTo: `/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      component: make(
+        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
+      ),
     },
     // Redirect old links to the new agents landing page
     {
@@ -2365,10 +2372,6 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      index: true,
-      component: make(() => import('sentry/views/preprod/buildList/buildList')),
-    },
-    {
       path: 'size/:artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
     },
@@ -2544,10 +2547,6 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
-    },
-    {
-      path: 'dynamic-groups/',
-      component: make(() => import('sentry/views/issueList/pages/dynamicGrouping')),
     },
     {
       path: 'views/:viewId/',
