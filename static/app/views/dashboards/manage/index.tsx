@@ -134,10 +134,16 @@ function getSortOptions({
 function getDefaultSort({
   organization,
   dashboardsLayout,
+  isOnlyPrebuilt,
 }: {
   dashboardsLayout: DashboardsLayout;
+  isOnlyPrebuilt: boolean;
   organization: Organization;
 }) {
+  if (isOnlyPrebuilt) {
+    return 'mostPopular';
+  }
+
   if (
     organization.features.includes('dashboards-starred-reordering') &&
     dashboardsLayout === TABLE
@@ -311,6 +317,7 @@ function ManageDashboards() {
     const defaultSort = getDefaultSort({
       organization,
       dashboardsLayout,
+      isOnlyPrebuilt,
     });
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
@@ -322,6 +329,7 @@ function ManageDashboards() {
     }
   }, [
     dashboardsLayout,
+    isOnlyPrebuilt,
     location.pathname,
     location.query,
     navigate,
@@ -333,6 +341,7 @@ function ManageDashboards() {
     const defaultSort = getDefaultSort({
       organization,
       dashboardsLayout,
+      isOnlyPrebuilt,
     });
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
