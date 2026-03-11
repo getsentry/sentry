@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,6 +31,7 @@ import {WhatsNewItem} from 'sentry/views/navigation/primary/whatsNew/item';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const MARK_SEEN_DELAY = 1000;
+const MAX_VISIBLE_BROADCASTS = 3;
 
 function makeBroadcastsQueryKey({
   organization,
@@ -54,7 +57,7 @@ function useFetchBroadcasts() {
   });
 }
 
-function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
+function WhatsNewContent() {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -78,17 +81,25 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
 
   const {isPending, data: broadcasts = []} = useFetchBroadcasts();
 
+  const recentBroadcasts = broadcasts.slice(0, MAX_VISIBLE_BROADCASTS);
+
+  const displayedUnseenIds = useMemo(
+    () => recentBroadcasts.filter(item => !item.hasSeen).map(item => item.id),
+    [recentBroadcasts]
+  );
+
   useEffect(() => {
+    if (displayedUnseenIds.length === 0) {
+      return undefined;
+    }
     const markSeenTimeout = window.setTimeout(() => {
-      markBroadcastsAsSeen(unseenPostIds);
+      markBroadcastsAsSeen(displayedUnseenIds);
     }, MARK_SEEN_DELAY);
 
     return () => {
-      if (markSeenTimeout) {
-        window.clearTimeout(markSeenTimeout);
-      }
+      window.clearTimeout(markSeenTimeout);
     };
-  }, [unseenPostIds, markBroadcastsAsSeen]);
+  }, [displayedUnseenIds, markBroadcastsAsSeen]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -100,7 +111,7 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
 
   return (
     <Fragment>
-      {broadcasts.map(item => (
+      {recentBroadcasts.map(item => (
         <WhatsNewItem
           key={item.id}
           hasSeen={item.hasSeen}
@@ -111,6 +122,9 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
           category={item.category}
         />
       ))}
+      <ChangelogLink href="https://changelog.sentry.dev/">
+        {t('View all changelog entries')} →
+      </ChangelogLink>
     </Fragment>
   );
 }
@@ -150,12 +164,25 @@ export function PrimaryNavigationWhatsNew() {
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
-          <WhatsNewContent unseenPostIds={unseenPostIds} />
+          <WhatsNewContent />
         </PrimaryButtonOverlay>
       )}
     </Fragment>
   );
 }
+
+const ChangelogLink = styled(ExternalLink)`
+  display: block;
+  text-align: center;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
+  color: ${p => p.theme.tokens.content.accent};
+  font-size: ${p => p.theme.font.size.md};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
 
 const Empty = styled('div')`
   display: flex;
