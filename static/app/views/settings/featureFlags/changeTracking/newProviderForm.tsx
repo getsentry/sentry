@@ -25,7 +25,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,6 +38,8 @@ const schema = z.object({
   provider: z.enum(WebhookProviderEnum, t('Provider is required')),
   secret: z.string().min(1, t('Secret is required')).max(100),
 });
+
+type CreateSecretData = z.infer<typeof schema>;
 
 interface Props {
   canSaveSecret: boolean;
@@ -64,8 +66,8 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const mutation = useMutation<string, RequestError, z.infer<typeof schema>>({
-    mutationFn: ({provider, secret}) => {
+  const mutation = useMutation({
+    mutationFn: ({provider, secret}: CreateSecretData) => {
       addLoadingMessage();
       return fetchMutation({
         url: `/organizations/${organization.slug}/flags/signing-secrets/`,
@@ -86,16 +88,18 @@ export default function NewProviderForm({
     },
     onError: error => {
       clearIndicators();
-      const responseJSON = error.responseJSON;
-      const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
+      if (error instanceof RequestError) {
+        const responseJSON = error.responseJSON;
+        const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
 
-      if (!hasFieldSpecificErrors) {
-        const message =
-          typeof responseJSON === 'string'
-            ? responseJSON
-            : t('Failed to add provider or secret.');
-        handleXhrErrorResponse(message, error);
-        setError(message);
+        if (!hasFieldSpecificErrors) {
+          const message =
+            typeof responseJSON === 'string'
+              ? responseJSON
+              : t('Failed to add provider or secret.');
+          handleXhrErrorResponse(message, error);
+          setError(message);
+        }
       }
     },
   });
