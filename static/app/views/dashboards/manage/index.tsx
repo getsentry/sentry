@@ -601,7 +601,7 @@ function ManageDashboards() {
                         title={
                           isOnlyPrebuilt
                             ? t(
-                                'Pre-configured dashboards built by Sentry to help you monitor key metrics out of the box.'
+                                'Dashboards built by Sentry to help you monitor key metrics out of the box.'
                               )
                             : t(
                                 "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
