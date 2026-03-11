@@ -383,6 +383,11 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        {
+          selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+          message:
+            "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+        },
         // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
         {
           selector:
