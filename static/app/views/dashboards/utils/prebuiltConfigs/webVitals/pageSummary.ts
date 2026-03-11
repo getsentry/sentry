@@ -3,6 +3,7 @@ import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
@@ -433,4 +434,5 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

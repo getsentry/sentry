@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -10,7 +10,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -32,8 +31,6 @@ import ProjectStatsGraph from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
 
-type ProjectStats = Record<string, Required<Project['stats']>>;
-
 function OrganizationProjects() {
   const organization = useOrganization();
 
@@ -41,7 +38,6 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(Date.now());
   const {
     data: projectList,
     getResponseHeader,
@@ -57,30 +53,11 @@ function OrganizationProjects() {
           ...location.query,
           query,
           per_page: ITEMS_PER_PAGE,
+          statsPeriod: '24h',
         },
       },
     ],
     {staleTime: 0}
-  );
-
-  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/stats/`, {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          projectID: projectList?.map(p => p.id),
-          since: time.current / 1000 - 3600 * 24,
-          stat: 'generated',
-          group: 'project',
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      enabled: !!projectList,
-    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -126,14 +103,7 @@ function OrganizationProjects() {
                   <ProjectListItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
-                  {isLoadingStats && <Placeholder height="25px" />}
-                  {projectStats && (
-                    <ProjectStatsGraph
-                      key={project.id}
-                      project={project}
-                      stats={projectStats[project.id]}
-                    />
-                  )}
+                  <ProjectStatsGraph project={project} />
                 </ProjectStatsGraphWrapper>
               </GridPanelItem>
             ))}

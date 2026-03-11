@@ -188,6 +188,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     RAGE_AND_DEAD_CLICKS = 11
     SERVER_TREE = 12
     TEXT = 13
+    AGENTS_TRACES_TABLE = 14
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -202,6 +203,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
         (SERVER_TREE, "server_tree"),
         (TEXT, "text"),
+        (AGENTS_TRACES_TABLE, "agents_traces_table"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

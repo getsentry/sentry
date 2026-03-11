@@ -47,16 +47,6 @@ export function update(api: Client, params: UpdateParams) {
     );
 }
 
-type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
-
-export function loadStats(api: Client, params: StatsParams) {
-  const endpoint = `/organizations/${params.orgId}/stats/`;
-  api.request(endpoint, {
-    query: params.query,
-    success: data => ProjectsStore.onStatsLoadSuccess(data),
-  });
-}
-
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
 export const _projectStatsToFetch = new Set<string>();

@@ -30,7 +30,7 @@ export function useAgentOptions({
         .filter(integration => integration.id)
         .map(integration => ({
           value: integration,
-          label: `${integration.name} (${integration.id})`,
+          label: integration.name,
         })),
       {value: 'none' as const, label: t('Manual Agent Selection')},
     ];
