@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
@@ -60,7 +60,7 @@ class Visibility:
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class SavedSearch(Model):
     """
     A saved search query.

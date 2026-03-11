@@ -11,7 +11,7 @@ from django.db import connections, router, transaction
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.tasks.hybrid_cloud import (
     WatermarkBatch,
@@ -49,7 +49,7 @@ from sentry.types.region import find_regions_for_user
 from sentry.users.models.user import User
 
 
-@region_silo_model
+@cell_silo_model
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")

@@ -10,7 +10,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 
@@ -30,7 +30,7 @@ class CodeReviewEventStatus(StrEnum):
         return tuple((status.value, status.value) for status in cls)
 
 
-@region_silo_model
+@cell_silo_model
 class CodeReviewEvent(DefaultFieldsModel):
     """
     Records every SCM webhook event entering the Seer code review pipeline.

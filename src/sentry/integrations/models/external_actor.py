@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -18,7 +18,7 @@ from sentry.notifications.services import notifications_service
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
+@cell_silo_model
 class ExternalActor(ReplicatedRegionModel):
     __relocation_scope__ = RelocationScope.Excluded
 
