@@ -101,7 +101,7 @@ export function SidebarMenu({
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
-      zIndex={theme.zIndex.sidebarDropdownMenu}
+      zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
