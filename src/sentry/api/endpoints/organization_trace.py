@@ -56,9 +56,16 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         error_id: str | None = None,
         additional_attributes: list[str] | None = None,
         include_uptime: bool = False,
+        *,
+        organization: Organization,
     ) -> list[SerializedEvent]:
         return query_trace_data(
-            snuba_params, trace_id, error_id, additional_attributes, include_uptime
+            snuba_params,
+            trace_id,
+            error_id,
+            additional_attributes,
+            include_uptime,
+            organization=organization,
         )
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -88,7 +95,12 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                 update_snuba_params_with_timestamp(request, snuba_params)
 
                 spans = self.query_trace_data(
-                    snuba_params, trace_id, error_id, additional_attributes, include_uptime
+                    snuba_params,
+                    trace_id,
+                    error_id,
+                    additional_attributes,
+                    include_uptime,
+                    organization=organization,
                 )
             return spans
 
