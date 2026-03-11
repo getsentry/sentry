@@ -59,12 +59,12 @@ export function useMutateDataForwarder({
   const queryClient = useQueryClient();
   const method = dataForwarderId ? 'PUT' : 'POST';
   const listQueryKey = makeDataForwarderQueryKey({orgSlug});
-  const endpoint = dataForwarderId
+  const queryKey = dataForwarderId
     ? makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
     : listQueryKey;
+  const {url} = parseQueryKey(queryKey);
   return useMutation<DataForwarder, RequestError, DataForwarder>({
     mutationFn: data => {
-      const {url} = parseQueryKey(endpoint);
       return api.requestPromise(url, {method, data});
     },
     onSuccess: (dataForwarder: DataForwarder) => {
@@ -74,7 +74,7 @@ export function useMutateDataForwarder({
           action: dataForwarderId ? t('updated') : t('created'),
         })
       );
-      queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey: [url]});
       queryClient.invalidateQueries({queryKey: listQueryKey});
       onSuccess?.(dataForwarder);
     },
@@ -120,14 +120,14 @@ export function useMutateDataForwarderProject({
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
   const listQueryKey = makeDataForwarderQueryKey({orgSlug});
-  const endpoint = makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug});
+  const queryKey = makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug});
+  const {url} = parseQueryKey(queryKey);
   return useMutation<
     void,
     RequestError,
     {is_enabled: boolean; overrides: Record<string, any>; project_id: string}
   >({
     mutationFn: data => {
-      const {url} = parseQueryKey(endpoint);
       return api.requestPromise(url, {method: 'PUT', data});
     },
     onSuccess: () => {
@@ -136,7 +136,7 @@ export function useMutateDataForwarderProject({
           project: project.slug,
         })
       );
-      queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey: [url]});
       queryClient.invalidateQueries({queryKey: listQueryKey});
       onSuccess?.();
     },
