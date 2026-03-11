@@ -54,7 +54,7 @@ class OAuthAuthorizeView(AuthLoginView):
         # sentry-apple:// scheme, so we use HttpResponse with a Location
         # header directly.
         parsed_uri = urlparse(final_uri)
-        if parsed_uri.scheme == "sentry-apple":
+        if parsed_uri.scheme == "sentry-apple" or parsed_uri.scheme == "sentry-replay-debugger":
             response = HttpResponse(status=302)
             response["Location"] = final_uri
             return response

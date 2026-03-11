@@ -232,24 +232,13 @@ def resolve_fingerprint_variable(
     variable_key: str,
     event: Event,
     use_legacy_unknown_variable_handling: bool,
-    parameterize_message: bool = True,
 ) -> str | None:
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
         message = get_canonical_message_from_event(event)
-
-        # Fingerprint variables can be used in custom titles, and there we want the original message
-        if not parameterize_message:
-            return message or "<no-message>"
-
-        normalized_message = (
-            normalize_message_for_grouping(message, event, reason="fingerprint", trim_message=False)
-            if message
-            else None
-        )
-        return normalized_message or "<no-message>"
+        return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -322,8 +311,7 @@ def resolve_fingerprint_values(
             return entry
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
+        # can remove `use_legacy_unknown_variable_handling`
         resolved_value = resolve_fingerprint_variable(
             variable_key, event, use_legacy_unknown_variable_handling
         )
@@ -332,6 +320,12 @@ def resolve_fingerprint_values(
         # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
+
+        if variable_key == "message" and resolved_value != "<no-message>":
+            return normalize_message_for_grouping(
+                resolved_value, event, reason="fingerprint", trim_message=False
+            )
+
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
@@ -349,9 +343,6 @@ def expand_title_template(
             variable_key,
             event,
             use_legacy_unknown_variable_handling,
-            # Parameterization is useful for grouping, but we want to show the real error message in
-            # the event/issue title
-            parameterize_message=False,
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we

@@ -11,6 +11,14 @@ import {addRepository, hideRepository} from 'sentry/actionCreators/integrations'
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {buildIntegrationTreeNodes} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
+import {ScmIntegrationTreeRow} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeRow';
+import type {
+  ProviderFilter,
+  RepoFilter,
+  TreeNode,
+} from 'sentry/components/repositories/scmIntegrationTree/types';
+import {useScmIntegrationTreeData} from 'sentry/components/repositories/scmIntegrationTree/useScmIntegrationTreeData';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -21,15 +29,6 @@ import type {InfiniteData} from 'sentry/utils/queryClient';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {buildIntegrationTreeNodes} from 'getsentry/views/seerAutomation/components/scmIntegrationTree/scmIntegrationTreeNodes';
-import {ScmIntegrationTreeRow} from 'getsentry/views/seerAutomation/components/scmIntegrationTree/scmIntegrationTreeRow';
-import {useScmIntegrationTreeData} from 'getsentry/views/seerAutomation/components/scmIntegrationTree/useScmIntegrationTreeData';
-import type {
-  ProviderFilter,
-  RepoFilter,
-  TreeNode,
-} from 'getsentry/views/seerAutomation/types';
 
 const ROW_HEIGHT = 56;
 const BOTTOM_PADDING = 24;

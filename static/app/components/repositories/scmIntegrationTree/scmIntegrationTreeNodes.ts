@@ -1,15 +1,14 @@
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import type {
+  ProviderFilter,
+  RepoFilter,
+  TreeNode,
+} from 'sentry/components/repositories/scmIntegrationTree/types';
+import type {
   Integration,
   IntegrationProvider,
   IntegrationRepository,
 } from 'sentry/types/integrations';
-
-import type {
-  ProviderFilter,
-  RepoFilter,
-  TreeNode,
-} from 'getsentry/views/seerAutomation/types';
 
 type Props = {
   connectedIdentifiers: Set<string>;
