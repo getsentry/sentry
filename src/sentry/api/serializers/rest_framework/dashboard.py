@@ -970,6 +970,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         In practice a table typically has only one query, so this is not a big deal.
         """
         organization = self.context["organization"]
+        linked_dashboards = linked_dashboards or []
 
         with sentry_sdk.start_span(
             op="function", name="dashboard.update_or_create_field_links"
