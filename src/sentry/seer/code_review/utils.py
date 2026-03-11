@@ -80,7 +80,9 @@ class SeerEndpoint(StrEnum):
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
-def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> str:
+def get_seer_path_for_request(
+    github_event: str, payload: Mapping[str, Any], github_event_action: str | None = None
+) -> str:
     """
     Get the Seer API path for a webhook request based on event type and option.
 
@@ -92,7 +94,7 @@ def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> 
         return SeerEndpoint.PR_REVIEW_RERUN.value
     if not options.get("coding_workflows.code_review.seer.use_new_endpoints"):
         return SeerEndpoint.OVERWATCH_REQUEST.value
-    if payload.get("request_type") == "pr-closed":
+    if github_event_action == "closed":
         return SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
     return SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
 

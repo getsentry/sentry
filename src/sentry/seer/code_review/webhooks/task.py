@@ -93,7 +93,7 @@ def schedule_task(
         return
 
     process_github_webhook_event.delay(
-        seer_path=get_seer_path_for_request(github_event.value, payload),
+        seer_path=get_seer_path_for_request(github_event.value, payload, github_event_action),
         event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
@@ -140,7 +140,10 @@ def process_github_webhook_event(
         # Temporary check for backwards compatibility
         if seer_path is None and github_event is not None:
             assert isinstance(github_event, str)
-            path = get_seer_path_for_request(github_event, event_payload)
+            github_event_action = event_payload.get("action")
+            path = get_seer_path_for_request(
+                github_event, event_payload, github_event_action if isinstance(github_event_action, str) else None
+            )
         else:
             assert isinstance(seer_path, str)
             path = seer_path
