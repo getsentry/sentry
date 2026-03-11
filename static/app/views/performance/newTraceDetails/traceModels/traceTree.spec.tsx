@@ -833,19 +833,18 @@ describe('TraceTree', () => {
             measurements: {
               'measurements.lcp': 500,
             },
-            children: [
-              makeEAPSpan({
-                event_id: 'standalone-lcp-span',
-                op: 'ui.webvital.lcp',
-                start_timestamp: standaloneStart,
-                end_timestamp: standaloneStart + 0.1,
-                is_transaction: false,
-                measurements: {
-                  'measurements.lcp': 500,
-                },
-                children: [],
-              }),
-            ],
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: standaloneStart,
+            end_timestamp: standaloneStart + 0.1,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 500,
+            },
+            children: [],
           }),
         ]),
         {meta: null, replay: null, organization}
@@ -871,19 +870,18 @@ describe('TraceTree', () => {
             measurements: {
               'measurements.lcp': 500,
             },
-            children: [
-              makeEAPSpan({
-                event_id: 'standalone-lcp-span',
-                op: 'ui.webvital.lcp',
-                start_timestamp: start + 1.5,
-                end_timestamp: start + 1.6,
-                is_transaction: false,
-                measurements: {
-                  'measurements.lcp': 1240,
-                },
-                children: [],
-              }),
-            ],
+            children: [],
+          }),
+          makeEAPSpan({
+            event_id: 'standalone-lcp-span',
+            op: 'ui.webvital.lcp',
+            start_timestamp: start + 1.5,
+            end_timestamp: start + 1.6,
+            is_transaction: false,
+            measurements: {
+              'measurements.lcp': 1240,
+            },
+            children: [],
           }),
         ]),
         {meta: null, replay: null, organization}
