@@ -162,31 +162,27 @@ function buildAbuseMarkAreaSeries(
   }
 
   const halfInterval = intervalMs / 2;
-  const markAreaData = regions.map(
-    r =>
-      [
-        {xAxis: new Date(r.start - halfInterval).toISOString()},
-        {xAxis: new Date(r.end + halfInterval).toISOString()},
-      ] as [{xAxis: string}, {xAxis: string}]
-  );
 
-  return [
-    {
-      seriesName: '',
-      data: [] as DataPoint[],
-      markArea: MarkArea({
-        silent: true,
-        itemStyle: {
-          color: theme.tokens.graphics.danger.muted,
-          opacity: 0.25,
-        },
-        label: {
-          show: false,
-        },
-        data: markAreaData,
-      }),
-    } as SeriesItem,
-  ];
+  return regions.map(r => ({
+    seriesName: '',
+    data: [] as DataPoint[],
+    markArea: MarkArea({
+      silent: true,
+      itemStyle: {
+        color: theme.tokens.graphics.promotion.vibrant,
+        opacity: 0.1,
+      },
+      label: {
+        show: false,
+      },
+      data: [
+        [
+          {xAxis: new Date(r.start - halfInterval).toISOString()},
+          {xAxis: new Date(r.end + halfInterval).toISOString()},
+        ] as [{xAxis: string}, {xAxis: string}],
+      ],
+    }),
+  })) as SeriesItem[];
 }
 
 function zeroFillDates(start: number, end: number, {color}: {color: string}) {
@@ -555,12 +551,37 @@ export const CustomerStats = memo(
     const abuseDataRef = useRef(abuseData);
     abuseDataRef.current = abuseData;
 
-    const hideAbuseTooltip = useCallback(() => {
-      const el = abuseTooltipRef.current;
-      if (el) {
-        el.style.display = 'none';
-      }
-    }, []);
+    const highlightedRegionRef = useRef<number | null>(null);
+
+    const setRegionHighlight = useCallback(
+      (instance: any, regionIndex: number | null) => {
+        const {regions} = abuseDataRef.current;
+        if (regions.length === 0) {
+          return;
+        }
+        // Build a sparse series array that only touches the markArea series
+        // (indices 0..regions.length-1), leaving all other series untouched
+        const seriesUpdate = regions.map((_, i) => ({
+          markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
+        }));
+        instance.setOption({series: seriesUpdate}, {replaceMerge: []});
+      },
+      []
+    );
+
+    const hideAbuseTooltip = useCallback(
+      (instance?: any) => {
+        const el = abuseTooltipRef.current;
+        if (el) {
+          el.style.display = 'none';
+        }
+        if (instance && highlightedRegionRef.current !== null) {
+          highlightedRegionRef.current = null;
+          setRegionHighlight(instance, null);
+        }
+      },
+      [setRegionHighlight]
+    );
 
     const onHighlight = useCallback(
       (params: any, instance: any) => {
@@ -571,21 +592,27 @@ export const CustomerStats = memo(
 
         const dataIndex = params.batch?.[0]?.dataIndex;
         if (dataIndex === undefined) {
-          hideAbuseTooltip();
+          hideAbuseTooltip(instance);
           return;
         }
 
-        const {intervals: allIntervals, valueByTimestamp} = abuseDataRef.current;
+        const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
         const ts = allIntervals[dataIndex];
         if (ts === undefined) {
-          hideAbuseTooltip();
+          hideAbuseTooltip(instance);
           return;
         }
 
         const value = valueByTimestamp.get(ts);
         if (!value) {
-          hideAbuseTooltip();
+          hideAbuseTooltip(instance);
           return;
+        }
+
+        const regionIndex = regions.findIndex(r => ts >= r.start && ts <= r.end);
+        if (regionIndex >= 0 && regionIndex !== highlightedRegionRef.current) {
+          highlightedRegionRef.current = regionIndex;
+          setRegionHighlight(instance, regionIndex);
         }
 
         const pixelPos = instance.convertToPixel('grid', [ts, 0]);
@@ -595,7 +622,7 @@ export const CustomerStats = memo(
           el.style.display = 'flex';
         }
       },
-      [hideAbuseTooltip]
+      [hideAbuseTooltip, setRegionHighlight]
     );
 
     if (loading) {
@@ -689,7 +716,7 @@ export const CustomerStats = memo(
                     <BarChart
                       ref={chartRef}
                       onHighlight={onHighlight}
-                      onMouseOut={hideAbuseTooltip}
+                      onMouseOut={(_params, instance) => hideAbuseTooltip(instance)}
                       isGroupedByDate
                       stacked
                       animation={false}
