@@ -52,6 +52,8 @@ interface ContainerLayoutProps {
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
+  overscrollBehavior?: Responsive<'contain' | 'auto' | 'none'>;
+
   pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
@@ -83,6 +85,8 @@ interface ContainerLayoutProps {
   flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  visibility?: Responsive<'visible' | 'hidden' | 'collapse'>;
 
   // Text Wrapping
   whiteSpace?: Responsive<
@@ -211,6 +215,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'overflow',
   'overflowX',
   'overflowY',
+  'overscrollBehavior',
   'pointerEvents',
   'padding',
   'paddingTop',
@@ -222,6 +227,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'right',
   'row',
   'top',
+  'visibility',
   'width',
   'whiteSpace',
 ]);
@@ -260,6 +266,8 @@ export const Container = styled(
   ${p => rc('overflow', p.overflow, p.theme)};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
+
+  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
 
   ${p => rc('pointer-events', p.pointerEvents, p.theme)};
 
@@ -309,6 +317,7 @@ export const Container = styled(
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
 
+  ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**

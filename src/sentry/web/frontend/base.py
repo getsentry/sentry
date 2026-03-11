@@ -43,7 +43,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import subdomain_is_region
+from sentry.types.region import subdomain_is_locality
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -393,7 +393,7 @@ class BaseView(View, OrganizationMixin):
 
         """
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request) and not subdomain_is_region(request):
+        if request and is_using_customer_domain(request) and not subdomain_is_locality(request):
             organization_slug = request.subdomain
         self.active_organization = determine_active_organization(request, organization_slug)
 

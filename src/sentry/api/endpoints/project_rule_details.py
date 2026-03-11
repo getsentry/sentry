@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
@@ -10,10 +8,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, audit_log
-from sentry.analytics.events.rule_disable_opt_out import (
-    RuleDisableOptOutEdit,
-    RuleDisableOptOutExplicit,
-)
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -39,7 +33,7 @@ from sentry.integrations.jira_server.actions.create_ticket import JiraServerCrea
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
@@ -51,8 +45,6 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
@@ -232,51 +224,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
 
         if serializer.is_valid():
             data = serializer.validated_data
-
-            # this is temporary for opting out of a migration of rules that haven't been
-            # interacted with by the user for x period of time
-            explicit_opt_out = request.data.get("optOutExplicit")
-            edit_opt_out = request.data.get("optOutEdit")
-            if explicit_opt_out or edit_opt_out:
-                try:
-                    neglected_rule = NeglectedRule.objects.get(
-                        rule=rule.id, organization=project.organization, opted_out=False
-                    )
-                    neglected_rule.opted_out = True
-                    neglected_rule.save()
-
-                    analytics_data = {
-                        "rule_id": rule.id,
-                        "user_id": request.user.id,
-                        "organization_id": project.organization.id,
-                    }
-
-                    if explicit_opt_out:
-                        try:
-                            analytics.record(
-                                RuleDisableOptOutExplicit(**analytics_data),
-                            )
-                        except Exception as e:
-                            sentry_sdk.capture_exception(e)
-                    if edit_opt_out:
-                        try:
-                            analytics.record(
-                                RuleDisableOptOutEdit(**analytics_data),
-                            )
-                        except Exception as e:
-                            sentry_sdk.capture_exception(e)
-                except NeglectedRule.DoesNotExist:
-                    pass
-
-                except NeglectedRule.MultipleObjectsReturned:
-                    logger.info(
-                        "rule_disable_opt_out.multiple",
-                        extra={
-                            "rule_id": rule.id,
-                            "org_id": project.organization.id,
-                        },
-                    )
-
             if not data.get("actions", []):
                 return Response(
                     {

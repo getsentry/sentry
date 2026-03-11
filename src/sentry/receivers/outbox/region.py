@@ -32,7 +32,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ def process_organization_mapping_customer_id_update(
 
     if payload and "customer_id" in payload:
         update = update_organization_mapping_from_instance(
-            org, get_local_region(), customer_id=CustomerId(value=payload["customer_id"])
+            org, get_local_cell(), customer_id=CustomerId(value=payload["customer_id"])
         )
         organization_mapping_service.upsert(organization_id=org.id, update=update)
 

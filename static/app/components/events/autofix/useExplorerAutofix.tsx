@@ -9,6 +9,8 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {isArrayOf, isString} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -22,12 +24,13 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {
-  Artifact,
-  Block,
-  ExplorerCodingAgentState,
-  ExplorerFilePatch,
-  RepoPRState,
+import {
+  isArtifact,
+  type Artifact,
+  type Block,
+  type ExplorerCodingAgentState,
+  type ExplorerFilePatch,
+  type RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 
 /**
@@ -49,14 +52,50 @@ export interface RootCauseArtifact {
   reproduction_steps?: string[];
 }
 
+export function isRootCauseArtifact(
+  value: unknown
+): value is Artifact<RootCauseArtifact> {
+  if (!isArtifact(value)) {
+    return false;
+  }
+  const data = value.data;
+  if (data === null || typeof data !== 'object') {
+    return false;
+  }
+  return (
+    isString(data.one_line_description) &&
+    isArrayOf(data.five_whys, isString) &&
+    (!defined(data.reproduction_steps) || isArrayOf(data.reproduction_steps, isString))
+  );
+}
+
 interface SolutionStep {
   description: string;
   title: string;
 }
 
+function isSolutionStep(value: unknown): value is SolutionStep {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return isString(obj.title) && isString(obj.description);
+}
+
 export interface SolutionArtifact {
   one_line_summary: string;
   steps: SolutionStep[];
+}
+
+export function isSolutionArtifact(value: unknown): value is Artifact<SolutionArtifact> {
+  if (!isArtifact(value)) {
+    return false;
+  }
+  const data = value.data;
+  if (data === null || typeof data !== 'object') {
+    return false;
+  }
+  return isString(data.one_line_summary) && isArrayOf(data.steps, isSolutionStep);
 }
 
 export interface ImpactItem {
@@ -249,6 +288,80 @@ export function getOrderedArtifactKeys(
     const indexB = firstAppearanceIndex[b] ?? Infinity;
     return indexA - indexB;
   });
+}
+
+const CODE_CHANGES_KEY = Symbol('codeChanges');
+
+type ArtifactKey = string | typeof CODE_CHANGES_KEY;
+export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
+
+export function getOrderedAutofixArtifacts(
+  runState: ExplorerAutofixState | null
+): AutofixArtifact[] {
+  const blocks = runState?.blocks ?? [];
+  if (!blocks.length) {
+    return [];
+  }
+
+  type OrderedArtifact = {
+    artifact: Artifact;
+    index: number;
+    type: 'artifact';
+  };
+
+  type OrderedExplorerFilePatch = {
+    index: number;
+    patches: Map<string, ExplorerFilePatch>;
+    type: 'patch';
+  };
+
+  const artifactsByKey = new Map<
+    ArtifactKey,
+    OrderedArtifact | OrderedExplorerFilePatch
+  >();
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index]!;
+
+    for (const artifact of block.artifacts ?? []) {
+      artifactsByKey.set(artifact.key, {
+        type: 'artifact',
+        index,
+        artifact,
+      });
+    }
+
+    if (block.merged_file_patches?.length) {
+      for (const patch of block.merged_file_patches) {
+        const key = `${patch.repo_name}:${patch.patch.path}`;
+        mergedByFile.set(key, patch);
+      }
+      artifactsByKey.set(CODE_CHANGES_KEY, {
+        type: 'patch',
+        index,
+        patches: mergedByFile,
+      });
+    }
+  }
+
+  const artifacts: AutofixArtifact[] = [...artifactsByKey.values()]
+    .sort((artifact1, artifact2) => artifact1.index - artifact2.index)
+    .map(artifact => {
+      if (artifact.type === 'artifact') {
+        return artifact.artifact;
+      }
+      return Array.from(artifact.patches.values());
+    });
+
+  if (runState?.repo_pr_states) {
+    const states = Object.values(runState.repo_pr_states);
+    if (states.length) {
+      artifacts.push(states);
+    }
+  }
+
+  return artifacts;
 }
 
 /**

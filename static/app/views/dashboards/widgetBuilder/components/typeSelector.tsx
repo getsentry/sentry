@@ -43,18 +43,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
 
-  const allowIssueWidgetSeriesDisplayType = organization.features.includes(
-    'dashboards-issue-widget-series-display-type'
-  );
-
-  const shouldDisabledIssueDisplayType = (value: DisplayType) => {
-    return (
-      state.dataset === WidgetType.ISSUE &&
-      !allowIssueWidgetSeriesDisplayType &&
-      usesTimeSeriesData(value)
-    );
-  };
-
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
@@ -117,9 +105,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             leadingItems: typeIcons[type],
             label,
             value: type,
-            disabled:
-              !config.supportedDisplayTypes.includes(type) ||
-              shouldDisabledIssueDisplayType(type),
+            disabled: !config.supportedDisplayTypes.includes(type),
           }))}
           clearable={false}
           onChange={(newValue: any) => {

@@ -88,6 +88,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   ),
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: undefined,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 export function getWidgetExploreUrl(

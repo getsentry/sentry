@@ -17,7 +17,7 @@ import {
   GroupSearchViewCreatedBy,
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;

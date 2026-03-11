@@ -22,7 +22,7 @@ from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_ac
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         This method will lookup the corresponding workflow for a given rule then invoke the notification action.
         """
         action_exceptions = []
-        actions = rule.data.get("actions", [])
+        actions_data = rule.data.get("actions", [])
 
         workflow = Workflow(
             id=TEST_NOTIFICATION_ID,
@@ -109,11 +109,13 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             group=test_event.group,
         )
 
-        for action_blob in actions:
+        for action_blob in actions_data:
             try:
-                action = translate_rule_data_actions_to_notification_actions(
+                notification_actions_data = translate_rule_data_actions_to_notification_actions(
                     [action_blob], skip_failures=False
-                )[0]
+                )
+                actions = [Action(**action_data) for action_data in notification_actions_data]
+                action = actions[0]
                 action.id = TEST_NOTIFICATION_ID
                 # Annotate the action with the workflow id
                 setattr(action, "workflow_id", workflow.id)

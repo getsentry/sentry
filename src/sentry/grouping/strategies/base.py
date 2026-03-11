@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
 
 from sentry.grouping.component import (
     BaseGroupingComponent,
@@ -21,6 +21,7 @@ from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -88,133 +89,6 @@ def strategy(
         return strategy_class
 
     return decorator
-
-
-class GroupingContext:
-    """
-    A key-value store used for passing state between strategy functions and other helpers used
-    during grouping.
-
-    Has a dictionary-like interface, along with a context manager which allows values to be
-    temporarily overwritten:
-
-        context = GroupingContext()
-        context["some_key"] = "original_value"
-
-        value_at_some_key = context["some_key"] # will be "original_value"
-        value_at_some_key = context.get("some_key") # will be "original_value"
-
-        value_at_another_key = context["another_key"] # will raise a KeyError
-        value_at_another_key = context.get("another_key") # will be None
-        value_at_another_key = context.get("another_key", "some_default") # will be "some_default"
-
-        with context:
-            context["some_key"] = "some_other_value"
-            value_at_some_key = context["some_key"] # will be "some_other_value"
-
-        value_at_some_key = context["some_key"] # will be "original_value"
-    """
-
-    def __init__(self, strategy_config: StrategyConfiguration, event: Event):
-        # The initial context is essentially the grouping config options
-        self._stack = [strategy_config.initial_context]
-        self.config = strategy_config
-        self.event = event
-        self._push_context_layer()
-
-    def __setitem__(self, key: str, value: ContextValue) -> None:
-        # Add the key-value pair to the context layer at the top of the stack
-        self._stack[-1][key] = value
-
-    def __getitem__(self, key: str) -> ContextValue:
-        # Walk down the stack from the top and return the first instance of `key` found
-        for d in reversed(self._stack):
-            if key in d:
-                return d[key]
-        raise KeyError(key)
-
-    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def __enter__(self) -> Self:
-        self._push_context_layer()
-        return self
-
-    def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
-        self._pop_context_layer()
-
-    def _push_context_layer(self) -> None:
-        self._stack.append({})
-
-    def _pop_context_layer(self) -> None:
-        self._stack.pop()
-
-    def get_grouping_components_by_variant(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ComponentsByVariant:
-        """
-        Called by a strategy to invoke delegates on its child interfaces.
-
-        For example, the chained exception strategy calls this on the exceptions in the chain, and
-        the exception strategy calls this on each exception's stacktrace.
-        """
-        return self._get_grouping_components_for_interface(interface, event=event, **kwargs)
-
-    @overload
-    def get_single_grouping_component(
-        self, interface: Frame, *, event: Event, **kwargs: Any
-    ) -> FrameGroupingComponent: ...
-
-    @overload
-    def get_single_grouping_component(
-        self, interface: SingleException, *, event: Event, **kwargs: Any
-    ) -> ExceptionGroupingComponent: ...
-
-    @overload
-    def get_single_grouping_component(
-        self, interface: Stacktrace, *, event: Event, **kwargs: Any
-    ) -> StacktraceGroupingComponent: ...
-
-    def get_single_grouping_component(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
-        """
-        Invoke the delegate grouping strategy corresponding to the given interface, returning the
-        grouping component for the variant set on the context.
-        """
-        variant_name = self["variant_name"]
-        assert variant_name is not None
-
-        components_by_variant = self._get_grouping_components_for_interface(
-            interface, event=event, **kwargs
-        )
-
-        assert len(components_by_variant) == 1
-        return components_by_variant[variant_name]
-
-    def _get_grouping_components_for_interface(
-        self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> ComponentsByVariant:
-        """
-        Apply a delegate strategy to the given interface to get a dictionary of grouping components
-        keyed by variant name.
-        """
-        interface_id = interface.path
-        strategy = self.config.delegates.get(interface_id)
-
-        if strategy is None:
-            raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
-
-        kwargs["context"] = self
-        kwargs["event"] = event
-
-        components_by_variant = strategy(interface, **kwargs)
-        assert isinstance(components_by_variant, dict)
-
-        return components_by_variant
 
 
 def lookup_strategy(strategy_id: str) -> Strategy[Any]:
@@ -511,3 +385,73 @@ def call_with_variants(
         components_by_variant[variant_name] = component
 
     return components_by_variant
+
+
+def _get_grouping_components_for_interface(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
+    """
+    Apply a delegate strategy to the given interface to get a dictionary of grouping components
+    keyed by variant name.
+    """
+    interface_id = interface.path
+    strategy = context.config.delegates.get(interface_id)
+
+    if strategy is None:
+        raise RuntimeError(f"No delegate strategy found for interface {interface_id}")
+
+    kwargs["context"] = context
+    kwargs["event"] = event
+
+    components_by_variant = strategy(interface, **kwargs)
+    assert isinstance(components_by_variant, dict)
+
+    return components_by_variant
+
+
+@overload
+def get_single_grouping_component(
+    interface: Frame, event: Event, context: GroupingContext, **kwargs: Any
+) -> FrameGroupingComponent: ...
+
+
+@overload
+def get_single_grouping_component(
+    interface: SingleException, event: Event, context: GroupingContext, **kwargs: Any
+) -> ExceptionGroupingComponent: ...
+
+
+@overload
+def get_single_grouping_component(
+    interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
+) -> StacktraceGroupingComponent: ...
+
+
+def get_single_grouping_component(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
+    """
+    Invoke the delegate grouping strategy corresponding to the given interface, returning the
+    grouping component for the variant set on the context.
+    """
+    variant_name = context["variant_name"]
+    assert variant_name is not None
+
+    components_by_variant = _get_grouping_components_for_interface(
+        interface, event, context, **kwargs
+    )
+
+    assert len(components_by_variant) == 1
+    return components_by_variant[variant_name]
+
+
+def get_grouping_components_by_variant(
+    interface: Interface, event: Event, context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant:
+    """
+    Called by a strategy to invoke delegates on its child interfaces.
+
+    For example, the chained exception strategy calls this on the exceptions in the chain, and
+    the exception strategy calls this on each exception's stacktrace.
+    """
+    return _get_grouping_components_for_interface(interface, event, context, **kwargs)

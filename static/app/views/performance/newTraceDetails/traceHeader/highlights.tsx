@@ -14,7 +14,6 @@ import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -283,7 +282,7 @@ function AttributesHighlights({
 
 const HighlightsDescription = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.md};
 `;
 
