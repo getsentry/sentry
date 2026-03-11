@@ -5,6 +5,7 @@ from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.seer.entrypoints.cache import (
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
     EXPLORER_CACHE_TIMEOUT_SECONDS,
+    CacheHaltReason,
     SeerOperatorAutofixCache,
     SeerOperatorExplorerCache,
 )
@@ -272,4 +273,4 @@ class SeerOperatorExplorerCacheTest(TestCase):
         )
 
         assert result is None
-        mock_record_halt.assert_called_once_with(halt_reason="cache_miss")
+        mock_record_halt.assert_called_once_with(halt_reason=CacheHaltReason.CACHE_MISS)
