@@ -40,7 +40,7 @@ export function DashboardTable({
   const organization = useOrganization();
   const navigate = useNavigate();
   const resetDashboardLists = useResetDashboardLists();
-  const handleDuplicateDashboard = useDuplicateDashboard({
+  const {duplicateDashboard: handleDuplicateDashboard} = useDuplicateDashboard({
     onSuccess: resetDashboardLists,
   });
   const handleDeleteDashboard = useDeleteDashboard({

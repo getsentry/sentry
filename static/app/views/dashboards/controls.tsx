@@ -26,7 +26,7 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
-import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -91,12 +91,11 @@ function Controls({
     'dashboards-prebuilt-controls'
   );
 
-  const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
-    useDuplicatePrebuiltDashboard({
-      onSuccess: (newDashboard: DashboardDetails) => {
-        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
-      },
-    });
+  const {duplicateDashboard, isLoading: isDuplicating} = useDuplicateDashboard({
+    onSuccess: (newDashboard: DashboardDetails) => {
+      navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+    },
+  });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
 
@@ -341,8 +340,7 @@ function Controls({
                   isLoading: isLoadingDashboardsLimit,
                   limitMessage,
                 }) => {
-                  const isLoading =
-                    isLoadingDuplicatePrebuiltDashboard || isLoadingDashboardsLimit;
+                  const isLoading = isDuplicating || isLoadingDashboardsLimit;
                   return (
                     <Tooltip
                       title={t('Duplicate Dashboard')}
@@ -358,8 +356,7 @@ function Controls({
                               'Are you sure you want to duplicate this dashboard?'
                             ),
                             priority: 'primary',
-                            onConfirm: () =>
-                              duplicatePrebuiltDashboard(dashboard.prebuiltId),
+                            onConfirm: () => duplicateDashboard(dashboard, 'detail'),
                           });
                         }}
                         icon={isLoading ? <LoadingIndicator size={14} /> : <IconCopy />}

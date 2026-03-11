@@ -54,7 +54,7 @@ function DashboardGrid({
   isLoading,
 }: Props) {
   const queryClient = useQueryClient();
-  const handleDuplicateDashboard = useDuplicateDashboard({
+  const {duplicateDashboard: handleDuplicateDashboard} = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
   });
   const handleDeleteDashboard = useDeleteDashboard({

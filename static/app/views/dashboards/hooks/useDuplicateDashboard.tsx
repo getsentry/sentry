@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -6,12 +7,14 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {cloneDashboard} from 'sentry/views/dashboards/utils';
 import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {resolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 interface UseDuplicateDashboardProps {
   onSuccess?: (copiedDashboard: DashboardDetails) => void;
@@ -20,15 +23,30 @@ interface UseDuplicateDashboardProps {
 export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   const api = useApi();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
 
   const duplicateDashboard = useCallback(
-    async (dashboard: DashboardListItem, viewType: 'table' | 'grid') => {
+    async (
+      dashboard: {id: string; prebuiltId?: PrebuiltDashboardId},
+      viewType: DashboardsLayout
+    ) => {
       try {
+        setIsLoading(true);
         const dashboardDetail = dashboard.prebuiltId
           ? {id: '-1', ...PREBUILT_DASHBOARDS[dashboard.prebuiltId]}
           : await fetchDashboard(api, organization.slug, dashboard.id);
 
-        const newDashboard = cloneDashboard(dashboardDetail);
+        const resolved = dashboard.prebuiltId
+          ? await resolveLinkedDashboardIds(
+              queryClient,
+              organization.slug,
+              dashboardDetail
+            )
+          : dashboardDetail;
+
+        const newDashboard = cloneDashboard(resolved);
+        delete newDashboard.prebuiltId;
         newDashboard.widgets.map(widget => (widget.id = undefined));
         const copiedDashboard = await createDashboard(
           api,
@@ -44,48 +62,12 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
         addSuccessMessage(t('Dashboard duplicated'));
       } catch (e) {
         addErrorMessage(t('Error duplicating Dashboard'));
-      }
-    },
-    [api, organization, onSuccess]
-  );
-
-  return duplicateDashboard;
-}
-
-export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboardProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const duplicatePrebuiltDashboard = useCallback(
-    async (prebuiltId?: PrebuiltDashboardId) => {
-      if (!prebuiltId) {
-        throw new Error(
-          'Prebuilt dashboard ID is required to duplicate a prebuilt dashboard'
-        );
-      }
-      const prebuiltDashboard = {id: '-1', ...PREBUILT_DASHBOARDS[prebuiltId]};
-      try {
-        const newDashboard = cloneDashboard(prebuiltDashboard);
-        delete newDashboard.prebuiltId;
-        newDashboard.title = `${newDashboard.title} copy`;
-        newDashboard.widgets.map(widget => (widget.id = undefined));
-        setIsLoading(true);
-        const copiedDashboard = await createDashboard(
-          api,
-          organization.slug,
-          newDashboard
-        );
-        onSuccess?.(copiedDashboard);
-        addSuccessMessage(t('Dashboard duplicated'));
-      } catch (e) {
-        addErrorMessage(t('Error duplicating Dashboard'));
       } finally {
         setIsLoading(false);
       }
     },
-    [api, organization, onSuccess]
+    [api, organization, queryClient, onSuccess]
   );
 
-  return {duplicatePrebuiltDashboard, isLoading};
+  return {duplicateDashboard, isLoading};
 }

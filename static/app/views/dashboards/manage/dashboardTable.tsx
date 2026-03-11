@@ -129,7 +129,7 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const handleDuplicateDashboard = useDuplicateDashboard({
+  const {duplicateDashboard: handleDuplicateDashboard} = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
   });
   const handleDeleteDashboard = useDeleteDashboard({

@@ -1,1 +1,1 @@
-export type DashboardsLayout = 'grid' | 'table';
+export type DashboardsLayout = 'detail' | 'grid' | 'table';
