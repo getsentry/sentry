@@ -69,7 +69,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
     project,
     integrations: integrations ?? [],
   });
-  const mutateSelectedAgent = useMutateSelectedAgent({preference, project});
+  const mutateSelectedAgent = useMutateSelectedAgent({project});
 
   const disabledReason = canWrite
     ? null
@@ -77,7 +77,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
 
   return (
     <PanelNoMargin>
-      <PanelHeader>{t('Autofix Agent')}</PanelHeader>
+      <PanelHeader>{t('Autofix Handoff')}</PanelHeader>
       <PanelBody>
         {isPending ? (
           <Flex justify="center" align="center" padding="xl">
@@ -92,9 +92,9 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
               disabled={Boolean(disabledReason)}
               disabledReason={disabledReason}
               name="autofixAgent"
-              label={t('Autofix Agent')}
+              label={t('Autofix Handoff')}
               help={tct(
-                'Seer will orchestrate the autofix process, and automatically hand off issue data coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
+                'Seer will orchestrate the autofix process, and automatically hand off issue data to the coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
                 {
                   docsLink: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />

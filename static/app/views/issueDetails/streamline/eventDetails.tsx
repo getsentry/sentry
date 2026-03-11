@@ -15,7 +15,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {NAV_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/nav/constants';
+import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -46,7 +46,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.md})`);
   const {dispatch} = useIssueDetails();
-  const sidebarHeight = isScreenMedium ? NAV_MOBILE_TOPBAR_HEIGHT : 0;
+  const sidebarHeight = isScreenMedium ? NAVIGATION_MOBILE_TOPBAR_HEIGHT : 0;
 
   useLayoutEffect(() => {
     if (!nav) {

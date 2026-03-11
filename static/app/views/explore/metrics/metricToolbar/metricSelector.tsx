@@ -41,7 +41,7 @@ export function MetricSelector({
   );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
-      label: `${traceMetric.name}`,
+      label: traceMetric.name,
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? '-') : undefined,
@@ -83,7 +83,7 @@ export function MetricSelector({
     return [
       ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
       ...(metricOptionsData?.data?.map(option => ({
-        label: `${option[TraceMetricKnownFieldKey.METRIC_NAME]}`,
+        label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
@@ -99,11 +99,13 @@ export function MetricSelector({
         trailingItems: () => (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="promotion">
-                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-              </Tag>
-            )}
+            {hasMetricUnitsUI &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
+                <Tag variant="promotion">
+                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+                </Tag>
+              )}
           </Fragment>
         ),
       })) ?? []),

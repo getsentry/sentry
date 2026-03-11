@@ -32,8 +32,8 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,
@@ -303,7 +303,11 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatFloat(data[field], 4).toLocaleString(undefined, {
+              maximumFractionDigits: 4,
+            })
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -818,9 +822,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: null,
     renderFunc: data => (
       <StarredSegmentCell
-        projectSlug={data.project}
-        segmentName={data.transaction}
-        isStarred={data.is_starred_transaction}
+        projectSlug={data[SpanFields.PROJECT]}
+        projectId={data[SpanFields.PROJECT_ID]?.toString()}
+        segmentName={data[SpanFields.TRANSACTION]}
+        isStarred={data[SpanFields.IS_STARRED_TRANSACTION]}
       />
     ),
   },

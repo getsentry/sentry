@@ -40,7 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
+import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
   ButtonWrapper,
   InputPathColumn,
@@ -213,33 +213,15 @@ export default function IntegrationCodeMappings({
       });
 
       openModal(
-        ({Body, Header, closeModal}) => (
-          <Fragment>
-            <Header closeButton>
-              <h4>{t('Configure code path mapping')}</h4>
-            </Header>
-            <Body>
-              <RepositoryProjectPathConfigForm
-                organization={organization}
-                integration={integration}
-                projects={projects}
-                repos={repos}
-                onSubmitSuccess={() => {
-                  trackAnalytics('integrations.stacktrace_complete_setup', {
-                    setup_type: 'manual',
-                    view: 'integration_configuration_detail',
-                    provider: integration.provider.key,
-                    organization,
-                  });
-                  closeModal();
-                }}
-                existingConfig={pathConfig}
-                onCancel={() => {
-                  closeModal();
-                }}
-              />
-            </Body>
-          </Fragment>
+        modalProps => (
+          <RepositoryProjectPathConfigModal
+            {...modalProps}
+            organization={organization}
+            integration={integration}
+            projects={projects}
+            repos={repos}
+            existingConfig={pathConfig}
+          />
         ),
         {
           onClose: () => {

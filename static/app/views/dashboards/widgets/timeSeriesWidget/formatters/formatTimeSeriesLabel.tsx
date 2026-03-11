@@ -13,7 +13,7 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
   }
 
   if (timeSeries.groupBy?.length && timeSeries.groupBy.length > 0) {
-    return `${timeSeries.groupBy
+    return timeSeries.groupBy
       ?.map(groupBy => {
         if (Array.isArray(groupBy.value)) {
           return JSON.stringify(groupBy.value);
@@ -27,9 +27,9 @@ export function formatTimeSeriesLabel(timeSeries: TimeSeries): string {
           return t('(no value)');
         }
 
-        return `${groupBy.value}`;
+        return groupBy.value;
       })
-      .join(',')}`;
+      .join(',');
   }
 
   let {yAxis: seriesName} = timeSeries;

@@ -109,7 +109,7 @@ const MODELS_TABLE = {
       fields: [
         SpanFields.GEN_AI_REQUEST_MODEL,
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -120,7 +120,7 @@ const MODELS_TABLE = {
       ],
       aggregates: [
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -172,4 +172,9 @@ export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, MODELS_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

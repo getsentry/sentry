@@ -308,7 +308,7 @@ class TestUpdater(TestCase):
         # Verify the outbox entry has correct data
         entry = outbox_entries[0]
         assert entry.object_identifier == installation.id
-        assert entry.region_name is not None
+        assert entry.cell_name is not None
 
         with outbox_runner():
             pass
@@ -368,7 +368,7 @@ class TestUpdater(TestCase):
         # Verify the outbox entry has correct data
         entry = outbox_entries[0]
         assert entry.object_identifier == installation.id
-        assert entry.region_name is not None
+        assert entry.cell_name is not None
 
         with outbox_runner():
             pass

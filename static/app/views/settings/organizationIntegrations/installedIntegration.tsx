@@ -225,15 +225,15 @@ function IntegrationStatus(
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
-      <IntegrationStatusText data-test-id="integration-status">{`${
-        status === 'active'
+      <IntegrationStatusText data-test-id="integration-status">
+        {status === 'active'
           ? t('enabled')
           : status === 'pending_deletion'
             ? t('pending deletion')
             : status === 'disabled'
               ? t('disabled')
-              : t('unknown')
-      }`}</IntegrationStatusText>
+              : t('unknown')}
+      </IntegrationStatusText>
     </div>
   );
   return hideTooltip ? (

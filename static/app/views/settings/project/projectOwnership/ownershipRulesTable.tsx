@@ -64,7 +64,7 @@ export function OwnershipRulesTable({
     const actors = combinedRules
       .flatMap(rule => rule.owners)
       .filter(actor => actor.name)
-      .map(owner => ({...owner, id: `${owner.id}`}));
+      .map(owner => ({...owner, id: owner.id}));
     return (
       uniqBy(actors, actor => `${actor.type}:${actor.id}`)
         // Sort by type, then by name
@@ -168,7 +168,7 @@ export function OwnershipRulesTable({
         {chunkedRules[page]?.map((rule, index) => {
           let name: string | undefined = 'unknown';
           // ID might not be a string, so we need to convert it
-          const owners = rule.owners.map(owner => ({...owner, id: `${owner.id}`}));
+          const owners = rule.owners.map(owner => ({...owner, id: owner.id}));
           if (owners[0]?.type === 'team') {
             const team = TeamStore.getById(owners[0].id);
             if (team?.slug) {
