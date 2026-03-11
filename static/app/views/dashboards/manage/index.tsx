@@ -51,7 +51,11 @@ import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardFilterType,
+  DashboardListItem,
+} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
 
@@ -153,8 +157,10 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const isOnlyPrebuilt =
-    hasPrebuiltDashboards && decodeScalar(location.query.filter) === 'onlyPrebuilt';
+  const urlFilter = decodeScalar(location.query.filter) as
+    | DashboardFilterType
+    | undefined;
+  const isOnlyPrebuilt = hasPrebuiltDashboards && urlFilter === 'onlyPrebuilt';
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -194,7 +200,9 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt ? {filter: 'onlyPrebuilt'} : {}),
+          ...(isOnlyPrebuilt
+            ? {filter: 'onlyPrebuilt' satisfies DashboardFilterType}
+            : {}),
         },
       },
     ],
