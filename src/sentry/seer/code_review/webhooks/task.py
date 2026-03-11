@@ -140,10 +140,7 @@ def process_github_webhook_event(
         # Temporary check for backwards compatibility
         if seer_path is None and github_event is not None:
             assert isinstance(github_event, str)
-            github_event_action = event_payload.get("action")
-            path = get_seer_path_for_request(
-                github_event, event_payload, github_event_action if isinstance(github_event_action, str) else None
-            )
+            path = get_seer_path_for_request(github_event, event_payload.get("action"))
         else:
             assert isinstance(seer_path, str)
             path = seer_path

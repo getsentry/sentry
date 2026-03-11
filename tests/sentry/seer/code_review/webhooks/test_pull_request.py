@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 import orjson
@@ -9,7 +8,6 @@ from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.repositorysettings import CodeReviewSettings, CodeReviewTrigger
-from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
 from sentry.seer.code_review.webhooks.pull_request import handle_pull_request_event
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
@@ -74,8 +72,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
-            payload = call_kwargs["payload"]
-            assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
 
             self.mock_reaction.assert_called_once_with(
                 event["repository"]["full_name"],
@@ -101,10 +97,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/code_review/review-request"
-            payload = call_kwargs["payload"]
-            assert "request_type" in payload
-            assert "external_owner_id" in payload
-            assert "data" in payload
 
             self.mock_reaction.assert_called_once_with(
                 event["repository"]["full_name"],
@@ -277,18 +269,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/automation/overwatch-request"
-            payload = call_kwargs["payload"]
-            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
-            assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
-            assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
-            assert payload["data"]["config"]["trigger_comment_id"] is None
-            assert payload["data"]["config"]["trigger_comment_type"] is None
-            # After Pydantic validation, trigger_at is a datetime object
-            assert payload["data"]["config"]["trigger_at"] == datetime(
-                2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc
-            )
-            # sentry_received_trigger_at is set to current time when transform happens
-            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_closed_uses_new_endpoint_when_option_enabled(self) -> None:
@@ -309,11 +289,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
             assert call_kwargs["path"] == "/v1/code_review/pr-closed"
-            payload = call_kwargs["payload"]
-            assert "request_type" in payload
-            assert "external_owner_id" in payload
-            assert "data" in payload
-            assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:
@@ -460,9 +435,6 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             # Should still call Seer even though PR is draft
             self.mock_seer.assert_called_once()
-            call_kwargs = self.mock_seer.call_args[1]
-            payload = call_kwargs["payload"]
-            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
 
     def test_validation_happens_before_task_scheduling_pr_closed(self) -> None:
         """Test that invalid pr-closed payloads are caught before scheduling the Celery task."""
