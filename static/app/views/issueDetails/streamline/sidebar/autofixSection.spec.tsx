@@ -5,7 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {EntryType} from 'sentry/types/event';
@@ -103,24 +103,6 @@ describe('AutofixSection', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders group summary when no autofix artifacts exist', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-      method: 'POST',
-      body: {whatsWrong: 'Test what happened', possibleCause: 'Test cause'},
-    });
-
-    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(await screen.findByText('Test cause')).toBeInTheDocument();
   });
 
   it('renders root cause artifact when autofix returns root cause', async () => {
@@ -306,6 +288,61 @@ describe('AutofixSection', () => {
     expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
   });
 
+  it('shows loading place holder while event is pending', () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {content: 'Created PR', role: 'assistant'},
+              timestamp: new Date().toISOString(),
+              merged_file_patches: [
+                {
+                  repo_name: 'org/repo',
+                  patch: {
+                    path: 'src/app.py',
+                    added: 1,
+                    removed: 0,
+                    hunks: [],
+                    source_file: 'src/app.py',
+                    target_file: 'src/app.py',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
+            },
+          ],
+          repo_pr_states: {
+            'org/repo': {
+              repo_name: 'org/repo',
+              pr_number: 42,
+              pr_url: 'https://github.com/org/repo/pull/42',
+              branch_name: 'fix/issue',
+              commit_sha: 'abc123',
+              pr_creation_error: null,
+              pr_creation_status: 'completed',
+              pr_id: 1,
+              title: 'Fix null pointer',
+            },
+          },
+        },
+      },
+    });
+
+    render(<AutofixSection event={undefined} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    // The Seer title should still render
+    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+  });
+
   it('shows loading placeholder while autofix data is pending', () => {
     // Don't add autofix mock response so the query stays pending
     MockApiClient.addMockResponse({
@@ -320,6 +357,7 @@ describe('AutofixSection', () => {
 
     // The Seer title should still render
     expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
   it('renders multiple artifact types in order', async () => {
@@ -383,34 +421,36 @@ describe('AutofixSection', () => {
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
   });
 
-  it('renders resources when no summary and no autofix artifacts', async () => {
-    const performanceGroup: Group = {
-      ...mockGroup,
-      issueCategory: IssueCategory.PERFORMANCE,
-      title: 'ChunkLoadError',
-      platform: 'javascript',
-    };
-
-    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
-
+  it('shows empty state when there are no artifacts', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {content: 'Analysis complete', role: 'assistant'},
+              timestamp: new Date().toISOString(),
+              artifacts: [],
+            },
+          ],
+        },
+      },
     });
 
-    render(
-      <AutofixSection
-        event={mockEvent}
-        group={performanceGroup}
-        project={javascriptProject}
-      />,
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
-      ).toBeInTheDocument();
+    render(<AutofixSection event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
     });
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Determine the root cause of your issue')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Outline a plan')).toBeInTheDocument();
+    expect(screen.getByText('Create a code fix')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Fix the Issue'})).toBeInTheDocument();
   });
 });

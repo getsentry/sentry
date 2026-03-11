@@ -160,10 +160,13 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
     event,
   });
 
+  // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
+  const startStep = autofix.startStep;
+
   const handleStartRootCause = useCallback(() => {
-    autofix.startStep('root_cause');
+    startStep('root_cause');
     openSeerDrawer();
-  }, [autofix, openSeerDrawer]);
+  }, [startStep, openSeerDrawer]);
 
   return (
     <Flex direction="column" gap="xl">
