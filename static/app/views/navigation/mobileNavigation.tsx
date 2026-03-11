@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Hook from 'sentry/components/hook';
 import {IconClose, IconMenu} from 'sentry/icons';
@@ -14,10 +14,15 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {
+  PrimaryNavigationItems,
+  PrimaryNavigationSecondaryItems,
+} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
@@ -29,6 +34,8 @@ export function MobileNavigation() {
   const organization = useOrganization();
   const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref: listRef});
   const [view, setView] = useState<ActiveView>('closed');
   const {currentStepId, endTour} = useNavigationTour();
 
@@ -95,7 +102,16 @@ export function MobileNavigation() {
           setView={setView}
           closeButtonRef={closeButtonRef}
         >
-          {view === 'primary' ? <PrimaryNavigationItems /> : null}
+          {view === 'primary' ? (
+            <Stack direction="column" gap="md" justify="between" height="100%">
+              <PrimaryNavigation.Items>
+                <PrimaryNavigationItems
+                  makeNavigationItemProps={makeNavigationItemProps}
+                />
+              </PrimaryNavigation.Items>
+              <PrimaryNavigationSecondaryItems />
+            </Stack>
+          ) : null}
           {view === 'secondary' ? (
             <SecondaryMobile handleClickBack={() => setView('primary')} />
           ) : null}
@@ -135,6 +151,7 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
       right={0}
       bottom={0}
       left={0}
+      flex="1 1 100%"
       style={{zIndex: theme.zIndex.modal}}
     >
       {props.children}

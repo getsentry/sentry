@@ -20,9 +20,9 @@ import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function Collapsible({
@@ -278,7 +278,8 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
   const organization = useOrganization();
   const location = useLocation();
   const isActive =
-    incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    PrimaryNavigation.isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavigationContext();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();

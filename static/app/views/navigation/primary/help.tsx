@@ -8,52 +8,21 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {
   NavigationTourReminder,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {SidebarMenu} from 'sentry/views/navigation/primary/components';
-
-function getContactSupportItem({
-  organization,
-}: {
-  organization: Organization;
-}): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
-}
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
-  const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useNavigationTour();
 
+  const contactSupportItem = getContactSupportItem({organization});
+
   return (
-    <SidebarMenu
+    <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
       size="sm"
       items={[
@@ -127,4 +96,36 @@ export function PrimaryNavigationHelp() {
       icon={<IconEllipsis />}
     />
   );
+}
+
+function getContactSupportItem({
+  organization,
+}: {
+  organization: Organization;
+}): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  if (hasZendesk()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
 }

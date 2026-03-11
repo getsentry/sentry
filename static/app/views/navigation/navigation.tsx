@@ -1,10 +1,10 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {PrimaryNavigation} from 'sentry/views/navigation/components/primaryNavigation';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
@@ -15,8 +15,12 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {
+  PrimaryNavigationItems,
+  PrimaryNavigationSecondaryItems,
+} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
@@ -43,16 +47,25 @@ export function Navigation() {
     [collapsedNavigation.isOpen, secondarySidebarWidth]
   );
 
+  const ref = useRef<HTMLUListElement>(null);
+  const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
+
   return (
-    <Fragment>
-      <PrimaryNavigation>
-        <PrimaryNavigation.Sidebar>
-          <PrimaryNavigation.Header>
-            <OrganizationDropdown />
-          </PrimaryNavigation.Header>
-          <PrimaryNavigationItems />
-        </PrimaryNavigation.Sidebar>
-      </PrimaryNavigation>
+    <PrimaryNavigation>
+      <PrimaryNavigation.Sidebar>
+        <Stack justify="between" height="100%">
+          <Stack direction="column" gap="md">
+            <PrimaryNavigation.Header>
+              <OrganizationDropdown />
+            </PrimaryNavigation.Header>
+            <PrimaryNavigation.Items ref={ref}>
+              <PrimaryNavigationItems makeNavigationItemProps={makeNavigationItemProps} />
+            </PrimaryNavigation.Items>
+          </Stack>
+          <PrimaryNavigationSecondaryItems />
+        </Stack>
+      </PrimaryNavigation.Sidebar>
+
       {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
@@ -68,7 +81,7 @@ export function Navigation() {
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
       ) : null}
-    </Fragment>
+    </PrimaryNavigation>
   );
 }
 

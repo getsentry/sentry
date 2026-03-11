@@ -17,15 +17,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
@@ -54,7 +47,7 @@ function OnboardingItem({
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay({
+  } = PrimaryNavigation.useButtonOverlay({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
@@ -71,7 +64,7 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="onboarding"
         buttonProps={{
           ...overlayTriggerProps,
@@ -108,16 +101,16 @@ function OnboardingItem({
         label={label}
       >
         {pendingCompletionSeen && (
-          <SidebarItemUnreadIndicator
+          <PrimaryNavigation.ButtonUnreadIndicator
             data-test-id="pending-seen-indicator"
             isMobile={isMobile}
           />
         )}
-      </SidebarButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </GuideAnchor>
   );

@@ -1,9 +1,8 @@
-import {useRef} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
-import {useWindowHeight} from 'sentry/views/navigation/primary/useWindowHeight';
 import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
@@ -20,95 +19,136 @@ import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
  */
+
+interface UseActivateNavigationGroupOnHoverProps {
+  ref: React.RefObject<HTMLUListElement | null>;
+}
+
 export function useActivateNavigationGroupOnHover({
   ref,
-}: {
-  ref: React.RefObject<HTMLElement | null>;
-}) {
+}: UseActivateNavigationGroupOnHoverProps) {
   const {layout} = useNavigationContext();
   const mouseAccelerationRef = useMouseMovement({
     ref,
     disabled: layout !== NavigationLayout.SIDEBAR,
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const {setActivePrimaryNavigationGroup, isCollapsed, collapsedNavigationIsOpen} =
     useNavigationContext();
-  const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
-    const onMouseEnter = (e: MouseEvent) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+  const [windowHeight, setWindowHeight] = useState(() => window.innerHeight);
 
-      if (isCollapsed && !collapsedNavigationIsOpen) {
-        setActivePrimaryNavigationGroup(group);
-        return;
-      }
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver(() => {
+      setWindowHeight(window.innerHeight);
+    });
 
-      const getDelay = () => {
-        const {horizontalSpeed, verticalSpeed, horizontalDirection, verticalDirection} =
-          mouseAccelerationRef.current;
+    resizeObserver.observe(document.documentElement);
 
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
+    const handleResize = (): void => {
+      setWindowHeight(window.innerHeight);
+    };
 
-        const distanceToRightEdge = PRIMARY_SIDEBAR_WIDTH - mouseX;
-        const distanceToTop = mouseY;
-        const distanceToBottom = windowHeight - mouseY;
+    window.addEventListener('resize', handleResize, {passive: true});
 
-        // Find angle from mouse to top and bottom of nav
-        // This is the angle of motion that likely inidcates that the user is
-        // moving their mouse into the secondary nav.
-        // Similar to https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
-        const angleToTop =
-          Math.atan2(distanceToTop, distanceToRightEdge) * (180 / Math.PI);
-        const angleToBottom =
-          Math.atan2(distanceToBottom, distanceToRightEdge) * (180 / Math.PI);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
-        const mouseDirectionAngle =
-          horizontalSpeed === 0
-            ? 90
-            : Math.atan2(verticalSpeed, horizontalSpeed) * (180 / Math.PI);
-
-        const isMovingTowardSecondaryNavigation =
-          horizontalDirection > 0
-            ? verticalDirection > 0
-              ? mouseDirectionAngle < angleToBottom
-              : mouseDirectionAngle < angleToTop
-            : false;
-
-        const isSkimmingRightSide =
-          horizontalDirection < 1 && mouseX > PRIMARY_SIDEBAR_WIDTH * 0.8;
-
-        // If we deem the user intention is _not_ to active another nav group, add a 200ms delay
-        if (isMovingTowardSecondaryNavigation || isSkimmingRightSide) {
-          return 200;
+  const makeNavigationItemProps = useCallback(
+    (group: PrimaryNavigationGroup) => {
+      const onMouseEnter = (e: MouseEvent) => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
         }
 
-        // Otherwise, activate immediately
-        return 0;
+        if (isCollapsed && !collapsedNavigationIsOpen) {
+          setActivePrimaryNavigationGroup(group);
+          return;
+        }
+
+        timeoutRef.current = setTimeout(
+          () => {
+            setActivePrimaryNavigationGroup(group);
+          },
+          getDelay(e, mouseAccelerationRef, windowHeight)
+        );
       };
 
-      timeoutRef.current = setTimeout(() => {
+      const onMouseLeave = () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+
+      const onClick = () => {
         setActivePrimaryNavigationGroup(group);
-      }, getDelay());
-    };
+      };
 
-    const onMouseLeave = () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
+      return {
+        onMouseEnter,
+        onMouseLeave,
+        onClick,
+      };
+    },
+    [
+      setActivePrimaryNavigationGroup,
+      isCollapsed,
+      collapsedNavigationIsOpen,
+      mouseAccelerationRef,
+      windowHeight,
+    ]
+  );
 
-    const onClick = () => {
-      setActivePrimaryNavigationGroup(group);
-    };
-
-    return {
-      onMouseEnter,
-      onMouseLeave,
-      onClick,
-    };
-  };
+  return makeNavigationItemProps;
 }
+
+const getDelay = (
+  e: MouseEvent,
+  mouseAccelerationRef: ReturnType<typeof useMouseMovement>,
+  windowHeight: number
+) => {
+  const {horizontalSpeed, verticalSpeed, horizontalDirection, verticalDirection} =
+    mouseAccelerationRef.current;
+
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  const distanceToRightEdge = PRIMARY_SIDEBAR_WIDTH - mouseX;
+  const distanceToTop = mouseY;
+  const distanceToBottom = windowHeight - mouseY;
+
+  // Find angle from mouse to top and bottom of nav
+  // This is the angle of motion that likely inidcates that the user is
+  // moving their mouse into the secondary nav.
+  // Similar to https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
+  const angleToTop = Math.atan2(distanceToTop, distanceToRightEdge) * (180 / Math.PI);
+  const angleToBottom =
+    Math.atan2(distanceToBottom, distanceToRightEdge) * (180 / Math.PI);
+
+  const mouseDirectionAngle =
+    horizontalSpeed === 0
+      ? 90
+      : Math.atan2(verticalSpeed, horizontalSpeed) * (180 / Math.PI);
+
+  const isMovingTowardSecondaryNavigation =
+    horizontalDirection > 0
+      ? verticalDirection > 0
+        ? mouseDirectionAngle < angleToBottom
+        : mouseDirectionAngle < angleToTop
+      : false;
+
+  const isSkimmingRightSide =
+    horizontalDirection < 1 && mouseX > PRIMARY_SIDEBAR_WIDTH * 0.8;
+
+  // If we deem the user intention is _not_ to active another nav group, add a 200ms delay
+  if (isMovingTowardSecondaryNavigation || isSkimmingRightSide) {
+    return 200;
+  }
+
+  // Otherwise, activate immediately
+  return 0;
+};

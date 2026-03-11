@@ -1,50 +1,138 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
+import {createPortal} from 'react-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 import type {LocationDescriptor} from 'history';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import type {ButtonProps} from '@sentry/scraps/button';
-import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
+import Hook from 'sentry/components/hook';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {NavigationLayout} from 'sentry/views/navigation/types';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
-interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
+function PrimaryNavigation(props: {children: React.ReactNode}) {
+  const theme = useTheme();
+  const {currentStepId} = useNavigationTour();
+  const tourIsActive = currentStepId !== null;
+  const navigationContext = useNavigationContext();
+  const hoverProps = useResetActiveNavigationGroup();
+
+  return (
+    <Flex
+      ref={navigationContext.navigationParentRef}
+      position={tourIsActive ? undefined : 'sticky'}
+      bottom={navigationContext.layout === NavigationLayout.MOBILE ? undefined : 0}
+      height={navigationContext.layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
+      top={0}
+      style={{
+        zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
+        userSelect: 'none',
+      }}
+      {...hoverProps}
+    >
+      {props.children}
+    </Flex>
+  );
+}
+
+function PrimarySidebar(props: {children: React.ReactNode}) {
+  const theme = useTheme();
+  const {currentStepId} = useNavigationTour();
+
+  return (
+    <Flex
+      as="nav"
+      aria-label="Primary Navigation"
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      padding="lg 0 md 0"
+      borderRight="primary"
+      background="primary"
+      direction="column"
+      style={{zIndex: currentStepId === null ? theme.zIndex.sidebar : undefined}}
+    >
+      {props.children}
+    </Flex>
+  );
+}
+
+function PrimarySuperuserIndicator() {
+  const theme = useTheme();
+  const organization = useOrganization({allowNull: true});
+
+  return (
+    <Container
+      top={0}
+      left={0}
+      position="absolute"
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      style={{
+        zIndex: theme.zIndex.initial,
+        background: theme.tokens.background.danger.vibrant,
+      }}
+    >
+      <Hook name="component:superuser-warning" organization={organization} />
+    </Container>
+  );
+}
+
+function PrimaryHeader({children}: {children: React.ReactNode}) {
+  const organization = useOrganization({allowNull: true});
+
+  const showSuperuserWarning =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+
+  return (
+    <Flex as="header" direction="column" align="center" justify="center">
+      {children}
+      {showSuperuserWarning && <PrimarySuperuserIndicator />}
+    </Flex>
+  );
+}
+
+// Items in the sidebar
+interface PrimaryItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
   disableTooltip?: boolean;
   ref?: React.Ref<HTMLLIElement>;
 }
 
-function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
+function PrimaryItem({children, label, disableTooltip, ref, ...props}: PrimaryItemProps) {
   const {layout} = useNavigationContext();
   return (
-    <IconDefaultsProvider
-      legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
-    >
-      <Flex
-        as="li"
-        ref={ref}
-        justify="center"
-        align="center"
-        width={layout === NavigationLayout.MOBILE ? '100%' : undefined}
-        {...props}
+    <Flex as="li" ref={ref} justify="center" align="center" width="100%" {...props}>
+      <IconDefaultsProvider
+        legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
       >
         <Tooltip
           title={label}
@@ -55,12 +143,12 @@ function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarIt
         >
           {children}
         </Tooltip>
-      </Flex>
-    </IconDefaultsProvider>
+      </IconDefaultsProvider>
+    </Flex>
   );
 }
 
-interface SidebarMenuProps {
+interface PrimaryMenuProps {
   analyticsKey: string;
   items: MenuItemProps[];
   label: string;
@@ -73,7 +161,7 @@ interface SidebarMenuProps {
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
-export function SidebarMenu({
+function PrimaryMenu({
   items,
   children,
   analyticsKey,
@@ -84,7 +172,7 @@ export function SidebarMenu({
   icon,
   size,
   triggerWrap: TriggerWrap = Fragment,
-}: SidebarMenuProps) {
+}: PrimaryMenuProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavigationContext();
@@ -116,7 +204,7 @@ export function SidebarMenu({
               skipWrapper
               delay={600}
             >
-              <NavigationButton
+              <PrimaryButtonRoot
                 {...triggerProps}
                 isMobile={layout === NavigationLayout.MOBILE}
                 aria-label={showLabel ? undefined : label}
@@ -136,7 +224,7 @@ export function SidebarMenu({
               >
                 {showLabel ? label : null}
                 {children}
-              </NavigationButton>
+              </PrimaryButtonRoot>
             </Tooltip>
           </TriggerWrap>
         );
@@ -146,7 +234,7 @@ export function SidebarMenu({
   );
 }
 
-interface SidebarItemLinkProps {
+interface PrimaryLinkProps {
   analyticsKey: string;
   group: PrimaryNavigationGroup;
   to: string;
@@ -155,7 +243,7 @@ interface SidebarItemLinkProps {
   children?: React.ReactNode;
 }
 
-export function SidebarLink({
+function PrimaryLink({
   children,
   to,
   activeTo = to,
@@ -163,12 +251,12 @@ export function SidebarLink({
   analyticsParams,
   group,
   ...props
-}: SidebarItemLinkProps) {
+}: PrimaryLinkProps) {
   const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} {...props}>
-      <SidebarNavigationLink
+    <PrimaryItem label={label} {...props}>
+      <PrimaryNavigationLink
         to={to}
         activeTo={activeTo}
         analyticsKey={analyticsKey}
@@ -176,23 +264,23 @@ export function SidebarLink({
         group={group}
       >
         {children}
-      </SidebarNavigationLink>
-    </SidebarItem>
+      </PrimaryNavigationLink>
+    </PrimaryItem>
   );
 }
 
-function SidebarNavigationLink({
+function PrimaryNavigationLink({
   children,
   to,
   activeTo = to,
   analyticsKey,
   analyticsParams,
   group,
-}: SidebarItemLinkProps) {
+}: PrimaryLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavigationGroup} = useNavigationContext();
   const location = useLocation();
-  const isActive = isSidebarLinkActive(
+  const isActive = isPrimaryLinkActive(
     normalizeUrl(activeTo, location),
     location.pathname
   );
@@ -202,7 +290,7 @@ function SidebarNavigationLink({
   const {state: appState} = useFrontendVersion();
 
   return (
-    <NavigationLink
+    <PrimaryLinkRoot
       to={to}
       reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
@@ -227,15 +315,15 @@ function SidebarNavigationLink({
         </Fragment>
       ) : (
         <Fragment>
-          <NavigationLinkIconContainer>{children}</NavigationLinkIconContainer>
-          <NavigationLinkLabel>{label}</NavigationLinkLabel>
+          <PrimaryLinkIconContainer>{children}</PrimaryLinkIconContainer>
+          <PrimaryLinkLabel>{label}</PrimaryLinkLabel>
         </Fragment>
       )}
-    </NavigationLink>
+    </PrimaryLinkRoot>
   );
 }
 
-interface SidebarButtonProps {
+interface PrimaryButtonProps {
   analyticsKey: string;
   label: string;
   analyticsParams?: Record<string, unknown>;
@@ -245,7 +333,7 @@ interface SidebarButtonProps {
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
-export function SidebarButton({
+function PrimaryButton({
   className,
   analyticsKey,
   analyticsParams,
@@ -253,14 +341,14 @@ export function SidebarButton({
   buttonProps = {},
   onClick,
   label,
-}: SidebarButtonProps) {
+}: PrimaryButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavigationContext();
   const showLabel = layout === NavigationLayout.MOBILE;
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
-      <NavigationButton
+      <PrimaryButtonRoot
         {...buttonProps}
         isMobile={layout === NavigationLayout.MOBILE}
         analyticsParams={analyticsParams}
@@ -279,46 +367,12 @@ export function SidebarButton({
       >
         {showLabel ? label : null}
         {children}
-      </NavigationButton>
+      </PrimaryButtonRoot>
     </Tooltip>
   );
 }
 
-export function SeparatorItem({
-  className,
-  hasMargin,
-}: {
-  className?: string;
-  hasMargin?: boolean;
-}) {
-  return (
-    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
-      <Separator />
-    </SeparatorListItem>
-  );
-}
-
-const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
-  list-style: none;
-  width: 100%;
-  padding: 0 ${p => p.theme.space.lg};
-  ${p =>
-    p.hasMargin &&
-    css`
-      margin: ${p.theme.space.xs} 0;
-    `}
-`;
-
-const Separator = styled('hr')`
-  outline: 0;
-  border: 0;
-  height: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.secondary};
-  margin: 0;
-`;
-
-const NavigationLinkIconContainer = styled('span')`
+const PrimaryLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +380,7 @@ const NavigationLinkIconContainer = styled('span')`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const NavigationLinkLabel = styled('div')`
+const PrimaryLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -335,7 +389,7 @@ const NavigationLinkLabel = styled('div')`
   letter-spacing: -0.05em;
 `;
 
-const NavigationLink = styled(Link, {
+const PrimaryLinkRoot = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'size',
 })<{isMobile: boolean; size?: ButtonProps['size']}>`
   display: flex;
@@ -383,7 +437,7 @@ const NavigationLink = styled(Link, {
 
   /* Apply focus styles only to the icon container */
   &:focus-visible {
-    ${NavigationLinkIconContainer} {
+    ${PrimaryLinkIconContainer} {
       outline: none;
       box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
@@ -392,7 +446,7 @@ const NavigationLink = styled(Link, {
   &:hover,
   &[aria-selected='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    ${NavigationLinkIconContainer} {
+    ${PrimaryLinkIconContainer} {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
@@ -404,14 +458,14 @@ const NavigationLink = styled(Link, {
     &::before {
       opacity: 1;
     }
-    ${NavigationLinkIconContainer} {
+    ${PrimaryLinkIconContainer} {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
       color: ${p => p.theme.tokens.interactive.link.accent.hover}
-        ${NavigationLinkIconContainer} {
+        ${PrimaryLinkIconContainer} {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
@@ -419,7 +473,7 @@ const NavigationLink = styled(Link, {
   }
 `;
 
-const NavigationButton = styled(
+const PrimaryButtonRoot = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
     const {layout} = useNavigationContext();
 
@@ -456,7 +510,7 @@ const NavigationButton = styled(
     overflow: visible;
   }
 
-  /* The indicator (SidebarItemUnreadIndicator) is passed as children, which causes
+  /* The indicator (PrimaryUnreadIndicator) is passed as children, which causes
    * Button's internal logic to set hasChildren=true and add margin-right to the icon
    * wrapper. On desktop buttons are icon-only so we override to zero; on mobile the
    * margin-right provides the gap between the icon and label text. */
@@ -469,7 +523,7 @@ const NavigationButton = styled(
     `}
 `;
 
-export const SidebarItemUnreadIndicator = styled('span')<{
+const PrimaryUnreadIndicator = styled('span')<{
   isMobile: boolean;
   variant?: 'accent' | 'danger' | 'warning';
 }>`
@@ -495,27 +549,7 @@ export const SidebarItemUnreadIndicator = styled('span')<{
     `}
 `;
 
-export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  padding-top: ${p => p.theme.space.md};
-  display: flex;
-  flex-direction: column;
-  align-items: ${p => (p.isMobile ? 'stretch' : 'center')};
-  gap: ${p => p.theme.space.xs};
-  width: 100%;
-
-  /* TriggerWrap div is getting in the way here */
-  > div,
-  > div > li,
-  > li {
-    width: 100%;
-  }
-`;
-
-export function isSidebarLinkActive(
+function isPrimaryLinkActive(
   to: LocationDescriptor | string,
   pathname: string,
   options: {end?: boolean} = {end: false}
@@ -533,3 +567,145 @@ export function isSidebarLinkActive(
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
 }
+
+type PrimaryButtonOverlayProps = {
+  children: React.ReactNode;
+  overlayProps: React.HTMLAttributes<HTMLDivElement>;
+};
+
+function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
+  const {layout} = useNavigationContext();
+
+  return useOverlay({
+    offset: 8,
+    position: layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end',
+    isDismissable: true,
+    shouldApplyMinWidth: false,
+    ...props,
+  });
+}
+
+/**
+ * Overlay to be used for primary navigation buttons in footer, such as
+ * "what's new" and "onboarding". This will appear as a normal overlay
+ * on desktop and a modified overlay in mobile to match the design of
+ * the mobile topbar.
+ */
+function PrimaryButtonOverlay({children, overlayProps}: PrimaryButtonOverlayProps) {
+  const theme = useTheme();
+  const {layout} = useNavigationContext();
+
+  return createPortal(
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
+        <ButtonOverlayScrollable isMobile={layout === NavigationLayout.MOBILE}>
+          {children}
+        </ButtonOverlayScrollable>
+      </PositionWrapper>
+    </FocusScope>,
+    document.body
+  );
+}
+
+const ButtonOverlayScrollable = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{
+  isMobile: boolean;
+}>`
+  overscroll-behavior: none;
+  min-height: 150px;
+  max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
+  overflow-y: auto;
+  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
+`;
+
+function PrimarySeparator({orientation}: {orientation: 'horizontal' | 'vertical'}) {
+  return (
+    <Container padding="0 md" as="li" width="100%" style={{listStyleType: 'none'}}>
+      <Separator orientation={orientation} />
+    </Container>
+  );
+}
+
+interface PrimaryBodyProps {
+  children: React.ReactNode;
+  ref?: React.RefObject<HTMLUListElement | null>;
+}
+
+function PrimaryItems(props: PrimaryBodyProps) {
+  const {layout} = useNavigationContext();
+  return (
+    <Stack
+      as="ul"
+      align={layout === NavigationLayout.MOBILE ? 'stretch' : 'center'}
+      data-primary-list-container
+      width="100%"
+      position="relative"
+      padding="0"
+      paddingTop="md"
+      gap="xs"
+      {...props}
+    />
+  );
+}
+
+function PrimaryFooter({children}: {children: React.ReactNode}) {
+  const {layout} = useNavigationContext();
+  const isMobile = layout === NavigationLayout.MOBILE;
+
+  if (!children) {
+    return null;
+  }
+
+  return (
+    <Flex
+      align="center"
+      justify={isMobile ? 'start' : 'center'}
+      width={isMobile ? '100%' : 'auto'}
+    >
+      {isMobile ? (
+        <Stack width="100%">{children}</Stack>
+      ) : (
+        <PrimaryFooterButtonBar orientation="vertical">{children}</PrimaryFooterButtonBar>
+      )}
+    </Flex>
+  );
+}
+
+const PrimaryFeatureBadge = styled(FeatureBadge)`
+  position: absolute;
+  pointer-events: none;
+  top: -2px;
+  right: 2px;
+  font-size: ${p => p.theme.font.size.xs};
+  padding: 0 ${p => p.theme.space.xs};
+  height: 16px;
+`;
+
+// Force all footer buttons to the same size
+const PrimaryFooterButtonBar = styled(ButtonBar)`
+  & > button,
+  & > span > button {
+    width: ${p => p.theme.form.md.height};
+    height: ${p => p.theme.form.md.height};
+  }
+`;
+
+// Layout components
+PrimaryNavigation.Header = PrimaryHeader;
+PrimaryNavigation.Sidebar = PrimarySidebar;
+PrimaryNavigation.Items = PrimaryItems;
+PrimaryNavigation.Footer = PrimaryFooter;
+
+PrimaryNavigation.Menu = PrimaryMenu;
+PrimaryNavigation.Link = PrimaryLink;
+PrimaryNavigation.FeatureBadge = PrimaryFeatureBadge;
+PrimaryNavigation.Button = PrimaryButton;
+PrimaryNavigation.ButtonOverlay = PrimaryButtonOverlay;
+PrimaryNavigation.ButtonUnreadIndicator = PrimaryUnreadIndicator;
+PrimaryNavigation.Separator = PrimarySeparator;
+
+PrimaryNavigation.isLinkActive = isPrimaryLinkActive;
+PrimaryNavigation.useButtonOverlay = usePrimaryButtonOverlay;
+
+export {PrimaryNavigation};

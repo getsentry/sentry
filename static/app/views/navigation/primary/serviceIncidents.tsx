@@ -6,15 +6,8 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
@@ -22,13 +15,13 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
+  } = PrimaryNavigation.useButtonOverlay();
 
   const {layout} = useNavigationContext();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="statusupdate"
         label={t('Service status')}
         buttonProps={{
@@ -37,19 +30,19 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           size: 'sm',
         }}
       >
-        <SidebarItemUnreadIndicator
+        <PrimaryNavigation.ButtonUnreadIndicator
           isMobile={layout === NavigationLayout.MOBILE}
           variant="danger"
         />
-      </SidebarButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           {incidents.map(incident => (
             <IncidentItemWrapper key={incident.id}>
               <ServiceIncidentDetails incident={incident} />
             </IncidentItemWrapper>
           ))}
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

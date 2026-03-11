@@ -6,7 +6,7 @@ import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/u
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PrimaryNavigation} from 'sentry/views/navigation/components/primaryNavigation';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';

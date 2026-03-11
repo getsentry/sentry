@@ -16,15 +16,8 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
 import {WhatsNewItem} from 'sentry/views/navigation/primary/whatsNew/item';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -126,13 +119,13 @@ export function PrimaryNavigationWhatsNew() {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
+  } = PrimaryNavigation.useButtonOverlay();
 
   const {layout} = useNavigationContext();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
         buttonProps={{
@@ -142,16 +135,16 @@ export function PrimaryNavigationWhatsNew() {
         }}
       >
         {unseenPostIds.length > 0 && (
-          <SidebarItemUnreadIndicator
+          <PrimaryNavigation.ButtonUnreadIndicator
             data-test-id="whats-new-unread-indicator"
             isMobile={layout === NavigationLayout.MOBILE}
           />
         )}
-      </SidebarButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent unseenPostIds={unseenPostIds} />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

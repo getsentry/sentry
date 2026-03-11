@@ -13,15 +13,8 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -186,7 +179,7 @@ export default function PrimaryNavSeerConfigReminder() {
     triggerProps: overlayTriggerProps,
     overlayProps,
     state,
-  } = usePrimaryButtonOverlay();
+  } = PrimaryNavigation.useButtonOverlay();
 
   const {layout} = useNavigationContext();
 
@@ -209,7 +202,7 @@ export default function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
@@ -218,13 +211,13 @@ export default function PrimaryNavSeerConfigReminder() {
           icon: <IconSeer />,
         }}
       >
-        <SidebarItemUnreadIndicator
+        <PrimaryNavigation.ButtonUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavigationLayout.MOBILE}
         />
-      </SidebarButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
@@ -240,7 +233,7 @@ export default function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );
