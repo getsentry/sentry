@@ -105,8 +105,15 @@ def create_preprod_pr_comment_task(
             .order_by("id")
         )
 
-        # Fresh read of the current row from the locked set
-        cc = next(c for c in all_for_pr if c.id == commit_comparison.id)
+        # Re-read our row from the locked set. The row could theoretically
+        # be deleted between the initial fetch and the lock acquisition, but
+        # CommitComparison rows are never deleted in practice today.
+        try:
+            cc = next(c for c in all_for_pr if c.id == commit_comparison.id)
+        except StopIteration:
+            raise CommitComparison.DoesNotExist(
+                f"CommitComparison {commit_comparison.id} was deleted before lock acquisition"
+            )
 
         siblings = artifact.get_sibling_artifacts_for_commit()
         installable_siblings = [s for s in siblings if is_installable_artifact(s)]
