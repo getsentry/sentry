@@ -98,6 +98,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable text widgets for dashboards
     manager.add("organizations:dashboards-text-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable AI-powered dashboard generation via Seer
+    manager.add("organizations:dashboards-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -128,9 +130,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
     manager.add("organizations:gen-ai-consent", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable granular permissions for replay features
-    manager.add("organizations:granular-replay-permissions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-
     # Enable increased issue_owners rate limit for auto-assignment
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Starfish: extract metrics from the spans
@@ -245,7 +244,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable writing preprod build distribution data to EAP for querying
     manager.add("organizations:preprod-build-distribution-eap-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable preprod PR comments for build distribution
-    manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod app size dashboard widget
     manager.add("organizations:preprod-app-size-dashboard", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable enforcement of preprod size quota checks (when disabled, size quota checks always return True)

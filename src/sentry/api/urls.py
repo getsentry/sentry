@@ -154,6 +154,9 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGenerateEndpoint,
+)
 from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
@@ -511,6 +514,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
+from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
@@ -1560,6 +1564,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
         OrganizationDashboardsStarredOrderEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/generate/$",
+        OrganizationDashboardGenerateEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboards-generate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/$",
@@ -3568,6 +3577,11 @@ INTERNAL_URLS = [
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
         InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
+    ),
+    re_path(
+        r"^scm-rpc/(?P<method_name>\w+)/$",
+        ScmRpcServiceEndpoint.as_view(),
+        name="sentry-api-0-scm-rpc-service",
     ),
     re_path(
         r"^seer-rpc/(?P<method_name>\w+)/$",

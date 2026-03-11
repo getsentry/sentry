@@ -45,7 +45,7 @@ export default function PreventSecondaryNav() {
         </SecondaryNav.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
-            <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
+            <SecondaryNav.Item to={tokensPathName} activeTo={tokensPathName}>
               {t('Tokens')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>

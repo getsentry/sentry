@@ -141,7 +141,7 @@ export function MEPSettingProvider({
   const shouldQueryProvideMEPTransactionParams =
     canUseMEP && metricSettingState === MEPState.TRANSACTIONS_ONLY;
 
-  const memoizationKey = `${metricSettingState}`;
+  const memoizationKey = metricSettingState;
 
   return (
     <_MEPSettingProvider
