@@ -28,9 +28,15 @@ from sentry.seer.entrypoints.registry import (
     autofix_entrypoint_registry,
     explorer_entrypoint_registry,
 )
-from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.types import (
+    SeerAutofixEntrypoint,
+    SeerEntrypointKey,
+    SeerExplorerEntrypoint,
+)
+from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
+from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -433,6 +439,122 @@ class SeerOperator[CachePayloadT]:
             )
 
 
+class SeerExplorerOperator[CachePayloadT]:
+    """
+    A class that connects to entrypoint implementations and runs Explorer operations for Seer.
+    It does this to ensure all entrypoints have consistent behavior and responses.
+    """
+
+    def __init__(self, entrypoint: SeerExplorerEntrypoint[CachePayloadT]):
+        self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(
+        cls,
+        *,
+        organization: Organization,
+        entrypoint_key: SeerEntrypointKey | None = None,
+    ) -> bool:
+        return has_seer_entrypoint_access(organization=organization, entrypoint_key=entrypoint_key)
+
+    def trigger_explorer(
+        self,
+        *,
+        organization: Organization,
+        user: User | RpcUser | None,
+        prompt: str,
+        on_page_context: str | None = None,
+        category_key: str,
+        category_value: str,
+    ) -> int | None:
+        """
+        Start or continue an Explorer run and return the run_id.
+        If a run exists for this category (e.g. slack thread), continues it; otherwise starts new.
+        Uses the entrypoint's Explorer callbacks for success/error handling.
+        """
+        event_lifecycle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_EXPLORER,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecycle.capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "category_key": category_key,
+                    "category_value": category_value,
+                }
+            )
+
+            try:
+                # RpcUser is not in SeerExplorerClient's type signature but works at runtime
+                client = SeerExplorerClient(
+                    organization=organization,
+                    user=user,  # type: ignore[arg-type]
+                    category_key=category_key,
+                    category_value=category_value,
+                    on_completion_hook=SeerOperatorCompletionHook,
+                )
+            except SeerPermissionError as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_explorer_error(error=str(e))
+                lifecycle.record_failure(failure_reason=e)
+                return None
+
+            try:
+                existing_runs = client.get_runs(
+                    category_key=category_key,
+                    category_value=category_value,
+                    limit=1,
+                )
+
+                if existing_runs:
+                    run_id = client.continue_run(
+                        run_id=existing_runs[0].run_id,
+                        prompt=prompt,
+                        on_page_context=on_page_context,
+                    )
+                    lifecycle.add_extra("continued", "true")
+                else:
+                    run_id = client.start_run(
+                        prompt=prompt,
+                        on_page_context=on_page_context,
+                    )
+                    lifecycle.add_extra("continued", "false")
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_explorer_error(error="An unexpected error occurred")
+                lifecycle.record_failure(failure_reason=e)
+                return None
+
+            lifecycle.add_extra("run_id", str(run_id))
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_explorer_success(run_id=run_id)
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_EXPLORER_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_explorer_cache_payload()
+
+            SeerOperatorExplorerCache.set(
+                entrypoint_key=str(self.entrypoint.key),
+                run_id=run_id,
+                cache_payload=cache_payload,
+            )
+
+            return run_id
+
+
 @instrumented_task(
     name="sentry.seer.entrypoints.operator.process_autofix_updates",
     namespace=seer_tasks,
@@ -669,8 +791,7 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                         summary = block.message.content
                         break
             except Exception as e:
-                lifecycle.record_failure(failure_reason=e)
-                return
+                lifecycle.add_extra("fetch_run_status_error", str(e))
 
             for (
                 entrypoint_key,
@@ -686,8 +807,20 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                 if not cache_payload:
                     continue
 
-                entrypoint_cls.on_explorer_update(
-                    cache_payload=cache_payload,
-                    summary=summary,
-                    run_id=run_id,
-                )
+                # mypy marks this unreachable due to unbound generic TypeVar on SeerOperatorExplorerCache
+                if cache_payload.get("organization_id") != organization.id:  # type: ignore[unreachable]
+                    lifecycle.add_extra("org_mismatch", str(entrypoint_key))
+                    continue
+
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_EXPLORER_UPDATE,
+                    entrypoint_key=str(entrypoint_key),
+                ).capture() as ept_lifecycle:
+                    try:
+                        entrypoint_cls.on_explorer_update(
+                            cache_payload=cache_payload,
+                            summary=summary,
+                            run_id=run_id,
+                        )
+                    except Exception as e:
+                        ept_lifecycle.record_failure(failure_reason=e)

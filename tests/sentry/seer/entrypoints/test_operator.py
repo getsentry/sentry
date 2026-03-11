@@ -55,21 +55,6 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        return None
-
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        return None
-
-    def create_explorer_cache_payload(self) -> MockCachePayload:
-        return {"thread_id": self.thread_id}
-
-    @staticmethod
-    def on_explorer_update(
-        cache_payload: MockCachePayload, summary: str | None, run_id: int
-    ) -> None:
-        return None
-
     def create_autofix_cache_payload(self) -> MockCachePayload:
         return {"thread_id": self.thread_id}
 
