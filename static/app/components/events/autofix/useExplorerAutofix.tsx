@@ -135,7 +135,7 @@ export interface TriageArtifact {
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
-interface ExplorerAutofixState {
+export interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
