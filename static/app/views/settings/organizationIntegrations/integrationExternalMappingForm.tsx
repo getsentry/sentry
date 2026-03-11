@@ -298,10 +298,10 @@ function ModalMappingForm({
       sentryId: initialSentryId!,
     },
     validators: {onDynamic: modalSchema},
-    onSubmit: ({value}) =>
+    onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(form, error);
+          setFieldErrors(formApi, error);
         }
       }),
   });
