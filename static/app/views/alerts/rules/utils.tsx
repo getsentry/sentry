@@ -182,7 +182,7 @@ export function getAlertRuleLogsUrl({
     }
   }
 
-  return `${basePath}` + `?${qs.stringify(queryParams, {skipNull: true})}`;
+  return basePath + `?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function getAlertRuleMetricsUrl({

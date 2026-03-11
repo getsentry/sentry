@@ -49,9 +49,7 @@ interface GroupEventAttachmentsQuery {
   screenshot?: '1';
   start?: DateString;
   statsPeriod?: string;
-  types?:
-    | `${GroupEventAttachmentsTypeFilter}`
-    | Array<`${GroupEventAttachmentsTypeFilter}`>;
+  types?: GroupEventAttachmentsTypeFilter | GroupEventAttachmentsTypeFilter[];
 }
 
 export const makeFetchGroupEventAttachmentsQueryKey = ({

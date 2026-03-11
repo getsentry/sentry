@@ -398,12 +398,12 @@ function RelocationDetails() {
           </DetailLabel>
           <DetailLabel title="Autopause">
             {relocationData.scheduledPauseAtStep
-              ? `${titleCase(relocationData.scheduledPauseAtStep)}`
+              ? titleCase(relocationData.scheduledPauseAtStep)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Owner Notified Of">
             {relocationData.latestNotified
-              ? `${titleCase(relocationData.latestNotified)}`
+              ? titleCase(relocationData.latestNotified)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Unclaimed Users Last Notified">
@@ -438,7 +438,7 @@ function RelocationDetails() {
         }
 
         acc.push(
-          <span key={`${step}`}>
+          <span key={step}>
             {acc.length > 0 ? <span> | </span> : null}
             {text}
           </span>

@@ -103,9 +103,7 @@ export function SpanDescription({
 
   const actions = showAction ? (
     <BodyContentWrapper
-      padding={
-        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
-      }
+      padding={resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : space(1)}
     >
       <SpanSummaryLink
         op={span.op}

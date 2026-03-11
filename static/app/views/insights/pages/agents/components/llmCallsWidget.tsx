@@ -109,7 +109,7 @@ export default function LLMCallsWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {models?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = item['gen_ai.request.model'];
         return (
           <Fragment key={modelId}>
             <div>
