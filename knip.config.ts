@@ -18,6 +18,9 @@ const productionEntryPoints = [
   'static/app/components/core/quote/*.tsx',
   // Prevent exception until we build out coverage
   'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
+  // Temporary Prevent TA exceptions until the code is removed
+  'static/app/views/nav/secondary/sections/prevent/**/*.{js,ts,tsx}',
+  'static/app/views/prevent/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
@@ -26,6 +29,7 @@ const productionEntryPoints = [
 
 const testingEntryPoints = [
   'static/**/*.spec.{js,ts,tsx}',
+  'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',

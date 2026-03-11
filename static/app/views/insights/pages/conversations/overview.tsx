@@ -22,9 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -97,12 +95,12 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
     });
   }, [organization]);
 
-  const {tags: numberTags = [], isLoading: numberTagsLoading} =
-    useTraceItemTags('number');
-  const {tags: stringTags = [], isLoading: stringTagsLoading} =
-    useTraceItemTags('string');
-  const {tags: booleanTags = [], isLoading: booleanTagsLoading} =
-    useTraceItemTags('boolean');
+  const {attributes: numberTags = [], isLoading: numberTagsLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags = [], isLoading: stringTagsLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags = [], isLoading: booleanTagsLoading} =
+    useSpanItemAttributes({}, 'boolean');
 
   const hasRawSearchReplacement = organization.features.includes(
     'search-query-builder-raw-search-replacement'
@@ -204,9 +202,7 @@ function PageWithProviders() {
 
   return (
     <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
-      </TraceItemAttributeProvider>
+      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
     </DomainOverviewPageProviders>
   );
 }

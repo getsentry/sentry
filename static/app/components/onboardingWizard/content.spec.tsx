@@ -10,7 +10,7 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
@@ -56,11 +56,11 @@ describe('OnboardingSidebarContent', () => {
 
   it('should render the sidebar with the correct groups and tasks', async () => {
     render(
-      <NavContextProvider>
+      <NavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {organization}
     );
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
@@ -111,11 +111,11 @@ describe('OnboardingSidebarContent', () => {
     });
 
     render(
-      <NavContextProvider>
+      <NavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {organization}
     );
 
@@ -125,11 +125,11 @@ describe('OnboardingSidebarContent', () => {
 
   it('if first group completed, second group should be expanded by default', async () => {
     render(
-      <NavContextProvider>
+      <NavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {
         organization: OrganizationFixture({
           onboardingTasks: DEFAULT_GETTING_STARTED_TASKS.map(task => ({
@@ -153,11 +153,11 @@ describe('OnboardingSidebarContent', () => {
     });
 
     render(
-      <NavContextProvider>
+      <NavigationContextProvider>
         <NavigationTourProvider>
           <OnboardingSidebarContent onClose={jest.fn()} />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {organization}
     );
 

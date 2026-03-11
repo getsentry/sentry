@@ -109,7 +109,7 @@ export default function EAPMetricsField({
     return [
       ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
       ...(metricOptionsData?.data?.map(option => ({
-        label: `${option[TraceMetricKnownFieldKey.METRIC_NAME]}`,
+        label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,
@@ -216,8 +216,8 @@ export default function EAPMetricsField({
           searchable
           options={isFetching ? previousOptions : (metricOptions ?? [])}
           value={traceMetricSelectValue}
-          loading={isFetching}
-          onSearch={debouncedSetSearch}
+          isLoading={isFetching}
+          onInputChange={debouncedSetSearch}
           placeholder={t('Select a metric')}
           noOptionsMessage={() => t('No metrics found')}
           onChange={(option: MetricSelectOption) => handleMetricChange(option)}

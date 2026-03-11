@@ -138,19 +138,19 @@ wheels = [
 
 [[package]]
 name = "cffi"
-version = "1.17.1"
+version = "2.0.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
-    { name = "pycparser", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pycparser", marker = "(implementation_name != 'PyPy' and sys_platform == 'darwin') or (implementation_name != 'PyPy' and sys_platform == 'linux')" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f3a2b4222ce6b60e2e8b337bb9596923045681d71e5a082783484d845390938e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:0984a4925a435b1da406122d4d7968dd861c1385afe3b45ba82b750f229811e2" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:706510fe141c86a69c8ddc029c7910003a17353970cff3b904ff0686a5927683" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dd398dbc6773384a17fe0d3e7eeb8d1a21c2200473ee6806bb5e6a8e62bb73dd" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b68a8fc9d607e33a63857a353e9255b52b4b9dfcf1259ba72d82658440865724" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-manylinux_2_31_aarch64.whl", hash = "sha256:246b02d160e8bf9d2db536b2c49cda912e83a4bc12ccadfbe1154a9965c89b75" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-1.17.1-cp314-cp314-manylinux_2_31_x86_64.whl", hash = "sha256:2336726f5b751a982dcf99bc97f9683db0cc9fe8eec6118865edad9a478149d6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:00bdf7acc5f795150faa6957054fbbca2439db2f775ce831222b66f192f03beb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:45d5e886156860dc35862657e1494b9bae8dfa63bf56796f2fb56e1679fc0bca" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d48a880098c96020b02d5a1f7d9251308510ce8858940e6fa99ece33f610838b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:c8d3b5532fc71b7a77c09192b4a5a200ea992702734a2e9279a37f2478236f26" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c654de545946e0db659b3400168c9ad31b5d29593291482c43e3564effbcee13" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:24b6f81f1983e6df8db3adc38562c83f7d4a0c36162885ec7f7b77c7dcbec97b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cffi-2.0.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:afb8db5439b81cf9c9d0c80404b60c3cc9c3add93e114dcae767f1477cb53775" },
 ]
 
 [[package]]
@@ -235,15 +235,15 @@ wheels = [
 
 [[package]]
 name = "cryptography"
-version = "44.0.1"
+version = "46.0.5"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "cffi", marker = "(platform_python_implementation != 'PyPy' and sys_platform == 'darwin') or (platform_python_implementation != 'PyPy' and sys_platform == 'linux')" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-44.0.1-cp39-abi3-macosx_10_9_universal2.whl", hash = "sha256:a2d8a7045e1ab9b9f803f0d9531ead85f90c5f2859e653b61497228b18452008" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-44.0.1-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:436df4f203482f41aad60ed1813811ac4ab102765ecae7a2bbb1dbb66dcff5a7" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-44.0.1-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:72198e2b5925155497a5a3e8c216c7fb3e64c16ccee11f0e7da272fa93b35c4c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-46.0.5-cp311-abi3-macosx_10_9_universal2.whl", hash = "sha256:351695ada9ea9618b3500b490ad54c739860883df6c1f555e088eaf25b1bbaad" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-46.0.5-cp311-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:50bfb6925eff619c9c023b967d5b77a54e04256c4281b0e21336a130cd7fc263" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/cryptography-46.0.5-cp311-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:3ee190460e2fbe447175cda91b88b84ae8322a104fc27766ad09428754a618ed" },
 ]
 
 [[package]]
@@ -2346,14 +2346,14 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.24" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-protos", specifier = ">=0.8.1" },
+    { name = "sentry-protos", specifier = ">=0.8.3" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
-    { name = "sentry-relay", specifier = ">=0.9.23" },
+    { name = "sentry-relay", specifier = ">=0.9.24" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.47.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
-    { name = "slack-sdk", specifier = ">=3.27.2" },
+    { name = "slack-sdk", specifier = ">=3.40.1" },
     { name = "snuba-sdk", specifier = ">=3.0.43" },
     { name = "sqlparse", specifier = ">=0.5.0" },
     { name = "statsd", specifier = ">=3.3.0" },
@@ -2519,7 +2519,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.8.1"
+version = "0.8.3"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2528,7 +2528,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.1-py3-none-any.whl", hash = "sha256:d93a14317c49fc417fc2244aa50f26cf0c455272344cf2dfa9c377e557703bcd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.8.3-py3-none-any.whl", hash = "sha256:0bba154583a94ea7dbb6416b6d67cca168889ca5c4dd64fecdbbf51c10b9f487" },
 ]
 
 [[package]]
@@ -2544,15 +2544,15 @@ wheels = [
 
 [[package]]
 name = "sentry-relay"
-version = "0.9.23"
+version = "0.9.24"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "milksnake", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:f4ae642fa433bd0e211edad0c09567be41ee7a32e98f5d4bff953c1d90898552" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:abbd239ef3ac4651898bfa889b5815133ad3af995a05ba8fcaf070ce5eea410e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.23-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:ecd10614d334223d115310e93e42848daf8a4d1302ae4a59b18393ca0995ec50" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.24-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:55f39d594e9fee5b67e3ca9ce84386af4855fbac5b9f34c27c3c4703d6cf75e8" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.24-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:4d79279834683d1d59dfbfe2e6233446e84807e8768ffec1752615a51406aa4b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.24-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:69d0124c2fa1c067af420f7245308d129d5f6ad767341f46e1269dc2d31712ca" },
 ]
 
 [[package]]
@@ -2629,10 +2629,10 @@ wheels = [
 
 [[package]]
 name = "slack-sdk"
-version = "3.27.2"
+version = "3.40.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/slack_sdk-3.27.2-py2.py3-none-any.whl", hash = "sha256:af97158e6ac7f667e158e8036e63dc1f79db9bd36216a33c10fcc49be7c2f30c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/slack_sdk-3.40.1-py2.py3-none-any.whl", hash = "sha256:cd8902252979aa248092b0d77f3a9ea3cc605bc5d53663ad728e892e26e14a65" },
 ]
 
 [[package]]

@@ -6,7 +6,6 @@ import {motion} from 'framer-motion';
 import Hook from 'sentry/components/hook';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -15,16 +14,19 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {OrganizationDropdown} from 'sentry/views/nav/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
-import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
+import {
+  useNavigationTourModal,
+  useStackedNavigationTour,
+} from 'sentry/views/nav/tour/tour';
 import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 
 export function Sidebar() {
   const organization = useOrganization();
-  const {isCollapsed: isCollapsedState} = useNavContext();
+  const {isCollapsed: isCollapsedState} = useNavigationContext();
 
   // Avoid showing superuser UI on certain organizations
   const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
@@ -45,7 +47,7 @@ export function Sidebar() {
     SECONDARY_SIDEBAR_WIDTH
   );
 
-  useTourModal();
+  useNavigationTourModal();
 
   return (
     <Fragment>
@@ -92,7 +94,7 @@ export function Sidebar() {
 
 const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${space(1.5)} 0 ${space(1)} 0;
+  padding: ${p => p.theme.space.lg} 0 ${p => p.theme.space.md} 0;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
   display: flex;
@@ -120,7 +122,7 @@ const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const SuperuserBadge = styled('div')`

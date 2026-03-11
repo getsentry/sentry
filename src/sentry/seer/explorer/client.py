@@ -30,7 +30,7 @@ from sentry.seer.explorer.on_completion_hook import (
     ExplorerOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.users.models.user import User
@@ -178,6 +178,7 @@ class SeerExplorerClient:
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
+            max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
     """
 
     def __init__(
@@ -192,6 +193,7 @@ class SeerExplorerClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         is_interactive: bool = False,
         enable_coding: bool = False,
+        max_iterations: int | None = None,
     ):
         self.organization = organization
         self.user = user
@@ -202,6 +204,7 @@ class SeerExplorerClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.max_iterations = max_iterations
 
         user_id = (
             self.user.id if self.user and getattr(self.user, "is_authenticated", False) else None
@@ -217,6 +220,8 @@ class SeerExplorerClient:
 
         self.enable_coding = enable_coding
 
+        self.viewer_context = self._build_viewer_context()
+
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
             raise ValueError("category_key and category_value cannot be empty strings")
@@ -227,6 +232,12 @@ class SeerExplorerClient:
         has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
+
+    def _build_viewer_context(self) -> SeerViewerContext:
+        context = SeerViewerContext(organization_id=self.organization.id)
+        if self.user and hasattr(self.user, "id") and self.user.id is not None:
+            context["user_id"] = self.user.id
+        return context
 
     def start_run(
         self,
@@ -273,6 +284,9 @@ class SeerExplorerClient:
             enable_coding=self.enable_coding,
         )
 
+        if self.max_iterations is not None:
+            chat_body["max_iterations"] = self.max_iterations
+
         if self.project:
             chat_body["project_id"] = self.project.id
 
@@ -305,10 +319,10 @@ class SeerExplorerClient:
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):
+        ):  # Set to True at the start of the run and persist in Seer explorer run state
             chat_body["is_context_engine_enabled"] = True
 
-        response = make_explorer_chat_request(chat_body)
+        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -371,7 +385,7 @@ class SeerExplorerClient:
         ):
             chat_body["is_context_engine_enabled"] = True
 
-        response = make_explorer_chat_request(chat_body)
+        response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -543,7 +557,7 @@ class SeerExplorerClient:
             organization_id=self.organization.id,
             payload=payload,
         )
-        response = make_explorer_update_request(update_body)
+        response = make_explorer_update_request(update_body, viewer_context=self.viewer_context)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
@@ -574,7 +588,7 @@ class SeerExplorerClient:
         run_id: int,
         integration_id: int | None,
         prompt: str,
-        repos: list[str],
+        repos: list[SeerRepoDefinition],
         branch_name_base: str = "seer",
         auto_create_pr: bool = False,
         provider: str | None = None,
@@ -590,7 +604,7 @@ class SeerExplorerClient:
             run_id: The Explorer run ID (used to store coding agent state)
             integration_id: The coding agent integration ID (for org-installed integrations)
             prompt: The instruction/prompt for the coding agent
-            repos: List of repo names to target (format: "owner/name")
+            repos: List of SeerRepoDefinition objects with full repo metadata
             branch_name_base: Base name for the branch (random suffix will be added)
             auto_create_pr: Whether to automatically create a PR when agent finishes
             provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id

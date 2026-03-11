@@ -57,7 +57,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
     'api.starfish.get-span-actions'
   );
 
-  const options: Array<SelectOption<string>> = useHTTPActions
+  const options = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},

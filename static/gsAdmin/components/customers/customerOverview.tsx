@@ -85,7 +85,7 @@ function SoftCapTypeDetail({
                 capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
-              {`${softCapName}`}
+              {softCapName}
             </small>
             <br />
           </Fragment>
@@ -130,7 +130,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
                   onAction={onAction}
                 />
               )) ||
-              `${moment(customer.contractPeriodEnd).format('ll')}`}
+              moment(customer.contractPeriodEnd).format('ll')}
 
             <br />
             <small>{customer.contractInterval}</small>

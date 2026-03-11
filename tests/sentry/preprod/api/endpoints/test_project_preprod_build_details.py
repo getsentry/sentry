@@ -61,8 +61,8 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
-            "sentry-api-0-project-preprod-artifact-build-details",
-            args=[self.org.slug, self.project.slug, artifact_id],
+            "sentry-api-0-organization-preprod-artifact-build-details",
+            args=[self.org.slug, artifact_id],
         )
 
     def test_get_build_details_success(self) -> None:

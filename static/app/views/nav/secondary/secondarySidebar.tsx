@@ -11,11 +11,11 @@ import {
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {SecondaryNavContent} from 'sentry/views/nav/secondary/secondaryNavContent';
 import {
-  NavTourElement,
+  NavigationTourElement,
   STACKED_NAVIGATION_TOUR_CONTENT,
   StackedNavigationTour,
   useStackedNavigationTour,
@@ -43,7 +43,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavGroup} = useNavContext();
+  const {activePrimaryNavGroup} = useNavigationContext();
   const defaultActiveNavGroup = useActiveNavGroup();
 
   const activeNavGroup = activePrimaryNavGroup ?? defaultActiveNavGroup;
@@ -90,7 +90,7 @@ export function SecondarySidebar() {
   );
 }
 
-const SecondarySidebarWrapper = styled(NavTourElement)`
+const SecondarySidebarWrapper = styled(NavigationTourElement)`
   background: ${p => p.theme.tokens.background.secondary};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;

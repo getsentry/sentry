@@ -13,14 +13,13 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Collapsible} from 'sentry/views/nav/collapsible';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
@@ -59,7 +58,7 @@ export function SecondaryNav({children, className}: SecondaryNavProps) {
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
-  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+  const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -87,7 +86,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactN
 };
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   return <Body layout={layout}>{children}</Body>;
 };
@@ -105,7 +104,7 @@ function SectionTitle({
   title: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   if (canCollapse) {
     return (
@@ -165,7 +164,7 @@ SecondaryNav.Section = function SecondaryNavSection({
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
@@ -209,7 +208,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   const location = useLocation();
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const {reset: closeCollapsedNavHovercard} = useHovercardContext();
 
   return (
@@ -246,7 +245,7 @@ SecondaryNav.Item = function SecondaryNavItem({
 };
 
 SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   return <Footer layout={layout}>{children}</Footer>;
 };
@@ -270,7 +269,7 @@ const Header = styled('div')`
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${space(1)} 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
@@ -284,7 +283,7 @@ const Body = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: 0 0 ${space(1)} 0;
+      padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
@@ -292,15 +291,15 @@ const Section = styled('div')<{layout: NavLayout}>`
   ${p =>
     p.layout === NavLayout.SIDEBAR &&
     css`
-      padding: 0 ${space(1)};
+      padding: 0 ${p.theme.space.md};
     `}
 
   &:first-child {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 
   &:last-child {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
 
   /* Hide separators if there is not a previous section */
@@ -314,11 +313,11 @@ const Section = styled('div')<{layout: NavLayout}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p.theme.space.sm} ${p.theme.space.md};
   width: 100%;
   ${p.isMobile &&
   css`
-    padding: ${space(1)} ${space(1.5)} ${space(1)} 48px;
+    padding: ${p.theme.space.md} ${p.theme.space.lg} ${p.theme.space.md} 48px;
   `}
 `;
 
@@ -353,7 +352,7 @@ const SectionTitleLabelWrap = styled('div')`
 `;
 
 const SeparatorWrapper = styled('div')`
-  margin: ${space(1.5)} 0;
+  margin: ${p => p.theme.space.lg} 0;
   display: none;
 `;
 
@@ -361,7 +360,7 @@ const Separator = styled('hr')`
   height: 1px;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.secondary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   border: none;
 `;
 
@@ -371,15 +370,15 @@ interface ItemProps extends LinkProps {
 
 const Item = styled(Link)<ItemProps>`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: center;
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === NavLayout.MOBILE
-      ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px`
-      : `${space(0.75)} ${space(1.5)}`};
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
+      : `${p.theme.space.sm} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === NavLayout.MOBILE ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -395,7 +394,7 @@ const Item = styled(Link)<ItemProps>`
     transform: translateY(-50%) translateX(100%);
     width: 4px;
     height: 20px;
-    left: -${space(1.5)};
+    left: -${p => p.theme.space.lg};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
@@ -434,12 +433,12 @@ const ItemText = styled('span')`
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
-      padding: ${space(1)} 0;
+      padding: ${p.theme.space.md} 0;
     `}
 `;

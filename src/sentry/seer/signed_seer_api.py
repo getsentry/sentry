@@ -15,7 +15,12 @@ from sentry.utils import metrics
 
 class SeerViewerContext(TypedDict, total=False):
     organization_id: int
-    user_id: int
+    # TODO(jeremy.stanley): user_id is int | None as a temporary state while
+    # consolidating viewer context across call sites. Some pass request.user.id
+    # (which can be None for anonymous users), others omit the key entirely.
+    # Once all call sites are wired up, tighten this to int and ensure callers
+    # only set user_id when an authenticated user is present.
+    user_id: int | None
 
 
 logger = logging.getLogger(__name__)
@@ -23,14 +28,17 @@ logger = logging.getLogger(__name__)
 
 seer_summarization_default_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 seer_autofix_default_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 seer_anomaly_detection_default_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
@@ -61,10 +69,13 @@ def make_signed_seer_api_request(
 
     if viewer_context:
         if settings.SEER_API_SHARED_SECRET:
-            context_bytes = orjson.dumps(viewer_context)
-            context_signature = sign_viewer_context(context_bytes)
-            headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
-            headers["X-Viewer-Context-Signature"] = context_signature
+            try:
+                context_bytes = orjson.dumps(viewer_context)
+                context_signature = sign_viewer_context(context_bytes)
+                headers["X-Viewer-Context"] = context_bytes.decode("utf-8")
+                headers["X-Viewer-Context-Signature"] = context_signature
+            except Exception:
+                logger.exception("Failed to serialize viewer context for call to Seer.")
         else:
             logger.warning(
                 "settings.SEER_API_SHARED_SECRET is not set. Unable to sign viewer context for call to Seer."
@@ -148,12 +159,14 @@ def make_org_project_knowledge_index_request(
 
 def make_remove_repository_request(
     body: RemoveRepositoryRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/remove-repository",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -219,6 +232,17 @@ class SupergroupsEmbeddingRequest(TypedDict):
     organization_id: int
     group_id: int
     artifact_data: dict[str, Any]
+
+
+class SupergroupsListRequest(TypedDict):
+    organization_id: int
+    offset: NotRequired[int | None]
+    limit: NotRequired[int | None]
+
+
+class SupergroupsGetRequest(TypedDict):
+    organization_id: int
+    supergroup_id: int
 
 
 class ServiceMapUpdateRequest(TypedDict):
@@ -320,6 +344,30 @@ def make_supergroups_embedding_request(
     )
 
 
+def make_supergroups_list_request(
+    body: SupergroupsListRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/list",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
+def make_supergroups_get_request(
+    body: SupergroupsGetRequest,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get",
+        body=orjson.dumps(body),
+        timeout=timeout,
+    )
+
+
 def make_service_map_update_request(
     body: ServiceMapUpdateRequest,
     timeout: int | float | None = None,
@@ -336,12 +384,14 @@ def make_service_map_update_request(
 
 def make_unit_test_generation_request(
     body: UnitTestGenerationRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/codegen/unit-tests",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -362,12 +412,14 @@ def make_search_agent_state_request(
 
 def make_translate_query_request(
     body: TranslateQueryRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
@@ -388,36 +440,42 @@ def make_search_agent_start_request(
 
 def make_translate_agentic_request(
     body: TranslateAgenticRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate-agentic",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
 
 def make_create_cache_request(
     body: CreateCacheRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/create-cache",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 
 
 def make_compare_distributions_request(
     body: CompareDistributionsRequest,
+    timeout: int | float | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_anomaly_detection_default_connection_pool,
         "/v1/workflows/compare/cohort",
         body=orjson.dumps(body),
+        timeout=timeout,
         viewer_context=viewer_context,
     )
 

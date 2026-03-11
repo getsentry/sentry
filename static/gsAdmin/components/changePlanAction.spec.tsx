@@ -23,11 +23,11 @@ import {DataCategory} from 'sentry/types/core';
 import triggerChangePlanAction from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
-  const subscription: Subscription = SubscriptionFixture({
+  const subscription = SubscriptionFixture({
     organization: mockOrg,
     planTier: PlanTier.AM3,
     plan: 'am3_business',
@@ -157,7 +157,7 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes categories displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
-      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+      PlanDetailsLookupFixture('am2_business').checkoutCategories.length + 2 // +2 for audit fields
     );
     expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();

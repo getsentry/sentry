@@ -11,7 +11,6 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -226,15 +225,15 @@ function IntegrationStatus(
   const inner = (
     <div {...p}>
       <CircleIndicator size={6} color={color} />
-      <IntegrationStatusText data-test-id="integration-status">{`${
-        status === 'active'
+      <IntegrationStatusText data-test-id="integration-status">
+        {status === 'active'
           ? t('enabled')
           : status === 'pending_deletion'
             ? t('pending deletion')
             : status === 'disabled'
               ? t('disabled')
-              : t('unknown')
-      }`}</IntegrationStatusText>
+              : t('unknown')}
+      </IntegrationStatusText>
     </div>
   );
   return hideTooltip ? (
@@ -263,11 +262,11 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
   &:before {
     content: '|';
     color: ${p => p.theme.colors.gray200};
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
 `;
 
 const IntegrationStatusText = styled('div')`
-  margin: 0 ${space(0.75)} 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.sm} 0 ${p => p.theme.space.xs};
 `;

@@ -14,11 +14,9 @@ import type {GridColumn, GridColumnOrder} from 'sentry/components/tables/gridEdi
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
@@ -29,6 +27,7 @@ import type {
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
@@ -195,6 +194,7 @@ export function TagExplorer(props: Props) {
     domainViewFilters,
   } = props;
 
+  const navigate = useNavigate();
   const [widths, setWidths] = useState<number[]>([]);
 
   const handleResizeColumn = useCallback(
@@ -290,7 +290,7 @@ export function TagExplorer(props: Props) {
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -458,13 +458,14 @@ type HeaderProps = {
 
 function TagsHeader(props: HeaderProps) {
   const domainViewFilters = useDomainViewFilters();
+  const navigate = useNavigate();
   const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     trackAnalytics('performance_views.summary.tag_explorer.change_page', {
       organization,
     });
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [TAGS_CURSOR_NAME]: cursor},
     });
@@ -511,10 +512,10 @@ const AlignRight = styled('div')`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

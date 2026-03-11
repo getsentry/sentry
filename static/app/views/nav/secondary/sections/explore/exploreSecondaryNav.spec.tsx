@@ -1,17 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Nav from 'sentry/views/nav';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {Navigation} from 'sentry/views/nav';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 
 describe('ExploreSecondaryNav', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: [
-        'performance-trace-explorer',
-        'performance-view',
-        'visibility-explore-view',
-      ],
+      features: ['performance-view', 'visibility-explore-view'],
     },
   });
 
@@ -42,10 +38,10 @@ describe('ExploreSecondaryNav', () => {
 
   it('renders', () => {
     render(
-      <NavContextProvider>
-        <Nav />
+      <NavigationContextProvider>
+        <Navigation />
         <div id="main" />
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {
         organization,
         initialRouterConfig: {

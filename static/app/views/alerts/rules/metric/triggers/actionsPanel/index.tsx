@@ -14,7 +14,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -114,7 +113,7 @@ const getFullActionTitle = ({
     if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
-    return `${sentryAppName}`;
+    return sentryAppName;
   }
 
   const label = ActionLabel[type];
@@ -189,7 +188,7 @@ class ActionsPanel extends PureComponent<Props> {
       return;
     }
 
-    const action: Action = getCleanAction(actionConfig);
+    const action = getCleanAction(actionConfig);
 
     // Add new actions to critical by default
     const triggerIndex = 0;
@@ -235,7 +234,7 @@ class ActionsPanel extends PureComponent<Props> {
 
     const existingDateCreated =
       actions[index]!.dateCreated ?? actions[index]!.unsavedDateCreated;
-    const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
+    const newAction = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
@@ -508,30 +507,30 @@ class ActionsPanel extends PureComponent<Props> {
 }
 
 const ActionsPanelWithSpace = styled(ActionsPanel)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const ActionSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const PanelItemGrid = styled(PanelItem)`
   display: flex;
   align-items: center;
   border-bottom: 0;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const PanelItemSelects = styled('div')`
   display: flex;
   width: 100%;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   > * {
     flex: 0 1 200px;
 
     &:not(:last-child) {
-      margin-right: ${space(1)};
+      margin-right: ${p => p.theme.space.md};
     }
   }
 `;
@@ -546,7 +545,7 @@ const RuleRowContainer = styled('div')`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(3)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space['2xl']} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 

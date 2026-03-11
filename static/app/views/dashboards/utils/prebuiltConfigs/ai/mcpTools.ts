@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -87,17 +88,26 @@ const TOOLS_TABLE = {
         SpanFields.MCP_TOOL_NAME,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MCP_TOOL_NAME],
-      fieldAliases: [t('Tool Name'), t('Requests'), t('Error Rate'), t('Avg'), t('P95')],
+      fieldAliases: [
+        t('Tool Name'),
+        t('Requests'),
+        t('Error Rate'),
+        t('Errors'),
+        t('Avg'),
+        t('P95'),
+      ],
       orderby: '-count()',
     },
   ],
@@ -113,7 +123,19 @@ const TOOLS_TABLE = {
 export const MCP_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'MCP Tools',
-  filters: {},
+  title: 'MCP Tool Details',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'mcp.tool.name',
+          name: 'mcp.tool.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, TOOLS_TABLE],
 };

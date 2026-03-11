@@ -157,7 +157,7 @@ class DatabaseBackedUserService(UserService):
         )
         region_query = (
             OrganizationMapping.objects.filter(organization_id__in=org_ids)
-            .values_list("region_name", flat=True)
+            .values_list("cell_name", flat=True)
             .distinct()
         )
         return list(region_query)

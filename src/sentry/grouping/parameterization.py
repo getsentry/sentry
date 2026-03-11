@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 @dataclasses.dataclass
@@ -11,7 +11,6 @@ class ParameterizationRegex:
     raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
-    counter: int = 0
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
@@ -142,7 +141,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             )
             |
             # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -187,7 +186,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-128 digits, and
+            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
             # either all uppercase or all lowercase - we're more conservative here on all three
             # scores in order to reduce false positives).
             #
@@ -198,14 +197,23 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
             # Each regex consists of two parts, the lookahead and the hex characters themselves. For
-            # example, for the lowercase 8-character pattern we have:
+            # example, for the lowercase pattern we have:
             #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
             #                         preceded by some number of hex letters
-            #     [0-9a-f]{8}         The matcher itself - 8 hex characters
-            (\b(?=[a-f]*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=[a-f]*[0-9])[0-9a-f]{16,128}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=[A-F]*[0-9])[0-9A-F]{16,128}\b)
+            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
+            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+        """,
+    ),
+    ParameterizationRegex(
+        name="git_sha",
+        raw_pattern=r"""
+            # This is similar to the hex pattern above, except it has lookaheads for both numbers
+            # and letters, to guarantee we have at least one of each. (This means it will miss git
+            # shas which consist of only letters or only numbers, but fortunately > 96% of 7-digit
+            # hex values are mixed, so that's a tradeoff we're okay with.) Also, it only includes
+            # lowercase letters, since git shas are always expressed that way.
+            (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
@@ -245,20 +253,6 @@ EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
 }
 
 
-@dataclasses.dataclass
-class ParameterizationCallable:
-    """
-    Represents a callable that can be used to modify a string, which can give us more flexibility
-    than just using regex.
-
-    Note: Future-proofing. Not currently in use.
-    """
-
-    name: str  # name of the pattern (also used as group name in combined regex)
-    apply: Callable[[str], tuple[str, int]]  # function for modifying the input string
-    counter: int = 0
-
-
 class Parameterizer:
     def __init__(
         self,
@@ -267,9 +261,9 @@ class Parameterizer:
         regex_pattern_keys: Sequence[str] | None = None,
         # Whether to use experimental patterns, if available. (Pattern types without an experimental
         # pattern will fall back to the standard pattern.)
-        experimental: bool = False,
+        use_experimental_regexes: bool = False,
     ):
-        self._experimental = experimental
+        self._experimental = use_experimental_regexes
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
@@ -295,14 +289,12 @@ class Parameterizer:
 
         return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
-    def parametrize_w_regex(self, input_str: str, parameterization_regex: re.Pattern[str]) -> str:
+    def parameterize(self, input_str: str) -> str:
         """
-        Replace all matches of the given regex in the input string with a placeholder.
+        Replace all regex matches in the input string with placeholder strings, using the regexes
+        with which the parameterizer was initialized.
 
-        @param input_str: The string to replace matches in.
-        @param parameterization_regex: The compiled regex pattern to match.
-
-        @returns: The input string with all matches replaced with placeholders.
+        For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
         def _handle_regex_match(match: re.Match[str]) -> str:
@@ -315,7 +307,4 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        return parameterization_regex.sub(_handle_regex_match, input_str)
-
-    def parameterize_all(self, input_str: str) -> str:
-        return self.parametrize_w_regex(input_str, self._parameterization_regex)
+        return self._parameterization_regex.sub(_handle_regex_match, input_str)

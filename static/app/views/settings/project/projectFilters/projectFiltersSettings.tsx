@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
@@ -37,7 +37,6 @@ import filterGroups, {
 } from 'sentry/data/forms/inboundFilters';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -186,6 +185,8 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
 };
 
+type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
+
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
 type RowProps = {
@@ -194,142 +195,116 @@ type RowProps = {
   };
   onToggle: (
     data: RowProps['data'],
-    filters: RowState['subfilters'],
-    event: React.MouseEvent
+    filters: Set<string>,
+    event: React.ChangeEvent | React.MouseEvent
   ) => void;
   disabled?: boolean;
 };
 
-type RowState = {
-  error: boolean | Error;
-  loading: boolean;
-  subfilters: Set<string>;
-};
+function getActiveSubfilters() {
+  return new Set(
+    Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
+      key =>
+        !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
+    )
+  );
+}
 
-class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props: RowProps) {
-    super(props);
-
-    let initialSubfilters: any;
-    if (props.data.active === true) {
-      initialSubfilters = new Set(
-        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
-              .legacy
-        )
-      );
-    } else if (props.data.active === false) {
-      initialSubfilters = new Set<string>();
-    } else {
-      initialSubfilters = new Set(props.data.active);
-    }
-
-    this.state = {
-      loading: false,
-      error: false,
-      subfilters: initialSubfilters,
-    };
+function getInitialSubfilters(active: boolean | string[]): Set<string> {
+  switch (active) {
+    case true:
+      return getActiveSubfilters();
+    case false:
+      return new Set();
+    default:
+      return new Set(active);
   }
+}
 
-  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
-    let {subfilters} = this.state;
+function LegacyBrowserFilterRow({data, disabled, onToggle}: RowProps) {
+  const [subfilters, setSubfilters] = useState(getInitialSubfilters(data.active));
 
-    if (subfilter === true) {
-      subfilters = new Set(
-        Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key =>
-            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
-              .legacy
-        )
-      );
-    } else if (subfilter === false) {
-      subfilters = new Set();
-    } else if (subfilters.has(subfilter)) {
-      subfilters.delete(subfilter);
-    } else {
-      subfilters.add(subfilter);
-    }
+  const createHandleToggleSubfilters = (subfilter: boolean | string) => {
+    return (e: React.ChangeEvent | React.MouseEvent) => {
+      let newSubfilters = new Set(subfilters);
 
-    this.setState(
-      {
-        subfilters: new Set(subfilters),
-      },
-      () => {
-        this.props.onToggle(this.props.data, subfilters, e);
+      if (subfilter === true) {
+        newSubfilters = getActiveSubfilters();
+      } else if (subfilter === false) {
+        newSubfilters = new Set();
+      } else if (newSubfilters.has(subfilter)) {
+        newSubfilters.delete(subfilter);
+      } else {
+        newSubfilters.add(subfilter);
       }
-    );
+
+      setSubfilters(newSubfilters);
+      onToggle(data, newSubfilters, e);
+    };
   };
 
-  render() {
-    const {disabled} = this.props;
-    return (
+  return (
+    <div>
       <div>
-        <div>
-          <Flex align="center" gap="xs">
-            <FieldLabel disabled={disabled}>
-              {t('Filter out legacy browsers')}:
-            </FieldLabel>
-            <Grid flow="column" align="center" gap="md">
-              <Button
-                priority="link"
-                onClick={this.handleToggleSubfilters.bind(this, true)}
-                disabled={disabled}
-              >
-                {t('All')}
-              </Button>
-              <Button
-                priority="link"
-                onClick={this.handleToggleSubfilters.bind(this, false)}
-                disabled={disabled}
-              >
-                {t('None')}
-              </Button>
-            </Grid>
-          </Flex>
-          <FieldHelp>
-            {t(
-              'The browser versions filtered out will be periodically evaluated and updated.'
-            )}
-          </FieldHelp>
-        </div>
-        <FilterGrid>
-          {Object.keys(LEGACY_BROWSER_SUBFILTERS)
-            .filter(key => {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-                return true;
-              }
-              return this.state.subfilters.has(key);
-            })
-            .map(key => {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
-              return (
-                <FilterGridItem key={key}>
-                  <FilterGridIcon src={subfilter.icon} />
-                  <div>
-                    <FilterTitle>{subfilter.title}</FilterTitle>
-                    <FilterDescription>{subfilter.helpText}</FilterDescription>
-                  </div>
-                  <Switch
-                    aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    checked={this.state.subfilters.has(key)}
-                    disabled={disabled}
-                    css={css`
-                      flex-shrink: 0;
-                      margin-left: 6;
-                    `}
-                    onChange={this.handleToggleSubfilters.bind(this, key)}
-                    size="lg"
-                  />
-                </FilterGridItem>
-              );
-            })}
-        </FilterGrid>
+        <Flex align="center" gap="xs">
+          <FieldLabel disabled={disabled}>{t('Filter out legacy browsers')}:</FieldLabel>
+          <Grid flow="column" align="center" gap="md">
+            <Button
+              priority="link"
+              onClick={createHandleToggleSubfilters(true)}
+              disabled={disabled}
+            >
+              {t('All')}
+            </Button>
+            <Button
+              priority="link"
+              onClick={createHandleToggleSubfilters(false)}
+              disabled={disabled}
+            >
+              {t('None')}
+            </Button>
+          </Grid>
+        </Flex>
+        <FieldHelp>
+          {t(
+            'The browser versions filtered out will be periodically evaluated and updated.'
+          )}
+        </FieldHelp>
       </div>
-    );
-  }
+      <FilterGrid>
+        {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
+          .filter(key => {
+            if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
+              return true;
+            }
+            return subfilters.has(key);
+          })
+          .map(key => {
+            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            return (
+              <FilterGridItem key={key}>
+                <FilterGridIcon src={subfilter.icon} />
+                <div>
+                  <FilterTitle>{subfilter.title}</FilterTitle>
+                  <FilterDescription>{subfilter.helpText}</FilterDescription>
+                </div>
+                <Switch
+                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
+                  checked={subfilters.has(key)}
+                  disabled={disabled}
+                  css={css`
+                    flex-shrink: 0;
+                    margin-left: 6;
+                  `}
+                  onChange={createHandleToggleSubfilters(key)}
+                  size="lg"
+                />
+              </FilterGridItem>
+            );
+          })}
+      </FilterGrid>
+    </div>
+  );
 }
 
 function CustomFilters({project, disabled}: {disabled: boolean; project: Project}) {
@@ -446,10 +421,10 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
       event,
       subfilters,
     }: {
-      event: React.MouseEvent;
+      event: React.ChangeEvent | React.MouseEvent;
       onBlur: FormFieldProps['onBlur'];
       onChange: FormFieldProps['onChange'];
-      subfilters: RowState['subfilters'];
+      subfilters: Set<string>;
     }) => {
       onChange?.(subfilters, event);
       onBlur?.(subfilters, event);
@@ -651,18 +626,18 @@ const NestedForm = styled(Form)<FormProps>`
 const FilterGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const FilterGridItem = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const FilterGridIcon = styled('img')`

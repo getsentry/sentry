@@ -19,7 +19,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow, IconOpen} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -438,13 +437,13 @@ const ImpactIndicatorIcon = styled(IconArrow)<{impact: number}>`
 const PanelHeaderRight = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   text-transform: none;
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
-  padding: ${space(1)};
-  margin-right: ${space(1)};
+  padding: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
   width: max-content;
@@ -460,6 +459,6 @@ const DSRulesTable = styled(PanelTable)`
 const NameColumnDetail = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   > strong {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;

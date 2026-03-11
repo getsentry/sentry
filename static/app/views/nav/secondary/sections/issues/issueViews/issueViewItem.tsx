@@ -8,14 +8,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewQueryCount';
@@ -79,7 +78,7 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
+  const {startInteraction, endInteraction, isInteractingRef} = useNavigationContext();
 
   return (
     <StyledReorderItem
@@ -225,7 +224,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 
   /* Hide the project icon on hover in favor of the drag handle */
   :hover {

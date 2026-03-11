@@ -20,7 +20,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -388,8 +387,10 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
+  gap: ${p => p.theme.space.xl};
+  ${p =>
+    p.isIssueAlert &&
+    `padding: ${p.theme.space['2xl']} ${p.theme.space.xl}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
@@ -431,16 +432,16 @@ const IconContainer = styled('div')`
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
 `;
 
 const MarginLeft = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space.lg};
 `;
 
 const DisabledAlertName = styled('span')`

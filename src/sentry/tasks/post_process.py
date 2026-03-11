@@ -23,8 +23,6 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
-from sentry.sentry_metrics.client import generic_metrics_backend
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -137,21 +135,6 @@ def _capture_event_stats(event: Event) -> None:
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
-
-
-def _update_escalating_metrics(event: Event) -> None:
-    """
-    Update metrics for escalating issues when an event is processed.
-    """
-    generic_metrics_backend.counter(
-        UseCaseID.ESCALATING_ISSUES,
-        org_id=event.project.organization_id,
-        project_id=event.project.id,
-        metric_name="event_ingested",
-        value=1,
-        tags={"group": str(event.group_id)},
-        unit=None,
-    )
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
@@ -497,14 +480,6 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
-def should_update_escalating_metrics(event: Event) -> bool:
-    return (
-        features.has("organizations:escalating-metrics-backend", event.project.organization)
-        and event.group is not None
-        and event.group.issue_type.should_detect_escalation()
-    )
-
-
 @instrumented_task(
     name="sentry.issues.tasks.post_process.post_process_group",
     namespace=ingest_errors_postprocess_tasks,
@@ -637,8 +612,6 @@ def post_process_group(
             group_event = update_event_group(event, group_state)
             bind_organization_context(event.project.organization)
             _capture_event_stats(event)
-            if should_update_escalating_metrics(event):
-                _update_escalating_metrics(event)
 
             group_event.occurrence = occurrence
 
@@ -1305,6 +1278,12 @@ def process_processing_errors_eap(job: PostProcessJob):
     produce_processing_errors_to_eap(event.project, event.data, processing_errors)
 
 
+def process_sourcemap_issue_detection(job: PostProcessJob):
+    from sentry.processing_errors.detection import detect_sourcemap_issues
+
+    detect_sourcemap_issues(job)
+
+
 def sdk_crash_monitoring(job: PostProcessJob):
     from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
@@ -1676,6 +1655,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         detect_base_urls_for_uptime,
         check_if_flags_sent,
         process_processing_errors_eap,
+        process_sourcemap_issue_detection,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

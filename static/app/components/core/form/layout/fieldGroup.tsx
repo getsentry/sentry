@@ -9,12 +9,12 @@ export function FieldGroup({
   title,
   children,
 }: {
-  title: React.ReactNode;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  title?: React.ReactNode;
 }) {
   return (
     <Panel>
-      <PanelHeader>{title}</PanelHeader>
+      {title ? <PanelHeader>{title}</PanelHeader> : null}
       <PanelBody>{children}</PanelBody>
     </Panel>
   );

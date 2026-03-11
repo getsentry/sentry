@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 
 export default Storybook.story('SecondaryNav', story => {
@@ -13,7 +12,7 @@ export default Storybook.story('SecondaryNav', story => {
 
     return (
       <Container>
-        <NavContextProvider>
+        <NavigationContextProvider>
           <StyledSecondaryNav>
             <SecondaryNav.Header>Section Title</SecondaryNav.Header>
             <SecondaryNav.Body>
@@ -75,14 +74,14 @@ export default Storybook.story('SecondaryNav', story => {
               </SecondaryNav.Item>
             </SecondaryNav.Footer>
           </StyledSecondaryNav>
-        </NavContextProvider>
+        </NavigationContextProvider>
       </Container>
     );
   });
 });
 
 const Container = styled(NegativeSpaceContainer)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const StyledSecondaryNav = styled(SecondaryNav)`

@@ -13,7 +13,9 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import (
+    get_sorted_code_mapping_configs,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -89,13 +91,13 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
-    branch_name: str | None = None
     pr_url: str | None = None
 
 
 class CodingAgentProviderType(StrEnum):
     CURSOR_BACKGROUND_AGENT = "cursor_background_agent"
     GITHUB_COPILOT_AGENT = "github_copilot_agent"
+    CLAUDE_CODE_AGENT = "claude_code_agent"
 
 
 class CodingAgentState(BaseModel):
@@ -106,6 +108,7 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+    integration_id: int | None = None
 
 
 class CodebaseState(BaseModel):
@@ -142,6 +145,7 @@ class CodingAgentStateUpdateRequest(BaseModel):
 
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
@@ -461,9 +465,11 @@ def has_project_connected_repos(
 
 def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -> dict[str, dict]:
     """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_get_project_preferences_request(
         BulkGetProjectPreferencesRequest(organization_id=organization_id, project_ids=project_ids),
         timeout=10,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -478,9 +484,11 @@ def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) 
     if not preferences:
         return
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_set_project_preferences_request(
         BulkSetProjectPreferencesRequest(organization_id=organization_id, preferences=preferences),
         timeout=15,
+        viewer_context=viewer_context,
     )
 
     if response.status >= 400:
@@ -532,7 +540,8 @@ def get_autofix_state(
         check_repo_access=check_repo_access,
         is_user_fetching=is_user_fetching,
     )
-    response = make_get_autofix_state_request(body)
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_get_autofix_state_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -828,7 +837,8 @@ def update_coding_agent_state(
 ) -> None:
     """Send coding agent state update to Seer.
 
-    Raises SeerApiError for non-2xx responses.
+    Errors are logged and swallowed so that callers iterating over
+    multiple agents are never interrupted by a single failed update.
     """
     updates = CodingAgentStateUpdate(
         status=status,
@@ -841,7 +851,21 @@ def update_coding_agent_state(
         updates=updates,
     )
 
-    response = make_update_coding_agent_state_request(update_data, timeout=30)
+    try:
+        response = make_update_coding_agent_state_request(update_data, timeout=30)
+    except Exception:
+        logger.exception(
+            "coding_agent.state_update_error",
+            extra={"agent_id": agent_id},
+        )
+        return
 
     if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+        logger.error(
+            "coding_agent.seer_update_error",
+            extra={
+                "agent_id": agent_id,
+                "status_code": response.status,
+                "response": response.data.decode("utf-8"),
+            },
+        )

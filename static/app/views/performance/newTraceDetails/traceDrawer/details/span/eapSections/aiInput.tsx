@@ -8,7 +8,6 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -119,14 +118,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         (message): message is Exclude<typeof message, null> =>
           message !== null && Boolean(message.content)
       );
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return messages;
   }
 }
@@ -137,6 +129,9 @@ function transformInputMessages(inputMessages: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, prompt} = json;
     if (system) {
@@ -155,14 +150,7 @@ function transformInputMessages(inputMessages: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -176,6 +164,9 @@ function transformPrompt(prompt: string): {
 } {
   try {
     const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, messages} = json;
     if (system) {
@@ -192,12 +183,7 @@ function transformPrompt(prompt: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -208,8 +194,10 @@ function transformPrompt(prompt: string): {
 /**
  * Transforms messages from the new parts-based format to the standard content format.
  * The new format uses a `parts` array with typed objects instead of a `content` field.
+ *
+ * Exported for testing purposes only.
  */
-function transformPartsMessages(messages: string): {
+export function transformPartsMessages(messages: string): {
   fixedInvalidJson: boolean;
   result: string | undefined;
 } {
@@ -258,14 +246,7 @@ function transformPartsMessages(messages: string): {
       result: JSON.stringify(transformed),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing gen_ai messages with parts format', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -463,10 +444,12 @@ export function AIInputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const originalMessagesLength = getTraceNodeAttribute(
@@ -499,9 +482,11 @@ export function AIInputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_INPUT}
       title={t('Input')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
@@ -655,5 +640,5 @@ const ButtonDivider = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(4)} 0;
+  margin: ${p => p.theme.space['3xl']} 0;
 `;

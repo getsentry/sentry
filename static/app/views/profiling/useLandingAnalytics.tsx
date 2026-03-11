@@ -36,10 +36,7 @@ export function useLandingAnalytics() {
 
   const dispatchedAnalytics = useRef(false);
 
-  const dataState: DataState = useMemo(
-    () => deriveFinalDataState(dataLoaded),
-    [dataLoaded]
-  );
+  const dataState = useMemo(() => deriveFinalDataState(dataLoaded), [dataLoaded]);
 
   useEffect(() => {
     if (

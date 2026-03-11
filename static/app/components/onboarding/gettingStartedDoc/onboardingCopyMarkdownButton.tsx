@@ -117,20 +117,32 @@ export function OnboardingCopyMarkdownButton({
   );
 }
 
-const FEATURE_FLAG = 'onboarding-copy-setup-instructions';
+type CopySetupInstructionsType = 'onboarding' | 'project_creation';
+
+const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
+  onboarding: 'onboarding-copy-setup-instructions',
+  project_creation: 'onboarding-copy-setup-instructions-project-creation',
+};
 
 /**
- * Feature-gated wrapper that renders its children only when the
- * `onboarding-copy-setup-instructions` flag is enabled. Includes spacing
- * so callsites don't render an empty Container when the flag is off.
+ * Returns whether the copy setup instructions button should be shown
+ * for the given context type.
  */
-export function useCopySetupInstructionsEnabled(): boolean {
+export function useCopySetupInstructionsEnabled(
+  type: CopySetupInstructionsType = 'onboarding'
+): boolean {
   const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAG);
+  return organization.features.includes(FEATURE_FLAGS[type]);
 }
 
-export function CopySetupInstructionsGate({children}: {children: React.ReactNode}) {
-  const enabled = useCopySetupInstructionsEnabled();
+export function CopySetupInstructionsGate({
+  children,
+  type,
+}: {
+  children: React.ReactNode;
+  type?: CopySetupInstructionsType;
+}) {
+  const enabled = useCopySetupInstructionsEnabled(type);
   if (!enabled) {
     return null;
   }

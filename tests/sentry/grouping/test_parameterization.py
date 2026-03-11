@@ -9,12 +9,12 @@ from sentry.grouping.parameterization import (
 
 @pytest.fixture
 def parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=False)
+    return Parameterizer(use_experimental_regexes=False)
 
 
 @pytest.fixture
 def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=True)
+    return Parameterizer(use_experimental_regexes=True)
 
 
 standard_cases = [
@@ -76,7 +76,11 @@ standard_cases = [
     ("date - datetime compressed T-separated", "20060102T150405", "<date>"),
     ("date - datetime compressed T-separated UTC", "20060102T150405Z", "<date>"),
     ("date - datetime compressed T-separated w offset", "20060102T150405+0100", "<date>"),
-    ("date - kitchen", "3:04PM", "<date>"),
+    ("date - kitchen uppercase without space", "11:21PM", "<date>"),
+    ("date - kitchen uppercase with space", "12:31 PM", "<date>"),
+    ("date - kitchen lowercase without space", "11:21pm", "<date>"),
+    ("date - kitchen lowercase with space", "12:31 pm", "<date>"),
+    ("date - kitchen 24-hour", "23:21", "<date>"),
     ("date - time", "15:04:05", "<date>"),
     ("date - basic", "Mon Jan 02, 1999", "<date>"),
     ("date - datetime compressed date", "20240220 11:55:33.546593", "<date>"),
@@ -98,11 +102,7 @@ standard_cases = [
         "tx274a77a8975c4a66aeb24-0052d95365-cluster01",
         "<swift_txn_id>",
     ),
-    (
-        "swift_txn_id - not matching prefix",
-        "ab274a77a8975c4a66aeb24-0052d95365",
-        "<hex>-0052d95365",
-    ),
+    ("swift_txn_id - missing prefix", "ab274a77a8975c4a66aeb24-0052d95365", "<hex>-<hex>"),
     ("hex with prefix - lowercase, 4 digits", "0x9af8", "<hex>"),
     ("hex with prefix - uppercase, 4 digits", "0x9AF8", "<hex>"),
     ("hex with prefix - lowercase, 8 digits", "0x9af8c3be", "<hex>"),
@@ -119,8 +119,8 @@ standard_cases = [
     ("hex without prefix - uppercase, 4 digits", "9AF8", "9AF8"),
     ("hex without prefix - lowercase, 8 digits", "9af8c3be", "<hex>"),
     ("hex without prefix - uppercase, 8 digits", "9AF8C3BE", "<hex>"),
-    ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "9af8c3be3a"),
-    ("hex without prefix - uppercase, 10 digits", "9AF8C3BE3A", "9AF8C3BE3A"),
+    ("hex without prefix - lowercase, 10 digits", "9af8c3be3a", "<hex>"),
+    ("hex without prefix - uppercase, 10 digits", "9AF8C3BE3A", "<hex>"),
     ("hex without prefix - lowercase, 16 digits", "9af8c3be3a1231fe", "<hex>"),
     ("hex without prefix - uppercase, 16 digits", "9AF8C3BE3A1231FE", "<hex>"),
     ("hex without prefix - lowercase, 24 digits", "9af8c3be3a1231fe1121acb1", "<hex>"),
@@ -133,6 +133,7 @@ standard_cases = [
     ("hex without prefix - uppercase, no numbers until later", "DEADBEEF 123", "DEADBEEF <int>"),
     ("hex without prefix - no letters, < 8 digits", "1234567", "<int>"),
     ("hex without prefix - no letters, 8+ digits", "12345678", "<hex>"),
+    ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit deadbeef", "commit deadbeef"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
     ("float", "0.23", "<float>"),
@@ -171,20 +172,20 @@ experimental_cases: list[tuple[str, str, str]] = [
 def test_default_parameterization(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) == expected
-    assert parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") == f"prefix {expected} suffix"
+    assert parameterizer.parameterize(input) == expected
+    assert parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_default_parameterizer_misses_experimental_cases(
     name: str, input: str, expected: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) != expected
-    assert parameterizer.parameterize_all(f"prefix {input}") != f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") != f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
+    assert parameterizer.parameterize(input) != expected
+    assert parameterizer.parameterize(f"prefix {input}") != f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") != f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
 @pytest.mark.skipif(
@@ -195,11 +196,11 @@ def test_default_parameterizer_misses_experimental_cases(
 def test_experimental_parameterization(
     name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
 ) -> None:
-    assert experimental_parameterizer.parameterize_all(input) == expected
-    assert experimental_parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert experimental_parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+    assert experimental_parameterizer.parameterize(input) == expected
+    assert experimental_parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert experimental_parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
     assert (
-        experimental_parameterizer.parameterize_all(f"prefix {input} suffix")
+        experimental_parameterizer.parameterize(f"prefix {input} suffix")
         == f"prefix {expected} suffix"
     )
 
@@ -212,12 +213,6 @@ def test_experimental_parameterization(
 # parameterization. (Remember to remove the last item in each tuple for the cases you fix.)
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
-    (
-        "git sha",
-        "commit a93c7d2",
-        "commit <git_sha>",
-        "commit a93c7d2",
-    ),
     (
         "int - number in word",
         "Encoding: utf-8",
@@ -263,5 +258,5 @@ incorrect_cases = [
 def test_incorrect_parameterization(
     name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
 ) -> None:
-    assert parameterizer.parameterize_all(input) != desired
-    assert parameterizer.parameterize_all(input) == actual
+    assert parameterizer.parameterize(input) != desired
+    assert parameterizer.parameterize(input) == actual

@@ -12,7 +12,6 @@ import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -144,13 +143,13 @@ export default AlertRuleIssuesList;
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 
   ${p =>
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p.theme.space.md} ${p.theme.space.xl};
       }
     `}
 `;
@@ -171,7 +170,7 @@ const TitleWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   min-width: 200px;
 `;
 

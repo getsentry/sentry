@@ -9,7 +9,6 @@ import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -162,17 +161,17 @@ const IssueTitleBody = styled(ContextBody)`
 
 const IssueContextContainer = styled(ContextContainer)`
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space.xl};
   }
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   text-transform: capitalize;
 `;
 
 const AssignedToBody = styled(ContextBody)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`

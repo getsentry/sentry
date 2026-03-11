@@ -13,7 +13,6 @@ import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -289,14 +288,14 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   box-shadow: unset;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
@@ -312,8 +311,8 @@ const KeyTransactionTitleWrapper = styled('div')`
 
 const StyledIconStar = styled(IconStar)`
   display: block;
-  margin-right: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const TransactionWrapper = styled('div')`

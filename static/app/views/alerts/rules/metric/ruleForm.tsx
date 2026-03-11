@@ -32,7 +32,6 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
   Confidence,
@@ -1640,14 +1639,15 @@ const Main = styled(Layout.Main)`
 `;
 
 const AlertListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  margin-bottom: -${space(1.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']} 0
+    ${p => p.theme.space['2xl']};
+  margin-bottom: -${p => p.theme.space.lg};
 `;
 
 const AlertName = styled(HeaderTitleLegend)`
@@ -1663,12 +1663,12 @@ const AlertInfo = styled('div')`
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const Aggregate = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

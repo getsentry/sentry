@@ -1021,7 +1021,7 @@ describe('isNewPayingCustomer', () => {
 });
 
 describe('getOnDemandCategories', () => {
-  const plan = PlanDetailsLookupFixture('am1_business')!;
+  const plan = PlanDetailsLookupFixture('am1_business');
   it('filters out unconfigurable categories for per-category budget mode', () => {
     const categories = getOnDemandCategories({
       plan,
@@ -1046,7 +1046,7 @@ describe('getOnDemandCategories', () => {
 
 describe('getOnDemandCategories - AM2 logBytes support', () => {
   it('does not include logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -1055,7 +1055,7 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
   });
 
   it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.SHARED,

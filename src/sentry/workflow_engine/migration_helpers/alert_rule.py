@@ -509,7 +509,7 @@ def create_workflow(
         enabled=True,
         created_by_id=user.id if user else None,
         owner_user_id=alert_rule.user_id,
-        owner_team=alert_rule.team,
+        owner_team_id=alert_rule.team_id,
         config={},
     )
 
@@ -525,7 +525,7 @@ def get_detector_field_values(
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
-        "owner_team": alert_rule.team,
+        "owner_team_id": alert_rule.team_id,
         "config": {
             "comparison_delta": alert_rule.comparison_delta,
             "detection_type": alert_rule.detection_type,

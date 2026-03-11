@@ -10,7 +10,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 import {
   getPerformanceBaseUrl,
@@ -45,10 +44,7 @@ function MissingPerformanceButtons({organization}: Props) {
       duration,
     });
   }
-  const domainView: DomainView | undefined = platformToDomainView(
-    projects,
-    selectedProjects
-  );
+  const domainView = platformToDomainView(projects, selectedProjects);
 
   return (
     <Feature
@@ -60,9 +56,10 @@ function MissingPerformanceButtons({organization}: Props) {
         <Button
           size="sm"
           priority="primary"
+          analyticsEventKey="project_detail.performance_setup_clicked"
+          analyticsEventName="Project Detail: Performance Start Setup Clicked"
           onClick={event => {
             event.preventDefault();
-            // TODO: add analytics here for this specific action.
             navigateTo(
               `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
               router
@@ -80,7 +77,12 @@ function MissingPerformanceButtons({organization}: Props) {
           doneUrl={DOCS_URL}
         >
           {({showModal}) => (
-            <Button size="sm" onClick={showModal}>
+            <Button
+              size="sm"
+              onClick={showModal}
+              analyticsEventKey="project_detail.performance_tour_clicked"
+              analyticsEventName="Project Detail: Performance Get Tour Clicked"
+            >
               {t('Get Tour')}
             </Button>
           )}

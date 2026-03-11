@@ -1,10 +1,13 @@
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const AI_GENERATIONS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+// input_tokens includes cached, output_tokens includes reasoning, so total is just the sum of both
+const SUM_ALL_TOKENS = `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) + sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -66,16 +69,16 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           conditions: AI_GENERATIONS_FILTER,
           fields: [
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `equation|(sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})) / (${SUM_ALL_TOKENS})`,
+            `equation|sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}) / (${SUM_ALL_TOKENS})`,
+            `equation|(sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})) / (${SUM_ALL_TOKENS})`,
+            `equation|sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}) / (${SUM_ALL_TOKENS})`,
           ],
           aggregates: [
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `equation|(sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})) / (${SUM_ALL_TOKENS})`,
+            `equation|sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED}) / (${SUM_ALL_TOKENS})`,
+            `equation|(sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS}) - sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})) / (${SUM_ALL_TOKENS})`,
+            `equation|sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING}) / (${SUM_ALL_TOKENS})`,
           ],
           columns: [],
           fieldAliases: [
@@ -84,7 +87,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             t('Output Tokens'),
             t('Reasoning Tokens'),
           ],
-          orderby: `-sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
+          orderby: '',
         },
       ],
     },
@@ -106,9 +109,10 @@ const MODELS_TABLE = {
       fields: [
         SpanFields.GEN_AI_REQUEST_MODEL,
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
@@ -116,9 +120,10 @@ const MODELS_TABLE = {
       ],
       aggregates: [
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
+        `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
@@ -131,6 +136,7 @@ const MODELS_TABLE = {
         t('Errors'),
         t('Avg'),
         t('P95'),
+        t('Cost'),
         t('Input Tokens'),
         t('Cached Tokens'),
         t('Output Tokens'),
@@ -151,7 +157,19 @@ const MODELS_TABLE = {
 export const AI_AGENTS_MODELS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
-  title: 'AI Agents Models',
-  filters: {},
+  title: 'AI Agents Model Details',
+  filters: {
+    globalFilter: [
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: 'gen_ai.request.model',
+          name: 'gen_ai.request.model',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+    ],
+  },
   widgets: [...FIRST_ROW_WIDGETS, MODELS_TABLE],
 };

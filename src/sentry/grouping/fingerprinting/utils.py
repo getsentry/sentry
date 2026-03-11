@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting.types import FingerprintInfo
-from sentry.grouping.utils import normalize_message_for_grouping
+from sentry.grouping.utils import get_canonical_message_from_event, normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -220,18 +220,20 @@ def resolve_fingerprint_variable(
     variable_key: str,
     event: Event,
     use_legacy_unknown_variable_handling: bool,
+    parameterize_message: bool = True,
 ) -> str | None:
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
-        message = (
-            get_path(event.data, "logentry", "formatted")
-            or get_path(event.data, "logentry", "message")
-            or get_path(event.data, "exception", "values", -1, "value")
-        )
+        message = get_canonical_message_from_event(event)
+
+        # Fingerprint variables can be used in custom titles, and there we want the original message
+        if not parameterize_message:
+            return message or "<no-message>"
+
         normalized_message = (
-            normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
+            normalize_message_for_grouping(message, event, reason="fingerprint", trim_message=False)
             if message
             else None
         )
@@ -332,7 +334,12 @@ def expand_title_template(
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`
         resolved_value = resolve_fingerprint_variable(
-            variable_key, event, use_legacy_unknown_variable_handling
+            variable_key,
+            event,
+            use_legacy_unknown_variable_handling,
+            # Parameterization is useful for grouping, but we want to show the real error message in
+            # the event/issue title
+            parameterize_message=False,
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we

@@ -43,3 +43,10 @@ class DetectorState(DefaultFieldsModel):
                 name="detector_state_unique_group_key",
             ),
         ]
+        indexes = [
+            models.Index(
+                fields=["is_triggered", "date_updated"],
+                condition=models.Q(is_triggered=True),
+                name="detector_state_triggered_date",
+            ),
+        ]
