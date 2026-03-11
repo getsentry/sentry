@@ -25,7 +25,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
-    ProjectContext,
     _project_key_errors_eap,
     _project_key_errors_snuba,
     _project_key_performance_issues_eap,
