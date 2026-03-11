@@ -502,7 +502,7 @@ class OrganizationDeletionTest(TestCase):
             assert UserOption.objects.filter(organization_id=org_id).exists()
 
         # Run cascades in the region, and then in control
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
             schedule_hybrid_cloud_foreign_key_jobs()
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
             schedule_hybrid_cloud_foreign_key_jobs_control()

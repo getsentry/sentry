@@ -1657,8 +1657,8 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         channel = {"name": channelName}
         with self.mock_conversations_info(channel):
             with (
-                assume_test_silo_mode(SiloMode.REGION),
-                override_settings(SILO_MODE=SiloMode.REGION),
+                assume_test_silo_mode(SiloMode.CELL),
+                override_settings(SILO_MODE=SiloMode.CELL),
             ):
                 resp = self._organization_alert_rule_api_call(
                     channelName=channelName, channelID=channelID
@@ -1683,8 +1683,8 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         channel = {"name": otherChannel}
         with self.mock_conversations_info(channel):
             with (
-                assume_test_silo_mode(SiloMode.REGION),
-                override_settings(SILO_MODE=SiloMode.REGION),
+                assume_test_silo_mode(SiloMode.CELL),
+                override_settings(SILO_MODE=SiloMode.CELL),
             ):
                 resp = self._organization_alert_rule_api_call(
                     channelName=channelName, channelID=channelID

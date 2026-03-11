@@ -54,7 +54,7 @@ class SiloClientTest(TestCase):
             assert client.base_url is not None
             assert self.region.address in client.base_url
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
     def test_init_clients_from_region(self) -> None:
         with raises(SiloClientError):

@@ -60,7 +60,7 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
 def _configure_test_env_regions() -> None:

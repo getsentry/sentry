@@ -47,7 +47,7 @@ class ControlReplicaService(RpcService):
 
 class RegionReplicaService(RpcService):
     key = "region_replica"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod

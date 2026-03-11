@@ -66,7 +66,7 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
     name="sentry.tasks.email_unlink_notifications",
     namespace=auth_tasks,
     processing_deadline_duration=90,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def email_unlink_notifications(
     org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
@@ -200,7 +200,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     retry=Retry(
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):

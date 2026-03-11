@@ -37,7 +37,7 @@ logger = log_context.get_logger(__name__)
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
     retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def process_workflow_activity(activity_id: int, group_id: int, detector_id: int) -> None:
@@ -89,7 +89,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=60,
     retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(
     timeouts=True,

@@ -39,7 +39,7 @@ def reattempt_deletions_control() -> None:
 @instrumented_task(
     name="sentry.deletions.tasks.reattempt_deletions",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def reattempt_deletions() -> None:
     _reattempt_deletions(RegionScheduledDeletion)
@@ -124,7 +124,7 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
         times_exceeded=LastAction.Discard,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(DeleteAborted,), timeouts=True)
 def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:

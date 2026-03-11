@@ -72,7 +72,7 @@ def build_trigger_action_task_params(
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
 def trigger_action(
