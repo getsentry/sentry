@@ -192,7 +192,7 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
       aggregates: [`avg(${SpanFields.APP_START_COLD})`],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: TRANSACTION_OP_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -219,7 +219,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
       aggregates: [`avg(${SpanFields.APP_START_WARM})`],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: TRANSACTION_OP_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {

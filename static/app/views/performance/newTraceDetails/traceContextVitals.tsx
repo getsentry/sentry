@@ -81,7 +81,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
         return (
           <div key={vitalKey}>
             <strong>
-              {`${vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}`}:
+              {vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}:
             </strong>{' '}
             <span>{formattedValue}</span>
             {vital?.score !== undefined &&
@@ -144,7 +144,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   return (
     <Flex>
       <VitalPillName status={status}>
-        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+        <Tooltip title={toolTipTitle}>{acronym}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </Flex>

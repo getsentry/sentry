@@ -202,7 +202,7 @@ function filterItems(items: TimeRangeItem[], inputValue: string): TimeRangeItem[
   return items.filter(item =>
     (typeof item.textValue === 'string' && item.textValue.length > 0
       ? item.textValue
-      : `${item.value}`
+      : item.value
     )
       .toLowerCase()
       .includes(inputValue.toLowerCase())

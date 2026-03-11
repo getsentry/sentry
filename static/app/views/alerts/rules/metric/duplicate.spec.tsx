@@ -83,7 +83,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${rule.id}`,
+            duplicateRuleId: rule.id,
           },
         },
       },
@@ -138,7 +138,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${rule.id}`,
+            duplicateRuleId: rule.id,
           },
         },
       },
@@ -182,7 +182,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${ruleWithExtrapolation.id}`,
+            duplicateRuleId: ruleWithExtrapolation.id,
           },
         },
       },
