@@ -30,7 +30,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Autofix Agent'), key: 'fixes'},
+  {title: t('Autofix Handoff'), key: 'fixes'},
   {
     title: (
       <Flex gap="sm" align="center">
