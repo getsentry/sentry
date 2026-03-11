@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 
-import stackedNavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
+import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {
@@ -33,7 +33,7 @@ import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
-export const enum StackedNavigationTour {
+export const enum NavigationTour {
   ISSUES = 'issues',
   EXPLORE = 'explore',
   DASHBOARDS = 'dashboards',
@@ -44,40 +44,40 @@ export const enum StackedNavigationTour {
 // Started rolling out to GA users on June 18, 2025
 const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
 
-const ORDERED_STACKED_NAVIGATION_TOUR = [
-  StackedNavigationTour.ISSUES,
-  StackedNavigationTour.EXPLORE,
-  StackedNavigationTour.DASHBOARDS,
-  StackedNavigationTour.INSIGHTS,
-  StackedNavigationTour.SETTINGS,
+const ORDERED_NAVIGATION_TOUR = [
+  NavigationTour.ISSUES,
+  NavigationTour.EXPLORE,
+  NavigationTour.DASHBOARDS,
+  NavigationTour.INSIGHTS,
+  NavigationTour.SETTINGS,
 ];
 
-export const STACKED_NAVIGATION_TOUR_CONTENT = {
-  [StackedNavigationTour.ISSUES]: {
+export const NAVIGATION_TOUR_CONTENT = {
+  [NavigationTour.ISSUES]: {
     description: t(
       'Issues are problems detected by Sentry. Code breaks — we tell you where, when, and why.'
     ),
     title: t('See what broke'),
   },
-  [StackedNavigationTour.EXPLORE]: {
+  [NavigationTour.EXPLORE]: {
     description: t(
       'Create queries, investigate data exemplars, and save charts for dashboards. Explore is where you turn raw data into answers.'
     ),
     title: t('Dig into data'),
   },
-  [StackedNavigationTour.DASHBOARDS]: {
+  [NavigationTour.DASHBOARDS]: {
     description: t(
       'Dashboards enable you to display key insights all on one page. Create new or find existing custom dashboards here.'
     ),
     title: t('Track what matters'),
   },
-  [StackedNavigationTour.INSIGHTS]: {
+  [NavigationTour.INSIGHTS]: {
     description: t(
       'Project and domain insights live here, giving you prebuilt looks into your app’s health. '
     ),
     title: t('Know what’s happening'),
   },
-  [StackedNavigationTour.SETTINGS]: {
+  [NavigationTour.SETTINGS]: {
     description: t(
       'Stats & Usage is now under Organization Settings. We’ve consolidated this page so you can see all your configurations in one place.'
     ),
@@ -85,15 +85,16 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
+// Note: this key is used as an analytics/assistant guide identifier and must
+// remain stable — do not rename it even if the surrounding code is refactored.
+const NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-const StackedNavigationTourContext =
-  createContext<TourContextType<StackedNavigationTour> | null>(null);
+const NavigationTourContext = createContext<TourContextType<NavigationTour> | null>(null);
 
-export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
-  const tourContext = useContext(StackedNavigationTourContext);
+export function useNavigationTour(): TourContextType<NavigationTour> {
+  const tourContext = useContext(NavigationTourContext);
   if (!tourContext) {
-    throw new Error('Must be used within a TourContextProvider<StackedNavigationTour>');
+    throw new Error('Must be used within a TourContextProvider<NavigationTour>');
   }
   return tourContext;
 }
@@ -101,10 +102,10 @@ export function useStackedNavigationTour(): TourContextType<StackedNavigationTou
 export function NavigationTourElement({
   children,
   ...props
-}: Omit<TourElementProps<StackedNavigationTour>, 'tourContext'>) {
+}: Omit<TourElementProps<NavigationTour>, 'tourContext'>) {
   return (
-    <TourElement<StackedNavigationTour>
-      tourContext={StackedNavigationTourContext}
+    <TourElement<NavigationTour>
+      tourContext={NavigationTourContext}
       position="right-start"
       {...props}
     >
@@ -113,22 +114,22 @@ export function NavigationTourElement({
   );
 }
 
-function useStackedNavigationTourCompleted() {
+function useNavigationTourCompleted() {
   const {data: assistantData} = useAssistant();
 
   return useMemo(() => {
-    const stackedNavigationTourData = assistantData?.find(
-      item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY
+    const navigationTourData = assistantData?.find(
+      item => item.guide === NAVIGATION_TOUR_GUIDE_KEY
     );
 
-    return stackedNavigationTourData?.seen ?? true;
+    return navigationTourData?.seen ?? true;
   }, [assistantData]);
 }
 
 export function NavigationTourProvider({children}: {children: React.ReactNode}) {
-  const {setShowTourReminder} = useNavigationTourContext();
+  const {setShowTourReminder} = useNavigationTourReminderContext();
   const organization = useOrganization();
-  const isStackedNavigationTourCompleted = useStackedNavigationTourCompleted();
+  const isNavigationTourCompleted = useNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -157,10 +158,10 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   }, [navigate, setShowTourReminder]);
 
   const onStepChange = useCallback(
-    (stepId: StackedNavigationTour) => {
+    (stepId: NavigationTour) => {
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
-        case StackedNavigationTour.ISSUES:
+        case NavigationTour.ISSUES:
           if (activeGroup !== PrimaryNavigationGroup.ISSUES) {
             const target = normalizeUrl({
               pathname: `/${prefix}/issues/`,
@@ -169,7 +170,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case StackedNavigationTour.EXPLORE:
+        case NavigationTour.EXPLORE:
           if (activeGroup !== PrimaryNavigationGroup.EXPLORE) {
             const target = normalizeUrl({
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
@@ -178,7 +179,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case StackedNavigationTour.DASHBOARDS:
+        case NavigationTour.DASHBOARDS:
           if (activeGroup !== PrimaryNavigationGroup.DASHBOARDS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/dashboards/`,
@@ -187,7 +188,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case StackedNavigationTour.INSIGHTS:
+        case NavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavigationGroup.INSIGHTS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/insights/frontend/`,
@@ -196,7 +197,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case StackedNavigationTour.SETTINGS:
+        case NavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavigationGroup.SETTINGS) {
             const target = normalizeUrl({
               pathname: `/settings/${organization.slug}/`,
@@ -213,11 +214,11 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   );
 
   return (
-    <TourContextProvider<StackedNavigationTour>
-      tourKey={STACKED_NAVIGATION_TOUR_GUIDE_KEY}
-      isCompleted={isStackedNavigationTourCompleted}
-      orderedStepIds={ORDERED_STACKED_NAVIGATION_TOUR}
-      TourContext={StackedNavigationTourContext}
+    <TourContextProvider<NavigationTour>
+      tourKey={NAVIGATION_TOUR_GUIDE_KEY}
+      isCompleted={isNavigationTourCompleted}
+      orderedStepIds={ORDERED_NAVIGATION_TOUR}
+      TourContext={NavigationTourContext}
       onStartTour={onStartTour}
       onEndTour={onEndTour}
       onStepChange={onStepChange}
@@ -230,7 +231,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-const NavigationTourContext = createContext<{
+const NavigationTourReminderContext = createContext<{
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
 }>({
@@ -238,14 +239,22 @@ const NavigationTourContext = createContext<{
   setShowTourReminder: () => {},
 });
 
-function useNavigationTourContext(): {
+function useNavigationTourReminderContext(): {
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
 } {
-  return useContext(NavigationTourContext);
+  const context = useContext(NavigationTourReminderContext);
+  if (!context) {
+    throw new Error('Must be used within a NavigationTourReminderContextProvider');
+  }
+  return context;
 }
 
-export function NavigationTourContextProvider({children}: {children: React.ReactNode}) {
+export function NavigationTourReminderContextProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [showTourReminder, setShowTourReminder] = useState(false);
 
   const contextValue = useMemo(
@@ -254,14 +263,14 @@ export function NavigationTourContextProvider({children}: {children: React.React
   );
 
   return (
-    <NavigationTourContext.Provider value={contextValue}>
+    <NavigationTourReminderContext.Provider value={contextValue}>
       {children}
-    </NavigationTourContext.Provider>
+    </NavigationTourReminderContext.Provider>
   );
 }
 
-export function StackedNavigationTourReminder({children}: {children: React.ReactNode}) {
-  const {showTourReminder, setShowTourReminder} = useNavigationTourContext();
+export function NavigationTourReminder({children}: {children: React.ReactNode}) {
+  const {showTourReminder, setShowTourReminder} = useNavigationTourReminderContext();
 
   if (!showTourReminder) {
     return children;
@@ -295,23 +304,23 @@ export function useNavigationTourModal() {
   const user = useUser();
   const organization = useOrganization();
   const hasOpenedTourModal = useRef(false);
-  const {startTour, endTour} = useStackedNavigationTour();
+  const {startTour, endTour} = useNavigationTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
   const {mutate: mutateAssistant} = useMutateAssistant();
   const [localTourState, setLocalTourState] = useLocalStorageState(
-    STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+    NAVIGATION_TOUR_GUIDE_KEY,
     {hasSeen: false}
   );
 
-  // We don't want to show the tour modal for new users that were forced into the new stacked navigation.
+  // We don't want to show the tour modal for new users that were forced into the new  navigation.
   const shouldSkipTourForNewUsers =
     new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
-    assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
-      ?.seen === false &&
+    assistantData?.find(item => item.guide === NAVIGATION_TOUR_GUIDE_KEY)?.seen ===
+      false &&
     !shouldSkipTourForNewUsers &&
     !localTourState.hasSeen &&
     !process.env.IS_ACCEPTANCE_TEST;
@@ -319,7 +328,7 @@ export function useNavigationTourModal() {
   const dismissTour = useCallback(() => {
     trackAnalytics('navigation.tour_modal_dismissed', {organization});
     mutateAssistant({
-      guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+      guide: NAVIGATION_TOUR_GUIDE_KEY,
       status: 'dismissed',
     });
     setLocalTourState({hasSeen: true});
@@ -333,7 +342,7 @@ export function useNavigationTourModal() {
       openModal(
         props => (
           <StartTourModal
-            img={{src: stackedNavigationTourSvg, alt: t('Stacked Navigation Tour')}}
+            img={{src: NavigationTourSvg, alt: t('Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'
@@ -365,7 +374,7 @@ export function useNavigationTourModal() {
   ]);
 }
 
-const NAVIGATION_TOUR_REFERRER = 'navigation-tour';
+const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 export function useIsNavigationTourActive() {
   const location = useLocation();

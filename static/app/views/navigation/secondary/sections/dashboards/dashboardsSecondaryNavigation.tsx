@@ -11,7 +11,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import ProjectIcon from 'sentry/views/navigation/projectIcon';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
@@ -121,7 +120,7 @@ function StarredDashboardItems({
         to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
         analyticsItemName="dashboard_starred_item"
         leadingItems={
-          <ProjectIcon
+          <SecondaryNavigation.ProjectIcon
             projectPlatforms={dashboardProjectPlatforms}
             allProjects={dashboard.projects?.length === 1 && dashboard.projects[0] === -1}
           />

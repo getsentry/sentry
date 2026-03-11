@@ -45,7 +45,7 @@ export default function PreventSecondaryNavigation() {
         </SecondaryNavigation.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNavigation.Section id="prevent-configure" title={t('Configure')}>
-            <SecondaryNavigation.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
+            <SecondaryNavigation.Item to={tokensPathName} activeTo={tokensPathName}>
               {t('Tokens')}
             </SecondaryNavigation.Item>
           </SecondaryNavigation.Section>

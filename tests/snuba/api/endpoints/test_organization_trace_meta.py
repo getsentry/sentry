@@ -164,6 +164,74 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["span_count"] == 19
         assert data["span_count_map"]["http.server"] == 19
 
+    def test_with_errors_eap_eval_not_allowlisted_uses_snuba(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        group = self.create_group(project=self.gen1_project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.gen1_project,
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    occurrence_type="error",
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["errors"] == 3
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
+    def test_with_errors_eap_allowlisted_uses_eap(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        group = self.create_group(project=self.gen1_project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.gen1_project,
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    occurrence_type="error",
+                ),
+            ]
+        )
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.count_errors"
+                ],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client.get(
+                    self.url,
+                    data={"project": -1},
+                    format="json",
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["errors"] == 1
+        assert data["performance_issues"] == 2
+        assert data["span_count"] == 19
+        assert data["span_count_map"]["http.server"] == 19
+
     def test_with_default(self) -> None:
         self.load_trace()
         self.load_default()

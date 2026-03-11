@@ -21,7 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
 from sentry.taskworker.task import Task
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 
 logger = logging.getLogger("sentry.relocation")
 
@@ -183,7 +183,7 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
     processing_deadline_duration=60,
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:
-    log_context = {"id": transfer_id, "silo": "region", "region": get_local_region().name}
+    log_context = {"id": transfer_id, "silo": "region", "region": get_local_cell().name}
 
     try:
         transfer = RegionRelocationTransfer.objects.get(id=transfer_id)

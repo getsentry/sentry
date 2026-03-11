@@ -528,7 +528,9 @@ async function main() {
     );
 
     console.log(
-      `${colors.dim(`\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff`)}`
+      colors.dim(
+        `\n📝 Note: Only showing type issues on lines that were literally added (+) or removed (-) in git diff`
+      )
     );
 
     // Compare any-typed symbols (only in actually modified code)

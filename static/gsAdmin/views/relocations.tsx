@@ -27,7 +27,7 @@ const getRow = (row: Relocation) => {
       {titleCase(row.step)}
     </td>,
     <td key="pause" style={{textAlign: 'center'}}>
-      {row.scheduledPauseAtStep ? `${titleCase(row.scheduledPauseAtStep)}` : '--'}
+      {row.scheduledPauseAtStep ? titleCase(row.scheduledPauseAtStep) : '--'}
     </td>,
     <td key="owner" style={{textAlign: 'right'}}>
       {row.owner ? (

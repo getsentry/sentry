@@ -15,8 +15,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
-import {OrganizationDropdown} from 'sentry/views/navigation/organizationDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 

@@ -63,7 +63,7 @@ export function UserDropdown() {
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
-      zIndex={theme.zIndex.sidebarDropdownMenu}
+      zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={isMobile ? 'bottom' : 'right-end'}
       minMenuWidth={200}

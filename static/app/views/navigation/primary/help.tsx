@@ -8,11 +8,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
-import {SidebarMenu} from 'sentry/views/navigation/primary/components';
 import {
-  StackedNavigationTourReminder,
-  useStackedNavigationTour,
-} from 'sentry/views/navigation/tour/tour';
+  NavigationTourReminder,
+  useNavigationTour,
+} from 'sentry/views/navigation/navigationTour';
+import {SidebarMenu} from 'sentry/views/navigation/primary/components';
 
 function getContactSupportItem({
   organization,
@@ -50,11 +50,11 @@ export function PrimaryNavigationHelp() {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
-  const {startTour} = useStackedNavigationTour();
+  const {startTour} = useNavigationTour();
 
   return (
     <SidebarMenu
-      triggerWrap={StackedNavigationTourReminder}
+      triggerWrap={NavigationTourReminder}
       size="sm"
       items={[
         {

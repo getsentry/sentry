@@ -241,7 +241,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -299,7 +299,7 @@ describe('AssigneeSelectorDropdown', () => {
         name: TEAM_1.slug,
         type: 'team',
       },
-      id: `${TEAM_1.id}`,
+      id: TEAM_1.id,
       type: 'team',
       suggestedAssignee: undefined,
     });
@@ -358,7 +358,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -389,7 +389,7 @@ describe('AssigneeSelectorDropdown', () => {
     );
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: undefined,
     });
@@ -495,9 +495,9 @@ describe('AssigneeSelectorDropdown', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
-    expect(await screen.findByText(`${USER_2.name}`)).toBeInTheDocument();
+    expect(await screen.findByText(USER_2.name)).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByText(`${USER_2.name}`));
+    await userEvent.click(await screen.findByText(USER_2.name));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
@@ -540,7 +540,7 @@ describe('AssigneeSelectorDropdown', () => {
       expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
-    expect(await screen.findByText(`${USER_4.name}`)).toBeInTheDocument();
+    expect(await screen.findByText(USER_4.name)).toBeInTheDocument();
   });
 
   it('successfully shows suggested assignees and suggestion reason', async () => {
@@ -609,7 +609,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_2, {
       assignee: USER_1,
-      id: `${USER_1.id}`,
+      id: USER_1.id,
       type: 'user',
       suggestedAssignee: expect.objectContaining({id: USER_1.id}),
     });

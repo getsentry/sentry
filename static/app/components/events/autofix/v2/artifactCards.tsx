@@ -33,6 +33,7 @@ import {
 } from 'sentry/components/group/assigneeSelector';
 import Panel from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
+import TimeSince from 'sentry/components/timeSince';
 import {
   IconCheckmark,
   IconChevron,
@@ -834,7 +835,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
   return (
     <ArtifactCard
-      title={t('Coding Agent')}
+      title={getProviderDisplayName(agents[0]?.provider ?? 'Coding Agent')}
       icon={<IconCode size="md" variant="accent" />}
     >
       <Flex direction="column" gap="xl">
@@ -844,7 +845,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
               <Flex direction="column" gap="xs">
                 <Text size="lg">{agent.name}</Text>
                 <Text variant="muted" size="sm">
-                  {getProviderDisplayName(agent.provider)}
+                  <TimeSince date={agent.started_at} />
                 </Text>
               </Flex>
               <CodingAgentStatusTag $status={agent.status}>

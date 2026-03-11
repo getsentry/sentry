@@ -216,9 +216,7 @@ test-tools:
 # Running Locally: Run `devservices up` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	python3 -b -m pytest tests/symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/javascript/ --reuse-db -vv -m symbolicator
-	python3 -b -m pytest tests/relay_integration/lang/java/ --reuse-db -vv -m symbolicator
+	python3 -b -m pytest tests/symbolicator tests/relay_integration/lang/javascript/ tests/relay_integration/lang/java/ tests/sentry/ -m symbolicator --reuse-db -vv --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
 	@echo ""
 
 test-acceptance:

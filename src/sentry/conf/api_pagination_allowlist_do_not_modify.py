@@ -90,7 +90,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectStatsEndpoint",
     "ProjectSymbolSourcesEndpoint",
     "ProjectTagsEndpoint",
-    "ProjectUserStatsEndpoint",
     "ProjectUsersEndpoint",
     "ReleaseThresholdEndpoint",
     "SentryAppInstallationServiceHookProjectsEndpoint",

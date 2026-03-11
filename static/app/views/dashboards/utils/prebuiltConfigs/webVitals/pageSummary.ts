@@ -15,7 +15,9 @@ export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     {
       id: 'score-breakdown-chart',
       title: t('Score Breakdown'),
-      description: `${t(`Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`)}`,
+      description: t(
+        `Each Web Vital score contributes a different amount to the total score. Refer to the Performance Score wheel for total contribution.`
+      ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '5m',
