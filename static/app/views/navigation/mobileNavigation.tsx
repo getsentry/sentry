@@ -51,6 +51,7 @@ export function MobileNavigation() {
 
   return (
     <Flex
+      as="header"
       direction="row"
       align="center"
       height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
@@ -117,6 +118,7 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
   return createPortal(
     <Flex
       ref={ref}
+      as="nav"
       aria-label={props.label}
       direction="column"
       background="tertiary"
