@@ -209,6 +209,14 @@ export function SeerAutomationSettings() {
                     ),
                     type: 'boolean',
                     defaultValue: true, // See ENABLE_SEER_CODING_DEFAULT in sentry/src/sentry/constants.py
+                    disabled:
+                      !canWrite ||
+                      organization.features.includes('seer-disable-coding-setting'),
+                    disabledReason: organization.features.includes(
+                      'seer-disable-coding-setting'
+                    )
+                      ? t('Code generation is managed by your organization.')
+                      : undefined,
                   },
                 ],
               },
