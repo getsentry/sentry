@@ -200,7 +200,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/data-browsing
@@ -220,7 +219,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
