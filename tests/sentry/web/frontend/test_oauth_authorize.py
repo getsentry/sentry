@@ -1674,7 +1674,7 @@ class OAuthAuthorizeSecurityTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user, application=self.application)
         assert grant is not None
         # organization_id may or may not be set depending on default behavior - we just verify grant exists
-        
+
     def test_redirect_uses_normalized_uri(self) -> None:
         """The redirect Location must use the normalized URI, not the raw input.
 
