@@ -1730,3 +1730,62 @@ class OAuthAuthorizeSecurityTest(TestCase):
         # Traversal must be resolved: /callback/a/../b → /callback/b
         assert ".." not in parsed.path
         assert parsed.path.startswith("/callback/b")
+
+
+@control_silo_test
+class OAuthAuthorizeReplayDebuggerCustomSchemeTest(TestCase):
+    """Smoke tests for the sentry-replay-debugger:// custom URI scheme.
+
+    The sentry-replay-debugger:// scheme uses the same code path as sentry-apple://.
+    These tests verify the scheme is accepted and redirects work correctly.
+    See OAuthAuthorizeCustomSchemeTest for comprehensive custom scheme coverage.
+    """
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/authorize/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.custom_uri = "sentry-replay-debugger://sentry.io/auth"
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris=self.custom_uri
+        )
+
+    def test_code_flow_approve(self) -> None:
+        """Test that the sentry-replay-debugger:// scheme is accepted for authorization code flow."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&redirect_uri={self.custom_uri}&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.redirect_uri == self.custom_uri
+
+        assert resp.status_code == 302
+        assert resp["Location"].startswith("sentry-replay-debugger://")
+        assert f"code={grant.code}" in resp["Location"]
+
+    def test_token_flow_approve(self) -> None:
+        """Test that the sentry-replay-debugger:// scheme is accepted for implicit grant flow."""
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=token&redirect_uri={self.custom_uri}&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        token = ApiToken.objects.get(user=self.user)
+        assert token.application == self.application
+        assert resp.status_code == 302
+        assert resp["Location"].startswith("sentry-replay-debugger://")
+        assert "access_token=" in resp["Location"]

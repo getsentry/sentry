@@ -7,6 +7,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import RepoProviderIcon from 'sentry/components/repositories/repoProviderIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,7 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RepoDetailsForm from 'getsentry/views/seerAutomation/components/repoDetails/repoDetailsForm';
-import RepoProviderIcon from 'getsentry/views/seerAutomation/components/repoProviderIcon';
 import useRepositoryWithSettings from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 export default function SeerRepoDetails() {
