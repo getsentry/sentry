@@ -13,7 +13,7 @@ import {
   isRootCauseArtifact,
   isSolutionArtifact,
   useExplorerAutofix,
-  type AutofixArtifacts,
+  type AutofixArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -153,7 +153,7 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
   }, [startStep, openSeerDrawer]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="md">
       <Flex
         border="muted"
         radius="md"
@@ -194,7 +194,7 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
 }
 
 interface AutofixPreviewsProps {
-  artifacts: AutofixArtifacts[];
+  artifacts: AutofixArtifact[];
   event: Event;
   group: Group;
   project: Project;
