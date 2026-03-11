@@ -73,7 +73,6 @@ def fetch_alert_rule(
             DetailedWorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
         )
         return Response(serialized)
-    # Serialize Alert Rule
 
     assert isinstance(alert_rule, AlertRule)
     serialized_rule = serialize(

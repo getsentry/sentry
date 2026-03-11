@@ -1,12 +1,15 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializerResponse,
+    DetailedAlertRuleSerializerResponse,
+)
 from sentry.incidents.endpoints.serializers.utils import (
     get_fake_id_from_object_id,
     get_object_id_from_fake_id,
@@ -411,11 +414,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "id": str(alert_rule_id),
             "name": obj.name,
             "organizationId": str(obj.project.organization_id),
-            "status": (
-                AlertRuleStatus.PENDING.value
-                if obj.enabled is True
-                else AlertRuleStatus.DISABLED.value
-            ),
+            "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),
             "query": attrs.get("query"),
@@ -473,8 +472,15 @@ class DetailedWorkflowEngineDetectorSerializer(WorkflowEngineDetectorSerializer)
             expand = list(expand) + ["eventTypes"]
         super().__init__(expand=expand, prepare_component_fields=prepare_component_fields)
 
-    def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
-        data = super().serialize(obj, attrs, user, **kwargs)
+    def serialize(
+        self, obj: Detector, attrs, user, **kwargs
+    ) -> DetailedAlertRuleSerializerResponse:
+        # This is a bit dirty, but it should be temporary.
+        # We are using AlertRuleSerializerResponse, but with two more fields, and mypy doesn't
+        # seem to be able to tell, so we cast rather than "translating".
+        data = cast(
+            DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user, **kwargs)
+        )
         # Parent already includes eventTypes since we forced it into expand
         # Add snooze fields based on detector enabled state
         data["snooze"] = not obj.enabled

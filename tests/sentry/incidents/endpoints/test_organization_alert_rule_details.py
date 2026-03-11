@@ -333,7 +333,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         self.assert_alert_detail_results_match(old_data, new_data)
 
-    @with_feature("organizations:workflow-engine-rule-serializers")
     @with_feature("organizations:incidents")
     @freeze_time("2024-12-11 03:21:34")
     def test_workflow_engine_serializer_snoozed_alert_rule(self) -> None:
@@ -348,7 +347,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        # Snooze the alert rule using legacy RuleSnooze model (snooze for all)
+        # Snooze the alert rule (snooze for all)
+        # The post_save signal in src/sentry/receivers/rule_snooze.py automatically
+        # sets Detector.enabled = False when user_id is None
         RuleSnooze.objects.create(
             alert_rule=self.alert_rule,
             user_id=None,  # None means snoozed for everyone
