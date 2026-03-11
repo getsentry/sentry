@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {motion, type MotionProps} from 'framer-motion';
+
+import {Flex} from '@sentry/scraps/layout';
 
 import Hook from 'sentry/components/hook';
 import ConfigStore from 'sentry/stores/configStore';
@@ -25,6 +27,7 @@ import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySideb
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
 export function Sidebar() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {isCollapsed: isCollapsedState} = useNavigationContext();
 
@@ -51,39 +54,42 @@ export function Sidebar() {
 
   return (
     <Fragment>
-      <SidebarWrapper
-        role="navigation"
-        aria-label="Primary Navigation"
-        tourIsActive={currentStepId !== null}
+      <Flex
+        as="nav"
+        width={PRIMARY_SIDEBAR_WIDTH}
+        padding="lg 0 md 0"
+        borderRight="primary"
+        background="primary"
+        direction="column"
+        style={{zIndex: tourIsActive ? undefined : theme.zIndex.sidebar}}
       >
-        <SidebarHeader isSuperuser={showSuperuserWarning}>
+        <Flex
+          as="header"
+          direction="column"
+          align="center"
+          justify="center"
+          position="relative"
+        >
           <OrganizationDropdown />
           {showSuperuserWarning && (
             <SuperuserBadge>
               <Hook name="component:superuser-warning" organization={organization} />
             </SuperuserBadge>
           )}
-        </SidebarHeader>
+        </Flex>
         <PrimaryNavigationItems />
-      </SidebarWrapper>
+      </Flex>
       {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
-          initial="hidden"
-          animate={isOpen ? 'visible' : 'hidden'}
-          variants={{
-            visible: {x: 0},
-            hidden: {x: -secondarySidebarWidth - 10},
-          }}
-          transition={{
-            type: 'spring',
-            damping: 50,
-            stiffness: 700,
-            bounce: 0,
-            visualDuration: 0.1,
-          }}
-          data-test-id="collapsed-secondary-sidebar"
           data-visible={isOpen}
+          data-test-id="collapsed-secondary-sidebar"
+          height="100%"
+          left={PRIMARY_SIDEBAR_WIDTH}
+          top={0}
+          position="absolute"
+          background="primary"
+          {...makeCollapsedSecondaryWrapperAnimationProps(isOpen, secondarySidebarWidth)}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
@@ -92,38 +98,27 @@ export function Sidebar() {
   );
 }
 
-const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
-  width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${p => p.theme.space.lg} 0 ${p => p.theme.space.md} 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  flex-direction: column;
-
-  ${p =>
-    !p.tourIsActive &&
-    css`
-      z-index: ${p.theme.zIndex.sidebar};
-    `}
-`;
-
-const CollapsedSecondaryWrapper = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: ${PRIMARY_SIDEBAR_WIDTH}px;
-  height: 100%;
-  box-shadow: none;
-  background: ${p => p.theme.tokens.background.primary};
-`;
-
-const SidebarHeader = styled('header')<{isSuperuser: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: ${p => p.theme.space.xs};
-`;
+const CollapsedSecondaryWrapper = motion.create(Flex);
+const makeCollapsedSecondaryWrapperAnimationProps = (
+  open: boolean,
+  left: number
+): MotionProps => {
+  return {
+    initial: 'hidden',
+    animate: open ? 'visible' : 'hidden',
+    variants: {
+      visible: {x: 0},
+      hidden: {x: -left - 10},
+    },
+    transition: {
+      type: 'spring',
+      damping: 50,
+      stiffness: 700,
+      bounce: 0,
+      visualDuration: 0.1,
+    },
+  };
+};
 
 const SuperuserBadge = styled('div')`
   position: absolute;
