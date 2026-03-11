@@ -14,7 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {
   DashboardFilters,
   DashboardPermissions,
