@@ -22,7 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -71,7 +71,7 @@ def _configure_test_env_regions() -> None:
     # depends on region attributes, use `override_regions` in your test case.
     region_name = "testregion" + "".join(random.choices(string.digits, k=6))
 
-    default_region = Region(
+    default_region = Cell(
         region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
     )
 
@@ -107,6 +107,7 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+    config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -165,6 +166,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # enable draft features
     settings.SENTRY_OPTIONS["mail.enable-replies"] = True
+    settings.SENTRY_OPTIONS["objectstore.enable_for.attachments"] = 1.0
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
@@ -424,6 +426,15 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
     """
+
+    # Auto-add the `symbolicator` marker to any test using the _requires_symbolicator
+    # fixture so that `-m symbolicator` selects all symbolicator-dependent tests.
+    symbolicator_mark = pytest.mark.symbolicator
+    for item in items:
+        for marker in item.iter_markers("usefixtures"):
+            if "_requires_symbolicator" in marker.args:
+                item.add_marker(symbolicator_mark)
+                break
 
     keep, discard = [], []
 

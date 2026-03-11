@@ -9,7 +9,6 @@ import EventTitleError from 'sentry/components/eventTitleError';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, isTombstone} from 'sentry/utils/events';
@@ -99,7 +98,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 }
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   & em {
     font-size: ${p => p.theme.font.size.md};
     font-style: normal;

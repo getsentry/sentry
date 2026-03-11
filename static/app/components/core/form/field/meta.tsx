@@ -68,11 +68,16 @@ function Label(props: {
   );
 }
 
-function FieldStatus({disabled}: {disabled?: boolean | string}) {
+function FieldStatus({disabled, error}: {disabled?: boolean | string; error?: string}) {
   const field = useFieldContext();
 
-  if (!field.state.meta.isValid) {
-    const errorMessage = field.state.meta.errors.map(e => e?.message).join(',');
+  const errorMessage =
+    error ??
+    (field.state.meta.isValid
+      ? undefined
+      : field.state.meta.errors.map(e => e?.message).join(','));
+
+  if (errorMessage) {
     return (
       <Tooltip position="bottom" title={errorMessage} forceVisible skipWrapper>
         <Warning variant="danger" size="sm" />

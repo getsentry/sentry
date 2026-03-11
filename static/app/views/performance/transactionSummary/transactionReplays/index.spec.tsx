@@ -274,7 +274,7 @@ describe('TransactionReplays', () => {
   it('should hide replay content when user does not have granular replay permissions', async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view', 'session-replay', 'granular-replay-permissions'],
+        features: ['performance-view', 'session-replay'],
         hasGranularReplayPermissions: true,
         replayAccessMembers: [999], // User ID 1 is not in this list
       },

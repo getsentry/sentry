@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const COLLAPSE_COUNT = 5;
 
@@ -95,7 +94,7 @@ export default CollapsePanel;
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
   cursor: pointer;
@@ -109,10 +108,10 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
       border-bottom: 1px solid ${p.theme.tokens.border.primary};
       border-bottom-left-radius: ${p.theme.radius.md};
       border-bottom-right-radius: ${p.theme.radius.md};
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p.theme.space.xl};
     `}
 `;
 
 const StyledIconList = styled(IconList)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;

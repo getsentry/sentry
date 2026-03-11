@@ -15,7 +15,6 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -218,14 +217,14 @@ const StyledContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   max-width: 600px;
   margin: 0 auto;
   margin-top: 10%;
 `;
 
 const StyledHeader = styled('h3')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;
 

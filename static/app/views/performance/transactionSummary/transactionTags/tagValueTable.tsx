@@ -12,11 +12,9 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -142,7 +140,7 @@ export function TagValueTable({
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -331,7 +329,7 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: flex-end;
   align-items: center;
   ${p =>

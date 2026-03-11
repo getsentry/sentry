@@ -711,10 +711,16 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
+    "coding_workflows.code_review.seer.use_new_endpoints",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.code-review.excluded-pr-author-logins",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -731,6 +737,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -1577,8 +1584,27 @@ register(
 
 # The poll limit for the tempest service.
 #
-# 348 every 5 min ~ 100k per day
-register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# 25 every 1 min ~ 36k per day
+register("tempest.poll-limit", default=25, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching the latest crash ID from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.latest-id-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching crashes from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.crashes-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Task processing deadline in seconds (for documentation/monitoring reference).
+# Note: The actual @instrumented_task decorator requires compile-time constants,
+# so changing this option won't affect running tasks. This documents the expected
+# value and can be used for configuring monitoring alerts.
+register("tempest.task-deadline-seconds", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Extra buffer time (in seconds) added to task deadline for lock duration.
+# Lock duration = task-deadline-seconds + lock-buffer-seconds
+# This ensures the lock outlives the task to prevent race conditions.
+register("tempest.lock-buffer-seconds", default=30, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -2472,12 +2498,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    "hybridcloud.webhookpayload.push_drain_trigger",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.deliver_webhooks.delivery_time_include_github_tags",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=[],
+    default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -3109,32 +3144,11 @@ register(
 # grouphashes we want to use ones which are already there but not create new ones, so we track the
 # boolean result of their `.exists()` check. For all existing grouphashes, secondary or not, we know
 # that if they already have a group assigned they won't be modified, so in that case we also cache
-# the full `GroupHash` object. The killswitch below controls both caches, but they have separate
-# expiry times because the secondary grouphash existence cache is used less frequently and has a
-# lighter memory footprint, so we can afford to cache things there for longer.
-#
-# TODO: Check hit/miss rates for both caches and adjust the two expiry options accordingly.
+# the full `GroupHash` object.
 register(
     "grouping.use_ingest_grouphash_caching",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache a boolean indicating whether or not a grouphash exists for a given secondary
-# hash value
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry",
-    type=Int,
-    default=60,  # seconds
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache actual `GroupHash` objects
-register(
-    "grouping.ingest_grouphash_object_cache_expiry",
-    type=Int,
-    default=60,  # seconds
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3210,6 +3224,15 @@ register(
     default=500,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of segments a single trace can flush per cycle. Prevents a
+# single trace from monopolizing a flush cycle and concentrating SSCAN load
+# on one Redis node. 0 means no limit.
+register(
+    "spans.buffer.max-flush-segments-per-trace",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.
 register(
     "spans.buffer.max-memory-percentage",
@@ -3239,16 +3262,6 @@ register(
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
     "spans.buffer.compression.level",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Threshold in bytes for out-of-band storage of large compressed span payloads.
-# Payloads larger than this are stored in separate Redis string keys instead of
-# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
-# Only applies when compression is enabled (compression.level >= 0).
-register(
-    "spans.buffer.oob-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3897,16 +3910,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Fraction of attachments that are double-written to the new objectstore alongside the existing attachments store.
-# This is mutually exclusive with the below setting.
-register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
-register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# This forces symbolication to use the "stored attachment" codepath,
-# regardless of whether the attachment has already been stored.
-register("objectstore.force-stored-symbolication", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # option used to enable/disable tracking
@@ -4132,6 +4137,15 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SCM
+
+register(
+    "sentry.scm.stream.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

@@ -196,9 +196,9 @@ const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`
 `;
 
 const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
-  padding-left: ${p => (p.noPadding ? 0 : space(2))};
-  padding-right: ${p => (p.noPadding ? 0 : space(2))};
-  padding-bottom: ${p => (p.bottomPadding ? space(1) : 0)};
+  padding-left: ${p => (p.noPadding ? 0 : p.theme.space.xl)};
+  padding-right: ${p => (p.noPadding ? 0 : p.theme.space.xl)};
+  padding-bottom: ${p => (p.bottomPadding ? p.theme.space.md : 0)};
 `;
 
 const ContentBodyContainer = styled(ContentContainer)`

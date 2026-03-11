@@ -76,7 +76,7 @@ function useExploreTimeseriesImpl({
     return visualizes.map(visualize => visualize.yAxis);
   }, [visualizes]);
 
-  const fields: string[] = useMemo(() => {
+  const fields = useMemo(() => {
     return [...groupBys, ...validYAxes].filter(Boolean);
   }, [groupBys, validYAxes]);
 

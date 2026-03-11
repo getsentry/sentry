@@ -17,7 +17,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -269,7 +268,6 @@ export default function IntegrationListDirectory() {
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
         {
-          ...location,
           query: {...location.query, category: newCategory ? newCategory : undefined},
         },
         {replace: true}
@@ -289,7 +287,6 @@ export default function IntegrationListDirectory() {
     (newSearch: string) => {
       navigate(
         {
-          ...location,
           query: {...location.query, search: newSearch ? newSearch : undefined},
         },
         {replace: true}
@@ -568,14 +565,14 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
   color: ${p => p.theme.tokens.content.secondary};
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`

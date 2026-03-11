@@ -177,7 +177,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
   };
 
-  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+  const items = useMemo(() => {
     if (data?.queries && data?.queries.length > 0) {
       const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,

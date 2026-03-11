@@ -32,6 +32,7 @@ export type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSectionWithKey,
+  SearchMatchResult,
 } from './types';
 
 export {
@@ -42,6 +43,8 @@ export {
   SectionToggle,
   getEscapedKey,
 } from './utils';
+
+export {useVirtualizedItems} from './useVirtualizedItems';
 
 export {SelectFilterContext} from './list';
 export {TriggerLabel} from './control';

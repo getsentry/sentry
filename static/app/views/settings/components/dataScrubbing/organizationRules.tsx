@@ -8,7 +8,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
@@ -118,13 +117,13 @@ const Header = styled('div')`
   grid-template-columns: 1fr auto;
   align-items: center;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
   background: ${p => p.theme.tokens.background.secondary};
-  ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
+  ${p => !p.contentHeight && `padding: ${p.theme.space.md} ${p.theme.space.xl}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.tokens.border.primary}`};
   ${p =>
     !p.isCollapsed &&

@@ -9,7 +9,6 @@ import type {TooltipProps} from '@sentry/scraps/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -361,7 +360,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   grid-template-columns: max-content min-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledTable = styled(StripedTable)`
@@ -370,7 +369,7 @@ const StyledTable = styled(StripedTable)`
 
   th,
   td {
-    padding: ${space(1)};
+    padding: ${p => p.theme.space.md};
     text-align: right;
   }
   th:first-child,

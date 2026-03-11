@@ -24,7 +24,6 @@ import FormModel from 'sentry/components/forms/model';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -416,5 +415,5 @@ export function ExternalIssueForm({
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

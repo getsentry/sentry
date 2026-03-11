@@ -492,6 +492,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.releases",
     "sentry.prevent",
     "sentry.seer",
+    "sentry.scm",
 )
 
 # Silence internal hints from Django's system checks
@@ -781,8 +782,8 @@ if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
-# Fallback region name for monolith deployments
-# This region name is also used by the ApiGateway to proxy org-less region
+# Fallback cell name for monolith deployments
+# This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
@@ -833,6 +834,9 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
+
+# Used to switch from sentry.taskworker to taskbroker_client - Temporary
+TASKWORKER_USE_LIBRARY = os.getenv("TASKWORKER_USE_LIBRARY") == "1"
 
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
@@ -890,13 +894,16 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.size_analysis.tasks",
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
+    "sentry.preprod.vcs.status_checks.snapshots.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
+    "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
@@ -2201,9 +2208,12 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
+
+CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
@@ -2831,7 +2841,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
-SEER_DEFAULT_TIMEOUT = 5
+SEER_DEFAULT_TIMEOUT = 30
 
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
@@ -3088,9 +3098,6 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
-
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False

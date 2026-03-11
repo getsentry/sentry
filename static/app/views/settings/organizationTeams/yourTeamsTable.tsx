@@ -11,7 +11,6 @@ import IdBadge from 'sentry/components/idBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -210,7 +209,7 @@ function YourTeamRow({
 
 const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 1fr 125px 150px 130px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='actions'] {
     padding-left: 0;

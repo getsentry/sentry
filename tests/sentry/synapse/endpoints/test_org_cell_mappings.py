@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
@@ -8,10 +6,10 @@ from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
-us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de_region = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de_region = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 region_config = (us_region, de_region)
 
 
@@ -55,7 +53,7 @@ class OrgCellMappingsTest(APITestCase):
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200
-        assert res.data["data"] == {}
+        assert res.data["data"] == []
         assert "metadata" in res.data
         assert "cursor" in res.data["metadata"]
         assert "cell_to_locality" in res.data["metadata"]
@@ -71,38 +69,35 @@ class OrgCellMappingsTest(APITestCase):
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200
-        for org in (org1, org2):
-            assert res.data["data"][org.slug] == "us"
-            assert res.data["data"][str(org.id)] == "us"
+        assert res.data["data"][0] == {"id": str(org1.id), "slug": org1.slug, "cell": "us"}
+        assert res.data["data"][1] == {"id": str(org2.id), "slug": org2.slug, "cell": "us"}
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
     @override_regions(region_config)
-    @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
     def test_get_next_page(self) -> None:
-        # oldest is in next page.
+        # newest orgs are in next page (ascending order by date_updated).
+        org1 = self.create_organization()
+        org2 = self.create_organization()
         self.create_organization()
         self.create_organization()
-        org3 = self.create_organization()
-        org4 = self.create_organization()
 
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
             url,
+            data={"per_page": 2},
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200
-        for org in (org3, org4):
-            assert res.data["data"][org.slug] == "us"
-            assert res.data["data"][str(org.id)] == "us"
-        assert len(res.data["data"].keys()) == 4
+        assert res.data["data"][0] == {"id": str(org1.id), "slug": org1.slug, "cell": "us"}
+        assert res.data["data"][1] == {"id": str(org2.id), "slug": org2.slug, "cell": "us"}
+        assert len(res.data["data"]) == 2
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"]
 
     @override_regions(region_config)
-    @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
     def test_get_multiple_pages_multiple_locales(self) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
@@ -112,13 +107,13 @@ class OrgCellMappingsTest(APITestCase):
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
             url,
+            data={"per_page": 2},
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200
-        for org in (org4, org3):
-            assert res.data["data"][org.slug] == "de"
-            assert res.data["data"][str(org.id)] == "de"
-        assert len(res.data["data"].keys()) == 4
+        assert res.data["data"][0] == {"id": str(org1.id), "slug": org1.slug, "cell": "us"}
+        assert res.data["data"][1] == {"id": str(org2.id), "slug": org2.slug, "cell": "us"}
+        assert len(res.data["data"]) == 2
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"]
@@ -127,20 +122,18 @@ class OrgCellMappingsTest(APITestCase):
         url = reverse("sentry-api-0-org-cell-mappings")
         res = self.client.get(
             url,
-            data={"cursor": res.data["metadata"]["cursor"]},
+            data={"per_page": 2, "cursor": res.data["metadata"]["cursor"]},
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200, res.content
-        for org in (org2, org1):
-            assert res.data["data"][org.slug] == "us"
-            assert res.data["data"][str(org.id)] == "us"
-        assert len(res.data["data"].keys()) == 4
+        assert res.data["data"][0] == {"id": str(org3.id), "slug": org3.slug, "cell": "de"}
+        assert res.data["data"][1] == {"id": str(org4.id), "slug": org4.slug, "cell": "de"}
+        assert len(res.data["data"]) == 2
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False
 
     @override_regions(region_config)
-    @patch("sentry.synapse.endpoints.org_cell_mappings.OrgCellMappingsEndpoint.MAX_LIMIT", 2)
     def test_get_locale_filter(self) -> None:
         # Two orgs in the wrong region to check pagination response data
         self.create_organization()
@@ -154,9 +147,8 @@ class OrgCellMappingsTest(APITestCase):
             HTTP_AUTHORIZATION=self.auth_header(url),
         )
         assert res.status_code == 200
-        assert res.data["data"][org3.slug] == "de"
-        assert res.data["data"][str(org3.id)] == "de"
-        assert len(res.data["data"].keys()) == 2
+        assert res.data["data"][0] == {"id": str(org3.id), "slug": org3.slug, "cell": "de"}
+        assert len(res.data["data"]) == 1
         assert res.data["metadata"]["cursor"]
         assert res.data["metadata"]["cell_to_locality"]
         assert res.data["metadata"]["has_more"] is False

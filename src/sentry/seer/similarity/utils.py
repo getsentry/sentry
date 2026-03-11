@@ -432,6 +432,7 @@ def killswitch_enabled(
     project_id: int | None,
     referrer: ReferrerOptions,
     event: Event | None = None,
+    training_mode: bool = False,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
@@ -447,7 +448,9 @@ def killswitch_enabled(
         )
         # When it's ingest, `event` will always be defined - the second check is purely for mypy
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="global-killswitch")
+            record_did_call_seer_metric(
+                event, call_made=False, blocker="global-killswitch", training_mode=training_mode
+            )
 
         return True
 
@@ -457,7 +460,12 @@ def killswitch_enabled(
             extra=logger_extra,
         )
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="similarity-killswitch")
+            record_did_call_seer_metric(
+                event,
+                call_made=False,
+                blocker="similarity-killswitch",
+                training_mode=training_mode,
+            )
 
         return True
 
@@ -469,7 +477,9 @@ def killswitch_enabled(
             extra=logger_extra,
         )
         if is_ingest and event:
-            record_did_call_seer_metric(event, call_made=False, blocker="project-killswitch")
+            record_did_call_seer_metric(
+                event, call_made=False, blocker="project-killswitch", training_mode=training_mode
+            )
 
         return True
 

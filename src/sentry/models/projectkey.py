@@ -70,8 +70,6 @@ class UseCase(enum.Enum):
     USER = "user"
     """An internal project key for submitting aggregate function metrics."""
     PROFILING = "profiling"
-    """ An internal project key for submitting escalating issues metrics."""
-    ESCALATING_ISSUES = "escalating_issues"
     """ An internal project key for submitting events from tempest."""
     TEMPEST = "tempest"
     """ An internal project key for demo mode."""
@@ -296,12 +294,12 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self) -> str:
-        from sentry.api.utils import generate_region_url
+        from sentry.api.utils import generate_locality_url
 
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
             if SiloMode.get_current_mode() == SiloMode.REGION:
-                endpoint = generate_region_url()
+                endpoint = generate_locality_url()
             else:
                 endpoint = options.get("system.url-prefix")
             assert endpoint is not None

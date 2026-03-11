@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -39,6 +39,7 @@ type Stats = {
 };
 
 function SentryApplicationDashboard() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {appSlug} = useParams<{appSlug: string}>();
 
@@ -156,7 +157,7 @@ function SentryApplicationDashboard() {
             }}
             yAxis={{type: 'value', minInterval: 1, max: 'dataMax'}}
             xAxis={{type: 'time'}}
-            grid={{left: space(4), right: space(4)}}
+            grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
           />
         </ChartWrapper>
       </Panel>
@@ -245,6 +246,7 @@ type InteractionsChartProps = {
   data: Record<string, Array<[number, number]>>;
 };
 function InteractionsChart({data}: InteractionsChartProps) {
+  const theme = useTheme();
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
       const seriesData = data[key]!.map(point => ({
@@ -263,7 +265,7 @@ function InteractionsChart({data}: InteractionsChartProps) {
       <LineChart
         isGroupedByDate
         series={elementInteractionsSeries}
-        grid={{left: space(4), right: space(4)}}
+        grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         legend={{
           show: true,
           orient: 'horizontal',
@@ -275,19 +277,19 @@ function InteractionsChart({data}: InteractionsChartProps) {
 }
 
 const StatsSection = styled('div')`
-  margin-right: ${space(4)};
+  margin-right: ${p => p.theme.space['3xl']};
 `;
 const StatsHeader = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-size: 12px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledFooter = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const ChartWrapper = styled('div')`
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space['2xl']};
 `;

@@ -53,8 +53,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
-from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
@@ -351,9 +349,6 @@ from sentry.issues.endpoints.organization_event_details import OrganizationEvent
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
-from sentry.issues.endpoints.organization_group_suspect_flags import (
-    OrganizationGroupSuspectFlagsEndpoint,
-)
 from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
@@ -540,6 +535,12 @@ from sentry.seer.endpoints.organization_seer_explorer_update import (
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
+from sentry.seer.endpoints.organization_supergroup_details import (
+    OrganizationSupergroupDetailsEndpoint,
+)
+from sentry.seer.endpoints.organization_supergroups import (
+    OrganizationSupergroupsEndpoint,
+)
 from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
@@ -834,7 +835,6 @@ from .endpoints.project_transaction_threshold import ProjectTransactionThreshold
 from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
-from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
@@ -923,11 +923,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/suspect/flags/$",
-            OrganizationGroupSuspectFlagsEndpoint.as_view(),
-            name=f"{name_prefix}-suspect-flags",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/suspect/tags/$",
@@ -1717,16 +1712,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/$",
-        OrganizationProjectTemplatesIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-project-templates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/project-templates/(?P<template_id>[^/]+)/$",
-        OrganizationProjectTemplateDetailEndpoint.as_view(),
-        name="sentry-api-0-organization-project-template-detail",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
@@ -2402,6 +2387,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",
         OrganizationSeerExplorerUpdateEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-update",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/$",
+        OrganizationSupergroupsEndpoint.as_view(),
+        name="sentry-api-0-organization-supergroups",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/supergroups/(?P<supergroup_id>[^/]+)/$",
+        OrganizationSupergroupDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-supergroup-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
@@ -3147,11 +3142,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:user-feedback|user-reports)/$",
         ProjectUserReportsEndpoint.as_view(),
         name="sentry-api-0-project-user-reports",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/user-stats/$",
-        ProjectUserStatsEndpoint.as_view(),
-        name="sentry-api-0-project-userstats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/reprocessing/$",
