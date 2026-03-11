@@ -40,7 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
+import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
   ButtonWrapper,
   InputPathColumn,

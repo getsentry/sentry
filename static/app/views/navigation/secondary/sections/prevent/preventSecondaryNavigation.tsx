@@ -19,7 +19,7 @@ function makePreventPathname({
   return normalizeUrl(`/organizations/${organization.slug}/prevent${path}`);
 }
 
-export default function PreventSecondaryNavigation() {
+export function PreventSecondaryNavigation() {
   const organization = useOrganization();
   const testsPathname = makePreventPathname({
     organization,
