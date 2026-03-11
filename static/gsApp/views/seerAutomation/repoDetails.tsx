@@ -78,7 +78,7 @@ export default function SeerRepoDetails() {
         subtitle={t('Choose how Seer automatically reviews your pull requests.')}
         action={
           <LinkButton
-            href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/"
+            href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/"
             external
           >
             {t('Read the docs')}

@@ -42,7 +42,7 @@ const BUTTONS = [
   {
     label: t('Review your code'),
     imageSrc: seerConfigCheck,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/',
   },
 ];
 

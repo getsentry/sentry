@@ -27,10 +27,10 @@ export default function SeerAutomationSettings() {
           `Configure how Seer works with your codebase. Seer includes [rca:Issue Autofix] and [code_review:AI Code Review]. Issue Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [read_the_docs:Read the docs] to learn what Seer can do.`,
           {
             rca: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#root-cause-analysis" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-autofix/#root-cause-analysis" />
             ),
             code_review: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
             ),
             read_the_docs: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
@@ -194,7 +194,7 @@ export default function SeerAutomationSettings() {
                             'Enable Seer workflows that streamline creating code changes for your review, such as the ability to create pull requests or branches. [docs:Read the docs] to learn more.',
                             {
                               docs: (
-                                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#code-generation" />
+                                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/issue-autofix/#code-generation" />
                               ),
                             }
                           )}
