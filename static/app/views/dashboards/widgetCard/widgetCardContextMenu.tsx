@@ -266,7 +266,7 @@ export function getMenuOptions(
         dashboardFilters,
         selection,
         organization,
-        Mode.SAMPLES,
+        widget.queries.some(q => q.aggregates.length > 0) ? Mode.AGGREGATE : Mode.SAMPLES,
         getReferrer(widget.displayType)
       ),
     });
