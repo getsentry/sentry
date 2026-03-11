@@ -5,6 +5,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {Legend} from 'sentry/components/charts/components/legend';
@@ -676,31 +678,16 @@ export const CustomerStats = memo(
           acc.legend.push(serie.seriesName);
         }
 
-        // TEMP: hide everything except Dropped (Server) > Abuse for debugging
-        if (
-          serie.seriesName === SeriesName.ACCEPTED ||
-          serie.seriesName === SeriesName.FILTERED ||
-          serie.seriesName === SeriesName.DISCARDED ||
-          serie.seriesName === SeriesName.OVER_QUOTA
-        ) {
-          return acc;
-        }
-
         if (!serie.subSeries) {
           return acc;
         }
 
         for (const subSerie of serie.subSeries) {
-          if (
-            serie.seriesName !== SeriesName.DROPPED ||
-            subSerie.seriesName === 'Abuse'
-          ) {
-            acc.subLabels.push({
-              parentLabel: serie.seriesName,
-              label: subSerie.seriesName,
-              data: subSerie.data,
-            });
-          }
+          acc.subLabels.push({
+            parentLabel: serie.seriesName,
+            label: subSerie.seriesName,
+            data: subSerie.data,
+          });
         }
 
         return acc;
@@ -745,7 +732,15 @@ export const CustomerStats = memo(
                       grid={{top: 30, bottom: 0, left: 0, right: 0}}
                       {...zoomRenderProps}
                     />
-                    <AbuseTooltip ref={abuseTooltipRef} style={{display: 'none'}}>
+                    <AbuseTooltip
+                      ref={abuseTooltipRef}
+                      align="center"
+                      gap="xs"
+                      padding="xs md"
+                      // Inline style is toggled imperatively between 'none' and 'flex'
+                      // by onHighlight/hideAbuseTooltip via direct DOM access
+                      style={{display: 'none'}}
+                    >
                       <AbuseDot />
                       <span data-abuse-text />
                     </AbuseTooltip>
@@ -777,14 +772,10 @@ const AbuseDot = styled('span')`
   flex-shrink: 0;
 `;
 
-const AbuseTooltip = styled('div')`
+const AbuseTooltip = styled(Flex)`
   position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
