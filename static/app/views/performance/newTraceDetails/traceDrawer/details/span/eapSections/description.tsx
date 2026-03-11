@@ -109,9 +109,7 @@ export function SpanDescription({
 
   const actions = exploreAttributeValue ? (
     <BodyContentWrapper
-      padding={
-        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
-      }
+      padding={resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : space(1)}
     >
       {node.value.is_transaction ? (
         <StyledLink

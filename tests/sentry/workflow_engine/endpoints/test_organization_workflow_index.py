@@ -335,6 +335,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response3.data) == 0
 
+    def test_query_invalid_key(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"query": "invalid_key:value"}, status_code=400
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: invalid_key" in str(response.data["query"])
+
     def test_filter_by_project(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)

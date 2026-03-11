@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,17 +9,13 @@ import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
-from sentry.analytics.events.rule_disable_opt_out import (
-    RuleDisableOptOutEdit,
-    RuleDisableOptOutExplicit,
-)
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
@@ -293,29 +289,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert (
             response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
         )
-
-    @responses.activate
-    def test_neglected_rule(self) -> None:
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=self.rule,
-            organization=self.organization,
-            opted_out=False,
-            sent_initial_email_date=now,
-            disable_date=now + timedelta(days=14),
-        )
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["disableReason"] == "noisy"
-        assert response.data["disableDate"] == now + timedelta(days=14)
-
-        another_rule = self.create_project_rule(project=self.project)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, another_rule.id, status_code=200
-        )
-        assert not response.data.get("disableReason")
-        assert not response.data.get("disableDate")
 
     @responses.activate
     def test_with_snooze_rule(self) -> None:
@@ -1164,78 +1137,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 organization_id=self.organization.id,
             ),
         )
-
-    @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_explicit(self, record_analytics: MagicMock) -> None:
-        """Test that if a user explicitly opts out of their neglected rule being migrated
-        to being disabled (by clicking a button on the front end), that we mark it as opted out.
-        """
-        rule = self.create_project_rule(
-            name="hello world", condition_data=self.first_seen_condition, action_data=[]
-        )
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=self.organization,
-            opted_out=False,
-            disable_date=now + timedelta(days=14),
-        )
-        payload = {
-            "name": "hellooo world",
-            "actionMatch": "all",
-            "actions": self.notify_issue_owners_action,
-            "conditions": self.first_seen_condition,
-            "optOutExplicit": True,
-        }
-        self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
-        )
-        assert_any_analytics_event(
-            record_analytics,
-            RuleDisableOptOutExplicit(
-                rule_id=rule.id,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-            ),
-        )
-        neglected_rule = NeglectedRule.objects.get(rule=rule)
-        assert neglected_rule.opted_out is True
-
-    @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_edit(self, record_analytics: MagicMock) -> None:
-        """Test that if a user passively opts out of their neglected rule being migrated
-        to being disabled (by editing the rule), that we mark it as opted out.
-        """
-        rule = self.create_project_rule(
-            name="hello world", condition_data=self.first_seen_condition, action_data=[]
-        )
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=self.organization,
-            opted_out=False,
-            disable_date=now + timedelta(days=14),
-        )
-        payload = {
-            "name": "hellooo world",
-            "actionMatch": "all",
-            "actions": self.notify_issue_owners_action,
-            "conditions": self.first_seen_condition,
-            "optOutEdit": True,
-        }
-        self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
-        )
-        assert_any_analytics_event(
-            record_analytics,
-            RuleDisableOptOutEdit(
-                rule_id=rule.id,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-            ),
-        )
-        neglected_rule = NeglectedRule.objects.get(rule=rule)
-        assert neglected_rule.opted_out is True
 
     def test_with_environment(self) -> None:
         payload = {

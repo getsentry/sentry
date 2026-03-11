@@ -163,7 +163,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 shard_identifier=self.api_application_id or 0,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
-                region_name=cell_name,
+                cell_name=cell_name,
                 payload={
                     "sentry_app_id": self.sentry_app_id,
                     "organization_id": self.organization_id,

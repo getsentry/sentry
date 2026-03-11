@@ -43,7 +43,9 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 "path": "",
             },
         )
-        url = absolute_uri(path, generate_locality_url())
+        # Strip trailing slash so the objectstore client can append subpaths
+        # without producing a double slash (e.g. /objectstore//v1/...).
+        url = absolute_uri(path, generate_locality_url()).rstrip("/")
 
         options = ObjectstoreUploadOptions(
             url=url,

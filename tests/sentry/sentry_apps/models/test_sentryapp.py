@@ -91,7 +91,7 @@ class SentryAppTest(TestCase):
         outboxes = ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).all()
         assert len(outboxes) == 2
         assert outboxes[0].shard_identifier == self.sentry_app.id
-        assert outboxes[0].region_name
+        assert outboxes[0].cell_name
 
     def test_cells_with_installations(self) -> None:
         self.us_org = self.create_organization(name="us test name", region="us")

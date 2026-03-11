@@ -162,7 +162,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
 
-    def test_granular_replay_permissions_disabled_without_feature(self) -> None:
+    def test_granular_replay_permissions_without_option(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         acc = access.from_user(user, organization)
@@ -173,28 +173,23 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["hasGranularReplayPermissions"] is False
         assert result["replayAccessMembers"] == []
 
-    def test_granular_replay_permissions_flag_with_feature(self) -> None:
+    def test_granular_replay_permissions_with_option(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         acc = access.from_user(user, organization)
 
-        with self.feature("organizations:granular-replay-permissions"):
-            serializer = DetailedOrganizationSerializer()
-            result = serialize(organization, user, serializer, access=acc)
-            assert result["hasGranularReplayPermissions"] is False
-            assert result["replayAccessMembers"] == []
+        OrganizationOption.objects.set_value(
+            organization=organization,
+            key="sentry:granular-replay-permissions",
+            value=True,
+        )
 
-            OrganizationOption.objects.set_value(
-                organization=organization,
-                key="sentry:granular-replay-permissions",
-                value=True,
-            )
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+        assert result["hasGranularReplayPermissions"] is True
+        assert result["replayAccessMembers"] == []
 
-            result = serialize(organization, user, serializer, access=acc)
-            assert result["hasGranularReplayPermissions"] is True
-            assert result["replayAccessMembers"] == []
-
-    def test_replay_access_members_serialized(self) -> None:
+    def test_replay_access_members_not_serialized_without_option(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         member1 = self.create_member(
@@ -207,10 +202,9 @@ class DetailedOrganizationSerializerTest(TestCase):
         OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
         acc = access.from_user(user, organization)
 
-        with self.feature("organizations:granular-replay-permissions"):
-            serializer = DetailedOrganizationSerializer()
-            result = serialize(organization, user, serializer, access=acc)
-            assert set(result["replayAccessMembers"]) == set()
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+        assert set(result["replayAccessMembers"]) == set()
 
     def test_replay_access_members_serialized_with_option_enabled(self) -> None:
         user = self.create_user()
@@ -225,29 +219,26 @@ class DetailedOrganizationSerializerTest(TestCase):
         OrganizationMemberReplayAccess.objects.create(organizationmember=member2)
         acc = access.from_user(user, organization)
 
-        with self.feature("organizations:granular-replay-permissions"):
-            # Set the org option to enable granular replay permissions
-            OrganizationOption.objects.set_value(
-                organization=organization,
-                key="sentry:granular-replay-permissions",
-                value=True,
-            )
+        OrganizationOption.objects.set_value(
+            organization=organization,
+            key="sentry:granular-replay-permissions",
+            value=True,
+        )
 
-            serializer = DetailedOrganizationSerializer()
-            result = serialize(organization, user, serializer, access=acc)
-            assert result["hasGranularReplayPermissions"] is True
-            assert set(result["replayAccessMembers"]) == {member1.user_id, member2.user_id}
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+        assert result["hasGranularReplayPermissions"] is True
+        assert set(result["replayAccessMembers"]) == {member1.user_id, member2.user_id}
 
     def test_replay_access_members_empty_when_none_set(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         acc = access.from_user(user, organization)
 
-        with self.feature("organizations:granular-replay-permissions"):
-            serializer = DetailedOrganizationSerializer()
-            result = serialize(organization, user, serializer, access=acc)
+        serializer = DetailedOrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
 
-            assert result["replayAccessMembers"] == []
+        assert result["replayAccessMembers"] == []
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):

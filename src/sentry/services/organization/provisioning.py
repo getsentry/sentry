@@ -18,7 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):
@@ -33,7 +33,7 @@ class OrganizationProvisioningService:
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_region()
+            local_region = get_local_cell()
 
             assert not region_name or region_name == local_region.name, (
                 "Cannot provision an organization in another region"

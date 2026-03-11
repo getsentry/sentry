@@ -113,7 +113,7 @@ const getFullActionTitle = ({
     if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
-    return `${sentryAppName}`;
+    return sentryAppName;
   }
 
   const label = ActionLabel[type];

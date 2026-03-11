@@ -78,7 +78,7 @@ describe('ReplayDetails', () => {
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'granular-replay-permissions'],
+      features: ['session-replay'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });

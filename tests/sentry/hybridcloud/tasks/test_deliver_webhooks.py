@@ -386,7 +386,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_success_codecov(self) -> None:
         responses.add(
@@ -406,6 +408,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL=None)
+    @override_options({"codecov.forward-webhooks.disabled": False})
     @override_regions(region_config)
     def test_drain_codecov_configuration_error(self) -> None:
         responses.add(
@@ -427,7 +430,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_request_error(self) -> None:
         responses.add(
@@ -448,6 +453,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": False})
     def test_drain_codecov_filtered_getsentry_owner(self) -> None:
         """Skip list uses default option (getsentry); no client or request needed."""
         records = create_payloads_with_destination_type(
@@ -462,7 +468,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_other_owner(self) -> None:
         responses.add(
@@ -484,7 +492,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_malformed_body(self) -> None:
         responses.add(
@@ -502,6 +512,19 @@ class DrainMailboxTest(TestCase):
         drain_mailbox(records[0].id)
 
         assert len(responses.calls) == 3
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": True})
+    @override_regions(region_config)
+    def test_drain_codecov_skipped_when_forwarding_disabled(self) -> None:
+        """When codecov.forward-webhooks.disabled is True, payloads are drained but not sent."""
+        records = create_payloads_with_destination_type(
+            2, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 0
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
@@ -1041,7 +1064,9 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_codecov_region_sent_to(self, mock_metrics: MagicMock) -> None:

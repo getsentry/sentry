@@ -217,7 +217,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
-                region_name=cell_name,
+                cell_name=cell_name,
             )
             for cell_name in find_all_cell_names()
         ]
@@ -229,7 +229,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
-                region_name=cell_name,
+                cell_name=cell_name,
                 payload={"slug": self.slug},
             )
             for cell_name in find_all_cell_names()

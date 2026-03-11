@@ -335,7 +335,6 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 
 @django_db_all
 @requires_symbolicator
-@pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -> None:
     with override_options({"system.url-prefix": live_server.url}):
@@ -345,7 +344,6 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -
 @django_db_all
 @requires_objectstore
 @requires_symbolicator
-@pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
     with override_options({"system.url-prefix": live_server.url}):
@@ -443,7 +441,6 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
 @django_db_all
 @requires_objectstore
 @requires_symbolicator
-@pytest.mark.symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_process_stored_attachment(
     default_project, task_runner, set_sentry_option, live_server
