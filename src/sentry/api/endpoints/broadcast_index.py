@@ -68,12 +68,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self, request: Request, organization: RpcOrganization | None = None, **kwargs
     ) -> Response:
-        limit = self.get_per_page(request, default_per_page=3, max_per_page=100)
-
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
         elif request.GET.get("show") == "latest":
+            limit = self.get_per_page(request, default_per_page=3, max_per_page=100)
             # Used to show broadcasts in the sidebar and avoid an empty state when users have seen all broadcasts already
             queryset = Broadcast.objects.filter(is_active=True).order_by("-date_added")
         else:
