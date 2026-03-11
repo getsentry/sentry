@@ -76,7 +76,7 @@ export function MetricSelector({
             name: option[TraceMetricKnownFieldKey.METRIC_NAME],
             type: option[TraceMetricKnownFieldKey.METRIC_TYPE],
             unit: hasMetricUnitsUI
-              ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
+              ? option[TraceMetricKnownFieldKey.METRIC_UNIT]
               : undefined,
           }) === makeMetricSelectValue(traceMetric)
       );
@@ -99,11 +99,13 @@ export function MetricSelector({
         trailingItems: () => (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="promotion">
-                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-              </Tag>
-            )}
+            {hasMetricUnitsUI &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
+                <Tag variant="promotion">
+                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+                </Tag>
+              )}
           </Fragment>
         ),
       })) ?? []),
