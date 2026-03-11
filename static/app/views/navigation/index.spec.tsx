@@ -122,9 +122,7 @@ describe('Navigation', () => {
     it('displays primary navigation items', () => {
       renderNavigation();
 
-      const links = within(
-        screen.getByRole('navigation', {name: 'Primary Navigation'})
-      ).getAllByRole('link');
+      const links = within(screen.getByTestId('primary-sidebar')).getAllByRole('link');
       expect(links).toHaveLength(5);
 
       ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
@@ -292,9 +290,7 @@ describe('Navigation', () => {
         );
 
         // Moving pointer over the primary navigation should expand the sidebar
-        await userEvent.hover(
-          screen.getByRole('navigation', {name: 'Primary Navigation'})
-        );
+        await userEvent.hover(screen.getByTestId('primary-sidebar'));
         await waitFor(() => {
           expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
             'data-visible',
@@ -303,9 +299,7 @@ describe('Navigation', () => {
         });
 
         // Moving pointer away should hide the sidebar
-        await userEvent.unhover(
-          screen.getByRole('navigation', {name: 'Primary Navigation'})
-        );
+        await userEvent.unhover(screen.getByTestId('primary-sidebar'));
         await waitFor(() => {
           expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
             'data-visible',
@@ -509,7 +503,7 @@ describe('Navigation', () => {
 
       renderGlobalModal();
       renderNavigation();
-      await screen.findByRole('navigation', {name: 'Primary Navigation'});
+      await screen.findByTestId('primary-sidebar');
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });

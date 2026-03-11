@@ -60,7 +60,7 @@ export function Sidebar() {
     <Fragment>
       <Flex
         as="nav"
-        aria-label="Primary Navigation"
+        data-test-id="primary-sidebar"
         width={`${PRIMARY_SIDEBAR_WIDTH}px`}
         padding="lg 0 md 0"
         borderRight="primary"
