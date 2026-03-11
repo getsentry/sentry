@@ -83,7 +83,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
   const prebuiltConfig = selectedDashboard?.prebuiltId
-    ? PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId]
+    ? {
+        ...PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId],
+        prebuiltId: selectedDashboard.prebuiltId,
+      }
     : undefined;
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
     useResolveLinkedDashboardIds(prebuiltConfig);
