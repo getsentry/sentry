@@ -24,7 +24,7 @@ on:
         type: string
         default: ''
       severity:
-        description: 'Severity level — controls depth of analysis and notifications'
+        description: 'Severity level — controls depth of analysis'
         required: true
         type: choice
         options:
@@ -32,11 +32,6 @@ on:
           - flaky-investigation
           - general
         default: deploy-blocked
-      notify_slack:
-        description: 'Post RCA summary to Slack'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -342,7 +337,7 @@ jobs:
         run: scripts/ci-rca/destroy-workspace.sh
 
   # ──────────────────────────────────────────────────────
-  # 3. Post results back to GitHub and (optionally) Slack
+  # 3. Post results to GitHub
   # ──────────────────────────────────────────────────────
   report-results:
     name: Report RCA results
@@ -421,76 +416,3 @@ jobs:
             });
 
             core.info(`Created issue: ${issue.data.html_url}`);
-            core.exportVariable('RCA_ISSUE_URL', issue.data.html_url);
-
-      - name: Post to Slack
-        if: inputs.notify_slack == true || inputs.severity == 'deploy-blocked'
-        continue-on-error: true
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CI_FAILURES_SLACK_WEBHOOK }}
-          FAILURE_COUNT: ${{ needs.collect-failure-context.outputs.failure_count }}
-          ROOT_CAUSES: ${{ needs.rca-analysis.outputs.root_causes || 'Unknown — manual investigation required' }}
-          ACTION_ITEMS: ${{ needs.rca-analysis.outputs.action_items || 'N/A' }}
-          CONFIDENCE: ${{ needs.rca-analysis.outputs.overall_confidence || 'low' }}
-          SEVERITY: ${{ inputs.severity }}
-          RCA_ISSUE_URL: ${{ env.RCA_ISSUE_URL }}
-          RCA_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ -z "$SLACK_WEBHOOK_URL" ]; then
-            echo "No Slack webhook configured, skipping"
-            exit 0
-          fi
-
-          curl -fsSL -X POST "$SLACK_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg severity "$SEVERITY" \
-              --arg count "$FAILURE_COUNT" \
-              --arg root_causes "$ROOT_CAUSES" \
-              --arg actions "$ACTION_ITEMS" \
-              --arg confidence "$CONFIDENCE" \
-              --arg issue_url "${RCA_ISSUE_URL:-$RCA_RUN_URL}" \
-              --arg rca_url "$RCA_RUN_URL" \
-              '{
-                blocks: [
-                  {
-                    type: "header",
-                    text: {
-                      type: "plain_text",
-                      text: (if $severity == "deploy-blocked" then ":rotating_light: Deploy Blocked — CI Failure RCA" else ":mag: CI Failure RCA Complete" end),
-                      emoji: true
-                    }
-                  },
-                  {
-                    type: "section",
-                    fields: [
-                      { type: "mrkdwn", text: ("*Failures Analyzed:* " + $count) },
-                      { type: "mrkdwn", text: ("*Confidence:* `" + $confidence + "`") }
-                    ]
-                  },
-                  {
-                    type: "section",
-                    text: { type: "mrkdwn", text: ("*Root Causes:*\n" + ($root_causes | split("\n") | map(select(length > 0)) | .[0:5] | join("\n"))) }
-                  },
-                  {
-                    type: "section",
-                    text: { type: "mrkdwn", text: ("*Action Items:*\n" + ($actions | split("\n") | map(select(length > 0)) | .[0:5] | join("\n"))) }
-                  },
-                  {
-                    type: "actions",
-                    elements: [
-                      {
-                        type: "button",
-                        text: { type: "plain_text", text: "View RCA Issue" },
-                        url: $issue_url,
-                        style: "primary"
-                      },
-                      {
-                        type: "button",
-                        text: { type: "plain_text", text: "View Workflow Run" },
-                        url: $rca_url
-                      }
-                    ]
-                  }
-                ]
-              }')"
