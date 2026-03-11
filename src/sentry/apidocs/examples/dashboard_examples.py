@@ -67,6 +67,7 @@ DASHBOARD_OBJECT = {
             "exploreUrls": None,
             "changedReason": None,
             "axisRange": None,
+            "legendType": None,
         }
     ],
     "projects": [1],
