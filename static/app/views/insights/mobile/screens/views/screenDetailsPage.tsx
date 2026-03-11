@@ -132,7 +132,9 @@ function ScreenDetailsPage() {
               module={moduleName}
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              headerActions={
+                isProjectCrossPlatform && !hasPlatformizedInsights && <PlatformSelector />
+              }
               headerTitle={transactionName}
               breadcrumbs={[
                 {

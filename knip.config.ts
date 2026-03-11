@@ -29,6 +29,7 @@ const productionEntryPoints = [
 
 const testingEntryPoints = [
   'static/**/*.spec.{js,ts,tsx}',
+  'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
   // jest uses this
   'tests/js/test-balancer/index.js',

@@ -13,7 +13,7 @@ from django.urls import resolve, reverse
 from sentry import features
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import subdomain_is_region
+from sentry.types.region import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
 
@@ -93,7 +93,7 @@ class CustomerDomainMiddleware:
         ):
             return self.get_response(request)
         subdomain = request.subdomain
-        if subdomain is None or subdomain_is_region(request):
+        if subdomain is None or subdomain_is_locality(request):
             return self.get_response(request)
 
         if (

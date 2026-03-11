@@ -416,9 +416,7 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p =>
-    p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.tertiary}`};
+    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
   min-height: 40px;
   word-break: break-word;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};

@@ -134,7 +134,7 @@ function NotificationSettingsByEntity({
       option => option.type === notificationType && option.scopeType === entityType
     );
     return matchedOptions.map(option => {
-      const entity = entityById[`${option.scopeIdentifier}`];
+      const entity = entityById[option.scopeIdentifier];
       if (!entity) {
         return null;
       }

@@ -95,7 +95,7 @@ export function ToolsTable() {
     }
 
     return toolsRequest.data.map(span => ({
-      tool: `${span['gen_ai.tool.name']}`,
+      tool: span['gen_ai.tool.name'],
       requests: Number(span['count()']),
       avg: Number(span['avg(span.duration)']),
       p95: Number(span['p95(span.duration)']),

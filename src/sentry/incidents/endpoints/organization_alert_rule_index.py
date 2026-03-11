@@ -196,10 +196,8 @@ class AlertRuleFetchMixin(Endpoint):
 
         if features.has("organizations:workflow-engine-rule-serializers", organization):
             detectors = Detector.objects.filter(
-                alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules]
+                alertruledetector__alert_rule_id__in=alert_rules.values_list("id", flat=True)
             )
-            if not len(detectors):
-                return Response(status=status.HTTP_404_NOT_FOUND)
             response = self.paginate(
                 request,
                 queryset=detectors,

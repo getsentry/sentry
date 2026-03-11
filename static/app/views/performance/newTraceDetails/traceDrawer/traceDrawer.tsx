@@ -291,11 +291,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = `1fr minmax(${minimizedBottomDrawerSize}px, 0%)`;
         size.current = minimizedBottomDrawerSize;
       } else if (traceStateRef.current.preferences.layout === 'drawer left') {
-        props.traceGridRef.style.gridTemplateColumns = `minmax(${0}px, 0%) 1fr`;
+        props.traceGridRef.style.gridTemplateColumns = `minmax(0px, 0%) 1fr`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       } else {
-        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(${0}px, 0%)`;
+        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(0px, 0%)`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       }

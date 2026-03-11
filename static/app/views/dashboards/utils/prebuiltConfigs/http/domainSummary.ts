@@ -108,7 +108,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('3XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_3XX],
           aggregates: [PERCENTAGE_3XX],
           columns: [],
@@ -126,7 +126,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('4XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_4XX],
           aggregates: [PERCENTAGE_4XX],
           columns: [],
@@ -144,7 +144,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('5XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_5XX],
           aggregates: [PERCENTAGE_5XX],
           columns: [],

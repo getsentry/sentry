@@ -20,7 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -52,7 +52,7 @@ def test_caching_function() -> None:
         assert next_user == old_u
 
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_user.key_from(old_u.id)
+            region_name=get_local_cell().name, key=get_user.key_from(old_u.id)
         )
 
     cached_users = [get_user.get_one(u.id) for u in users]
@@ -193,7 +193,7 @@ def test_caching_many() -> None:
         assert not u.username.endswith("moo")
         # Clear cache simulating outbox logic
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_users.key_from(u.id)
+            region_name=get_local_cell().name, key=get_users.key_from(u.id)
         )
 
     cached_users = sorted(get_users(user_ids), key=lambda u: u.id)
@@ -272,7 +272,7 @@ def test_caching_many_versioning() -> None:
     # Clear cache to simulate outbox processing
     for user in users:
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_users.key_from(user.id)
+            region_name=get_local_cell().name, key=get_users.key_from(user.id)
         )
 
     # Read from the cache directly and drain the generator

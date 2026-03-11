@@ -20,10 +20,8 @@ import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSo
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
-  SORT_BY_OPTIONS,
   sortedFlags,
   type OrderBy,
-  type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {
@@ -44,7 +42,6 @@ interface FlagDrawerProps {
   group: Group;
   hydratedFlags: KeyValueDataContentProps[];
   initialOrderBy: OrderBy;
-  initialSortBy: SortBy;
   project: Project;
   focusControl?: FlagControlOptions;
 }
@@ -53,13 +50,11 @@ export function EventFeatureFlagDrawer({
   group,
   event,
   project,
-  initialSortBy,
   initialOrderBy,
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const organization = useOrganization();
-  const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
   const {getFocusProps} = useFocusControl(initialFocusControl);
@@ -85,7 +80,6 @@ export function EventFeatureFlagDrawer({
         </InputGroup.TrailingItems>
       </InputGroup>
       <FeatureFlagSort
-        sortByOptions={SORT_BY_OPTIONS}
         orderByOptions={ORDER_BY_OPTIONS}
         orderBy={orderBy}
         setOrderBy={value => {
@@ -95,14 +89,6 @@ export function EventFeatureFlagDrawer({
             sortMethod: value as string,
           });
         }}
-        setSortBy={value => {
-          setSortBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
-        }}
-        sortBy={sortBy}
       />
     </Grid>
   );
