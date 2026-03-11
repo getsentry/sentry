@@ -10,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
@@ -18,7 +18,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 
 
 @all_silo_test
-class TestSentryAppRegionService(TestCase):
+class TestSentryAppCellService(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -56,7 +56,7 @@ class TestSentryAppRegionService(TestCase):
             content_type="application/json",
         )
 
-        result = sentry_app_region_service.get_select_options(
+        result = sentry_app_cell_service.get_select_options(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             uri="/get-projects",
@@ -77,7 +77,7 @@ class TestSentryAppRegionService(TestCase):
             content_type="application/json",
         )
 
-        result = sentry_app_region_service.get_select_options(
+        result = sentry_app_cell_service.get_select_options(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             uri="/get-projects",
@@ -105,7 +105,7 @@ class TestSentryAppRegionService(TestCase):
 
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists() is False
-        result = sentry_app_region_service.create_issue_link(
+        result = sentry_app_cell_service.create_issue_link(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             group_id=self.group.id,
@@ -133,7 +133,7 @@ class TestSentryAppRegionService(TestCase):
             content_type="application/json",
         )
 
-        result = sentry_app_region_service.create_issue_link(
+        result = sentry_app_cell_service.create_issue_link(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             group_id=self.group.id,
@@ -152,7 +152,7 @@ class TestSentryAppRegionService(TestCase):
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(group_id=self.group.id).exists() is False
 
-        result = sentry_app_region_service.create_external_issue(
+        result = sentry_app_cell_service.create_external_issue(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             group_id=self.group.id,
@@ -171,7 +171,7 @@ class TestSentryAppRegionService(TestCase):
         assert result.external_issue.display_name == "ProjectName#issue-1"
 
     def test_create_external_issue_group_not_found(self) -> None:
-        result = sentry_app_region_service.create_external_issue(
+        result = sentry_app_cell_service.create_external_issue(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             group_id=99999999,
@@ -194,7 +194,7 @@ class TestSentryAppRegionService(TestCase):
                 web_url="https://example.com/issue/123",
             )
 
-        result = sentry_app_region_service.delete_external_issue(
+        result = sentry_app_cell_service.delete_external_issue(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             external_issue_id=external_issue.id,
@@ -206,7 +206,7 @@ class TestSentryAppRegionService(TestCase):
             assert not PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
 
     def test_delete_external_issue_not_found(self) -> None:
-        result = sentry_app_region_service.delete_external_issue(
+        result = sentry_app_cell_service.delete_external_issue(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             external_issue_id=99999999,
@@ -226,7 +226,7 @@ class TestSentryAppRegionService(TestCase):
             installation_id=self.install.id, project_id=project2.id
         )
 
-        result = sentry_app_region_service.get_service_hook_projects(
+        result = sentry_app_cell_service.get_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             auth_context=self.auth_context,
@@ -257,7 +257,7 @@ class TestSentryAppRegionService(TestCase):
             installation_id=self.install.id, project_id=project2.id
         )
 
-        result = sentry_app_region_service.set_service_hook_projects(
+        result = sentry_app_cell_service.set_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             project_identifiers=[project2.id, project3.slug],
@@ -301,7 +301,7 @@ class TestSentryAppRegionService(TestCase):
 
         # Member user should not have access to set service hook projects
         rpc_installation = serialize_sentry_app_installation(install)
-        result = sentry_app_region_service.set_service_hook_projects(
+        result = sentry_app_cell_service.set_service_hook_projects(
             organization_id=organization.id,
             installation=rpc_installation,
             project_identifiers=[project2.id],
@@ -328,7 +328,7 @@ class TestSentryAppRegionService(TestCase):
             installation_id=self.install.id, project_id=project2.id
         )
 
-        result = sentry_app_region_service.delete_service_hook_projects(
+        result = sentry_app_cell_service.delete_service_hook_projects(
             organization_id=self.org.id,
             installation=self.rpc_installation,
             auth_context=self.auth_context,
@@ -343,7 +343,7 @@ class TestSentryAppRegionService(TestCase):
     def test_get_interaction_stats(self) -> None:
         now = before_now(days=1)
         since = (now - timedelta(minutes=5)).timestamp()
-        result = sentry_app_region_service.get_interaction_stats(
+        result = sentry_app_cell_service.get_interaction_stats(
             sentry_app=self.rpc_installation.sentry_app,
             component_types=["issue-link", "stacktrace-link"],
             since=since,
@@ -355,7 +355,7 @@ class TestSentryAppRegionService(TestCase):
         assert set(result.component_interactions.keys()) == {"issue-link", "stacktrace-link"}
 
     def test_record_interaction(self) -> None:
-        result = sentry_app_region_service.record_interaction(
+        result = sentry_app_cell_service.record_interaction(
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_viewed",
         )
@@ -363,7 +363,7 @@ class TestSentryAppRegionService(TestCase):
         assert result.success is True
         assert result.error is None
 
-        result = sentry_app_region_service.record_interaction(
+        result = sentry_app_cell_service.record_interaction(
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
             component_type="issue-link",
@@ -373,7 +373,7 @@ class TestSentryAppRegionService(TestCase):
         assert result.error is None
 
     def test_record_interaction_error(self) -> None:
-        result = sentry_app_region_service.record_interaction(
+        result = sentry_app_cell_service.record_interaction(
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="invalid_field",
         )
@@ -383,7 +383,7 @@ class TestSentryAppRegionService(TestCase):
         assert result.error.status_code == 400
         assert "tsdbField must be one of" in result.error.message
 
-        result = sentry_app_region_service.record_interaction(
+        result = sentry_app_cell_service.record_interaction(
             sentry_app=self.rpc_installation.sentry_app,
             tsdb_field="sentry_app_component_interacted",
         )

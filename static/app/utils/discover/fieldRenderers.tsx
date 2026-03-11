@@ -822,9 +822,10 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: null,
     renderFunc: data => (
       <StarredSegmentCell
-        projectSlug={data.project}
-        segmentName={data.transaction}
-        isStarred={data.is_starred_transaction}
+        projectSlug={data[SpanFields.PROJECT]}
+        projectId={data[SpanFields.PROJECT_ID]?.toString()}
+        segmentName={data[SpanFields.TRANSACTION]}
+        isStarred={data[SpanFields.IS_STARRED_TRANSACTION]}
       />
     ),
   },
