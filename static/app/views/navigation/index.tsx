@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -25,6 +24,7 @@ import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
+  const theme = useTheme();
   const {layout, navigationParentRef} = useNavigationContext();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
@@ -60,24 +60,38 @@ function UserAndOrganizationNavigation() {
   }, [endTour, layout, tourIsActive]);
 
   return (
-    <NavigationContainer
+    <Flex
       ref={navigationParentRef}
-      tourIsActive={tourIsActive}
-      isMobile={layout === NavigationLayout.MOBILE}
+      top={0}
+      position={tourIsActive ? undefined : 'sticky'}
+      bottom={layout === NavigationLayout.MOBILE ? undefined : 0}
+      height={layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
+      style={{
+        zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
+        userSelect: 'none',
+      }}
       {...hoverProps}
     >
       {layout === NavigationLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-    </NavigationContainer>
+    </Flex>
   );
 }
 
 function UserOnlyNavigation() {
   return (
-    <NoOrganizationSidebar data-test-id="no-organization-sidebar">
+    <Flex
+      data-test-id="no-organization-sidebar"
+      width={PRIMARY_SIDEBAR_WIDTH}
+      padding="lg 0 md 0"
+      borderRight="primary"
+      background="primary"
+      direction="column"
+      justify="between"
+    >
       <Flex direction="column" gap="md" justify="between">
         <UserDropdown />
       </Flex>
-    </NoOrganizationSidebar>
+    </Flex>
   );
 }
 
@@ -94,35 +108,3 @@ export function Navigation() {
     </NavigationTourProvider>
   );
 }
-
-const NavigationContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
-  display: flex;
-  user-select: none;
-
-  ${p =>
-    !p.tourIsActive &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${p.theme.zIndex.sidebarPanel};
-    `}
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      bottom: 0;
-      height: 100vh;
-      height: 100dvh;
-    `}
-`;
-
-const NoOrganizationSidebar = styled('div')`
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
-  width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${p => p.theme.space.lg} 0 ${p => p.theme.space.md} 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-`;
