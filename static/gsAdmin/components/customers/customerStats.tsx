@@ -208,7 +208,10 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse') {
+      if (
+        point.by.outcome === 'abuse' &&
+        (!point.by.reason || point.by.reason === 'none')
+      ) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
@@ -293,10 +296,13 @@ function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
 ): AbuseData {
-  // Sum abuse quantities per interval
+  // Sum abuse quantities per interval, excluding rate limit reasons
   const abuseByInterval = new Array(intervals.length).fill(0) as number[];
   for (const group of groups) {
-    if (group.by.outcome === 'abuse') {
+    if (
+      group.by.outcome === 'abuse' &&
+      (!group.by.reason || group.by.reason === 'none')
+    ) {
       group.series['sum(quantity)']?.forEach((val, i) => {
         abuseByInterval[i]! += val;
       });
@@ -525,7 +531,7 @@ export const CustomerStats = memo(
             utc: dataDatetime.utc,
             statsPeriod: dataDatetime.period,
             interval: getInterval(dataDatetime),
-            groupBy: ['outcome', 'category'],
+            groupBy: ['outcome', 'reason'],
             field: 'sum(quantity)',
             outcome: ['abuse'],
             ...(projectId ? {project: projectId} : {}),
