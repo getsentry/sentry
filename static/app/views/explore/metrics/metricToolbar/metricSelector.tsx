@@ -236,6 +236,19 @@ export function MetricSelector({
   );
 
   const virtualItems = virtualizer.getVirtualItems();
+  // Fall back to rendering all items when the virtualizer can't measure the scroll
+  // container (e.g. in test environments where DOM has no layout dimensions).
+  const itemsToRender =
+    virtualItems.length > 0 || displayedOptions.length === 0
+      ? virtualItems
+      : displayedOptions.map((_, index) => ({
+          index,
+          key: index,
+          start: 0,
+          end: 0,
+          size: 42,
+          lane: 0,
+        }));
 
   return (
     <Container width="100%" position="relative">
@@ -243,7 +256,7 @@ export function MetricSelector({
         style={{width: '100%', fontWeight: 'bold'}}
         {...triggerProps}
       >
-        <Text ellipsis>{traceMetric.name || t('Select a metric')}</Text>
+        <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>
       <PositionWrapper
         zIndex={1001}
@@ -347,10 +360,10 @@ export function MetricSelector({
                           top={0}
                           left={0}
                           style={{
-                            transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
+                            transform: `translateY(${itemsToRender[0]?.start ?? 0}px)`,
                           }}
                         >
-                          {virtualItems.map(virtualRow => {
+                          {itemsToRender.map(virtualRow => {
                             const option = displayedOptions[virtualRow.index];
                             if (!option) {
                               return null;
@@ -362,6 +375,9 @@ export function MetricSelector({
                                 key={option.value}
                                 ref={virtualizer.measureElement}
                                 data-index={virtualRow.index}
+                                role="option"
+                                aria-label={option.label}
+                                aria-selected={isSelected}
                                 onClick={() => handleSelect(option)}
                                 onMouseEnter={() => setFocusedIndex(virtualRow.index)}
                               >
