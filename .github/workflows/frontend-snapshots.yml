@@ -103,3 +103,5 @@ jobs:
         run: |
           sentry-cli send-event \
             --message "Frontend snapshot upload failed"
+            --tag workflow:frontend-snapshots \
+            --tag commit:"${{ github.sha }}"
