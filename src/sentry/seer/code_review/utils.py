@@ -80,9 +80,7 @@ class SeerEndpoint(StrEnum):
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
-def get_seer_path_for_request(
-    github_event: str, payload: Mapping[str, Any], github_event_action: str | None = None
-) -> str:
+def get_seer_path_for_request(github_event: str, github_event_action: str | None = None) -> str:
     """
     Get the Seer API path for a webhook request based on event type and option.
 
