@@ -15,6 +15,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
@@ -29,6 +30,15 @@ export function MobileNavigation() {
   const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
+  const {currentStepId, endTour} = useNavigationTour();
+
+  // The tour only works with the sidebar layout, so if we change to the mobile
+  // layout in the middle of the tour, it needs to end.
+  useEffect(() => {
+    if (currentStepId !== null) {
+      endTour();
+    }
+  }, [currentStepId, endTour]);
 
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {

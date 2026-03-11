@@ -1,15 +1,10 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
-import Hook from 'sentry/components/hook';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primaryNavigation';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
@@ -26,18 +21,10 @@ import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySideb
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
 export function Navigation() {
-  const theme = useTheme();
-  const organization = useOrganization();
-
   const collapsedNavigation = useCollapsedNavigation();
   const navigationContext = useNavigationContext();
 
   useNavigationTourModal();
-
-  const showSuperuserWarning =
-    isActiveSuperuser() &&
-    !ConfigStore.get('isSelfHosted') &&
-    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   const {currentStepId} = useNavigationTour();
   const isCollapsed = currentStepId === null ? navigationContext.isCollapsed : false;
@@ -58,41 +45,14 @@ export function Navigation() {
 
   return (
     <Fragment>
-      <Flex
-        as="nav"
-        aria-label="Primary Navigation"
-        width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-        padding="lg 0 md 0"
-        borderRight="primary"
-        background="primary"
-        direction="column"
-        style={{zIndex: currentStepId === null ? theme.zIndex.sidebar : undefined}}
-      >
-        <Flex
-          as="header"
-          direction="column"
-          align="center"
-          justify="center"
-          position="relative"
-        >
-          <OrganizationDropdown />
-          {showSuperuserWarning && (
-            <Container
-              position="absolute"
-              top={`-${theme.space.lg}`}
-              left={0}
-              width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-              style={{
-                zIndex: theme.zIndex.initial,
-                background: theme.tokens.background.danger.vibrant,
-              }}
-            >
-              <Hook name="component:superuser-warning" organization={organization} />
-            </Container>
-          )}
-        </Flex>
-        <PrimaryNavigationItems />
-      </Flex>
+      <PrimaryNavigation>
+        <PrimaryNavigation.Sidebar>
+          <PrimaryNavigation.Header>
+            <OrganizationDropdown />
+          </PrimaryNavigation.Header>
+          <PrimaryNavigationItems />
+        </PrimaryNavigation.Sidebar>
+      </PrimaryNavigation>
       {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper

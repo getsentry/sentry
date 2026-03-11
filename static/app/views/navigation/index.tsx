@@ -1,8 +1,3 @@
-import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
-
-import {Flex} from '@sentry/scraps/layout';
-
 import {
   openCommandPalette,
   openCommandPaletteDeprecated,
@@ -11,31 +6,21 @@ import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/u
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
+import {PrimaryNavigation} from 'sentry/views/navigation/components/primaryNavigation';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  NavigationTourProvider,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
+import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {NavigationLayout} from 'sentry/views/navigation/types';
-import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
-function UserAndOrganizationNavigation() {
-  const theme = useTheme();
-  const {layout, navigationParentRef} = useNavigationContext();
-  const {currentStepId, endTour} = useNavigationTour();
-  const tourIsActive = currentStepId !== null;
-  const hoverProps = useResetActiveNavigationGroup();
-
+function useNavigationCommandPalette() {
   const organization = useOrganization();
-  const {visible: isModalOpen} = useGlobalModal();
+  const {visible} = useGlobalModal();
   useGlobalCommandPaletteActions();
 
   useHotkeys(
-    isModalOpen
+    visible
       ? []
       : [
           {
@@ -50,51 +35,29 @@ function UserAndOrganizationNavigation() {
           },
         ]
   );
+}
 
-  // The tour only works with the sidebar layout, so if we change to the mobile
-  // layout in the middle of the tour, it needs to end.
-  useEffect(() => {
-    if (tourIsActive && layout === NavigationLayout.MOBILE) {
-      endTour();
-    }
-  }, [endTour, layout, tourIsActive]);
+function UserAndOrganizationNavigation() {
+  useNavigationCommandPalette();
+  const {layout} = useNavigationContext();
 
-  return (
-    <Flex
-      ref={navigationParentRef}
-      top={0}
-      position={tourIsActive ? undefined : 'sticky'}
-      bottom={layout === NavigationLayout.MOBILE ? undefined : 0}
-      height={layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
-      style={{
-        zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
-        userSelect: 'none',
-      }}
-      {...hoverProps}
-    >
-      {layout === NavigationLayout.SIDEBAR ? <DesktopNavigation /> : <MobileNavigation />}
-    </Flex>
-  );
+  if (layout === NavigationLayout.MOBILE) {
+    return <MobileNavigation />;
+  }
+
+  return <DesktopNavigation />;
 }
 
 function UserOnlyNavigation() {
-  const theme = useTheme();
+  useNavigationCommandPalette();
+
+  // @TODO(JonasBadalic): Improve the UX of this case
   return (
-    <Flex
-      data-test-id="no-organization-sidebar"
-      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-      padding="lg 0 md 0"
-      borderRight="primary"
-      background="primary"
-      direction="column"
-      align="center"
-      justify="between"
-      style={{zIndex: theme.zIndex.sidebarPanel}}
-    >
-      <Flex direction="column" gap="md" justify="between">
+    <PrimaryNavigation>
+      <PrimaryNavigation.Header>
         <UserDropdown />
-      </Flex>
-    </Flex>
+      </PrimaryNavigation.Header>
+    </PrimaryNavigation>
   );
 }
 
@@ -102,7 +65,11 @@ export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
-    return <UserOnlyNavigation />;
+    return (
+      <NavigationTourProvider>
+        <UserOnlyNavigation />
+      </NavigationTourProvider>
+    );
   }
 
   return (

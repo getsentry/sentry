@@ -159,6 +159,11 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
   const onStepChange = useCallback(
     (stepId: NavigationTour) => {
+      if (!organization) {
+        // Noop if there is no organization
+        return;
+      }
+
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case NavigationTour.ISSUES:
