@@ -919,7 +919,6 @@ _PACKAGE_MANIFEST_FILES: dict[str, str] = {
     "php": "composer.json",
     "dart": "pubspec.yaml",
     "ruby": "Gemfile",
-    "go": "go.mod",
 }
 
 
@@ -982,8 +981,6 @@ def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifes
             return _parse_pubspec_yaml(content)
         elif manifest_file == "Gemfile":
             return _parse_gemfile(content)
-        elif manifest_file == "go.mod":
-            return _parse_go_mod(content)
     except (json.JSONDecodeError, YAMLError, ValueError, KeyError, TypeError, AttributeError):
         pass
     return None
@@ -1016,42 +1013,6 @@ def _parse_gemfile(content: str) -> _PackageManifest:
     return _PackageManifest(dependencies=deps, dev_dependencies=set())
 
 
-def _parse_go_mod(content: str) -> _PackageManifest:
-    """Parse a go.mod file into dependency sets.
-
-    Extracts module paths from ``require`` directives, both single-line
-    (``require path v1.0``) and block form (``require ( ... )``).
-    """
-    deps: set[str] = set()
-    in_require = False
-    for line in content.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("//"):
-            continue
-        if stripped.startswith("require (") or stripped.startswith("require("):
-            in_require = True
-            # Handle single-line block: require (github.com/foo/bar v1.0)
-            if stripped.endswith(")"):
-                inner = stripped.split("(", 1)[1].rstrip(")")
-                parts = inner.strip().split()
-                if parts:
-                    deps.add(parts[0])
-                in_require = False
-            continue
-        if in_require:
-            if stripped == ")":
-                in_require = False
-                continue
-            parts = stripped.split()
-            if parts:
-                deps.add(parts[0])
-        elif stripped.startswith("require "):
-            parts = stripped.split()
-            if len(parts) >= 2:
-                deps.add(parts[1])
-    return _PackageManifest(dependencies=deps, dev_dependencies=set())
-
-
 def _package_in_manifest(package_name: str, manifest: _PackageManifest | None) -> bool:
     """Check if a package exists in a manifest's dependencies or devDependencies."""
     if manifest is None:
@@ -1062,17 +1023,6 @@ def _package_in_manifest(package_name: str, manifest: _PackageManifest | None) -
     # Prefix match for composer.json patterns like "symfony/"
     if package_name.endswith("/"):
         return any(dep.startswith(package_name) for dep in all_deps)
-    # Go module version path matching: github.com/foo/bar matches github.com/foo/bar/v2
-    # Only applies to Go module paths (contain a dot from the domain name),
-    # not npm scoped packages (@nestjs/core) or composer packages (laravel/framework).
-    if "." in package_name and "/" in package_name:
-        version_prefix = package_name + "/v"
-        return any(
-            dep.startswith(version_prefix)
-            and len(dep) > len(version_prefix)
-            and dep[len(version_prefix)].isdigit()
-            for dep in all_deps
-        )
     return False
 
 

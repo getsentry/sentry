@@ -18,7 +18,6 @@ from sentry.integrations.github.platform_detection import (
     _package_in_manifest,
     _PackageManifest,
     _parse_gemfile,
-    _parse_go_mod,
     _parse_package_manifest,
     _parse_pubspec_yaml,
     _rule_matches,
@@ -104,12 +103,6 @@ class TestParsePackageManifest:
         assert "rails" in result["dependencies"]
         assert "puma" in result["dependencies"]
 
-    def test_delegates_to_go_mod(self) -> None:
-        content = "module example.com/app\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
-        result = _parse_package_manifest(content, "go.mod")
-        assert result is not None
-        assert "github.com/gin-gonic/gin" in result["dependencies"]
-
 
 class TestParsePubspecYaml:
     def test_extracts_dependencies(self) -> None:
@@ -163,49 +156,6 @@ class TestParseGemfile:
         assert result["dependencies"] == set()
 
 
-class TestParseGoMod:
-    def test_single_require(self) -> None:
-        content = "module example.com/app\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
-        result = _parse_go_mod(content)
-        assert "github.com/gin-gonic/gin" in result["dependencies"]
-
-    def test_require_block(self) -> None:
-        content = (
-            "module example.com/app\n\n"
-            "require (\n"
-            "\tgithub.com/gin-gonic/gin v1.9.1\n"
-            "\tgithub.com/labstack/echo/v4 v4.11.0\n"
-            ")\n"
-        )
-        result = _parse_go_mod(content)
-        assert "github.com/gin-gonic/gin" in result["dependencies"]
-        assert "github.com/labstack/echo/v4" in result["dependencies"]
-
-    def test_empty_go_mod(self) -> None:
-        result = _parse_go_mod("module example.com/app\n\ngo 1.21\n")
-        assert result["dependencies"] == set()
-
-    def test_skips_commented_lines_in_require_block(self) -> None:
-        content = (
-            "module example.com/app\n\n"
-            "require (\n"
-            "\tgithub.com/gin-gonic/gin v1.9.1\n"
-            "\t// github.com/old/dep v0.1.0\n"
-            "\tgithub.com/labstack/echo/v4 v4.11.0\n"
-            ")\n"
-        )
-        result = _parse_go_mod(content)
-        assert "github.com/gin-gonic/gin" in result["dependencies"]
-        assert "github.com/labstack/echo/v4" in result["dependencies"]
-        assert "//" not in result["dependencies"]
-        assert "github.com/old/dep" not in result["dependencies"]
-
-    def test_skips_commented_single_require(self) -> None:
-        content = "module example.com/app\n\n// require github.com/old/dep v0.1.0\n"
-        result = _parse_go_mod(content)
-        assert result["dependencies"] == set()
-
-
 class TestPackageInManifest:
     def test_exact_match_in_dependencies(self) -> None:
         manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
@@ -229,25 +179,7 @@ class TestPackageInManifest:
         manifest = _PackageManifest(dependencies={"laravel/framework"}, dev_dependencies=set())
         assert _package_in_manifest("symfony/", manifest) is False
 
-    def test_go_module_version_path_match(self) -> None:
-        manifest = _PackageManifest(
-            dependencies={"github.com/labstack/echo/v4"}, dev_dependencies=set()
-        )
-        assert _package_in_manifest("github.com/labstack/echo", manifest) is True
-
-    def test_go_module_exact_match(self) -> None:
-        manifest = _PackageManifest(
-            dependencies={"github.com/gin-gonic/gin"}, dev_dependencies=set()
-        )
-        assert _package_in_manifest("github.com/gin-gonic/gin", manifest) is True
-
-    def test_go_module_version_no_false_positive_on_similar_path(self) -> None:
-        manifest = _PackageManifest(
-            dependencies={"github.com/foo/bar/validator"}, dev_dependencies=set()
-        )
-        assert _package_in_manifest("github.com/foo/bar", manifest) is False
-
-    def test_npm_scoped_package_no_go_version_matching(self) -> None:
+    def test_npm_scoped_package_match(self) -> None:
         manifest = _PackageManifest(dependencies={"@nestjs/core"}, dev_dependencies=set())
         assert _package_in_manifest("@nestjs/core", manifest) is True
         assert _package_in_manifest("@nestjs/missing", manifest) is False
