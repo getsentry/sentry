@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -9,6 +10,13 @@ from sentry.seer.entrypoints.types import SeerOperatorCacheResult
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+class CacheHaltReason(StrEnum):
+    CACHE_MISS = "cache_miss"
+    POST_CACHE_EXISTS = "post_cache_exists"
+    NO_PRE_CACHE = "no_pre_cache"
+
 
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 EXPLORER_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
@@ -131,7 +139,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
                 )
 
             if not cache_result:
-                lifecycle.record_halt(halt_reason="cache_miss")
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
 
             # If we do have a run_id cache, we can delete the pre-autofix cache to prevent autofix
@@ -169,11 +177,11 @@ class SeerOperatorAutofixCache[CachePayloadT]:
                 )
                 # If we already have a post-autofix cache, and we're not overwriting, skip.
                 if not overwrite and post_cache_result:
-                    lifecycle.record_halt(halt_reason="post_cache_exists")
+                    lifecycle.record_halt(halt_reason=CacheHaltReason.POST_CACHE_EXISTS)
                     continue
                 # If we don't have a pre-autofix cache, nothing to migrate, skip.
                 if not pre_cache_result:
-                    lifecycle.record_halt(halt_reason="no_pre_cache")
+                    lifecycle.record_halt(halt_reason=CacheHaltReason.NO_PRE_CACHE)
                     continue
                 post_cache_key = cls._get_post_autofix_cache_key(
                     entrypoint_key=entrypoint_key, run_id=to_run_id
@@ -222,6 +230,6 @@ class SeerOperatorExplorerCache[CachePayloadT]:
             lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
             cache_payload = cache.get(cache_key)
             if not cache_payload:
-                lifecycle.record_halt(halt_reason="cache_miss")
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
             return cache_payload
