@@ -29,7 +29,6 @@ import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttr
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
-  isVisualizeFunction,
   MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
@@ -89,7 +88,7 @@ export function ToolbarVisualize({
     [setVisualizes, visualizes]
   );
 
-  const onDelete = useCallback(
+  const handleOnDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes
         .toSpliced(group, 1)
@@ -98,8 +97,6 @@ export function ToolbarVisualize({
     },
     [setVisualizes, visualizes]
   );
-
-  const canDelete = visualizes.filter(isVisualizeFunction).length > 1;
 
   return (
     <ToolbarSection data-test-id="section-visualizes">
@@ -112,12 +109,13 @@ export function ToolbarVisualize({
             onClick={() => toggleVisibility(group)}
           />
         );
+        const onDelete = visualizes.length > 1 ? () => handleOnDelete(group) : undefined;
 
         if (isVisualizeEquation(visualize)) {
           return (
             <VisualizeEquationInput
               key={group}
-              onDelete={() => onDelete(group)}
+              onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
               label={label}
@@ -128,8 +126,7 @@ export function ToolbarVisualize({
         return (
           <ToolbarVisualizeItem
             key={group}
-            canDelete={canDelete}
-            onDelete={() => onDelete(group)}
+            onDelete={onDelete}
             onReplace={newVisualize => replaceOverlay(group, newVisualize)}
             visualize={visualize}
             label={label}
@@ -153,15 +150,13 @@ export function ToolbarVisualize({
 }
 
 interface VisualizeDropdownProps {
-  canDelete: boolean;
   label: ReactNode;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  onDelete?: () => void;
 }
 
 function ToolbarVisualizeItem({
-  canDelete,
   label,
   onDelete,
   onReplace,
@@ -239,7 +234,6 @@ function ToolbarVisualizeItem({
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
-      canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
