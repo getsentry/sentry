@@ -37,7 +37,7 @@ function SelectIndicatorsContainer({
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps = BaseFieldProps<HTMLInputElement> &
+type BaseSelectFieldProps<TValue> = BaseFieldProps<HTMLInputElement> &
   Omit<
     React.ComponentProps<typeof Select>,
     | 'value'
@@ -48,33 +48,39 @@ type BaseSelectFieldProps = BaseFieldProps<HTMLInputElement> &
     | 'multi'
     | 'clearable'
     | 'id'
+    | 'options'
+    | 'getOptionValue'
   > & {
     disabled?: boolean | string;
+    getOptionValue?: (option: SelectValue<TValue>) => string;
   };
 
 // Helper type for non-array constraint
 type NonArray<T> = T extends readonly unknown[] ? never : T;
 
 // Single select WITHOUT clearable - onChange receives TValue (never null)
-interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   onChange: (value: NonArray<TValue>) => void;
+  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   clearable?: false;
   multiple?: false;
 }
 
 // Single select WITH clearable - onChange can receive TValue | null
-interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
+  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   multiple?: false;
 }
 
 // Multiple select - TValue must be an array
-interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   multiple: true;
   onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
+  options: TValue extends ReadonlyArray<infer U> ? Array<SelectValue<U>> : never;
   value: TValue extends readonly unknown[] ? TValue : never;
   clearable?: boolean;
 }
