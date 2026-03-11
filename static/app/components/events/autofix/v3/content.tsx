@@ -7,6 +7,7 @@ import {
   isRootCauseArtifact,
   isSolutionArtifact,
   useExplorerAutofix,
+  type AutofixArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesCard,
@@ -41,7 +42,7 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
 }
 
 interface SeerDrawerArtifactsProps {
-  artifacts: ReturnType<typeof getOrderedAutofixArtifacts>;
+  artifacts: AutofixArtifact[];
 }
 
 function SeerDrawerArtifacts({artifacts}: SeerDrawerArtifactsProps) {

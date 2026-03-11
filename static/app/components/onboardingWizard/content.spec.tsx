@@ -10,8 +10,8 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {NavigationContextProvider} from 'sentry/views/nav/context';
-import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
+import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
   {task: OnboardingTaskKey.FIRST_PROJECT, title: 'Create your first project'},

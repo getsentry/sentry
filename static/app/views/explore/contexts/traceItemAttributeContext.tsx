@@ -51,17 +51,23 @@ type TraceItemAttributeResult = {
 export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
-  projects?: Project[];
+  projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
 };
 
 type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
+function isProjectArray(
+  projects: Project[] | Array<string | number>
+): projects is Project[] {
+  return projects.length > 0 && typeof projects[0] === 'object';
+}
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
-  projects,
+  projects: rawProjects,
   search,
   query,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
@@ -70,11 +76,16 @@ function useTraceItemAttributeConfig({
     'search-query-builder-explicit-boolean-filters'
   );
 
+  const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
+  const projectIds =
+    rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
+
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -85,6 +96,7 @@ function useTraceItemAttributeConfig({
       enabled,
       type: 'string',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -95,6 +107,7 @@ function useTraceItemAttributeConfig({
       enabled: enabled && hasBooleanFilters,
       type: 'boolean',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,

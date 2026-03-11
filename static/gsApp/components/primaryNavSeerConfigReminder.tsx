@@ -13,16 +13,16 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
+} from 'sentry/views/navigation/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/primaryButtonOverlay';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
@@ -220,7 +220,7 @@ export default function PrimaryNavSeerConfigReminder() {
       >
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
         />
       </SidebarButton>
       {isOpen && (

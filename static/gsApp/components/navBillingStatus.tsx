@@ -14,16 +14,16 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigationContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
+} from 'sentry/views/navigation/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/primaryButtonOverlay';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
@@ -535,7 +535,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         }}
       >
         <SidebarItemUnreadIndicator
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
           variant="warning"
         />
       </SidebarButton>

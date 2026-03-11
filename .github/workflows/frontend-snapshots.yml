@@ -1,4 +1,4 @@
-name: frontend-snapshots
+name: '[NOT REQUIRED] frontend-snapshots'
 
 on:
   push:
@@ -64,9 +64,10 @@ jobs:
 
       - name: Install sentry-cli
         if: ${{ !cancelled() }}
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.2 sh
+        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.3.3 sh
 
       - name: Upload snapshots
+        id: upload
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
@@ -94,3 +95,13 @@ jobs:
           fi
 
           sentry-cli "${ARGS[@]}"
+
+      - name: Report upload failure to Sentry
+        if: ${{ failure() && steps.upload.outcome == 'failure' }}
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
+        run: |
+          sentry-cli send-event \
+            --message "Frontend snapshot upload failed"
+            --tag workflow:frontend-snapshots \
+            --tag commit:"${{ github.sha }}"

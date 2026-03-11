@@ -19,7 +19,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useNavigationContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
