@@ -29,7 +29,7 @@ const COVERAGE_TEXT: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-export interface FrameContentProps {
+interface FrameContentProps {
   sourceLineCoverage?: Array<Coverage | undefined>;
 }
 

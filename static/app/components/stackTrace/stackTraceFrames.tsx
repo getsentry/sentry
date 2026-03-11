@@ -22,7 +22,7 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
   );
 }
 
-export interface StackTraceFramesProps {
+interface StackTraceFramesProps {
   frameContextComponent: ComponentType;
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
 }
