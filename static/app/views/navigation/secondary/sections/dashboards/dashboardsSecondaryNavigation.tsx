@@ -22,6 +22,9 @@ export function DashboardsSecondaryNavigation() {
   const user = useUser();
 
   const {data: starredDashboards = []} = useGetStarredDashboards();
+  const hasPrebuiltDashboards = organization.features.includes(
+    'dashboards-prebuilt-insights-dashboards'
+  );
 
   return (
     <Fragment>
@@ -37,6 +40,14 @@ export function DashboardsSecondaryNavigation() {
           >
             {t('All Dashboards')}
           </SecondaryNavigation.Item>
+          {hasPrebuiltDashboards ? (
+            <SecondaryNavigation.Item
+              to={`${baseUrl}/?filter=onlyPrebuilt`}
+              analyticsItemName="dashboards_sentry_built"
+            >
+              {t('Sentry Built')}
+            </SecondaryNavigation.Item>
+          ) : null}
         </SecondaryNavigation.Section>
         {starredDashboards.length > 0 ? (
           <SecondaryNavigation.Section

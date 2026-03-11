@@ -67,7 +67,6 @@ import {
 import TemplateCard from './templateCard';
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
-const SHOW_PREBUILT_KEY = 'dashboards-show-prebuilt';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
@@ -75,11 +74,6 @@ const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
-  return shouldShow === 'true' || shouldShow === null;
-}
-
-function shouldShowPrebuilt(): boolean {
-  const shouldShow = localStorage.getItem(SHOW_PREBUILT_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
@@ -100,25 +94,37 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
 function getSortOptions({
   organization,
   dashboardsLayout,
+  isOnlyPrebuilt,
 }: {
   dashboardsLayout: DashboardsLayout;
+  isOnlyPrebuilt: boolean;
   organization: Organization;
 }) {
-  return [
-    ...(!organization.features.includes('dashboards-starred-reordering') ||
-    dashboardsLayout === GRID
-      ? [{label: t('My Dashboards'), value: 'mydashboards'}]
-      : []),
+  const options = [];
+
+  if (
+    !isOnlyPrebuilt &&
+    (!organization.features.includes('dashboards-starred-reordering') ||
+      dashboardsLayout === GRID)
+  ) {
+    options.push({label: t('My Dashboards'), value: 'mydashboards'});
+  }
+
+  options.push(
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
     {label: t('Dashboard Name (Z-A)'), value: '-title'},
     {label: t('Date Created (Newest)'), value: '-dateCreated'},
     {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-    {label: t('Most Popular'), value: 'mostPopular'},
-    ...(organization.features.includes('dashboards-starred-reordering')
-      ? [{label: t('Most Starred'), value: 'mostFavorited'}]
-      : []),
-    {label: t('Recently Viewed'), value: 'recentlyViewed'},
-  ];
+    {label: t('Most Popular'), value: 'mostPopular'}
+  );
+
+  if (organization.features.includes('dashboards-starred-reordering')) {
+    options.push({label: t('Most Starred'), value: 'mostFavorited'});
+  }
+
+  options.push({label: t('Recently Viewed'), value: 'recentlyViewed'});
+
+  return options;
 }
 
 function getDefaultSort({
@@ -147,14 +153,12 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+  const isOnlyPrebuilt =
+    hasPrebuiltDashboards && decodeScalar(location.query.filter) === 'onlyPrebuilt';
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
-  );
-  const [showPrebuilt, setShowPrebuiltLocal] = useLocalStorageState(
-    SHOW_PREBUILT_KEY,
-    shouldShowPrebuilt()
   );
   const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
     LAYOUT_KEY,
@@ -168,6 +172,7 @@ function ManageDashboards() {
   const sortOptions = getSortOptions({
     organization,
     dashboardsLayout,
+    isOnlyPrebuilt,
   });
 
   const {
@@ -189,7 +194,7 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(hasPrebuiltDashboards && !showPrebuilt ? {filter: 'excludePrebuilt'} : {}),
+          ...(isOnlyPrebuilt ? {filter: 'onlyPrebuilt'} : {}),
         },
       },
     ],
@@ -367,14 +372,6 @@ function ManageDashboards() {
       show_templates: !showTemplates,
     });
     setShowTemplatesLocal(!showTemplates);
-  };
-
-  const togglePrebuilt = () => {
-    setShowPrebuiltLocal(!showPrebuilt);
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, cursor: undefined, [OWNED_CURSOR_KEY]: undefined},
-    });
   };
 
   function getQuery() {
@@ -575,7 +572,10 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
+        orgSlug={organization.slug}
+      >
         <ErrorBoundary>
           {isError ? (
             <Layout.Page withPadding>
@@ -587,27 +587,24 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {t('All Dashboards')}
+                      {isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
-                        title={t(
-                          'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
-                        )}
+                        title={
+                          isOnlyPrebuilt
+                            ? t(
+                                'Pre-configured dashboards built by Sentry to help you monitor key metrics out of the box.'
+                              )
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )
+                        }
                       />
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <Grid flow="column" align="center" gap="lg">
-                      {hasPrebuiltDashboards ? (
-                        <TemplateSwitch>
-                          {t('Show Sentry Built Dashboards')}
-                          <Switch
-                            checked={showPrebuilt}
-                            size="lg"
-                            onChange={togglePrebuilt}
-                          />
-                        </TemplateSwitch>
-                      ) : (
+                      {!hasPrebuiltDashboards && (
                         <TemplateSwitch>
                           {t('Show Templates')}
                           <Switch
