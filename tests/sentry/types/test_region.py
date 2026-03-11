@@ -33,11 +33,11 @@ from sentry.types.region import (
 
 
 class CellDirectoryTest(TestCase):
-    """Test region config parsing and setup.
+    """Test cell config parsing and setup.
 
     Note: Because this test case is targeted at the logic of setting up the
     CellDirectory, it uses a lot of `override_settings` in ways that most test
-    cases shouldn't. If you are having difficulty with region setup in other test
+    cases shouldn't. If you are having difficulty with cell setup in other test
     cases, please don't follow this class as an example, but instead use the
     utilities in testutils/silo.py and testutils/region.py.
     """
@@ -75,7 +75,7 @@ class CellDirectoryTest(TestCase):
         with get_test_env_directory().swap_state(tuple(directory.cells)):
             yield
 
-    def test_region_config_parsing_in_monolith(self) -> None:
+    def test_cell_config_parsing_in_monolith(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
@@ -87,7 +87,7 @@ class CellDirectoryTest(TestCase):
             with pytest.raises(CellResolutionError):
                 get_cell_by_name("nowhere")
 
-    def test_region_config_parsing_in_control(self) -> None:
+    def test_cell_config_parsing_in_control(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
             override_settings(SENTRY_MONOLITH_REGION="us"),
@@ -102,7 +102,7 @@ class CellDirectoryTest(TestCase):
         with self._in_global_state(directory):
             assert get_local_cell() == self._EXPECTED_OUTPUTS[0]
 
-    def test_get_generated_monolith_region(self) -> None:
+    def test_get_generated_monolith_cell(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
             self._in_global_state(load_from_config([], [])),
@@ -137,9 +137,9 @@ class CellDirectoryTest(TestCase):
                 # OrganizationMapping does not exist
                 get_cell_for_organization(self.organization.slug)
 
-    def test_validate_region(self) -> None:
-        for region in self._EXPECTED_OUTPUTS:
-            region.validate()
+    def test_validate_cell(self) -> None:
+        for cell in self._EXPECTED_OUTPUTS:
+            cell.validate()
 
     def test_locality_to_url(self) -> None:
         locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
@@ -157,7 +157,7 @@ class CellDirectoryTest(TestCase):
             load_from_config(["invalid"], [])  # type: ignore[list-item]
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
-    def test_invalid_historic_region_setting(self) -> None:
+    def test_invalid_historic_cell_setting(self) -> None:
         with pytest.raises(CellConfigurationError):
             with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
                 load_from_config(self._INPUTS, [])
@@ -175,8 +175,8 @@ class CellDirectoryTest(TestCase):
                 default_org_role=organization.default_role,
                 user_id=user.id,
             )
-            actual_regions = find_cells_for_user(user_id=user.id)
-            assert actual_regions == {"us"}
+            actual_cells = find_cells_for_user(user_id=user.id)
+            assert actual_cells == {"us"}
 
         with (
             override_settings(SILO_MODE=SiloMode.REGION),
@@ -253,7 +253,7 @@ class CellDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_subdomain_is_locality(self) -> None:
-        regions: list[CellConfig] = [
+        cells: list[CellConfig] = [
             {
                 "name": "us",
                 "snowflake_id": 1,
@@ -263,7 +263,7 @@ class CellDirectoryTest(TestCase):
         ]
         rf = RequestFactory()
         with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(regions, [])
+            directory = load_from_config(cells, [])
         with self._in_global_state(directory):
             req = rf.get("/")
             setattr(req, "subdomain", "us")
