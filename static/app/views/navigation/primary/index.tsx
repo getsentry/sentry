@@ -22,6 +22,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavigationContext} from 'sentry/views/navigation/context';
 import {
+  NavigationTour,
+  NavigationTourElement,
+} from 'sentry/views/navigation/navigationTour';
+import {
   SeparatorItem,
   SidebarLink,
   SidebarList,
@@ -30,13 +34,9 @@ import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
+import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew/whatsNew';
-import {
-  NavigationTourElement,
-  StackedNavigationTour,
-} from 'sentry/views/navigation/tour/tour';
 import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {UserDropdown} from 'sentry/views/navigation/userDropdown';
 
 function SidebarBody({
   children,
@@ -99,11 +99,7 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody ref={ref}>
-        <NavigationTourElement
-          id={StackedNavigationTour.ISSUES}
-          title={null}
-          description={null}
-        >
+        <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
           {tourProps => (
             <SidebarLink
               to={`/${prefix}/issues/`}
@@ -120,7 +116,7 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
 
         <NavigationTourElement
-          id={StackedNavigationTour.EXPLORE}
+          id={NavigationTour.EXPLORE}
           title={null}
           description={null}
         >
@@ -146,7 +142,7 @@ export function PrimaryNavigationItems() {
           requireAll={false}
         >
           <NavigationTourElement
-            id={StackedNavigationTour.DASHBOARDS}
+            id={NavigationTour.DASHBOARDS}
             title={null}
             description={null}
           >
@@ -169,7 +165,7 @@ export function PrimaryNavigationItems() {
 
         <Feature features={['performance-view']}>
           <NavigationTourElement
-            id={StackedNavigationTour.INSIGHTS}
+            id={NavigationTour.INSIGHTS}
             title={null}
             description={null}
           >
@@ -222,7 +218,7 @@ export function PrimaryNavigationItems() {
         </Feature>
 
         <NavigationTourElement
-          id={StackedNavigationTour.SETTINGS}
+          id={NavigationTour.SETTINGS}
           title={null}
           description={null}
         >

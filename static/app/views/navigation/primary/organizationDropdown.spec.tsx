@@ -7,7 +7,7 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
-import {OrganizationDropdown} from 'sentry/views/navigation/organizationDropdown';
+import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 
 describe('OrganizationDropdown', () => {
   const organization = OrganizationFixture({
