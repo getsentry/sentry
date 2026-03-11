@@ -102,8 +102,8 @@ export function DataScrubFormModal({
 
   // Compute initial dataset from initialState
   const initialValues = {
-    type: initialState?.type ?? RuleType.CREDITCARD,
-    method: initialState?.method ?? MethodType.MASK,
+    type: (initialState?.type as RuleType) ?? RuleType.CREDITCARD,
+    method: (initialState?.method as MethodType) ?? MethodType.MASK,
     source: initialState?.source ?? '',
     placeholder: initialState?.placeholder ?? '',
     pattern: initialState?.pattern ?? '',

@@ -35,17 +35,15 @@ import {
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
 const schema = z.object({
-  provider: z.string().min(1, t('Provider is required')),
+  provider: z.enum(WebhookProviderEnum, t('Provider is required')),
   secret: z.string().min(1, t('Secret is required')).max(100),
 });
-
-type CreateSecretData = z.infer<typeof schema>;
 
 interface Props {
   canSaveSecret: boolean;
   onCreatedSecret: (secret: string) => void;
   setError: (error: string | null) => void;
-  setSelectedProvider: (provider: string) => void;
+  setSelectedProvider: (provider: WebhookProviderEnum) => void;
   existingSecret?: Secret;
 }
 
@@ -66,7 +64,7 @@ export default function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const mutation = useMutation<string, RequestError, CreateSecretData>({
+  const mutation = useMutation<string, RequestError, z.infer<typeof schema>>({
     mutationFn: ({provider, secret}) => {
       addLoadingMessage();
       return fetchMutation({
@@ -104,7 +102,7 @@ export default function NewProviderForm({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {provider: '', secret: ''},
+    defaultValues: {provider: '' as WebhookProviderEnum, secret: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
       return mutation.mutateAsync(value).catch((error: RequestError) => {
@@ -197,24 +195,20 @@ function WebhookUrlField({
   organizationSlug,
 }: {
   organizationSlug: string;
-  provider: string;
+  provider: WebhookProviderEnum | '';
 }) {
+  const setupUrl = provider === '' ? undefined : PROVIDER_TO_SETUP_WEBHOOK_URL[provider];
+
   return (
     <Flex direction="row" gap="sm" align="center" justify="between" padding="xl">
       <Stack width="50%" gap="xs">
         <Text>{t('Webhook URL')}</Text>
         <Text size="sm" variant="muted">
-          {Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
+          {setupUrl
             ? tct(
                 "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
                 {
-                  link: (
-                    <ExternalLink
-                      href={
-                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
-                      }
-                    />
-                  ),
+                  link: <ExternalLink href={setupUrl} />,
                 }
               )
             : t(
@@ -223,8 +217,8 @@ function WebhookUrlField({
         </Text>
       </Stack>
       <Container flexGrow={1}>
-        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
-          {provider.length
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider}>
+          {provider
             ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
             : ''}
         </TextCopyInput>

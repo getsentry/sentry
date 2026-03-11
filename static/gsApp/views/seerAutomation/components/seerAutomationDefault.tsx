@@ -99,11 +99,7 @@ export function SeerAutomationDefault() {
                 <field.Select
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={SEER_THRESHOLD_OPTIONS.map(option => ({
-                    value: option.value,
-                    label: option.label,
-                    details: option.details,
-                  }))}
+                  options={SEER_THRESHOLD_OPTIONS}
                   disabled={!canWrite}
                 />
               </field.Layout.Row>

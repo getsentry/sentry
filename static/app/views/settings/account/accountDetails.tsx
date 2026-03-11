@@ -50,9 +50,12 @@ const accountDetailsSchema = z.object({
   id: z.string(),
 });
 
+const languageCodes = languages.map(([code]) => code);
+type Language = (typeof languageCodes)[number];
+
 const preferencesSchema = z.object({
   theme: z.string(),
-  language: z.string(),
+  language: z.enum(languageCodes),
   timezone: z.string(),
   stacktraceOrder: z.string(),
   defaultIssueEvent: z.string(),
@@ -255,7 +258,7 @@ function AccountDetails() {
           <AutoSaveField
             name="language"
             schema={preferencesSchema}
-            initialValue={user.options.language}
+            initialValue={user.options.language as Language}
             mutationOptions={userOptionsMutationOptions}
           >
             {field => (

@@ -49,7 +49,9 @@ type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
   | 'id'
   | 'options'
 > &
-  BaseFieldProps<HTMLInputElement>;
+  BaseFieldProps<HTMLInputElement> & {
+    options: ReadonlyArray<SelectValue<TValue>>;
+  };
 
 // Helper type for non-array constraint
 type NonArray<T> = T extends readonly unknown[] ? never : T;
@@ -60,7 +62,6 @@ interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps
   false
 > {
   onChange: (value: NonArray<TValue>) => void;
-  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   clearable?: false;
   multiple?: false;
@@ -73,17 +74,17 @@ interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
 > {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
-  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   multiple?: false;
 }
 
 // Multiple select - TValue must be an array
-interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue, true> {
+interface MultipleSelectFieldProps<
+  TValue extends NonArray<any>,
+> extends BaseSelectFieldProps<TValue, true> {
   multiple: true;
-  onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
-  options: TValue extends ReadonlyArray<infer U> ? Array<SelectValue<U>> : never;
-  value: TValue extends readonly unknown[] ? TValue : never;
+  onChange: (value: TValue[]) => void;
+  value: TValue[];
   clearable?: boolean;
 }
 

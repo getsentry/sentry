@@ -5,6 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {WebhookProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -28,7 +29,7 @@ type FetchSecretResponse = {data: Secret[]};
 
 function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState<WebhookProviderEnum | ''>('');
   const [error, setError] = useState<string | null>(null);
   const organization = useOrganization();
   const user = useUser();
