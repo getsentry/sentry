@@ -204,7 +204,7 @@ class SeerExplorerResponseTemplate(NotificationTemplate[SeerExplorerResponse]):
         run_id=12345,
         organization_id=1,
         explorer_link="https://sentry.sentry.io/explore/seer/12345/",
-        summary="I've analyzed your question about the increase in 500 errors.",
+        summary="I've finished analyzing your question.",
     )
     hide_from_debugger = True
 
