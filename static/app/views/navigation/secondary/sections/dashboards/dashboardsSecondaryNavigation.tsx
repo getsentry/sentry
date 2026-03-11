@@ -14,6 +14,7 @@ import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarr
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
@@ -32,6 +33,9 @@ export function DashboardsSecondaryNavigation() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
+  const isOnDashboardsList = isSidebarLinkActive(`${baseUrl}/`, location.pathname, {
+    end: true,
+  });
 
   return (
     <Fragment>
@@ -43,7 +47,9 @@ export function DashboardsSecondaryNavigation() {
           <SecondaryNavigation.Item
             to={`${baseUrl}/`}
             end
-            isActive={hasPrebuiltDashboards ? !isOnlyPrebuilt : undefined}
+            isActive={
+              hasPrebuiltDashboards ? isOnDashboardsList && !isOnlyPrebuilt : undefined
+            }
             analyticsItemName="dashboards_all"
           >
             {t('All Dashboards')}
@@ -51,7 +57,7 @@ export function DashboardsSecondaryNavigation() {
           {hasPrebuiltDashboards ? (
             <SecondaryNavigation.Item
               to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-              isActive={isOnlyPrebuilt}
+              isActive={isOnDashboardsList && isOnlyPrebuilt}
               analyticsItemName="dashboards_sentry_built"
             >
               {t('Sentry Built')}
