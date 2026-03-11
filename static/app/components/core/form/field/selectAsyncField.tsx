@@ -33,7 +33,7 @@ type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> &
      */
     queryOptions: (
       debouncedInput: string
-    ) => UseQueryOptions<TData, Error, Array<SelectValue<TValue>>, any>;
+    ) => UseQueryOptions<TData, Error, ReadonlyArray<SelectValue<TValue>>, any>;
   };
 
 const DEBOUNCE_MS = 250;
