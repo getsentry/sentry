@@ -45,9 +45,6 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       background="secondary"
     >
       <SeerDrawerHeader
-        group={group}
-        project={project}
-        event={event}
         onCopyMarkdown={handleCopyMarkdown}
         onReset={aiAutofix.runState ? aiAutofix.reset : undefined}
       />

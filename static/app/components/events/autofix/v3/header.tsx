@@ -7,14 +7,8 @@ import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 
 interface SeerDrawerHeaderProps {
-  event: Event;
-  group: Group;
-  project: Project;
   onCopyMarkdown?: () => void;
   onReset?: () => void;
 }
