@@ -28,6 +28,7 @@ import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -107,10 +108,12 @@ export default function TicketRuleModal({
   const {cache, updateCache} = useAsyncOptionsCache(initialOptionsCache);
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
-  const endpointString = makeIntegrationIssueConfigTicketRuleQueryKey({
-    orgSlug: organization.slug,
-    integrationId: instance.integration,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigTicketRuleQueryKey({
+      orgSlug: organization.slug,
+      integrationId: instance.integration,
+    })
+  );
 
   const initialConfigQuery = useMemo(() => {
     return (instance.dynamic_form_fields || [])

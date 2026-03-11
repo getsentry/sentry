@@ -178,6 +178,10 @@ export function getApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey
 ): TResponseData | undefined {
+  const {version} = parseQueryKey(queryKey);
+  if (version !== 'v1') {
+    return undefined;
+  }
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
@@ -191,6 +195,10 @@ export function setApiQueryData<TResponseData>(
   updater: Updater<TResponseData | undefined, TResponseData | undefined>,
   options?: SetDataOptions
 ): TResponseData | undefined {
+  const {version} = parseQueryKey(queryKey);
+  if (version !== 'v1') {
+    return undefined;
+  }
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
     previous => {

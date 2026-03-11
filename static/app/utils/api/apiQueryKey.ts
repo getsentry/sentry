@@ -2,6 +2,8 @@ import type getApiUrl from 'sentry/utils/api/getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
 
+type ApiUrl = ReturnType<typeof getApiUrl>;
+
 export type QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
@@ -17,82 +19,60 @@ export type QueryKeyEndpointOptions<
 /**
  * @deprecated Prefer using `apiOptions.as<T>()(...args)` whenever possible.
  */
-type PlainQueryKey =
-  | readonly [url: ReturnType<typeof getApiUrl>]
+type V1QueryKey =
+  | readonly [url: ApiUrl]
+  | readonly [url: ApiUrl, options: QueryKeyEndpointOptions];
+type V2QueryKey =
+  | readonly [{infinite: false; version: 'v2'}, url: ApiUrl]
   | readonly [
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
-    ];
-type ApiOptionsQueryKey =
-  | readonly ['apiOptions', url: ReturnType<typeof getApiUrl>]
-  | readonly [
-      'apiOptions',
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
+      {infinite: false; version: 'v2'},
+      url: ApiUrl,
+      options: QueryKeyEndpointOptions,
     ];
 
-export type ApiQueryKey = PlainQueryKey | ApiOptionsQueryKey;
+export type ApiQueryKey = V1QueryKey | V2QueryKey;
 
 /**
  * @deprecated Prefer using `apiOptions.asInfinite<T>()(...args)` whenever possible.
  */
-type PlainInfiniteQueryKey =
-  | readonly ['infinite', url: ReturnType<typeof getApiUrl>]
+type V1InfiniteQueryKey =
+  | readonly [{infinite: true; version: 'v1'}, url: ApiUrl]
   | readonly [
-      'infinite',
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
+      {infinite: true; version: 'v1'},
+      url: ApiUrl,
+      options: QueryKeyEndpointOptions,
     ];
-type ApiOptionsInfiniteQueryKey =
-  | readonly ['apiOptions', 'infinite', url: ReturnType<typeof getApiUrl>]
+type V2InfiniteQueryKey =
+  | readonly [{infinite: true; version: 'v2'}, url: ApiUrl]
   | readonly [
-      'apiOptions',
-      'infinite',
-      url: ReturnType<typeof getApiUrl>,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
+      {infinite: true; version: 'v2'},
+      url: ApiUrl,
+      options: QueryKeyEndpointOptions,
     ];
 
-export type InfiniteApiQueryKey = PlainInfiniteQueryKey | ApiOptionsInfiniteQueryKey;
+export type InfiniteApiQueryKey = V1InfiniteQueryKey | V2InfiniteQueryKey;
 
-function isApiOptionsQueryKey(
+function isV2QueryKey(
   queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is ApiOptionsQueryKey | ApiOptionsInfiniteQueryKey {
-  return queryKey[0] === 'apiOptions';
+): queryKey is V2QueryKey | V2InfiniteQueryKey {
+  return typeof queryKey[0] === 'object' && queryKey[0].version === 'v2';
 }
-function isPlainInfiniteQueryKey(
+function isInfiniteQueryKey(
   queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is PlainInfiniteQueryKey {
-  return queryKey[0] === 'infinite';
-}
-function isApiOptionsInfiniteQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is ApiOptionsInfiniteQueryKey {
-  return queryKey[1] === 'infinite';
+): queryKey is V1InfiniteQueryKey | V2InfiniteQueryKey {
+  return typeof queryKey[0] === 'object' && queryKey[0].infinite;
 }
 
 export function parseQueryKey(queryKey: ApiQueryKey | InfiniteApiQueryKey) {
-  if (isApiOptionsQueryKey(queryKey)) {
-    return isApiOptionsInfiniteQueryKey(queryKey)
-      ? {isInfinite: true, url: queryKey[2], options: queryKey[3]}
-      : {isInfinite: false, url: queryKey[1], options: queryKey[2]};
+  if (isInfiniteQueryKey(queryKey)) {
+    return {
+      version: isV2QueryKey(queryKey) ? 'v2' : 'v1',
+      isInfinite: true,
+      url: queryKey[1],
+      options: queryKey[2],
+    };
   }
-  return isPlainInfiniteQueryKey(queryKey)
-    ? {isInfinite: true, url: queryKey[1], options: queryKey[2]}
-    : {isInfinite: false, url: queryKey[0], options: queryKey[1]};
+  return isV2QueryKey(queryKey)
+    ? {version: 'v2', isInfinite: false, url: queryKey[1], options: queryKey[2]}
+    : {version: 'v1', isInfinite: false, url: queryKey[0], options: queryKey[1]};
 }

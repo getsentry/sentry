@@ -76,14 +76,15 @@ export function useReleases(
           },
         },
       ] as ApiQueryKey;
-      const {options} = parseQueryKey(queryKey);
+      const {url, options} = parseQueryKey(queryKey);
       return {
         queryKey,
-        queryFn: () =>
-          api.requestPromise(queryKey[0], {
+        queryFn: () => {
+          return api.requestPromise(url, {
             method: 'GET',
             query: options?.query,
-          }) as Promise<TableData>,
+          }) as Promise<TableData>;
+        },
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,
         retry: false,

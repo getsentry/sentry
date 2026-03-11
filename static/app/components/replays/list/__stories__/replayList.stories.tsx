@@ -35,7 +35,7 @@ export default Storybook.story('ReplayList', story => {
     });
     const {url, options} = parseQueryKey(listQueryKey);
     const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', url, options ?? {}],
+      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
       enabled: Boolean(listQueryKey),
     });
 
@@ -81,7 +81,7 @@ export default Storybook.story('ReplayList', story => {
     });
     const {url, options} = parseQueryKey(listQueryKey);
     const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', url, options ?? {}],
+      queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
       enabled: Boolean(listQueryKey),
     });
 

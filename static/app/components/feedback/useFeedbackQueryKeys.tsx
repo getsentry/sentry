@@ -93,7 +93,7 @@ function getInfiniteListQueryKey(listQueryKey: ApiQueryKey | undefined) {
     return undefined;
   }
   const {url, options} = parseQueryKey(listQueryKey);
-  return ['infinite', url, options] as InfiniteApiQueryKey;
+  return [{infinite: true, version: 'v1'}, url, options] as InfiniteApiQueryKey;
 }
 
 export default function useFeedbackQueryKeys() {

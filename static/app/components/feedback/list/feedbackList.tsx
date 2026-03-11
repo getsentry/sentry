@@ -38,7 +38,9 @@ interface Props {
 export default function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? (['infinite', ''] as unknown as InfiniteApiQueryKey),
+    queryKey:
+      listQueryKey ??
+      ([{infinite: true, version: 'v1'}, ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 

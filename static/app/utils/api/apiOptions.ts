@@ -41,8 +41,8 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(options).length > 0
-        ? (['apiOptions', url, options] as ApiQueryKey)
-        : (['apiOptions', url] as ApiQueryKey),
+        ? ([{infinite: false, version: 'v2'}, url, options] as ApiQueryKey)
+        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -75,8 +75,8 @@ function _apiOptionsInfinite<
   return infiniteQueryOptions({
     queryKey:
       Object.keys(options).length > 0
-        ? (['apiOptions', 'infinite', url, options] as InfiniteApiQueryKey)
-        : (['apiOptions', 'infinite', url] as InfiniteApiQueryKey),
+        ? ([{infinite: true, version: 'v2'}, url, options] as InfiniteApiQueryKey)
+        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),

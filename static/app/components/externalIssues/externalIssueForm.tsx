@@ -34,6 +34,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {
@@ -124,11 +125,13 @@ export function ExternalIssueForm({
   const api = useApi({persistInFlight: true});
   const [model] = useState(() => new FormModel());
   const organization = useOrganization();
-  const endpointString = makeIntegrationIssueConfigQueryKey({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    integrationId: integration.id,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigQueryKey({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      integrationId: integration.id,
+    })
+  );
   const queryClient = useQueryClient();
   const title = tct('[integration] Issue', {integration: integration.provider.name});
 

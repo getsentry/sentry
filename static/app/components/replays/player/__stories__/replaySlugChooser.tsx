@@ -43,7 +43,7 @@ export default function ReplaySlugChooser({children}: Props) {
   });
   const {url, options} = parseQueryKey(listQueryKey);
   const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-    queryKey: ['infinite', url, options ?? {}],
+    queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
     enabled: Boolean(listQueryKey),
   });
 
