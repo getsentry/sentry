@@ -349,5 +349,9 @@ def is_in_app(frame):
         return not NODE_MODULES_RE.search(filename)
     elif "/node_modules/" in abs_path:
         return False
+    elif filename and NODE_MODULES_RE.search(filename):
+        # Frame was symbolicated and filename reveals it is a node_module,
+        # even if abs_path is an unresolved https:// CDN URL.
+        return False
     else:
         return None

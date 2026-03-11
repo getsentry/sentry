@@ -114,13 +114,44 @@ class JavaScriptProcessingTest(TestCase):
 
     def test_node_modules_regex(self) -> None:
         # Test the NODE_MODULES_RE pattern directly
+
         self.assertIsNotNone(NODE_MODULES_RE.search("/node_modules/"))
         self.assertIsNotNone(NODE_MODULES_RE.search("path/node_modules/package"))
         self.assertIsNotNone(NODE_MODULES_RE.search("/path/to/node_modules/react"))
-
         # Should not match without the slashes
         self.assertIsNone(NODE_MODULES_RE.search("node_modules"))
         self.assertIsNone(NODE_MODULES_RE.search("mynode_modules"))
+
+    def test_is_in_app_cdn_url_with_node_modules_in_filename(self) -> None:
+        """
+        Regression test for Revolut EU — "Slowest Functions" widget was
+        polluted with React/vendor functions from node_modules.
+
+        When a JS frame resolves via release-based source maps, the symbolicator
+        updates `filename` to the original source path (e.g. "./node_modules/react-dom/...")
+        but `abs_path` stays as the CDN URL (e.g. "https://.../vendors.HASH.js").
+
+        The old is_in_app() only checked abs_path for node_modules so it returned
+        None for these frames. vroomrs then incorrectly set in_app=True.
+
+        Fix: is_in_app() now also checks filename for node_modules.
+        """
+        self.assertFalse(
+            is_in_app(
+                {
+                    "abs_path": "https://business.revolut.com/assets/vendors.b1d183fd6fb0da242e21.js",
+                    "filename": "./node_modules/react-dom/cjs/react-dom.production.min.js",
+                }
+            )
+        )
+        self.assertFalse(
+            is_in_app(
+                {
+                    "abs_path": "https://cdn.example.com/assets/bundle.abc123.js",
+                    "filename": "./node_modules/styled-components/dist/styled-components.browser.esm.js",
+                }
+            )
+        )
 
     def _get_test_data_and_symbolicator(self, in_app_frames: bool, symbolicated_in_app=True):
         """Helper method to create test data and mock symbolicator

@@ -28,6 +28,7 @@ from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
+from sentry.lang.javascript.processing import is_in_app
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
     FrameOrder,
@@ -793,6 +794,10 @@ def _process_symbolicator_results_for_sample(
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
                 f = symbolicated_frames[frame_idx]
                 f["platform"] = platform
+                if platform in JS_PLATFORMS:
+                    in_app = is_in_app(f)
+                    if in_app is not None:
+                        f["in_app"] = in_app
                 new_frames.append(f)
 
             # go to the next symbolicated frame result
