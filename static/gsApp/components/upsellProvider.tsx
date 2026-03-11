@@ -10,12 +10,12 @@ import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import TrialStarter from 'getsentry/components/trialStarter';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics, {

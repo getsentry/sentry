@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';

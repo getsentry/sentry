@@ -7,7 +7,7 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-export default function Providers({
+export function Providers({
   children,
   replay,
 }: {

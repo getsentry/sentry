@@ -6,12 +6,12 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Panel} from 'sentry/components/panels/panel';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
   IconCode,

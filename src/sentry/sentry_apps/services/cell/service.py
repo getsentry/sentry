@@ -10,7 +10,7 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
-from sentry.sentry_apps.services.region.model import (
+from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
     RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
@@ -21,7 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
 
-class SentryAppRegionService(RpcService):
+class SentryAppCellService(RpcService):
     """
     Region silo service for Sentry App operations that require access to region-specific data
     (like projects, issues, etc.).
@@ -35,9 +35,9 @@ class SentryAppRegionService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.sentry_apps.services.region.impl import DatabaseBackedSentryAppRegionService
+        from sentry.sentry_apps.services.cell.impl import DatabaseBackedSentryAppCellService
 
-        return DatabaseBackedSentryAppRegionService()
+        return DatabaseBackedSentryAppCellService()
 
     def get_component_interaction_key(self, sentry_app_slug: str, component_type: str) -> str:
         """Combines SentryApp.slug and SentryAppComponent.type to create a unique key for TSDB metrics."""
@@ -179,4 +179,4 @@ class SentryAppRegionService(RpcService):
         pass
 
 
-sentry_app_region_service = SentryAppRegionService.create_delegation()
+sentry_app_cell_service = SentryAppCellService.create_delegation()

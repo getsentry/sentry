@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
+import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {
   AllowedDataScrubbingDatasets,
   MethodType,

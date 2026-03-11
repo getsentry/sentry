@@ -1,4 +1,4 @@
-import EditableText from 'sentry/components/editableText';
+import {EditableText} from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -23,7 +23,7 @@ const HOMEPAGE_DEFAULT = t('New Query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
+export function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
   const navigate = useNavigate();
 
@@ -67,5 +67,3 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
     </Layout.Title>
   );
 }
-
-export default EventInputName;

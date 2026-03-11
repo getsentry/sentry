@@ -56,7 +56,7 @@ type Props = {
  * information about why the feature is disabled, showing the missing feature
  * flag and linking to documentation for managing sentry server feature flags.
  */
-function FeatureDisabled({
+export function FeatureDisabled({
   features,
   featureName,
   alert,
@@ -176,5 +176,3 @@ const Pre = styled('pre')`
   margin-bottom: 0;
   overflow: auto;
 `;
-
-export default FeatureDisabled;

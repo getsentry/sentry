@@ -18,9 +18,9 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -14,7 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-export default function ConfigureReplayCard({
+export function ConfigureReplayCard({
   isMobile,
   replayRecord,
 }: {

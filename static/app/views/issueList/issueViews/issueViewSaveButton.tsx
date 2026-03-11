@@ -5,7 +5,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';

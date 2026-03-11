@@ -151,7 +151,7 @@ def setup_deletable_objects(
 
     for region_name in find_regions_for_user(u_id):
         shard = ControlOutbox(
-            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, region_name=region_name
+            shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, cell_name=region_name
         )
         if send_tombstones:
             shard.drain_shard()

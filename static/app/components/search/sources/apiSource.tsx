@@ -301,7 +301,7 @@ async function queryResults(
   }
 }
 
-function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
+export function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
 
@@ -374,5 +374,3 @@ function ApiSource({children, query, searchOptions, debounceDuration}: Props) {
 
   return children({results, isLoading});
 }
-
-export default ApiSource;

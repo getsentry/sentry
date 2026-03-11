@@ -1,6 +1,6 @@
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHookProject
-from sentry.sentry_apps.services.region.model import RpcPlatformExternalIssue, RpcServiceHookProject
+from sentry.sentry_apps.services.cell.model import RpcPlatformExternalIssue, RpcServiceHookProject
 
 
 def serialize_service_hook_project(project: ServiceHookProject) -> RpcServiceHookProject:

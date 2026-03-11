@@ -21,7 +21,7 @@ type Props = {
   searchOptions?: Fuse.IFuseOptions<ResultItem>;
 };
 
-function OrganizationsSource({children, query, searchOptions}: Props) {
+export function OrganizationsSource({children, query, searchOptions}: Props) {
   const {organizations, loaded} = useLegacyStore(OrganizationsStore);
   const [fuzzy, setFuzzy] = useState<Fuse<ResultItem> | null>(null);
 
@@ -55,5 +55,3 @@ function OrganizationsSource({children, query, searchOptions}: Props) {
 
   return children({results, isLoading: !loaded});
 }
-
-export default OrganizationsSource;

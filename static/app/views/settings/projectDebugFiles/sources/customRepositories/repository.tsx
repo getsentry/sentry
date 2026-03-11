@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 
-import CustomRepositoryActions from './actions';
+import {Actions as CustomRepositoryActions} from './actions';
 import {customRepoTypeLabel} from './utils';
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   repository: CustomRepo;
 };
 
-function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
+export function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
   return (
     <StyledPanelItem>
       <div>
@@ -32,8 +32,6 @@ function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props
     </StyledPanelItem>
   );
 }
-
-export default Repository;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;

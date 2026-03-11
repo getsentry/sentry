@@ -34,7 +34,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 
 interface Props {
   monitor: Monitor;

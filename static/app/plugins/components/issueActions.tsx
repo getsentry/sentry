@@ -5,8 +5,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import GroupStore from 'sentry/stores/groupStore';

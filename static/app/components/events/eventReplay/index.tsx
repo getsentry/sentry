@@ -2,7 +2,7 @@ import {lazy} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
-import LazyLoad from 'sentry/components/lazyLoad';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
@@ -18,7 +18,7 @@ interface Props {
 
 const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
 
-export default function EventReplay({event, group, projectSlug}: Props) {
+export function EventReplay({event, group, projectSlug}: Props) {
   const replayId = getReplayIdFromEvent(event);
   const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
   const {canShowUpsell, upsellPlatform, upsellProjectId} = useEventCanShowReplayUpsell({

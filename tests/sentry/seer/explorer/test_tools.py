@@ -3193,7 +3193,7 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_trace_metrics(self.metrics)
+        self.store_eap_items(self.metrics)
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:

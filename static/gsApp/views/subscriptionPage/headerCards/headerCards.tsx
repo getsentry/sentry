@@ -11,11 +11,11 @@ import {
   isTrialPlan,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import BillingInfoCard from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
-import LinksCard from 'getsentry/views/subscriptionPage/headerCards/linksCard';
-import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
-import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
-import SeerAutomationAlert from 'getsentry/views/subscriptionPage/seerAutomationAlert';
+import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
+import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
+import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
+import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 interface HeaderCardsProps {
   organization: Organization;
@@ -72,7 +72,7 @@ function getCards(organization: Organization, subscription: Subscription) {
   return cards;
 }
 
-function HeaderCards({organization, subscription}: HeaderCardsProps) {
+export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
   const {isCollapsed: navIsCollapsed} = useNavigationContext();
 
@@ -94,5 +94,3 @@ function HeaderCards({organization, subscription}: HeaderCardsProps) {
     </ErrorBoundary>
   );
 }
-
-export default HeaderCards;

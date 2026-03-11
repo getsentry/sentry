@@ -44,7 +44,7 @@ function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
-export default function EAPMetricsField({
+export function EAPMetricsField({
   aggregate,
   onChange,
   onLoadingChange,
@@ -125,11 +125,13 @@ export default function EAPMetricsField({
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="promotion">
-                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-              </Tag>
-            )}
+            {hasMetricUnitsUI &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
+                <Tag variant="promotion">
+                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+                </Tag>
+              )}
           </Fragment>
         ),
       })) ?? []),

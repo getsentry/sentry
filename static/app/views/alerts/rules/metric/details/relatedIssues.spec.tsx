@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import RelatedIssues from './relatedIssues';
+import {RelatedIssues} from './relatedIssues';
 
 describe('metric details -> RelatedIssues', () => {
   const project = ProjectFixture();

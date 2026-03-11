@@ -11,7 +11,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';

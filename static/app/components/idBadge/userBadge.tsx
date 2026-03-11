@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import type {AvatarUser} from 'sentry/types/user';
 
-import BadgeDisplayName from './badgeDisplayName';
+import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface UserBadgeProps extends BaseBadgeProps {

@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
-import ExplorerPanel from './explorerPanel';
+import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({

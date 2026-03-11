@@ -7,9 +7,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
+import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,7 +39,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-export default function FeedbackListItem({
+export function FeedbackListItem({
   feedbackItem,
   isSelected,
   onSelect,

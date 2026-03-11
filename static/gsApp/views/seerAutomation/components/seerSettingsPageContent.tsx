@@ -3,15 +3,15 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-import SeerWizardSetupBanner from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
-import SettingsPageTabs from 'getsentry/views/seerAutomation/components/settingsPageTabs';
+import {SeerWizardSetupBanner} from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
+import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   children: React.ReactNode;
 }
 
-export default function SeerSettingsPageContent({children}: Props) {
+export function SeerSettingsPageContent({children}: Props) {
   const canWrite = useCanWriteSettings();
 
   return (

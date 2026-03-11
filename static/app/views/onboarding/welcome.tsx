@@ -48,7 +48,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome(props: StepProps) {
+export function TargetedOnboardingWelcome(props: StepProps) {
   const theme = useTheme();
   useWelcomeAnalyticsEffect();
 
@@ -100,8 +100,6 @@ function TargetedOnboardingWelcome(props: StepProps) {
     </FallingError>
   );
 }
-
-export default TargetedOnboardingWelcome;
 
 const PositionedFallingError = styled('span')`
   display: block;

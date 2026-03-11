@@ -139,7 +139,7 @@ const Build = styled('span')`
   margin-left: ${p => p.theme.space.md};
 `;
 
-const Footer = styled(BaseFooter)`
+export const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.tokens.content.secondary};
@@ -157,5 +157,3 @@ const Footer = styled(BaseFooter)`
     display: none;
   }
 `;
-
-export default Footer;

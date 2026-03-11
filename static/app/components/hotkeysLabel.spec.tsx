@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import HotkeysLabel from 'sentry/components/hotkeysLabel';
+import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
 
 describe('HotkeysLabel', () => {
   it('ctrl+alt+delete mac', () => {

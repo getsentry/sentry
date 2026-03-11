@@ -11,7 +11,7 @@ type InjectedConfigProps = {
  * Higher order component that passes the config object to the wrapped
  * component
  */
-function withConfig<P extends InjectedConfigProps>(
+export function withConfig<P extends InjectedConfigProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedConfigProps> & Partial<InjectedConfigProps>;
@@ -28,5 +28,3 @@ function withConfig<P extends InjectedConfigProps>(
 
   return Wrapper;
 }
-
-export default withConfig;

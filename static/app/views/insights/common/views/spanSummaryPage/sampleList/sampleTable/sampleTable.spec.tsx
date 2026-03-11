@@ -10,7 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-import SampleTable from './sampleTable';
+import {SampleTable} from './sampleTable';
 
 const DEFAULT_SELECTION: PageFilters = {
   datetime: {

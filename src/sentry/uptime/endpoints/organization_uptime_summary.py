@@ -34,7 +34,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
@@ -50,7 +50,7 @@ from sentry.utils.snuba_rpc import table_rpc
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Uptime Monitors"])
 class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
     publish_status = {

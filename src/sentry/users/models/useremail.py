@@ -82,7 +82,7 @@ class UserEmail(ControlOutboxProducingModel):
         return [
             outbox
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                region_names=regions,
+                cell_names=regions,
                 shard_identifier=self.user_id,
                 object_identifier=self.user_id,
             )

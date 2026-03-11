@@ -8,7 +8,7 @@ import {
   getPlatform,
   getPlatformViewConfig,
 } from 'sentry/components/events/viewHierarchy/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

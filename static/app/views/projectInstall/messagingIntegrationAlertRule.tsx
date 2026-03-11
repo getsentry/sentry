@@ -27,7 +27,7 @@ type ChannelListResponse = {
   results: Channel[];
 };
 
-export default function MessagingIntegrationAlertRule({
+export function MessagingIntegrationAlertRule({
   channel,
   integration,
   provider,

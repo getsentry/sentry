@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
@@ -132,7 +132,7 @@ type Props = {
   incidents?: Incident[];
 };
 
-function MetricHistory({incidents}: Props) {
+export function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
   const filteredIncidents = (incidents ?? []).filter(
     incident => incident.activities?.length
@@ -173,8 +173,6 @@ function MetricHistory({incidents}: Props) {
     </CollapsePanel>
   );
 }
-
-export default MetricHistory;
 
 const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
   grid-template-columns: max-content 1fr repeat(2, max-content);

@@ -21,7 +21,7 @@ import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attribu
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';

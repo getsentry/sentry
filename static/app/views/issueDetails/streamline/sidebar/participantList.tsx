@@ -19,11 +19,7 @@ interface DropdownListProps {
   teams?: Team[];
 }
 
-export default function ParticipantList({
-  users,
-  teams,
-  hideTimestamp,
-}: DropdownListProps) {
+export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,

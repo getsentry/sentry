@@ -12,7 +12,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 const FILE_MAX_SIZE = 200e6; // 200 MB limit for file upload
 
@@ -196,7 +196,7 @@ const SubmitButton = styled(Button)`
   margin-top: ${p => p.theme.space.xl};
 `;
 
-function RelocationCreate() {
+export function RelocationCreate() {
   return (
     <div>
       <PageHeader title="Relocation" />
@@ -205,5 +205,3 @@ function RelocationCreate() {
     </div>
   );
 }
-
-export default RelocationCreate;

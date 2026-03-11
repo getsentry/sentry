@@ -17,7 +17,7 @@ import {
   ImageContainer,
   SeerFeaturesPanel,
 } from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconUpgrade} from 'sentry/icons/iconUpgrade';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -35,11 +35,7 @@ interface AiSetupConfigurationProps {
   project: Project;
 }
 
-export default function AiSetupConfiguration({
-  event,
-  group,
-  project,
-}: AiSetupConfigurationProps) {
+export function AiSetupConfiguration({event, group, project}: AiSetupConfigurationProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   if (organization.features.includes('seer-billing') && !aiConfig.hasAutofixQuota) {

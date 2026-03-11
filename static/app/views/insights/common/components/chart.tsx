@@ -21,14 +21,14 @@ import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
-import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   createIngestionSeries,
   getIngestionDelayBucketCount,

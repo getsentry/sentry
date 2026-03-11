@@ -9,7 +9,7 @@ from rest_framework.serializers import ListField
 from sentry import options, release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
     _release_suffix,
@@ -292,7 +292,7 @@ class OrganizationReleaseDetailsPaginationMixin:
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseDetailsEndpoint(
     OrganizationReleasesBaseEndpoint,
     ReleaseAnalyticsMixin,

@@ -11,8 +11,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -42,22 +42,22 @@ import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
 import triggerGoogleDomainModal from 'admin/components/changeGoogleDomainAction';
 import triggerChangePlanAction from 'admin/components/changePlanAction';
-import CloseAccountInfo from 'admin/components/closeAccountInfo';
-import CustomerCharges from 'admin/components/customers/customerCharges';
-import CustomerHistory from 'admin/components/customers/customerHistory';
-import CustomerIntegrationDebugDetails from 'admin/components/customers/customerIntegrationDebugDetails';
-import CustomerIntegrations from 'admin/components/customers/customerIntegrations';
-import CustomerInvoices from 'admin/components/customers/customerInvoices';
-import CustomerMembers from 'admin/components/customers/customerMembers';
-import CustomerOnboardingTasks from 'admin/components/customers/customerOnboardingTasks';
-import CustomerOverview from 'admin/components/customers/customerOverview';
-import CustomerPlatforms from 'admin/components/customers/customerPlatforms';
-import CustomerPolicies from 'admin/components/customers/customerPolicies';
-import CustomerProjects from 'admin/components/customers/customerProjects';
+import {CloseAccountInfo} from 'admin/components/closeAccountInfo';
+import {CustomerCharges} from 'admin/components/customers/customerCharges';
+import {CustomerHistory} from 'admin/components/customers/customerHistory';
+import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
+import {CustomerIntegrations} from 'admin/components/customers/customerIntegrations';
+import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
+import {CustomerMembers} from 'admin/components/customers/customerMembers';
+import {CustomerOnboardingTasks} from 'admin/components/customers/customerOnboardingTasks';
+import {CustomerOverview} from 'admin/components/customers/customerOverview';
+import {CustomerPlatforms} from 'admin/components/customers/customerPlatforms';
+import {CustomerPolicies} from 'admin/components/customers/customerPolicies';
+import {CustomerProjects} from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
-import OrganizationStatus from 'admin/components/customers/organizationStatus';
-import PendingChanges from 'admin/components/customers/pendingChanges';
+import {OrganizationStatus} from 'admin/components/customers/organizationStatus';
+import {PendingChanges} from 'admin/components/customers/pendingChanges';
 import openUpdateRetentionSettingsModal from 'admin/components/customers/updateRetentionSettingsModal';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
@@ -113,7 +113,7 @@ function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
   ];
 }
 
-export default function CustomerDetails() {
+export function CustomerDetails() {
   const {orgId} = useParams<{orgId: string}>();
   const location = useLocation();
   const navigate = useNavigate();

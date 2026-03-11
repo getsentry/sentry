@@ -9,7 +9,7 @@ import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
-import Legend from 'sentry/components/charts/components/legend';
+import {Legend} from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';

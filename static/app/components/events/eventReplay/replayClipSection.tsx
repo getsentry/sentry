@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {t, tn} from 'sentry/locale';

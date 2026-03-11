@@ -4,7 +4,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
-export default function FilterReleaseDropdown({
+export function FilterReleaseDropdown({
   filters,
   setFilters,
 }: {

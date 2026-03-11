@@ -18,8 +18,8 @@ import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -604,7 +604,7 @@ function ConfigPickerContent({
   );
 }
 
-export default function ContextPickerModalContainer({
+export function ContextPickerModalContainer({
   configQueryKey,
   projectSlugs,
   ...sharedProps

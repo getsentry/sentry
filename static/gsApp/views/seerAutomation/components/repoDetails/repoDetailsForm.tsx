@@ -15,7 +15,7 @@ interface Props {
   repoWithSettings: RepositoryWithSettings;
 }
 
-export default function RepoDetailsForm({organization, repoWithSettings}: Props) {
+export function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
 
   return (

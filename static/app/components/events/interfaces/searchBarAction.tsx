@@ -18,7 +18,7 @@ type Props = {
   filterSelections?: Array<SelectOption<string>>;
 };
 
-function SearchBarAction({
+export function SearchBarAction({
   onChange,
   query,
   placeholder,
@@ -61,8 +61,6 @@ function SearchBarAction({
     </Wrapper>
   );
 }
-
-export default SearchBarAction;
 
 const Wrapper = styled('div')`
   display: flex;

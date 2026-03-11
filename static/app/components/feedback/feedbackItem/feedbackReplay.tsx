@@ -1,7 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import ReplayInlineCTAPanel from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
-import ReplaySection from 'sentry/components/feedback/feedbackItem/replaySection';
+import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import {ReplayInlineCTAPanel} from 'sentry/components/feedback/feedbackItem/replayInlineCTAPanel';
+import {ReplaySection} from 'sentry/components/feedback/feedbackItem/replaySection';
 import Placeholder from 'sentry/components/placeholder';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconPlay} from 'sentry/icons';
@@ -19,7 +19,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function FeedbackReplay({eventData, feedbackItem, organization}: Props) {
+export function FeedbackReplay({eventData, feedbackItem, organization}: Props) {
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
