@@ -79,7 +79,19 @@ export function useEventWaiter({
 
   // Poll the project endpoint to detect when the first event arrives
   const projectQuery = useApiQuery<Project>([projectUrl], {
-    refetchInterval: shouldPoll ? pollInterval : false,
+    refetchInterval: query => {
+      if (!shouldPoll) {
+        return false;
+      }
+      // Stop polling once the first event has been detected
+      if (query.state.data) {
+        const [projectData] = query.state.data;
+        if (getFirstEvent(eventType, projectData)) {
+          return false;
+        }
+      }
+      return pollInterval;
+    },
     enabled: shouldPoll,
     staleTime: 0,
     retry: (_, error) => {

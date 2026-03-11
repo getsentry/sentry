@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 
@@ -141,5 +141,48 @@ describe('useEventWaiter', () => {
 
     expect(result.current).toBeNull();
     expect(projectApiMock).not.toHaveBeenCalled();
+  });
+
+  it('stops polling after first event is detected', async () => {
+    jest.useFakeTimers();
+
+    const org = OrganizationFixture();
+    const project = ProjectFixture({firstEvent: null});
+
+    // API returns a project with firstTransactionEvent already set
+    const projectApiMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: ProjectFixture({firstTransactionEvent: true}),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useEventWaiter({
+          eventType: 'transaction',
+          organization: org,
+          project,
+          pollInterval: 100,
+        }),
+      {organization: org}
+    );
+
+    // Flush the initial fetch
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1);
+    });
+
+    expect(result.current).toBe(true);
+    expect(projectApiMock).toHaveBeenCalledTimes(1);
+
+    // Advance well past multiple poll intervals
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1000);
+    });
+
+    // Polling should have stopped — no calls beyond the initial fetch
+    expect(projectApiMock).toHaveBeenCalledTimes(1);
+
+    jest.useRealTimers();
   });
 });
