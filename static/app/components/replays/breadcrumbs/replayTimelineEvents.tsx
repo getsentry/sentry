@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
-import {space} from 'sentry/styles/space';
 import {uniq} from 'sentry/utils/array/uniq';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -109,7 +108,7 @@ function Event({
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
-    padding: ${space(0.5)} !important;
+    padding: ${theme.space.xs} !important;
     max-width: 291px !important;
     width: 291px;
 

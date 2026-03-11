@@ -14,7 +14,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -134,10 +133,10 @@ function RelatedIssues({
 }
 
 const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   ${Panel} {
     /* smaller space between table and pagination */
-    margin-bottom: -${space(1)};
+    margin-bottom: -${p => p.theme.space.md};
   }
 `;
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -13,19 +14,49 @@ from slack_sdk.web import SlackResponse
 
 from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+)
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -69,9 +100,9 @@ class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
             {
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
+                "workspace": self.slack_integration.id,
                 "channel": "#team-team-team",
-                "input_channel_id": self.channel_id,
+                "channel_id": self.channel_id,
             }
         ]
         # create single written workflow
@@ -1234,3 +1265,218 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         clean_rule = Rule.objects.get(id=response.data.get("id"))
         assert not clean_rule.data.get("comparisonInterval")
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    @responses.activate
+    @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
+    def test_workflow_engine(self, mock_validate_slack_entity_id: mock.MagicMock) -> None:
+        conditions = [
+            {"id": ExistingHighPriorityIssueCondition.id},
+            {"id": NewHighPriorityIssueCondition.id},
+            {"id": FirstSeenEventCondition.id},
+            {"id": LevelCondition.id, "match": "eq", "level": "50"},
+            {
+                "id": EventAttributeCondition.id,
+                "attribute": "message",
+                "match": "eq",
+                "value": "test",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+        ]
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "is",
+                "key": "environment",
+                "value": "",  # initializing RuleBase requires "value" key
+            },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": IssueCategoryFilter.id,
+                "value": "1",
+                "include": "true",
+            },
+            {
+                "id": IssueOccurrencesFilter.id,
+                "value": "10",
+            },
+            {
+                "id": IssueTypeFilter.id,
+                "value": "error",
+            },
+            {
+                "id": LatestAdoptedReleaseFilter.id,
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": self.environment.name + "fake",
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+            {
+                "id": LevelFilter.id,
+                "match": "eq",
+                "level": "50",
+            },
+            {
+                "id": EventAttributeFilter.id,
+                "attribute": "message",
+                "match": "ns",
+                "value": "",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Unassigned",
+                "targetIdentifier": "",
+            },
+        ]
+        payload = {
+            "name": "Owner Alert",
+            "frequency": 1440,
+            "environment": self.environment.name,
+            "status": "active",
+            "snooze": False,
+            "conditions": conditions,
+            "filters": filters,
+            "actions": [
+                {
+                    "targetType": "Member",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": self.user.id,
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                    "settings": self.sentry_app_settings_payload,
+                    "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                    "hasSchemaFormConfig": True,
+                    "uuid": str(uuid4()),
+                },
+                self.notify_issue_owners_action[0],
+                self.notify_event_action[0],
+                self.slack_actions[0],
+            ],
+            "actionMatch": "any",
+            "filterMatch": "all",
+            "owner": "team:74234",
+            "projects": [self.project.slug],
+        }
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=status.HTTP_202_ACCEPTED,
+        )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **payload,
+        )
+        assert len(response.data["conditions"]) == len(conditions)
+        assert len(response.data["filters"]) == len(filters)
+        assert len(response.data["actions"]) == len(payload["actions"])
+
+        workflow = Workflow.objects.get(id=get_object_id_from_fake_id(int(response.data["id"])))
+        assert workflow.environment is not None
+        assert workflow.environment.name == payload["environment"]
+        assert workflow.name == payload["name"]
+        assert workflow.enabled is True
+
+        assert DetectorWorkflow.objects.filter(
+            workflow=workflow, detector__type=IssueStreamGroupType.slug
+        ).exists()
+
+        triggers = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert len(triggers) == len(payload["conditions"])
+        # spot check
+        event_attr_trigger = None
+        for trigger in triggers:
+            if trigger.type == Condition.EVENT_ATTRIBUTE.value:
+                event_attr_trigger = trigger
+
+        assert event_attr_trigger
+        assert event_attr_trigger.comparison == {
+            "match": "eq",
+            "attribute": "message",
+            "value": "test",
+        }
+        assert event_attr_trigger.condition_result is True
+
+        wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
+        dcgs = DataConditionGroup.objects.filter(id=wdcg.condition_group_id)
+        dc_filters = DataCondition.objects.filter(condition_group__in=dcgs)
+        assert len(dc_filters) == len(payload["filters"])
+        # spot check
+        tagged_event_filter = None
+        for f in dc_filters:
+            if f.type == Condition.TAGGED_EVENT.value:
+                tagged_event_filter = f
+
+        assert tagged_event_filter
+        assert tagged_event_filter.comparison == {
+            "match": "is",
+            "key": "environment",
+        }
+        assert tagged_event_filter.condition_result is True
+
+        dcgas = DataConditionGroupAction.objects.filter(condition_group__in=[dcg for dcg in dcgs])
+        # spot check
+        slack_action = None
+        for action in [dcga.action for dcga in dcgas]:
+            if action.type == "slack":
+                slack_action = action
+
+        assert slack_action
+        assert slack_action.data == {"notes": "", "tags": ""}
+        assert slack_action.config == {
+            "target_type": 0,
+            "target_display": "team-team-team",
+            "target_identifier": "CSVK0921",
+        }

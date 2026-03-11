@@ -126,7 +126,7 @@ export function GithubInstallationSelect({
               name={installation.github_account}
             />
           )}
-          <span>{`${installation.github_account}`}</span>
+          <span>{installation.github_account}</span>
           {!doesntRequireUpgrade(installation.installation_id) && (
             <IconLightning size="xs" />
           )}

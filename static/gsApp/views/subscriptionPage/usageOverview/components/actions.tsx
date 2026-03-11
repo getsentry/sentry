@@ -8,14 +8,14 @@ import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavContext();
+  const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavigationContext();
   const isMobile = navLayout === NavLayout.MOBILE;
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =

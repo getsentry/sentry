@@ -545,6 +545,7 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+
     render(<ReleasesList />, {
       organization,
       initialRouterConfig: {
@@ -620,6 +621,7 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+
     const {router} = render(<ReleasesList />, {
       organization: organizationWithDistribution,
       initialRouterConfig: {
@@ -681,6 +683,17 @@ describe('ReleasesList', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
 
@@ -769,6 +782,7 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+
     const {router} = render(<ReleasesList />, {
       organization,
       initialRouterConfig: {

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -83,7 +82,8 @@ const TitleWrapper = styled('div')`
 const Title = styled('div')<TitleProps>`
   ${p =>
     !p.styled && `font-size: 20px; font-weight: ${p.theme.font.weight.sans.medium};`};
-  margin: ${space(4)} ${space(2)} ${space(3)} 0;
+  margin: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p =>
@@ -98,14 +98,14 @@ const Icon = styled('div')`
 `;
 
 const Action = styled('div')<{isNarrow?: boolean}>`
-  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
+  margin-top: ${p => (p.isNarrow ? '0' : p.theme.space['3xl'])};
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
-  margin-top: -${space(4)};
+  margin-top: -${p => p.theme.space['3xl']};
 `;
 
 const BodyWrapper = styled('div')`

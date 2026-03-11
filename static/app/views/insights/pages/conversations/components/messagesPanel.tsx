@@ -92,7 +92,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               isSelected={isAssistant && isSelected}
               onClick={isAssistant ? () => handleMessageClick(message) : undefined}
             >
-              <MessageHeader justify={message.role === 'user' ? 'end' : 'start'}>
+              <MessageHeader>
                 {message.role === 'user' ? (
                   <Text bold size="sm">
                     {message.userEmail || t('User')}
@@ -116,10 +116,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
                 collapsible
               >
                 <Container padding="md">
-                  <MessageText
-                    size="sm"
-                    align={message.role === 'user' ? 'right' : 'left'}
-                  >
+                  <MessageText size="sm" align="left">
                     <MarkedText
                       as={TraceDrawerComponents.MarkdownContainer}
                       text={message.content}
@@ -143,12 +140,12 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
   );
 }
 
-const MessageHeader = styled('div')<{justify?: 'start' | 'end'}>`
+const MessageHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.sm};
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  justify-content: ${p => (p.justify === 'end' ? 'flex-end' : 'flex-start')};
+  justify-content: flex-start;
 
   &::after {
     content: '';

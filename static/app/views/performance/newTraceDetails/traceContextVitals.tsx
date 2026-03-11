@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {MobileVital, WebVital} from 'sentry/utils/fields';
@@ -82,7 +81,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
         return (
           <div key={vitalKey}>
             <strong>
-              {`${vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}`}:
+              {vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}:
             </strong>{' '}
             <span>{formattedValue}</span>
             {vital?.score !== undefined &&
@@ -145,7 +144,7 @@ function VitalPill({vital, vitalDetails}: VitalPillProps) {
   return (
     <Flex>
       <VitalPillName status={status}>
-        <Tooltip title={toolTipTitle}>{`${acronym}`}</Tooltip>
+        <Tooltip title={toolTipTitle}>{acronym}</Tooltip>
       </VitalPillName>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </Flex>
@@ -168,9 +167,9 @@ const VitalPillName = styled('div')<{status: PerformanceScore}>`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-decoration: underline;
   text-decoration-style: dotted;
-  text-underline-offset: ${space(0.25)};
+  text-underline-offset: ${p => p.theme.space['2xs']};
   text-decoration-thickness: 1px;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const VitalPillValue = styled('div')`
@@ -183,7 +182,7 @@ const VitalPillValue = styled('div')`
   border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.lg};
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const SecondaryVitalsCount = styled('span')`
@@ -195,7 +194,7 @@ const SecondaryVitalsCountContainer = styled('div')`
   display: flex;
   flex-direction: column;
   white-space: nowrap;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   text-align: left;
 `;
 

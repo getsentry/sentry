@@ -9,7 +9,6 @@ import {HighlightComponent} from 'sentry/components/highlight';
 import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
-import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -136,8 +135,8 @@ export const LogTableBody = styled(TableBody)<{
       : p.disableBodyPadding
         ? ''
         : `
-    padding-top: ${space(1)};
-    padding-bottom: ${space(1)};
+    padding-top: ${p.theme.space.md};
+    padding-bottom: ${p.theme.space.md};
     `}
 `;
 

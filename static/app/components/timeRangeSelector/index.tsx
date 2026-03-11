@@ -27,7 +27,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import DateRange from './dateRange';
 import SelectorItems from './selectorItems';
@@ -168,7 +168,7 @@ export function TimeRangeSelector({
   menuFooterMessage,
   ...selectProps
 }: TimeRangeSelectorProps) {
-  const router = useRouter();
+  const routes = useRoutes();
   const organization = useOrganization({allowNull: true});
 
   const defaultMaxPickableDays = useDefaultMaxPickableDays();
@@ -420,7 +420,7 @@ export function TimeRangeSelector({
 
                           trackAnalytics('dateselector.utc_changed', {
                             utc: newUtc,
-                            path: getRouteStringFromRoutes(router.routes),
+                            path: getRouteStringFromRoutes(routes),
                             organization,
                           });
 

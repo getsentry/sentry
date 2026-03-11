@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import {NavContextProvider} from 'sentry/views/nav/context';
+import {NavigationContextProvider} from 'sentry/views/nav/context';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {NavigationTourProvider} from 'sentry/views/nav/tour/tour';
 
@@ -73,11 +73,11 @@ describe('Onboarding Status', () => {
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
     render(
-      <NavContextProvider>
+      <NavigationContextProvider>
         <NavigationTourProvider>
           <PrimaryNavigationOnboarding />
         </NavigationTourProvider>
-      </NavContextProvider>,
+      </NavigationContextProvider>,
       {
         organization,
       }

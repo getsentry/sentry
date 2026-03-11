@@ -44,7 +44,7 @@ export class StoryTreeNode {
           : '';
       this.slug = `${pathPrefix}${this.label.replaceAll(' ', '-').toLowerCase()}`;
     } else {
-      this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
+      this.slug = this.label.replaceAll(' ', '-').toLowerCase();
     }
   }
 

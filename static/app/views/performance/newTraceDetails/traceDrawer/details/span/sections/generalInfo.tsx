@@ -7,7 +7,6 @@ import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components
 import {Content} from 'sentry/components/keyValueData';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -243,7 +242,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
 
 const ContentWrapper = styled('div')`
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
 `;

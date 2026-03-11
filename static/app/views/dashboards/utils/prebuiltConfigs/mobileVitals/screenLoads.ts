@@ -192,7 +192,7 @@ const TTID_BAR_CHART_WIDGET: Widget = {
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTID'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -223,7 +223,7 @@ const TTFD_BAR_CHART_WIDGET: Widget = {
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTFD'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {

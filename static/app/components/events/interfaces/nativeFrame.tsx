@@ -363,7 +363,7 @@ function NativeFrame({
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
             ) : isDartAsyncSuspensionFrame ? (
-              `${t('Dart')}`
+              t('Dart')
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -547,8 +547,8 @@ const RowHeader = styled('span')<{
   column-gap: ${p => p.theme.space.md};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.secondary}`};
+      ? p.theme.colors.surface200
+      : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};

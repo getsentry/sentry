@@ -347,15 +347,21 @@ def get_locality_by_name(name: str) -> Locality:
         )
 
 
-def is_region_name(name: str) -> bool:
-    return get_global_directory().get_cell_by_name(name) is not None
+def subdomain_is_locality(request: HttpRequest) -> bool:
+    """Check whether the request's subdomain is a locality name.
 
-
-def subdomain_is_region(request: HttpRequest) -> bool:
+    Locality subdomains (e.g. "us.sentry.io", "de.sentry.io") are reserved for
+    infrastructure routing and must not be treated as organization slugs. Returns
+    False when there is no subdomain or when it does not match any known locality.
+    """
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return False
-    return is_region_name(subdomain)
+    return get_global_directory().get_locality_by_name(subdomain) is not None
+
+
+# TODO(cells): Remove alias once getsentry import sites are updated
+subdomain_is_region = subdomain_is_locality
 
 
 @control_silo_function
@@ -384,7 +390,7 @@ get_region_for_organization = get_cell_for_organization
 
 def get_local_locality() -> Locality:
     """Get the locality for the cell this server instance is running in."""
-    cell = get_local_region()
+    cell = get_local_cell()
     locality = get_global_directory().get_locality_for_cell(cell.name)
     if locality is None:
         raise RegionResolutionError(f"No locality found for cell {cell.name!r}")
@@ -402,7 +408,7 @@ def get_locality_name_for_cell(cell_name: str) -> str:
     return locality.name
 
 
-def get_local_region() -> Cell:
+def get_local_cell() -> Cell:
     """Get the cell in which this server instance is running.
 
     Return the monolith cell if this server instance is in monolith mode.
@@ -429,6 +435,10 @@ def get_local_region() -> Cell:
         else:
             raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
     return get_cell_by_name(settings.SENTRY_REGION)
+
+
+# TODO(cells): Remove alias once getsentry import sites are updated
+get_local_region = get_local_cell
 
 
 @control_silo_function

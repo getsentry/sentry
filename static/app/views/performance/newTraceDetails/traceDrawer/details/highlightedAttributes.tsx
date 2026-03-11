@@ -162,10 +162,7 @@ function getAISpanAttributes({
         (inputTokens || outputTokens) &&
         (!totalCosts || Number(totalCosts) === 0)
       ),
-      messages: [
-        'Gen AI span missing cost calculation',
-        `Gen AI cost data missing for model: ${model?.toString()}`,
-      ],
+      messages: [`Gen AI cost data missing for model: ${model?.toString()}`],
     },
     {
       shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
