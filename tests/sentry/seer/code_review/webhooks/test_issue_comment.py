@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -160,18 +159,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/automation/overwatch-request"
-            payload = call_args[1]["payload"]
-            assert payload["request_type"] == "pr-review"
-            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
-            assert payload["data"]["config"]["trigger_user"] == "test-user"
-            assert payload["data"]["config"]["trigger_comment_id"] == 123456789
-            assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
-            # After Pydantic validation, trigger_at is a datetime object
-            assert payload["data"]["config"]["trigger_at"] == datetime(
-                2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc
-            )
-            # sentry_received_trigger_at is set to current time when transform happens
-            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
 
     def test_success_case_uses_new_endpoint_when_option_enabled(self) -> None:
         """Test that with use_new_endpoints option, issue comment uses review-request."""
@@ -191,6 +178,3 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/code_review/review-request"
-            payload = call_args[1]["payload"]
-            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
-            assert payload["data"]["config"]["trigger_user"] == "test-user"

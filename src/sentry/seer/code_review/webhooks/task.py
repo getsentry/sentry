@@ -93,7 +93,7 @@ def schedule_task(
         return
 
     process_github_webhook_event.delay(
-        seer_path=get_seer_path_for_request(github_event.value, payload, github_event_action),
+        seer_path=get_seer_path_for_request(github_event.value, github_event_action),
         event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
