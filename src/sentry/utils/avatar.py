@@ -152,6 +152,6 @@ def is_black_alpha_only(data: IO[bytes]) -> bool:
     result = False
     with Image.open(data) as image:
         if image.mode == "RGBA":
-            result = not any(p[:3] != (0, 0, 0) for p in list(image.getdata()))
+            result = not any(p[:3] != (0, 0, 0) for p in list(image.get_flattened_data()))
     data.seek(0)
     return result
