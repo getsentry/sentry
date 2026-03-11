@@ -67,7 +67,6 @@ import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
-import {SpanFields} from 'sentry/views/insights/types';
 
 export const NONE = 'none';
 
@@ -327,7 +326,6 @@ function Visualize({error, setError}: VisualizeProps) {
         .filter(
           column =>
             column !== '' &&
-            column !== SpanFields.IS_STARRED_TRANSACTION &&
             !stringSpanTags.hasOwnProperty(column) &&
             !numericSpanTags.hasOwnProperty(column) &&
             !booleanSpanTags.hasOwnProperty(column)
@@ -346,16 +344,6 @@ function Visualize({error, setError}: VisualizeProps) {
           trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
         };
       }),
-      ...(state.dataset === WidgetType.SPANS &&
-      !booleanSpanTags.hasOwnProperty(SpanFields.IS_STARRED_TRANSACTION)
-        ? [
-            {
-              label: prettifyTagKey(SpanFields.IS_STARRED_TRANSACTION),
-              value: SpanFields.IS_STARRED_TRANSACTION,
-              trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
-            },
-          ]
-        : []),
       ...Object.values(stringSpanTags).map(tag => {
         return {
           label: tag.name,
