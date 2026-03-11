@@ -212,22 +212,20 @@ export function MetricSelector({
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
-        case 'ArrowDown':
+        case 'ArrowDown': {
           e.preventDefault();
-          setFocusedIndex(prev => {
-            const next = Math.min(prev + 1, displayedOptions.length - 1);
-            virtualizer.scrollToIndex(next);
-            return next;
-          });
+          const next = Math.min(focusedIndex + 1, displayedOptions.length - 1);
+          setFocusedIndex(next);
+          virtualizer.scrollToIndex(next);
           break;
-        case 'ArrowUp':
+        }
+        case 'ArrowUp': {
           e.preventDefault();
-          setFocusedIndex(prev => {
-            const next = Math.max(prev - 1, 0);
-            virtualizer.scrollToIndex(next);
-            return next;
-          });
+          const next = Math.max(focusedIndex - 1, 0);
+          setFocusedIndex(next);
+          virtualizer.scrollToIndex(next);
           break;
+        }
         case 'Enter':
           e.preventDefault();
           if (focusedIndex >= 0 && displayedOptions[focusedIndex]) {
