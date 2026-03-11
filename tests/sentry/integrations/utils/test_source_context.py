@@ -94,7 +94,9 @@ class FetchSourceContextTest(TestCase):
         assert result["context"] == []
 
     def test_no_code_mapping_match(self) -> None:
-        ctx = self._make_ctx(file="unknown/path.py", filename="unknown/path.py")
+        ctx = self._make_ctx(
+            file="unknown/path.py", filename="unknown/path.py", abs_path="unknown/path.py"
+        )
         result = fetch_source_context_from_scm([self.code_mapping], ctx)
         assert result["error"] == "no_code_mapping_match"
         assert result["context"] == []
