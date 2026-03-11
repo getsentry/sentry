@@ -400,6 +400,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboards = dashboards.exclude(created_by_id=request.user.id)
             elif f == "excludePrebuilt":
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
+            elif f == "onlyPrebuilt":
+                dashboards = dashboards.filter(prebuilt_id__isnull=False)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
@@ -568,7 +570,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
-        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt"}
+        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt", "onlyPrebuilt"}
         render_pre_built_dashboard = True
         if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False
