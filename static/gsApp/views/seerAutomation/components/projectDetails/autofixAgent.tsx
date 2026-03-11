@@ -94,7 +94,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
               name="autofixAgent"
               label={t('Autofix Handoff')}
               help={tct(
-                'Seer will orchestrate the autofix process, and automatically hand off issue data coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
+                'Seer will orchestrate the autofix process, and automatically hand off issue data to the coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
                 {
                   docsLink: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />

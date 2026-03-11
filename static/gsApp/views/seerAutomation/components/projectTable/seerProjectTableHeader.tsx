@@ -37,7 +37,7 @@ const COLUMNS = [
         {t('PR Creation')}
         <InfoTip
           title={t(
-            'This setting only applies when an Autofix Agent is configured to run automatically.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
         />
       </Flex>
