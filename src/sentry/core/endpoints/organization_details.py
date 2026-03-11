@@ -603,6 +603,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in data:
                 continue
+            if key == "enableSeerCoding" and features.has(
+                "organizations:seer-disable-coding-setting", org
+            ):
+                continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
                 update_tracked_data(option_inst)
