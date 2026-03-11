@@ -10,7 +10,7 @@ import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryPro
 import FormContext from 'sentry/components/forms/formContext';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
@@ -23,7 +23,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
@@ -346,7 +346,7 @@ function EditConnectedMonitorsContent({
   );
 }
 
-export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const {form} = useContext(FormContext);
   const [firstLoad, setFirstLoad] = useState(true);
   const {connectedDetectors, isLoading} = useConnectedDetectors();

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 

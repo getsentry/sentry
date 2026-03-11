@@ -15,7 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -50,14 +50,14 @@ import {
 
 import {ReleaseContext} from '..';
 
-import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
-import Deploys from './sidebar/deploys';
-import OtherProjects from './sidebar/otherProjects';
-import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
-import ReleaseAdoption from './sidebar/releaseAdoption';
-import ReleaseStats from './sidebar/releaseStats';
-import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
-import ReleaseArchivedNotice from './releaseArchivedNotice';
+import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
+import {Deploys} from './sidebar/deploys';
+import {OtherProjects} from './sidebar/otherProjects';
+import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
+import {ReleaseAdoption} from './sidebar/releaseAdoption';
+import {ReleaseStats} from './sidebar/releaseStats';
+import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
+import {ReleaseArchivedNotice} from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseIssues from './releaseIssues';
 

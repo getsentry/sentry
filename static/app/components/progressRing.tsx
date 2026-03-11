@@ -71,7 +71,7 @@ const animatedTextDefaultProps = {
   transition: testableTransition(),
 };
 
-function ProgressRing({
+export function ProgressRing({
   value,
   minValue = 0,
   maxValue = 100,
@@ -184,5 +184,3 @@ const RingBar = styled('circle')<{
 `;
 
 const MotionRingBar = motion.create(RingBar);
-
-export default ProgressRing;

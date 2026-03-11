@@ -1,6 +1,6 @@
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {
   ReplayBrowserColumn,
   ReplayCountErrorsColumn,
@@ -11,7 +11,7 @@ import {
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
 import {useLocation} from 'sentry/utils/useLocation';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import ReplaysSearch from 'sentry/views/replays/list/search';
+import {ReplaysSearch} from 'sentry/views/replays/list/search';
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
@@ -28,7 +28,7 @@ const MOBILE_COLUMNS = [
   ReplayCountErrorsColumn,
 ];
 
-export default function Playlist() {
+export function Playlist() {
   const {replays, currentReplayIndex, isLoading, pageLinks} = useReplayPlaylist();
   const location = useLocation();
 

@@ -19,7 +19,7 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
-import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
+import {SummaryWidgets as AppStartWidgets} from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {ModuleName, SpanFields, type SpanProperty} from 'sentry/views/insights/types';

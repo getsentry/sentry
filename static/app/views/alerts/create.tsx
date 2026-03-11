@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useRef} from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -18,12 +18,12 @@ import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
-import MetricRuleDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {MetricRulesCreate} from 'sentry/views/alerts/rules/metric/create';
+import {MetricRuleDuplicate} from 'sentry/views/alerts/rules/metric/duplicate';
 import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';

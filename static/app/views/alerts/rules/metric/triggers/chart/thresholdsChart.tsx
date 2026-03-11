@@ -6,11 +6,11 @@ import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'ec
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';

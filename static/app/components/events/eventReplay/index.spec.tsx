@@ -8,7 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventReplay from 'sentry/components/events/eventReplay';
+import {EventReplay} from 'sentry/components/events/eventReplay';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -192,7 +192,7 @@ describe('EventReplay', () => {
 
   it('should not render replay when user does not have granular replay permissions', () => {
     const orgWithGranularPermissions = OrganizationFixture({
-      features: ['session-replay', 'granular-replay-permissions'],
+      features: ['session-replay'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });

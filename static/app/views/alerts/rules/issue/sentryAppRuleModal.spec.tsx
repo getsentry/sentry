@@ -6,7 +6,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import type {
   FieldFromSchema,
   SchemaFormConfig,

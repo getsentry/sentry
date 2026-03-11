@@ -26,7 +26,7 @@ type Props = {
   ruleId?: string;
 };
 
-function SnoozeAlert({
+export function SnoozeAlert({
   isSnoozed,
   onSnooze,
   projectSlug,
@@ -158,8 +158,6 @@ function SnoozeAlert({
     </Grid>
   );
 }
-
-export default SnoozeAlert;
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;

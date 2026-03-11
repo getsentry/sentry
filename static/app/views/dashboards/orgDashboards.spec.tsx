@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
+import {OrgDashboards} from 'sentry/views/dashboards/orgDashboards';
 
 describe('OrgDashboards', () => {
   const organization = OrganizationFixture({

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import type {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -17,7 +17,7 @@ interface JsonFormModalProps extends ModalRenderProps, Pick<FormProps, 'onSubmit
   initialData?: any;
 }
 
-function JsonFormModal({
+export function JsonFormModal({
   Body,
   Header,
   closeModal,
@@ -52,5 +52,3 @@ function JsonFormModal({
     </Fragment>
   );
 }
-
-export default JsonFormModal;

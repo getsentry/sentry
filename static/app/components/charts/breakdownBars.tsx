@@ -22,7 +22,7 @@ type Props = {
   maxItems?: number;
 };
 
-function BreakdownBars({data, maxItems}: Props) {
+export function BreakdownBars({data, maxItems}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
@@ -52,8 +52,6 @@ function BreakdownBars({data, maxItems}: Props) {
     </BreakdownGrid>
   );
 }
-
-export default BreakdownBars;
 
 const BreakdownGrid = styled('div')`
   display: grid;

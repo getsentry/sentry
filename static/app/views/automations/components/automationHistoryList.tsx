@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -50,7 +50,7 @@ function Skeletons() {
   );
 }
 
-export default function AutomationHistoryList({
+export function AutomationHistoryList({
   automationId,
   limit = DEFAULT_HISTORY_PER_PAGE,
   query,

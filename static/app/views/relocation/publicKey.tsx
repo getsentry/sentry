@@ -2,13 +2,13 @@ import {motion} from 'framer-motion';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
-import Wrapper from 'sentry/views/relocation/components/wrapper';
+import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
+import {Wrapper} from 'sentry/views/relocation/components/wrapper';
 
 import type {StepProps} from './types';
 

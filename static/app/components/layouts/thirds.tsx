@@ -147,7 +147,7 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (p.noRowGap ? `0 ${p.theme.space['2xl']}` : `${p.theme.space['2xl']}`)};
+    gap: ${p => (p.noRowGap ? `0 ${p.theme.space['2xl']}` : p.theme.space['2xl'])};
   }
 `;
 

@@ -3,8 +3,8 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
-import Collapsible from 'sentry/components/collapsible';
-import IdBadge from 'sentry/components/idBadge';
+import {Collapsible} from 'sentry/components/collapsible';
+import {IdBadge} from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
@@ -19,7 +19,7 @@ type Props = {
   version: string;
 };
 
-function OtherProjects({projects, location, version, organization}: Props) {
+export function OtherProjects({projects, location, version, organization}: Props) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>
@@ -81,5 +81,3 @@ const Row = styled('div')`
     grid-template-columns: 200px max-content;
   }
 `;
-
-export default OtherProjects;

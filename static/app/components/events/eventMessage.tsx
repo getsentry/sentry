@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ErrorLevel from 'sentry/components/events/errorLevel';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import {ErrorLevel} from 'sentry/components/events/errorLevel';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
@@ -18,7 +18,13 @@ type Props = {
   showUnhandled?: boolean;
 };
 
-function EventMessage({className, level, message, type, showUnhandled = false}: Props) {
+export function EventMessage({
+  className,
+  level,
+  message,
+  type,
+  showUnhandled = false,
+}: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const showEventLevel = level && eventTypeHasLogLevel(type);
   const renderedMessage = message ? (
@@ -61,5 +67,3 @@ const NoMessage = styled(Message)`
 const ErrorLevelWithMargin = styled(ErrorLevel)`
   margin-right: ${p => p.theme.space['2xs']};
 `;
-
-export default EventMessage;

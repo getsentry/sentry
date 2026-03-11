@@ -9,7 +9,7 @@ interface Props {
   group?: Group;
 }
 
-export default function EventHydrationDiff({event, group}: Props) {
+export function EventHydrationDiff({event, group}: Props) {
   const replayId = getReplayIdFromEvent(event);
 
   if (replayId && isHydrationError(event.title)) {

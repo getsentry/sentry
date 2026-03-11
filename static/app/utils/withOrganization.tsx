@@ -8,7 +8,7 @@ type InjectedOrganizationProps = {
   organizationAllowNull?: undefined | true;
 };
 
-function withOrganization<P extends InjectedOrganizationProps>(
+export function withOrganization<P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedOrganizationProps> &
@@ -27,5 +27,3 @@ function withOrganization<P extends InjectedOrganizationProps>(
 
   return Wrapper;
 }
-
-export default withOrganization;

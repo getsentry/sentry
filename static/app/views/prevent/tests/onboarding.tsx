@@ -10,8 +10,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
 import {RepoSelector} from 'sentry/components/prevent/repoSelector/repoSelector';
@@ -44,7 +44,7 @@ enum SetupOption {
   CLI = 'cli',
 }
 
-export default function TestsOnboardingPage() {
+export function TestsOnboardingPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const organization = useOrganization();

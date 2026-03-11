@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
+import {ProjectQuickLinks} from 'sentry/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', () => {
   const organization = OrganizationFixture({features: ['performance-view']});

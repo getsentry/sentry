@@ -14,7 +14,7 @@ type Props = {
  * Icon Renderer for SentryAppComponents with UI
  * (e.g. Issue Linking, Stacktrace Linking)
  */
-function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
+export function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
   const selectedAvatar = sentryAppComponent.sentryApp?.avatars?.find(
     ({color}) => color === false
   );
@@ -35,8 +35,6 @@ function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
     </SentryAppAvatarWrapper>
   );
 }
-
-export default SentryAppComponentIcon;
 
 const SentryAppAvatarWrapper = styled('span')<{
   isDark: boolean;

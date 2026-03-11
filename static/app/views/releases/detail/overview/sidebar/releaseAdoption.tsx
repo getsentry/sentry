@@ -6,14 +6,14 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import NotAvailable from 'sentry/components/notAvailable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -53,7 +53,7 @@ type Props = {
   reloading: boolean;
 };
 
-function ReleaseAdoption({
+export function ReleaseAdoption({
   release,
   project,
   environment,
@@ -351,5 +351,3 @@ const AdoptionEnvironment = styled('span')`
   margin-left: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default ReleaseAdoption;

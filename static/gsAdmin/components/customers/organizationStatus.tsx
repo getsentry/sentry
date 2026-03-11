@@ -6,7 +6,7 @@ type Props = {
   orgStatus: Subscription['orgStatus'];
 };
 
-function OrganizationStatus({orgStatus}: Props) {
+export function OrganizationStatus({orgStatus}: Props) {
   if (!orgStatus) {
     return null;
   }
@@ -40,5 +40,3 @@ function OrganizationStatus({orgStatus}: Props) {
     </Alert.Container>
   );
 }
-
-export default OrganizationStatus;

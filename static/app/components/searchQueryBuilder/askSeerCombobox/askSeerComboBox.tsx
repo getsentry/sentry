@@ -15,7 +15,7 @@ import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerC
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {
   AskSeerSearchItems,
   QueryTokensProps,

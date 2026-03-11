@@ -14,7 +14,7 @@ type Props = {
   query: string;
 };
 
-function DsnLookupSource({query, children}: Props) {
+export function DsnLookupSource({query, children}: Props) {
   const organization = useOrganization({allowNull: true});
   const hasDsnLookup = organization?.features?.includes('cmd-k-dsn-lookup') ?? false;
   const isDsn = DSN_PATTERN.test(query);
@@ -55,5 +55,3 @@ function DsnLookupSource({query, children}: Props) {
 
   return children({isLoading, results});
 }
-
-export default DsnLookupSource;

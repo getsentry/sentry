@@ -13,7 +13,7 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import TimeSince from 'sentry/components/timeSince';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';

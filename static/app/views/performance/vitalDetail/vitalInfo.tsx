@@ -26,7 +26,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function VitalInfo({
+export function VitalInfo({
   vital,
   location,
   isLoading,
@@ -63,5 +63,3 @@ function VitalInfo({
     </VitalsCardDiscoverQuery>
   );
 }
-
-export default VitalInfo;

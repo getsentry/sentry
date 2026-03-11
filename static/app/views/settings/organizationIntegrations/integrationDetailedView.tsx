@@ -1,23 +1,25 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mutationOptions} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {updateOrganization} from 'sentry/actionCreators/organizations';
 import type {RequestOptions} from 'sentry/api';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import type {Data, JsonFormObject} from 'sentry/components/forms/types';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
@@ -25,6 +27,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
@@ -41,8 +44,8 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
-import InstalledIntegration from 'sentry/views/settings/organizationIntegrations/installedIntegration';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 // Show the features tab if the org has features for the integration
@@ -57,6 +60,31 @@ const FirstPartyIntegrationAdditionalCTA = HookOrDefault({
   hookName: 'component:first-party-integration-additional-cta',
   defaultComponent: () => null,
 });
+
+const slackFeaturesSchema = z.object({
+  issueAlertsThreadFlag: z.boolean(),
+  metricAlertsThreadFlag: z.boolean(),
+});
+
+const githubFeaturesSchema = z.object({
+  githubPRBot: z.boolean(),
+  githubNudgeInvite: z.boolean(),
+});
+
+const gitlabFeaturesSchema = z.object({
+  gitlabPRBot: z.boolean(),
+});
+
+function getOrgMutationOptions(organization: Organization) {
+  const orgEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+  return mutationOptions({
+    mutationFn: (data: Partial<Organization>) =>
+      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
+    onSuccess: data => updateOrganization(data),
+  });
+}
 
 export type IntegrationInformation = {
   providers: IntegrationProvider[];
@@ -391,158 +419,163 @@ export default function IntegrationDetailedView() {
     renderTopButton,
   ]);
 
-  const getSlackFeatures = useCallback((): [JsonFormObject[], Data] => {
-    const hasIntegration = configurations ? configurations.length > 0 : false;
-
-    const forms: JsonFormObject[] = [
-      {
-        fields: [
-          {
-            name: 'issueAlertsThreadFlag',
-            type: 'boolean',
-            label: t('Enable Slack threads on Issue Alerts'),
-            help: t(
-              'Allow Slack integration to post replies in threads for an Issue Alert notification.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a Slack integration to enable this feature.'
-            ),
-          },
-          {
-            name: 'metricAlertsThreadFlag',
-            type: 'boolean',
-            label: t('Enable Slack threads on Metric Alerts'),
-            help: t(
-              'Allow Slack integration to post replies in threads for an Metric Alert notification.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a Slack integration to enable this feature.'
-            ),
-          },
-        ],
-      },
-    ];
-
-    const initialData = {
-      issueAlertsThreadFlag: organization.issueAlertsThreadFlag,
-      metricAlertsThreadFlag: organization.metricAlertsThreadFlag,
-    };
-
-    return [forms, initialData];
-  }, [organization, configurations]);
-
-  const getGithubFeatures = useCallback((): [JsonFormObject[], Data] => {
-    const hasIntegration = configurations ? configurations.length > 0 : false;
-
-    const forms: JsonFormObject[] = [
-      {
-        fields: [
-          {
-            name: 'githubPRBot',
-            type: 'boolean',
-            label: t('Enable Comments on Suspect Pull Requests'),
-            help: t(
-              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a GitHub integration to enable this feature.'
-            ),
-          },
-          {
-            name: 'githubNudgeInvite',
-            type: 'boolean',
-            label: t('Enable Missing Member Detection'),
-            help: t(
-              'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a GitHub integration to enable this feature.'
-            ),
-          },
-        ],
-      },
-    ];
-
-    const initialData = {
-      githubPRBot: organization.githubPRBot,
-      githubNudgeInvite: organization.githubNudgeInvite,
-    };
-
-    return [forms, initialData];
-  }, [organization, configurations]);
-
-  const getGitlabFeatures = useCallback((): [JsonFormObject[], Data] => {
-    const hasIntegration = configurations ? configurations.length > 0 : false;
-
-    const forms: JsonFormObject[] = [
-      {
-        fields: [
-          {
-            name: 'gitlabPRBot',
-            type: 'boolean',
-            label: t('Enable Comments on Suspect Pull Requests'),
-            help: t(
-              'Allow Sentry to comment on recent pull requests suspected of causing issues.'
-            ),
-            disabled: !hasIntegration,
-            disabledReason: t(
-              'You must have a GitLab integration to enable this feature.'
-            ),
-          },
-        ],
-      },
-    ];
-
-    const initialData = {
-      gitlabPRBot: organization.gitlabPRBot,
-    };
-
-    return [forms, initialData];
-  }, [organization, configurations]);
+  const orgMutationOptions = getOrgMutationOptions(organization);
 
   const renderFeatures = useCallback(() => {
-    const endpoint = `/organizations/${organization.slug}/`;
     const hasOrgWrite = organization.access.includes('org:write');
+    const hasIntegration = configurations ? configurations.length > 0 : false;
+    const isDisabled = !hasOrgWrite || !hasIntegration;
 
-    let forms: JsonFormObject[], initialData: Data;
     switch (provider?.key) {
-      case 'github': {
-        [forms, initialData] = getGithubFeatures();
-        break;
-      }
-      case 'gitlab': {
-        [forms, initialData] = getGitlabFeatures();
-        break;
-      }
-      case 'slack': {
-        [forms, initialData] = getSlackFeatures();
-        break;
-      }
+      case 'github':
+        return (
+          <FieldGroup>
+            <AutoSaveField
+              name="githubPRBot"
+              schema={githubFeaturesSchema}
+              initialValue={organization.githubPRBot}
+              mutationOptions={orgMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Comments on Suspect Pull Requests')}
+                  hintText={
+                    hasIntegration
+                      ? t(
+                          'Allow Sentry to comment on recent pull requests suspected of causing issues.'
+                        )
+                      : t('You must have a GitHub integration to enable this feature.')
+                  }
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isDisabled}
+                    aria-label={t('Enable Comments on Suspect Pull Requests')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+            <AutoSaveField
+              name="githubNudgeInvite"
+              schema={githubFeaturesSchema}
+              initialValue={organization.githubNudgeInvite}
+              mutationOptions={orgMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Missing Member Detection')}
+                  hintText={
+                    hasIntegration
+                      ? t(
+                          'Allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization..'
+                        )
+                      : t('You must have a GitHub integration to enable this feature.')
+                  }
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isDisabled}
+                    aria-label={t('Enable Missing Member Detection')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
+        );
+      case 'gitlab':
+        return (
+          <FieldGroup>
+            <AutoSaveField
+              name="gitlabPRBot"
+              schema={gitlabFeaturesSchema}
+              initialValue={organization.gitlabPRBot}
+              mutationOptions={orgMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Comments on Suspect Pull Requests')}
+                  hintText={
+                    hasIntegration
+                      ? t(
+                          'Allow Sentry to comment on recent pull requests suspected of causing issues.'
+                        )
+                      : t('You must have a GitLab integration to enable this feature.')
+                  }
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isDisabled}
+                    aria-label={t('Enable Comments on Suspect Pull Requests')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
+        );
+      case 'slack':
+        return (
+          <FieldGroup>
+            <AutoSaveField
+              name="issueAlertsThreadFlag"
+              schema={slackFeaturesSchema}
+              initialValue={organization.issueAlertsThreadFlag}
+              mutationOptions={orgMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Slack threads on Issue Alerts')}
+                  hintText={
+                    hasIntegration
+                      ? t(
+                          'Allow Slack integration to post replies in threads for an Issue Alert notification.'
+                        )
+                      : t('You must have a Slack integration to enable this feature.')
+                  }
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isDisabled}
+                    aria-label={t('Enable Slack threads on Issue Alerts')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+            <AutoSaveField
+              name="metricAlertsThreadFlag"
+              schema={slackFeaturesSchema}
+              initialValue={organization.metricAlertsThreadFlag}
+              mutationOptions={orgMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Enable Slack threads on Metric Alerts')}
+                  hintText={
+                    hasIntegration
+                      ? t(
+                          'Allow Slack integration to post replies in threads for an Metric Alert notification.'
+                        )
+                      : t('You must have a Slack integration to enable this feature.')
+                  }
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={isDisabled}
+                    aria-label={t('Enable Slack threads on Metric Alerts')}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveField>
+          </FieldGroup>
+        );
       default:
         return null;
     }
-
-    return (
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={endpoint}
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        onSubmitError={() => addErrorMessage('Unable to save change')}
-      >
-        <JsonForm
-          disabled={!hasOrgWrite}
-          features={organization.features}
-          forms={forms}
-        />
-      </Form>
-    );
-  }, [organization, provider, getGithubFeatures, getGitlabFeatures, getSlackFeatures]);
+  }, [organization, provider, configurations, orgMutationOptions]);
 
   if (isInformationPending || isConfigurationsPending) {
     return <LoadingIndicator />;

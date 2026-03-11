@@ -4,23 +4,25 @@ import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {
   activeTab: 'stream' | 'rules';
 };
 
-function AlertHeader({activeTab}: Props) {
-  const router = useRouter();
+export function AlertHeader({activeTab}: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
@@ -29,7 +31,11 @@ function AlertHeader({activeTab}: Props) {
    */
   const handleNavigateToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`, router);
+    navigateTo(
+      `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      navigate,
+      location
+    );
   };
 
   const alertRulesLink = (
@@ -100,5 +106,3 @@ function AlertHeader({activeTab}: Props) {
     </Layout.Header>
   );
 }
-
-export default AlertHeader;

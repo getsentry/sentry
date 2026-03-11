@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import SelectField from 'sentry/components/forms/fields/selectField';
 
 import type {Relocation} from 'admin/types';
@@ -14,7 +14,7 @@ type Props = ModalRenderProps & {
   onSuccess?: (relocation: Relocation) => void;
 };
 
-function RelocationUnpauseModal({
+export function RelocationUnpauseModal({
   Body,
   Header,
   relocation,
@@ -72,5 +72,3 @@ function RelocationUnpauseModal({
     </Fragment>
   );
 }
-
-export default RelocationUnpauseModal;

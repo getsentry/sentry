@@ -157,7 +157,7 @@ class OutboxCategory(IntEnum):
 
     def as_control_outboxes(
         self,
-        region_names: Collection[str],
+        cell_names: Collection[str],
         model: Any | None = None,
         payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
@@ -180,10 +180,10 @@ class OutboxCategory(IntEnum):
                 shard_identifier=shard_identifier,
                 category=self,
                 object_identifier=object_identifier,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload=payload,
             )
-            for region_name in region_names
+            for cell_name in cell_names
         ]
 
     def infer_identifiers(

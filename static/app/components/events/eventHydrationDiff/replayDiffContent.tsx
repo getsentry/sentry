@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayRequestsThrottledAlert from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
+import {ReplayRequestsThrottledAlert} from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

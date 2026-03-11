@@ -5,7 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
-from sentry.sentry_apps.services.region.model import RpcPlatformExternalIssue
+from sentry.sentry_apps.services.cell.model import RpcPlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 

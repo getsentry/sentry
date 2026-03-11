@@ -4,8 +4,8 @@ import {useQuery} from '@tanstack/react-query';
 import {Flex} from '@sentry/scraps/layout';
 
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingError from 'sentry/components/loadingError';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

@@ -16,7 +16,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
 from sentry.web.frontend.analytics import JsSdkLoaderRendered
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 from sentry.web.helpers import render_to_response
 
 CACHE_CONTROL = (
@@ -55,7 +55,7 @@ class LoaderContext(TypedDict):
     publicKey: NotRequired[str | None]
 
 
-@region_silo_view
+@cell_silo_view
 class JavaScriptSdkLoader(View):
     def _get_loader_config(
         self, key: ProjectKey | None, sdk_version: Version | None

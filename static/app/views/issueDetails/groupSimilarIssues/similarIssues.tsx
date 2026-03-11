@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-import SimilarStackTrace from './similarStackTrace';
+import {SimilarStackTrace} from './similarStackTrace';
 
-function GroupSimilarIssues() {
+export function GroupSimilarIssues() {
   const params = useParams<{groupId: string}>();
   const organization = useOrganization();
   const {
@@ -42,5 +42,3 @@ function GroupSimilarIssues() {
     </Fragment>
   );
 }
-
-export default GroupSimilarIssues;

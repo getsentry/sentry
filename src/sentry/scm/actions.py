@@ -118,7 +118,7 @@ class SourceCodeManager:
     def _exec[P, T](self, protocol: type[P], provider_fn: Callable[[P], T]) -> T:
         provider = self.provider
         if not isinstance(provider, protocol):
-            raise SCMProviderNotSupported
+            raise SCMProviderNotSupported("Action not supported.")
 
         return exec_provider_fn(
             self.provider,

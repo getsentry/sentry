@@ -7,7 +7,7 @@ import Confirm from 'sentry/components/confirm';
 import Placeholder from 'sentry/components/placeholder';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

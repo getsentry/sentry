@@ -6,14 +6,14 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {
   hasDynamicSamplingCustomFeature,
   hasDynamicSamplingFeature,
 } from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
 import {useHasDynamicSamplingReadAccess} from 'sentry/views/settings/dynamicSampling/utils/access';

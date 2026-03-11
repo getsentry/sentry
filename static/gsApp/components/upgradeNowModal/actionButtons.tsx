@@ -34,7 +34,7 @@ type Props = {
   onComplete?: () => void;
 };
 
-function ActionButtons({
+export function ActionButtons({
   isActionDisabled,
   onComplete,
   organization,
@@ -181,5 +181,3 @@ const ButtonRow = styled('p')`
   margin-top: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default ActionButtons;

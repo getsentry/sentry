@@ -9,12 +9,12 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import AutomationBuilder from 'sentry/views/automations/components/automationBuilder';
-import EditConnectedMonitors from 'sentry/views/automations/components/editConnectedMonitors';
+import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
+import {EditConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
 import {ActionIntervalSelectField} from 'sentry/views/automations/components/forms/actionIntervalSelectField';
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
-export default function AutomationForm({model}: {model: FormModel}) {
+export function AutomationForm({model}: {model: FormModel}) {
   const initialConnectedIds = useFormField<Automation['detectorIds']>('detectorIds');
   const setConnectedIds = useCallback(
     (ids: Automation['detectorIds']) => {

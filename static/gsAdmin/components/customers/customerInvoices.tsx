@@ -38,7 +38,7 @@ const getRow = (orgId: string, region: string, row: any) => [
   </td>,
 ];
 
-function CustomerInvoices({orgId, region, ...props}: Props) {
+export function CustomerInvoices({orgId, region, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -65,5 +65,3 @@ function CustomerInvoices({orgId, region, ...props}: Props) {
     />
   );
 }
-
-export default CustomerInvoices;

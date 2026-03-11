@@ -327,7 +327,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/metrics-compatibility-sums/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/missing-members/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/events-histogram/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/events-spans-histogram/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/events-trends/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/events-vitals/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/events-has-measurements/": {"GET"},
@@ -654,7 +653,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET",
         "DELETE",
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/user-stats/": {"GET"},
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/processingissues/": {
         "GET",
         "DELETE",

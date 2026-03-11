@@ -30,7 +30,7 @@ type Props = {
   widgetInterval?: string;
 };
 
-function IssueWidgetQueries({
+export function IssueWidgetQueries({
   children,
   widget,
   cursor,
@@ -79,5 +79,3 @@ function IssueWidgetQueries({
     fixed: <div />,
   });
 }
-
-export default IssueWidgetQueries;

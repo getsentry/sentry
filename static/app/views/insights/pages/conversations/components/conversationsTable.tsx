@@ -7,7 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import useDrawer from 'sentry/components/globalDrawer';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {

@@ -17,7 +17,7 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-function ChartContextMenu({
+export function ChartContextMenu({
   visualizeIndex,
   visualizeYAxes,
   query,
@@ -186,8 +186,6 @@ function ChartContextMenu({
     />
   );
 }
-
-export default ChartContextMenu;
 
 const DisabledText = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};

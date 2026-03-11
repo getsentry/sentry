@@ -18,7 +18,7 @@ import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import PreviewTable from './previewTable';
+import {PreviewTable} from './previewTable';
 
 const SENTRY_ISSUE_ALERT_DOCS_URL =
   'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';

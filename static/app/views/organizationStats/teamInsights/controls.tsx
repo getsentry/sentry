@@ -54,7 +54,7 @@ type Props = Pick<RouteComponentProps, 'router' | 'location'> & {
   showEnvironment?: boolean;
 };
 
-function TeamStatsControls({
+export function TeamStatsControls({
   location,
   router,
   currentTeam,
@@ -219,8 +219,6 @@ function TeamStatsControls({
     </ControlsWrapper>
   );
 }
-
-export default TeamStatsControls;
 
 const ControlsWrapper = styled('div')<{showEnvironment?: boolean}>`
   display: grid;

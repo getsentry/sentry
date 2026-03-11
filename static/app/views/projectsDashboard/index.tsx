@@ -10,12 +10,12 @@ import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -41,11 +41,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import {TeamFilter} from 'sentry/views/alerts/list/rules/teamFilter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import ProjectCard from './projectCard';
-import Resources from './resources';
+import {ProjectCard} from './projectCard';
+import {Resources} from './resources';
 import {getTeamParams} from './utils';
 
 function ProjectCardList({projects}: {projects: Project[]}) {

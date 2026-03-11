@@ -21,7 +21,7 @@ const enum DiffType {
   MUTATIONS = 'mutations',
 }
 
-export default function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
+export function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
   const organization = useOrganization();
   const onTabChange = (tabKey: DiffType) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});

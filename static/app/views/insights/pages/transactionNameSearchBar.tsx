@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import BaseSearchBar from 'sentry/components/searchBar';
-import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
+import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';

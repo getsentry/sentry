@@ -82,16 +82,16 @@ def get_buffer_requests_from_control(
     )
 
 
-def get_buffer_requests_from_regions(
+def get_buffer_requests_from_cells(
     sentry_app_id: int,
     filter: SentryAppRequestFilterArgs,
     datetime_org_filter: DatetimeOrganizationFilterArgs,
 ) -> list[BufferedRequest]:
     requests: list[RpcSentryAppRequest] = []
-    for region_name in find_all_cell_names():
+    for cell_name in find_all_cell_names():
         buffer_requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=sentry_app_id,
-            region_name=region_name,
+            region_name=cell_name,
             filter=filter,
         )
         if buffer_requests:

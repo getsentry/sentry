@@ -14,12 +14,7 @@ interface Props {
   project: Project;
 }
 
-export default function CodingAgentSettings({
-  integration,
-  canWrite,
-  preference,
-  project,
-}: Props) {
+export function CodingAgentSettings({integration, canWrite, preference, project}: Props) {
   const disabledReason = canWrite
     ? null
     : t('You do not have permission to update this setting.');
