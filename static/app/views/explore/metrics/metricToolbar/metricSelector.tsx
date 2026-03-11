@@ -259,8 +259,9 @@ export function MetricSelector({
   return (
     <Container width="100%" position="relative">
       <OverlayTrigger.Button
-        style={{width: '100%', fontWeight: 'bold'}}
         {...triggerProps}
+        style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
+        disabled={isFetching && !traceMetric.name}
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>

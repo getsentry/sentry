@@ -57,6 +57,40 @@ describe('MetricSelector', () => {
       expect(screen.getByRole('button', {name: 'None'})).toBeInTheDocument();
     });
 
+    describe('loading state', () => {
+      beforeEach(() => {
+        // Replace mock with one that never resolves to keep loading state
+        MockApiClient.clearMockResponses();
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/events/`,
+          method: 'GET',
+          body: new Promise(() => {}),
+          match: [
+            MockApiClient.matchQuery({
+              dataset: 'tracemetrics',
+              referrer: 'api.explore.metric-options',
+            }),
+          ],
+        });
+      });
+
+      it('disables trigger button while loading when no metric is selected', () => {
+        render(
+          <MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />,
+          {organization}
+        );
+        expect(screen.getByRole('button', {name: 'None'})).toBeDisabled();
+      });
+
+      it('does not disable trigger button while loading when a metric is already selected', () => {
+        render(
+          <MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />,
+          {organization}
+        );
+        expect(screen.getByRole('button', {name: 'bar'})).toBeEnabled();
+      });
+    });
+
     it('opens dropdown on click', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
@@ -117,6 +151,17 @@ describe('MetricSelector', () => {
 
         expect(await screen.findByText('No metrics found')).toBeInTheDocument();
       });
+    });
+
+    it('focuses search input when dropdown opens', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+
+      expect(searchInput).toHaveFocus();
     });
 
     it('shows search input in open dropdown', async () => {
