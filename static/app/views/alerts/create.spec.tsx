@@ -89,7 +89,10 @@ describe('ProjectAlertsCreate', () => {
 
   const createWrapper = (
     props = {},
-    locationOverride: {query?: Record<string, string>} = {}
+    {
+      pathname = '/organizations/org-slug/issues/alerts/new/issue/',
+      query,
+    }: {pathname?: string; query?: Record<string, string>} = {}
   ) => {
     const {organization, project} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
@@ -98,9 +101,10 @@ describe('ProjectAlertsCreate', () => {
       outletContext: {project, members: []},
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
-          query: {createFromWizard: 'true', ...locationOverride.query},
+          pathname,
+          query: {createFromWizard: 'true', ...query},
         },
+        route: '/organizations/:orgId/issues/alerts/new/:alertType/',
       },
     });
 
@@ -112,8 +116,10 @@ describe('ProjectAlertsCreate', () => {
   };
 
   it('adds default parameters if wizard was skipped', async () => {
-    const location = {query: {}};
-    const {router} = createWrapper(undefined, location);
+    const {router} = createWrapper(undefined, {
+      pathname: '/organizations/org-slug/issues/alerts/new/metric/',
+      query: {},
+    });
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
