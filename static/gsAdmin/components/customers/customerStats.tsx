@@ -296,20 +296,25 @@ function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
 ): AbuseData {
-  // Sum abuse quantities per interval, excluding rate limit reasons
+  // Sum all abuse quantities per interval (for mark area regions)
+  const allAbuseByInterval = new Array(intervals.length).fill(0) as number[];
+  // Sum only "real" abuse (no specific reason) per interval (for tooltip values)
   const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+
   for (const group of groups) {
-    if (
-      group.by.outcome === 'abuse' &&
-      (!group.by.reason || group.by.reason === 'none')
-    ) {
+    if (group.by.outcome === 'abuse') {
+      const isRealAbuse = !group.by.reason || group.by.reason === 'none';
       group.series['sum(quantity)']?.forEach((val, i) => {
-        abuseByInterval[i]! += val;
+        allAbuseByInterval[i]! += val;
+        if (isRealAbuse) {
+          abuseByInterval[i]! += val;
+        }
       });
     }
   }
 
-  // Build a map of timestamp → abuse value and contiguous regions where abuse > 0
+  // Build regions from all abuse (including rate limits) and
+  // tooltip values from real abuse only
   const valueByTimestamp = new Map<number, number>();
   const allTimestamps: number[] = [];
   const regions: AbuseRegion[] = [];
@@ -322,6 +327,9 @@ function getAbuseData(
 
     if (abuseByInterval[i]! > 0) {
       valueByTimestamp.set(ts, abuseByInterval[i]!);
+    }
+
+    if (allAbuseByInterval[i]! > 0) {
       if (regionStart === null) {
         regionStart = ts;
       }
