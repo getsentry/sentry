@@ -29,7 +29,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         provision_payload: OrganizationProvisioningOptions,
     ) -> bool:
         """
-        TODO(cells): Deprecated, remove method when all callers are updated to use cell_name create_organization_in_cell
+        TODO(cells): Deprecated, remove method when all callers are updated to use create_organization_in_cell
         """
 
     @regional_rpc_method(resolve=ByCellName())
