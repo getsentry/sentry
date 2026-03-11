@@ -21,7 +21,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.projects_rebalancing import (
@@ -90,8 +90,6 @@ def _partition_orgs_by_measure(
     split off when the check_span_feature_flag option is enabled.
     All remaining orgs use SEGMENTS.
     """
-    from sentry import options
-
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
