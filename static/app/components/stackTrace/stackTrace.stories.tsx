@@ -26,7 +26,7 @@ import {
 } from 'sentry/components/stackTrace/frame/actions';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
-import {IconFix, IconLink, IconRefresh} from 'sentry/icons';
+import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
@@ -761,23 +761,32 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
   ];
 }
 
-function StoryFrameActions({isHovering: _isHovering}: {isHovering: boolean}) {
-  const {frame, timesRepeated} = useStackTraceFrameContext();
+function StoryFrameActions({isHovering}: {isHovering: boolean}) {
+  const {frame, timesRepeated, isExpanded} = useStackTraceFrameContext();
+  const showHoverActions = isExpanded || isHovering;
 
   return (
     <Fragment>
-      <Button size="zero" priority="default" onClick={e => e.stopPropagation()}>
-        <Flex align="center" gap="xs" as="span">
-          <IconLink size="xs" />
-          <span>{t('Open in IDE')}</span>
-        </Flex>
-      </Button>
-      <Button size="zero" priority="default" onClick={e => e.stopPropagation()}>
-        <Flex align="center" gap="xs" as="span">
-          <IconFix size="xs" />
-          <span>{t('Unminify Code')}</span>
-        </Flex>
-      </Button>
+      <HoverActionsSlot visible={showHoverActions}>
+        <Tooltip title={t('Copy file path')} skipWrapper>
+          <Button
+            size="xs"
+            priority="transparent"
+            aria-label={t('Copy file path')}
+            icon={<IconCopy size="xs" />}
+            onClick={e => e.stopPropagation()}
+          />
+        </Tooltip>
+        <Tooltip title={t('Open this line in GitHub')} skipWrapper>
+          <Button
+            size="xs"
+            priority="transparent"
+            aria-label={t('Open this line in GitHub')}
+            icon={<IconGithub size="xs" />}
+            onClick={e => e.stopPropagation()}
+          />
+        </Tooltip>
+      </HoverActionsSlot>
       <HiddenFramesToggleAction />
       {timesRepeated > 0 ? (
         <Tooltip
@@ -1348,4 +1357,19 @@ const StyledWideHovercard = styled(Hovercard)`
 
 const WideHovercard = styled(WideHovercardBase)`
   padding: 0;
+`;
+
+const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  width: ${p => (p.visible ? 'max-content' : '0')};
+  flex: ${p => (p.visible ? '0 0 max-content' : '0 0 0')};
+  height: ${p => (p.visible ? '28px' : '0')};
+  min-height: ${p => (p.visible ? '28px' : '0')};
+  overflow: hidden;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
 `;

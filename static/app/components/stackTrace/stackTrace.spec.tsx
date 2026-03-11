@@ -966,6 +966,159 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows raw exception type/value/module when minified toggle is active', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const rawStacktrace: StacktraceWithFrames = {
+      ...stacktrace,
+      frames: stacktrace.frames.map(f => ({
+        ...f,
+        function: f.function ? `_min_${f.function}` : f.function,
+      })),
+    };
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'symbolicated value',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace,
+            rawType: 'RawError',
+            rawValue: 'raw value',
+            rawModule: 'raw.module',
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    // Symbolicated values shown by default
+    expect(await screen.findByText('ValueError')).toBeInTheDocument();
+    expect(screen.getByText('symbolicated value')).toBeInTheDocument();
+
+    // Toggle to minified/raw
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    expect(await screen.findByText('RawError')).toBeInTheDocument();
+    expect(screen.getByText('raw value')).toBeInTheDocument();
+  });
+
+  it('falls back to symbolicated values when raw fields are missing', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'original value',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: stacktrace,
+            threadId: null,
+            // no rawType/rawValue/rawModule
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText('ValueError')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    // Falls back to symbolicated type/value since raw fields are absent
+    expect(await screen.findByText('ValueError')).toBeInTheDocument();
+    expect(screen.getByText('original value')).toBeInTheDocument();
+  });
+
+  it('renders raw view as flat text for chained exceptions', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+          {
+            type: 'NestedError',
+            value: 'nested cause',
+            module: 'app.nested',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    // Chained disclosures visible in normal view
+    expect(await screen.findByText('RootError')).toBeInTheDocument();
+    expect(screen.getByText('NestedError')).toBeInTheDocument();
+
+    // Switch to raw view
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
+
+    // Disclosures and chained text are gone, raw text is shown
+    expect(screen.queryByText(/chained exception/)).not.toBeInTheDocument();
+    expect(screen.getByText(/RootError: root cause/)).toBeInTheDocument();
+    expect(screen.getByText(/NestedError: nested cause/)).toBeInTheDocument();
+  });
+
+  it('does not reverse exception order in raw view', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'FirstError',
+            value: 'first',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+          {
+            type: 'SecondError',
+            value: 'second',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
+
+    const rawText = await screen.findByText(/FirstError: first/);
+    const pre = rawText.closest('pre')!;
+    const firstIdx = pre.textContent!.indexOf('FirstError: first');
+    const secondIdx = pre.textContent!.indexOf('SecondError: second');
+    // FirstError appears before SecondError (not reversed despite default newest-first)
+    expect(firstIdx).toBeLessThan(secondIdx);
+  });
+
   describe('exception groups', () => {
     function makeExceptionGroupValues(): {
       event: ReturnType<typeof EventFixture>;
