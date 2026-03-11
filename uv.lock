@@ -2671,10 +2671,10 @@ wheels = [
 
 [[package]]
 name = "sqlparse"
-version = "0.5.0"
+version = "0.5.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sqlparse-0.5.0-py3-none-any.whl", hash = "sha256:c204494cd97479d0e39f28c93d46c0b2d5959c7b9ab904762ea6c7af211c8663" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sqlparse-0.5.4-py3-none-any.whl", hash = "sha256:99a9f0314977b76d776a0fcb8554de91b9bb8a18560631d6bc48721d07023dcb" },
 ]
 
 [[package]]
