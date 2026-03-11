@@ -34,8 +34,7 @@ class TestIsBlackAlphaOnly:
         assert is_black_alpha_only(buf) is False
 
     def test_non_rgba_mode_returns_false(self):
-        img = Image.new("RGB", (2, 1))
-        img.putdata([(0, 0, 0), (0, 0, 0)])
+        img = Image.new("RGB", (2, 1), color=(0, 0, 0))
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         buf.seek(0)
