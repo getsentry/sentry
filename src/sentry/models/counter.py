@@ -7,7 +7,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.locks import locks
@@ -27,7 +27,7 @@ we will refill the block when there are less than 200 short ids in Redis
 """
 
 
-@region_silo_model
+@cell_silo_model
 class Counter(Model):
     __relocation_scope__ = RelocationScope.Organization
 

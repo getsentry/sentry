@@ -24,10 +24,10 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 
 
-@region_silo_function
+@cell_silo_function
 def build_action_response(
     registered_factory: ActionHandlerFactory,
     integration: RpcIntegration | None = None,
