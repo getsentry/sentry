@@ -570,7 +570,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/spans/fields/$key/values/'
   | '/organizations/$organizationIdOrSlug/spans/fields/stats/'
   | '/organizations/$organizationIdOrSlug/stats-summary/'
-  | '/organizations/$organizationIdOrSlug/stats/'
   | '/organizations/$organizationIdOrSlug/stats_v2/'
   | '/organizations/$organizationIdOrSlug/tags/'
   | '/organizations/$organizationIdOrSlug/tags/$key/values/'
