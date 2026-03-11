@@ -5,7 +5,7 @@ from typing import Literal
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact
 
-ViewType = Literal["size", "snapshots"]
+ViewType = Literal["size", "snapshots", "install"]
 
 
 def get_preprod_artifact_url(
