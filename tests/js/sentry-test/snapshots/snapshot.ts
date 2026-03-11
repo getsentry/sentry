@@ -123,7 +123,7 @@ export async function takeSnapshot(
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
     const sanitizedName = name.replace(/[^a-zA-Z0-9_-]/g, '-');
-    const coreFilename = `${sanitizedName}`;
+    const coreFilename = sanitizedName;
     const imageFilename = `${coreFilename}.png`;
 
     const outputDir = path.join(getOutputDir(), dirOfTestFile);
