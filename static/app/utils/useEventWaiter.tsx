@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Group} from 'sentry/types/group';
@@ -58,9 +58,7 @@ export function useEventWaiter({
   disabled,
   pollInterval = DEFAULT_POLL_INTERVAL,
 }: UseEventWaiterOptions): FirstEvent {
-  const [firstIssue, setFirstEvent] = useState<FirstEvent>(null);
-
-  const shouldPoll = !disabled && !firstIssue && !!organization && !!project;
+  const shouldPoll = !disabled && !!organization && !!project;
 
   const projectUrl = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
     path: {
@@ -101,33 +99,9 @@ export function useEventWaiter({
 
   // For errors, fetch the first issue group once we know the firstEvent exists
   const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
-    enabled: eventType === 'error' && !!firstEvent && !firstIssue,
+    enabled: eventType === 'error' && !!firstEvent,
     staleTime: 0,
   });
-
-  // Resolve firstIssue from query data
-  useEffect(() => {
-    if (firstIssue) {
-      return;
-    }
-
-    if (firstEvent === null || firstEvent === false) {
-      return;
-    }
-
-    if (eventType === 'error') {
-      if (!issuesQuery.data) {
-        return;
-      }
-      // The event may have expired, default to true
-      const resolved =
-        issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true;
-      setFirstEvent(resolved);
-    } else {
-      // transaction, replay, profile, log
-      setFirstEvent(Boolean(firstEvent));
-    }
-  }, [firstEvent, eventType, issuesQuery.data, firstIssue]);
 
   // Report errors to Sentry (matching original behavior)
   useEffect(() => {
@@ -156,5 +130,20 @@ export function useEventWaiter({
     Sentry.captureException(captureError);
   }, [projectQuery.error, eventType]);
 
-  return firstIssue;
+  if (firstEvent === null || firstEvent === false) {
+    return null;
+  }
+
+  if (eventType === 'error') {
+    if (!issuesQuery.data) {
+      return null;
+    }
+    // The event may have expired, default to true
+    return (
+      issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true
+    );
+  }
+
+  // transaction, replay, profile, log
+  return Boolean(firstEvent);
 }
