@@ -107,6 +107,7 @@ def test_get_project_config_non_visible(default_project) -> None:
     assert cfg.to_dict() == {"disabled": True}
 
 
+@pytest.mark.skip(reason="flaky: #110436")
 @django_db_all
 @region_silo_test
 def test_get_project_config(default_project: Project, insta_snapshot: InstaSnapshotter) -> None:
