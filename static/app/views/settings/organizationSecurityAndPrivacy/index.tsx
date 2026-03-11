@@ -238,7 +238,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
                     v => ({
-                      value: v,
+                      value: v!,
                       label: formatStoreCrashReports(v),
                     })
                   )}

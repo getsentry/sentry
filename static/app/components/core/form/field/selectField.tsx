@@ -51,7 +51,6 @@ type BaseSelectFieldProps<TValue> = BaseFieldProps<HTMLInputElement> &
     | 'options'
     | 'getOptionValue'
   > & {
-    options: Array<SelectValue<TValue>>;
     disabled?: boolean | string;
     getOptionValue?: (option: SelectValue<TValue>) => string;
   };
@@ -62,6 +61,7 @@ type NonArray<T> = T extends readonly unknown[] ? never : T;
 // Single select WITHOUT clearable - onChange receives TValue (never null)
 interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   onChange: (value: NonArray<TValue>) => void;
+  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   clearable?: false;
   multiple?: false;
@@ -71,6 +71,7 @@ interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps
 interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
+  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   multiple?: false;
 }
@@ -79,6 +80,7 @@ interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<T
 interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
   multiple: true;
   onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
+  options: TValue extends ReadonlyArray<infer U> ? Array<SelectValue<U>> : never;
   value: TValue extends readonly unknown[] ? TValue : never;
   clearable?: boolean;
 }
