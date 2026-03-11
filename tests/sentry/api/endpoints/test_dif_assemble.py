@@ -251,3 +251,129 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]["state"] == ChunkFileState.ERROR
         assert "unsupported object file format" in response.data[total_checksum]["detail"]
+
+    def test_reuses_existing_proguard_file_with_new_debug_id(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        first_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+
+        second_response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-11111111-1111-1111-1111-111111111111.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert second_response.status_code == 200, second_response.content
+        assert second_response.data[checksum]["state"] == ChunkFileState.OK
+
+        # The second request should create the new logical DIF association.
+        assert (
+            second_response.data[checksum]["dif"]["uuid"] == "11111111-1111-1111-1111-111111111111"
+        )
+
+        new_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="11111111-1111-1111-1111-111111111111",
+        )
+
+        # Both debug IDs should reuse the same stored file bytes.
+        assert first_dif.file_id == new_dif.file_id
+
+        # Reuse should not create a duplicate File row for the checksum.
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+
+    def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        second_response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert second_response.status_code == 200, second_response.content
+        assert second_response.data[checksum]["state"] == ChunkFileState.OK
+
+        # Repeating the same request should not create a duplicate DIF row.
+        assert (
+            ProjectDebugFile.objects.filter(
+                project_id=self.project.id,
+                debug_id="00000000-0000-0000-0000-000000000000",
+            ).count()
+            == 1
+        )
+
+        # Repeating the same request should not create a duplicate File row.
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+
+    def test_native_dif_ignores_inconsistent_supplied_debug_id_on_reupload(self) -> None:
+        """Native DIFs ignore inconsistent supplied debug IDs and reuse the embedded one."""
+        file_contents = self.load_fixture("crash.sym")
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="crash.sym",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        # Simulate re-upload with inconsistent Deub ID
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "crash.sym",
+                    "debug_id": "00000000-0000-0000-0000-000000000000",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+
+        # Native DIF parsing should preserve the embedded debug ID from the file.
+        assert response.data[checksum]["dif"]["uuid"] == "67e9247c-814e-392b-a027-dbde6748fcbf"
+
+        # Reusing the same file should not create an additional DIF row.
+        assert (
+            ProjectDebugFile.objects.filter(project_id=self.project.id, checksum=checksum).count()
+            == 1
+        )

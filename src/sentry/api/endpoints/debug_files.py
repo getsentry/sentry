@@ -2,12 +2,12 @@ import logging
 import posixpath
 import re
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Exists, Q
+from django.db.models import Case, Exists, IntegerField, Q, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -29,10 +29,14 @@ from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_chunks
+from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
+    BadDif,
     ProguardArtifactRelease,
     ProjectDebugFile,
+    create_dif_from_existing_file,
     create_files_from_dif_zip,
+    get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
@@ -444,7 +448,15 @@ def batch_assemble(project, files):
         # `ProjectDebugFile` will be created, and we need to prevent a race
         # condition.
         state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-        if state == ChunkFileState.OK:
+        requested_debug_id = _get_requested_debug_id(files, checksum)
+        cached_debug_id = detail["uuid"] if isinstance(detail, Mapping) else None
+
+        # If the request asks for a different debug id than the cached dif result,
+        # we should fall to step 2 below, as we may need to duplicate the `ProjectDebugFile`
+        # row.
+        if state == ChunkFileState.OK and (
+            requested_debug_id is None or requested_debug_id == cached_debug_id
+        ):
             file_response[checksum] = {
                 "state": state,
                 "detail": None,
@@ -452,29 +464,67 @@ def batch_assemble(project, files):
                 "dif": detail,
             }
             checksums_with_status.add(checksum)
-        elif state is not None:
+        elif state is not None and state != ChunkFileState.OK:
             file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
             checksums_with_status.add(checksum)
 
     checksums_to_check -= checksums_with_status
 
-    # 2. Check if this project already owns the `ProjectDebugFile` for each file.
-    debug_files = ProjectDebugFile.objects.filter(
-        project_id=project.id,
-        checksum__in=checksums_to_check,
-    ).select_related("file")
+    # 2. Reuse this project's existing `ProjectDebugFile` rows for each checksum.
+    requested_debug_ids_by_checksum = {
+        checksum: _get_requested_debug_id(files, checksum) for checksum in checksums_to_check
+    }
+    existing_project_debug_files = (
+        ProjectDebugFile.objects.filter(project_id=project.id, checksum__in=checksums_to_check)
+        .annotate(
+            requested_debug_id_match=_build_requested_debug_id_match_annotation(
+                requested_debug_ids_by_checksum.items()
+            )
+        )
+        .select_related("file")
+        .order_by("checksum", "-requested_debug_id_match", "-id")
+        .distinct("checksum")
+    )
 
-    checksums_with_debug_files = set()
-    for debug_file in debug_files:
+    for debug_file in existing_project_debug_files:
+        checksums_to_check.discard(debug_file.checksum)
+        requested_debug_id = requested_debug_ids_by_checksum[debug_file.checksum]
+        if requested_debug_id is None or requested_debug_id == debug_file.debug_id:
+            file_response[debug_file.checksum] = {
+                "state": ChunkFileState.OK,
+                "detail": None,
+                "missingChunks": [],
+                "dif": serialize(debug_file),
+            }
+            continue
+
+        name, debug_id, _ = get_file_info(files, debug_file.checksum)
+        try:
+            dif, created = create_dif_from_existing_file(
+                project,
+                debug_file.file,
+                name=name,
+                debug_id=debug_id,
+            )
+        except BadDif as e:
+            # We expect to hit this path if the UUID is inconsistent with the Debug File.
+            # Not all debug file types support user-provided UUIDs.
+            file_response[debug_file.checksum] = {
+                "state": ChunkFileState.ERROR,
+                "detail": e.args[0],
+                "missingChunks": [],
+            }
+            continue
+
+        if created:
+            record_last_upload(project)
+
         file_response[debug_file.checksum] = {
             "state": ChunkFileState.OK,
             "detail": None,
             "missingChunks": [],
-            "dif": serialize(debug_file),
+            "dif": serialize(dif),
         }
-        checksums_with_debug_files.add(debug_file.checksum)
-
-    checksums_to_check -= checksums_with_debug_files
 
     # 3. Compute all the chunks that have to be checked for existence.
     chunks_to_check = {}
@@ -542,6 +592,27 @@ def batch_assemble(project, files):
         file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 
     return file_response
+
+
+def _get_requested_debug_id(files, checksum: str) -> str | None:
+    """Returns the effective requested debug ID for a checksum payload."""
+    file = files[checksum]
+    return get_debug_id_from_dif_request(name=file.get("name"), debug_id=file.get("debug_id"))
+
+
+def _build_requested_debug_id_match_annotation(
+    requested_debug_ids: Iterable[tuple[str, str | None]],
+) -> Case:
+    """Ranks same-project DIFs so exact debug ID matches sort before fallback rows."""
+    return Case(
+        *[
+            When(checksum=checksum, debug_id=debug_id, then=Value(1))
+            for checksum, debug_id in requested_debug_ids
+            if debug_id is not None
+        ],
+        default=Value(0),
+        output_field=IntegerField(),
+    )
 
 
 @cell_silo_endpoint

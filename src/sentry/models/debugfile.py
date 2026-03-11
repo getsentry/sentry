@@ -266,6 +266,25 @@ def create_dif_from_file(
     return create_dif_from_id(project, result[0], file=file)
 
 
+def create_dif_from_existing_file(
+    project: Project,
+    file: File,
+    name: str | None = None,
+    debug_id: str | None = None,
+) -> tuple[ProjectDebugFile, bool]:
+    """Validates an existing stored DIF file and ensures its ProjectDebugFile exists.
+
+    DIF validation currently operates on a filesystem path, while stored ``File``
+    objects expose a readable file object. This helper materializes the stored
+    contents into a temporary file and then reuses ``create_dif_from_file`` so
+    reused-file validation follows the same path-based logic as assembled files.
+    """
+    with file.getfile() as source_file, tempfile.NamedTemporaryFile() as temp_file:
+        shutil.copyfileobj(source_file, temp_file)
+        temp_file.flush()
+        return create_dif_from_file(project, file, temp_file.name, name=name, debug_id=debug_id)
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -384,6 +403,20 @@ def _analyze_progard_filename(filename: str | None) -> str | None:
         return str(uuid.UUID(ident))
     except Exception:
         return None
+
+
+def get_debug_id_from_dif_request(name: str | None, debug_id: str | None) -> str | None:
+    """Returns the effective debug ID from assemble request metadata.
+
+    Most DIF uploads provide an explicit ``debug_id``. ProGuard mappings instead
+    encode it in the request ``name`` such as ``/proguard/mapping-<uuid>.txt``.
+    """
+    try:
+        normalized_id = normalize_debug_id(debug_id)
+    except SymbolicError:
+        normalized_id = None
+
+    return normalized_id or _analyze_progard_filename(name)
 
 
 @cell_silo_model
