@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
@@ -73,7 +73,7 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     permission_classes = (
         ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.

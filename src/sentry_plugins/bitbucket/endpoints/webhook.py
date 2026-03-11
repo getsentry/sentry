@@ -21,7 +21,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 from sentry.utils.email import parse_email
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -82,7 +82,7 @@ class PushEventWebhook(Webhook):
                     pass
 
 
-@region_silo_view
+@cell_silo_view
 class BitbucketPluginWebhookEndpoint(View):
     _handlers = {"repo:push": PushEventWebhook}
 

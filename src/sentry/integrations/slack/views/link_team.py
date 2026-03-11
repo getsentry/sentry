@@ -16,7 +16,7 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 from sentry.web.helpers import render_to_response
 
 from . import build_linking_url as base_build_linking_url
@@ -62,7 +62,7 @@ class SelectTeamForm(forms.Form):
         team_field.widget.choices = team_field.choices
 
 
-@region_silo_view
+@cell_silo_view
 class SlackLinkTeamView(SlackLinkageView, LinkTeamView):
     """
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.

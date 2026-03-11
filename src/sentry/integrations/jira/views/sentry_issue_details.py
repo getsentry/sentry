@@ -31,7 +31,7 @@ from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.region import find_regions_for_orgs
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import control_silo_view, region_silo_view
+from sentry.web.frontend.base import cell_silo_view, control_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
@@ -97,7 +97,7 @@ def build_context(group: Group) -> dict[str, Any]:
     }
 
 
-@region_silo_view
+@cell_silo_view
 class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when you

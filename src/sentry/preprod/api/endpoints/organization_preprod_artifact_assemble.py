@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
@@ -116,7 +116,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
         return {}, "Invalid json body"
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
