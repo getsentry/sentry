@@ -54,7 +54,6 @@ type ParamKeys =
   | 'searchId'
   | 'sentryAppSlug'
   | 'shareId'
-  | 'preprodArtifactId'
   | 'snapshotId'
   | 'spanSlug'
   | 'step'
