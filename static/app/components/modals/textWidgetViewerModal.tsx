@@ -1,4 +1,4 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,9 +11,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -25,8 +23,6 @@ import type {
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
-
-import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
 interface TextWidgetViewerModalOptions {
   organization: Organization;
@@ -45,18 +41,6 @@ interface Props extends ModalRenderProps, TextWidgetViewerModalOptions {
 
 const HALF_CONTAINER_HEIGHT = 300;
 
-const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
-  return props.selection === prevProps.selection;
-};
-
-// WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
-// This is required because we want to prevent ECharts interactions from causing
-// unnecessary rerenders which can break legends and zoom functionality.
-const MemoizedWidgetCardChartContainer = memo(
-  WidgetCardChartContainer,
-  shouldWidgetCardChartMemo
-);
-
 function TextWidgetViewerModal(props: Props) {
   const {
     organization,
@@ -71,26 +55,7 @@ function TextWidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
   } = props;
-  const location = useLocation();
-
-  // Get widget zoom from location
-  // We use the start and end query params for just the initial state
-  const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
-  const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
-
-  const locationPageFilter = useMemo(
-    () =>
-      start && end
-        ? {
-            ...selection,
-            datetime: {start, end, period: null, utc: null},
-          }
-        : selection,
-    [start, end, selection]
-  );
-
   const api = useApi();
-
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const hasEditAccess = checkUserHasEditAccess(
@@ -119,9 +84,9 @@ function TextWidgetViewerModal(props: Props) {
             position="relative"
             paddingBottom="2xl"
           >
-            <MemoizedWidgetCardChartContainer
+            <WidgetCardChartContainer
               api={api}
-              selection={locationPageFilter}
+              selection={selection}
               widget={widget}
               noPadding
               widgetLegendState={widgetLegendState}

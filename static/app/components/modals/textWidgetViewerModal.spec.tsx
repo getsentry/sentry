@@ -83,7 +83,7 @@ function renderModal({
   );
 }
 
-describe('TextWidgetViewerModal', () => {
+describe('Modals -> TextWidgetViewerModal', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-teams/',
@@ -188,44 +188,6 @@ describe('TextWidgetViewerModal', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'Edit Widget'})).toBeEnabled();
-    });
-  });
-
-  describe('date zoom from URL params', () => {
-    it('passes viewerStart and viewerEnd from query params as selection datetime', async () => {
-      const {WidgetCardChartContainer} = jest.requireMock(
-        'sentry/views/dashboards/widgetCard/widgetCardChartContainer'
-      );
-
-      renderModal({
-        routerQuery: {
-          viewerStart: '2024-01-01T00:00:00',
-          viewerEnd: '2024-01-07T00:00:00',
-        },
-      });
-
-      await screen.findByTestId('widget-chart');
-
-      const lastCall = WidgetCardChartContainer.mock.calls.at(-1)?.[0];
-      expect(lastCall?.selection?.datetime).toEqual({
-        start: '2024-01-01T00:00:00',
-        end: '2024-01-07T00:00:00',
-        period: null,
-        utc: null,
-      });
-    });
-
-    it('uses default page filter selection when no date query params present', async () => {
-      const {WidgetCardChartContainer} = jest.requireMock(
-        'sentry/views/dashboards/widgetCard/widgetCardChartContainer'
-      );
-
-      renderModal();
-
-      await screen.findByTestId('widget-chart');
-
-      const lastCall = WidgetCardChartContainer.mock.calls.at(-1)?.[0];
-      expect(lastCall?.selection?.datetime?.period).toBe('14d');
     });
   });
 });

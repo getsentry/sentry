@@ -1,6 +1,7 @@
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
 import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
@@ -10,7 +11,6 @@ import type {ReprocessEventModalOptions} from 'sentry/components/modals/reproces
 import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
-import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
@@ -316,7 +316,7 @@ export async function openDashboardWidgetQuerySelectorModal(
 export async function openWidgetViewerModal({
   onClose,
   ...options
-}: WidgetViewerModalOptions & {onClose?: () => void}) {
+}: DataWidgetViewerModalOptions & {onClose?: () => void}) {
   if (options.widget.displayType === DisplayType.TEXT) {
     const {
       default: Modal,
@@ -334,7 +334,7 @@ export async function openWidgetViewerModal({
       default: Modal,
       modalCss,
       backdropCss,
-    } = await import('sentry/components/modals/widgetViewerModal');
+    } = await import('sentry/components/modals/dataWidgetViewerModal');
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
