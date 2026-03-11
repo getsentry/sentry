@@ -71,11 +71,7 @@ import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {
-  isJavascriptPlatform,
-  isMobilePlatform,
-  isNativePlatform,
-} from 'sentry/utils/platform';
+import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
@@ -108,9 +104,7 @@ export function EventDetailsContent({
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const shouldUseNewStackTrace =
-    organization.features.includes('issue-details-new-stack-trace') &&
-    !isNativePlatform(event.platform);
+  const shouldUseNewStackTrace = true;
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries = []} = event;
@@ -281,6 +275,8 @@ export function EventDetailsContent({
                     <IssueStackTrace
                       event={event}
                       values={eventEntries[EntryType.EXCEPTION].data.values}
+                      projectSlug={project.slug}
+                      group={group}
                     />
                   ) : (
                     <Exception

@@ -6,6 +6,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
+import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -14,6 +15,7 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import Panel from 'sentry/components/panels/panel';
 import {
   RelatedExceptionsTree,
@@ -31,9 +33,11 @@ import {
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {CopyButton, DisplayOptions} from 'sentry/components/stackTrace/toolbar';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -45,6 +49,8 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 interface IssueStackTraceProps {
   event: Event;
   values: ExceptionValue[];
+  group?: Group;
+  projectSlug?: Project['slug'];
 }
 
 interface IndexedExceptionValue extends ExceptionValue {
@@ -66,7 +72,12 @@ function IssueStackTraceLineCoverageLegend() {
   );
 }
 
-export function IssueStackTrace({event, values}: IssueStackTraceProps) {
+export function IssueStackTrace({
+  event,
+  values,
+  group,
+  projectSlug,
+}: IssueStackTraceProps) {
   // Events with thread data are rendered by the Threads section, so IssueStackTrace
   // should bail out in that case.
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
@@ -82,7 +93,12 @@ export function IssueStackTrace({event, values}: IssueStackTraceProps) {
         platform={event.platform}
         hasMinifiedStacktrace={hasMinifiedStacktrace}
       >
-        <IssueStackTraceContent event={event} values={values} />
+        <IssueStackTraceContent
+          event={event}
+          values={values}
+          group={group}
+          projectSlug={projectSlug}
+        />
       </StackTraceViewStateProvider>
     </LineCoverageProvider>
   );
@@ -91,9 +107,13 @@ export function IssueStackTrace({event, values}: IssueStackTraceProps) {
 function IssueStackTraceContent({
   event,
   values,
+  group,
+  projectSlug,
 }: {
   event: Event;
   values: ExceptionValue[];
+  group?: Group;
+  projectSlug?: Project['slug'];
 }) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
@@ -158,6 +178,11 @@ function IssueStackTraceContent({
             frameActionsComponent={IssueFrameActions}
           />
           <IssueStackTraceLineCoverageLegend />
+          <IssueStackTraceSuspectCommits
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
+          />
         </InterimSection>
       </StackTraceProvider>
     );
@@ -283,7 +308,37 @@ function IssueStackTraceContent({
           })}
         {view !== 'raw' && <IssueStackTraceLineCoverageLegend />}
       </Flex>
+      <IssueStackTraceSuspectCommits
+        event={event}
+        group={group}
+        projectSlug={projectSlug}
+      />
     </InterimSection>
+  );
+}
+
+function IssueStackTraceSuspectCommits({
+  event,
+  group,
+  projectSlug,
+}: {
+  event: Event;
+  group?: Group;
+  projectSlug?: Project['slug'];
+}) {
+  if (!group || !projectSlug) {
+    return null;
+  }
+
+  return (
+    <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+      <SuspectCommits
+        projectSlug={projectSlug}
+        eventId={event.id}
+        group={group}
+        commitRow={CommitRow}
+      />
+    </ErrorBoundary>
   );
 }
 
