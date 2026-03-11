@@ -734,7 +734,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             ),
             self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
