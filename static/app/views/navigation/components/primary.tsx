@@ -121,22 +121,19 @@ function PrimaryHeader({children}: {children: React.ReactNode}) {
 
 // Items in the sidebar
 interface PrimaryItemProps extends React.HTMLAttributes<HTMLLIElement> {
-  children: React.ReactNode;
   label: string;
-  disableTooltip?: boolean;
-  ref?: React.Ref<HTMLLIElement>;
 }
 
-function PrimaryItem({children, label, disableTooltip, ref, ...props}: PrimaryItemProps) {
+function PrimaryItem({children, label, ...props}: PrimaryItemProps) {
   const {layout} = useNavigationContext();
   return (
-    <Flex as="li" ref={ref} justify="center" align="center" width="100%" {...props}>
+    <Flex as="li" justify="center" align="center" width="100%" {...props}>
       <IconDefaultsProvider
         legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
       >
         <Tooltip
           title={label}
-          disabled={layout === NavigationLayout.MOBILE || disableTooltip}
+          disabled={layout === NavigationLayout.MOBILE}
           position="right"
           skipWrapper
           delay={600}
