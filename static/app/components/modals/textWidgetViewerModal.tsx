@@ -11,7 +11,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
@@ -55,7 +54,6 @@ function TextWidgetViewerModal(props: Props) {
     dashboardPermissions,
     dashboardCreator,
   } = props;
-  const api = useApi();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const hasEditAccess = checkUserHasEditAccess(
@@ -85,7 +83,6 @@ function TextWidgetViewerModal(props: Props) {
             paddingBottom="2xl"
           >
             <WidgetCardChartContainer
-              api={api}
               selection={selection}
               widget={widget}
               noPadding
