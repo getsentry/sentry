@@ -740,10 +740,6 @@ If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
 
-# TODO(cells): remove aliases once no longer used by getsentry
-region_silo_endpoint = cell_silo_endpoint
-internal_region_silo_endpoint = internal_cell_silo_endpoint
-
 all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH])
 """
 Apply to endpoints that are available in all silo modes.
