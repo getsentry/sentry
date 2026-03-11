@@ -14,6 +14,11 @@ import {
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {
+  RelatedExceptionsTree,
+  ToggleRelatedExceptionsButton,
+  useHiddenExceptions,
+} from 'sentry/components/stackTrace/exceptionGroup';
+import {
   ExceptionDescription,
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
@@ -28,6 +33,7 @@ import {tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -83,6 +89,8 @@ function IssueStackTraceContent({
   values: ExceptionValue[];
 }) {
   const {isNewestFirst} = useStackTraceViewState();
+  const {hiddenExceptions, toggleRelatedExceptions, expandException} =
+    useHiddenExceptions(values);
 
   const exceptions = useMemo(() => {
     const indexed = values
@@ -90,6 +98,11 @@ function IssueStackTraceContent({
       .filter((exc): exc is IndexedExceptionValue => exc.stacktrace !== null);
     return isNewestFirst ? indexed.reverse() : indexed;
   }, [values, isNewestFirst]);
+
+  const firstVisibleExceptionIndex = exceptions.findIndex(
+    exc =>
+      exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
+  );
 
   if (exceptions.length === 0) {
     return null;
@@ -161,40 +174,67 @@ function IssueStackTraceContent({
           )}
         </Text>
         <Separator orientation="horizontal" border="primary" />
-        {exceptions.map((exc, idx) => (
-          <Disclosure
-            key={exc.mechanism?.exception_id ?? idx}
-            defaultExpanded={idx === 0}
-          >
-            <Disclosure.Title>
-              <ExceptionHeader type={exc.type} module={exc.module} />
-            </Disclosure.Title>
-            <Disclosure.Content>
-              <Flex direction="column" gap="sm">
-                <ExceptionDescription
-                  value={exc.value}
-                  mechanism={exc.mechanism}
-                  gap="lg"
-                />
-                {idx === 0 ? (
-                  <ErrorBoundary customComponent={null}>
-                    <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-                  </ErrorBoundary>
-                ) : null}
-                <StackTraceProvider
-                  exceptionIndex={exc.exceptionIndex}
-                  event={event}
-                  stacktrace={exc.stacktrace}
-                >
-                  <StackTraceFrames
-                    frameContextComponent={IssueStackTraceFrameContext}
-                    frameActionsComponent={IssueFrameActions}
+        {exceptions.map((exc, idx) => {
+          if (
+            exc.mechanism?.parent_id !== undefined &&
+            hiddenExceptions[exc.mechanism.parent_id]
+          ) {
+            return null;
+          }
+
+          const exceptionId = exc.mechanism?.exception_id;
+
+          return (
+            <Disclosure
+              key={exceptionId ?? idx}
+              defaultExpanded={idx === firstVisibleExceptionIndex}
+              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
+            >
+              <Disclosure.Title
+                trailingItems={
+                  <ToggleRelatedExceptionsButton
+                    exception={exc}
+                    hiddenExceptions={hiddenExceptions}
+                    toggleRelatedExceptions={toggleRelatedExceptions}
+                    values={values}
                   />
-                </StackTraceProvider>
-              </Flex>
-            </Disclosure.Content>
-          </Disclosure>
-        ))}
+                }
+              >
+                <ExceptionHeader type={exc.type} module={exc.module} />
+              </Disclosure.Title>
+              <Disclosure.Content>
+                <Flex direction="column" gap="sm">
+                  <ExceptionDescription
+                    value={exc.value}
+                    mechanism={exc.mechanism}
+                    gap="lg"
+                  />
+                  <RelatedExceptionsTree
+                    exception={exc}
+                    allExceptions={values}
+                    newestFirst={isNewestFirst}
+                    onExceptionClick={expandException}
+                  />
+                  {idx === 0 ? (
+                    <ErrorBoundary customComponent={null}>
+                      <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+                    </ErrorBoundary>
+                  ) : null}
+                  <StackTraceProvider
+                    exceptionIndex={exc.exceptionIndex}
+                    event={event}
+                    stacktrace={exc.stacktrace}
+                  >
+                    <StackTraceFrames
+                      frameContextComponent={IssueStackTraceFrameContext}
+                      frameActionsComponent={IssueFrameActions}
+                    />
+                  </StackTraceProvider>
+                </Flex>
+              </Disclosure.Content>
+            </Disclosure>
+          );
+        })}
         <IssueStackTraceLineCoverageLegend />
       </Flex>
     </InterimSection>

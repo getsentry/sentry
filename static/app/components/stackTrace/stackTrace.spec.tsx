@@ -965,4 +965,138 @@ describe('Core StackTrace', () => {
       await screen.findByText('No additional details are available for this frame.')
     ).toBeInTheDocument();
   });
+
+  describe('exception groups', () => {
+    function makeExceptionGroupValues(): {
+      event: ReturnType<typeof EventFixture>;
+      values: Parameters<typeof IssueStackTrace>[0]['values'];
+    } {
+      const {stacktrace, event} = makeStackTraceData();
+      const minimalStacktrace: StacktraceWithFrames = {
+        ...stacktrace,
+        frames: [stacktrace.frames[stacktrace.frames.length - 1]!],
+      };
+
+      return {
+        event,
+        values: [
+          {
+            type: 'ExceptionGroup',
+            value: 'root group',
+            module: null,
+            mechanism: {
+              handled: true,
+              type: 'chained',
+              exception_id: 0,
+              is_exception_group: true,
+            },
+            stacktrace: minimalStacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'ValueError',
+            value: 'value error',
+            module: null,
+            mechanism: {
+              handled: true,
+              type: 'chained',
+              exception_id: 1,
+              parent_id: 0,
+            },
+            stacktrace: minimalStacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'NestedGroup',
+            value: 'nested group',
+            module: null,
+            mechanism: {
+              handled: true,
+              type: 'chained',
+              exception_id: 2,
+              parent_id: 0,
+              is_exception_group: true,
+            },
+            stacktrace: minimalStacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'TypeError',
+            value: 'type error',
+            module: null,
+            mechanism: {
+              handled: true,
+              type: 'chained',
+              exception_id: 3,
+              parent_id: 2,
+            },
+            stacktrace: minimalStacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'KeyError',
+            value: 'key error',
+            module: null,
+            mechanism: {
+              handled: true,
+              type: 'chained',
+              exception_id: 4,
+              parent_id: 2,
+            },
+            stacktrace: minimalStacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ],
+      };
+    }
+
+    it('hides children of non-root exception groups by default', async () => {
+      const {event, values} = makeExceptionGroupValues();
+      render(<IssueStackTrace event={event} values={values} />);
+
+      // Root group, its direct children, and nested group should be visible
+      expect(await screen.findByText('ExceptionGroup')).toBeInTheDocument();
+      expect(screen.getByText('ValueError')).toBeInTheDocument();
+      expect(screen.getByText('NestedGroup')).toBeInTheDocument();
+
+      // Children of nested group should be hidden
+      expect(screen.queryByText('TypeError')).not.toBeInTheDocument();
+      expect(screen.queryByText('KeyError')).not.toBeInTheDocument();
+    });
+
+    it('toggles hidden exception group children on button click', async () => {
+      const {event, values} = makeExceptionGroupValues();
+      render(<IssueStackTrace event={event} values={values} />);
+
+      expect(await screen.findByText('ExceptionGroup')).toBeInTheDocument();
+      expect(screen.queryByText('TypeError')).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Show 2 related exceptions'})
+      );
+
+      expect(screen.getByText('TypeError')).toBeInTheDocument();
+      expect(screen.getByText('KeyError')).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Hide 2 related exceptions'})
+      );
+
+      expect(screen.queryByText('TypeError')).not.toBeInTheDocument();
+      expect(screen.queryByText('KeyError')).not.toBeInTheDocument();
+    });
+
+    it('renders related exceptions tree for exception groups', async () => {
+      const {event, values} = makeExceptionGroupValues();
+      render(<IssueStackTrace event={event} values={values} />);
+
+      expect(await screen.findByText('ExceptionGroup')).toBeInTheDocument();
+      expect(screen.getAllByTestId('related-exceptions-tree')).toHaveLength(2);
+    });
+  });
 });

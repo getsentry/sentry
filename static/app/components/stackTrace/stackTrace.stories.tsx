@@ -542,6 +542,225 @@ function makeChainedExceptionValues(): ExceptionValue[] {
   ];
 }
 
+function makeExceptionGroupValues(): ExceptionValue[] {
+  return [
+    {
+      type: 'ExceptionGroup',
+      value: '2 sub-exceptions',
+      mechanism: {
+        handled: true,
+        type: 'BaseExceptionGroup',
+        exception_id: 0,
+        is_exception_group: true,
+      },
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'app/main.py',
+            absPath: 'app/main.py',
+            module: 'app.main',
+            function: 'run_tasks',
+            lineNo: 42,
+            context: [
+              [40, 'def run_tasks():'],
+              [41, '    errors = run_batch()'],
+              [42, '    raise ExceptionGroup("2 sub-exceptions", errors)'],
+            ],
+          }),
+        ],
+      },
+      module: 'app.main',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'ValueError',
+      value: 'invalid input: expected positive integer',
+      mechanism: {
+        handled: true,
+        type: 'BaseExceptionGroup',
+        exception_id: 1,
+        parent_id: 0,
+      },
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'app/validators.py',
+            absPath: 'app/validators.py',
+            module: 'app.validators',
+            function: 'validate_input',
+            lineNo: 15,
+            context: [
+              [13, 'def validate_input(value):'],
+              [14, '    if value < 0:'],
+              [
+                15,
+                '        raise ValueError("invalid input: expected positive integer")',
+              ],
+            ],
+          }),
+        ],
+      },
+      module: 'app.validators',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'TypeError',
+      value: "unsupported operand type(s) for +: 'int' and 'str'",
+      mechanism: {
+        handled: true,
+        type: 'BaseExceptionGroup',
+        exception_id: 2,
+        parent_id: 0,
+      },
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            filename: 'app/math.py',
+            absPath: 'app/math.py',
+            module: 'app.math',
+            function: 'add_values',
+            lineNo: 7,
+            context: [
+              [5, 'def add_values(a, b):'],
+              [6, '    # oops, b is a string'],
+              [7, '    return a + b'],
+            ],
+          }),
+        ],
+      },
+      module: 'app.math',
+      threadId: null,
+      rawStacktrace: null,
+    },
+  ];
+}
+
+function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
+  const makeGroupFrame = (filename: string, func: string, lineNo: number) =>
+    makeFrame({
+      filename,
+      absPath: filename,
+      module: 'app',
+      function: func,
+      lineNo,
+      context: [
+        [lineNo - 2, `def ${func}():`],
+        [lineNo - 1, '    try:'],
+        [lineNo, `        raise ExceptionGroup("group", errors)`],
+        [lineNo + 1, '    except Exception:'],
+        [lineNo + 2, '        pass'],
+      ],
+    });
+
+  const makeSimpleStacktrace = (
+    filename: string,
+    func: string,
+    lineNo: number
+  ): ExceptionValue['stacktrace'] => ({
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+    frames: [makeGroupFrame(filename, func, lineNo)],
+  });
+
+  return [
+    // A plain chained exception (no exception_id, no tree structure)
+    {
+      type: 'RuntimeError',
+      value: 'task runner failed',
+      mechanism: {handled: true, type: 'chained'},
+      stacktrace: makeSimpleStacktrace('app/runner.py', 'run', 10),
+      module: 'app.runner',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    // Root exception group caused by the above
+    {
+      type: 'ExceptionGroup',
+      value: 'batch failed (2 sub-exceptions)',
+      mechanism: {
+        handled: true,
+        type: 'chained',
+        exception_id: 0,
+        is_exception_group: true,
+      },
+      stacktrace: makeSimpleStacktrace('app/main.py', 'run_tasks', 42),
+      module: 'app.main',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'ValueError',
+      value: 'invalid input: expected positive integer',
+      mechanism: {
+        handled: true,
+        type: 'chained',
+        exception_id: 1,
+        parent_id: 0,
+      },
+      stacktrace: makeSimpleStacktrace('app/validators.py', 'validate_input', 15),
+      module: 'app.validators',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    // Nested exception group — its children start hidden
+    {
+      type: 'ExceptionGroup',
+      value: 'nested group (2 sub-exceptions)',
+      mechanism: {
+        handled: true,
+        type: 'chained',
+        exception_id: 2,
+        parent_id: 0,
+        is_exception_group: true,
+      },
+      stacktrace: makeSimpleStacktrace('app/tasks.py', 'process_batch', 88),
+      module: 'app.tasks',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'TypeError',
+      value: "unsupported operand type(s) for +: 'int' and 'str'",
+      mechanism: {
+        handled: true,
+        type: 'chained',
+        exception_id: 3,
+        parent_id: 2,
+      },
+      stacktrace: makeSimpleStacktrace('app/math.py', 'add_values', 7),
+      module: 'app.math',
+      threadId: null,
+      rawStacktrace: null,
+    },
+    {
+      type: 'KeyError',
+      value: "'missing_key'",
+      mechanism: {
+        handled: true,
+        type: 'chained',
+        exception_id: 4,
+        parent_id: 2,
+      },
+      stacktrace: makeSimpleStacktrace('app/config.py', 'get_setting', 23),
+      module: 'app.config',
+      threadId: null,
+      rawStacktrace: null,
+    },
+  ];
+}
+
 function StoryFrameActions({isHovering: _isHovering}: {isHovering: boolean}) {
   const {frame, timesRepeated} = useStackTraceFrameContext();
 
@@ -640,6 +859,34 @@ export default Storybook.story('StackTrace', story => {
   story('IssueStackTrace - Chained', () => {
     const values = makeChainedExceptionValues();
     return <IssueStackTrace event={makeEvent()} values={values} />;
+  });
+
+  story('IssueStackTrace - Exception Group', () => {
+    const values = makeExceptionGroupValues();
+    return (
+      <Fragment>
+        <p>
+          A single exception group (Python 3.11+) with two child exceptions. The root
+          group shows a related exceptions tree with its children.
+        </p>
+        <IssueStackTrace event={makeEvent({platform: 'python'})} values={values} />
+      </Fragment>
+    );
+  });
+
+  story('IssueStackTrace - Chained + Exception Group', () => {
+    const values = makeChainedWithExceptionGroupValues();
+    return (
+      <Fragment>
+        <p>
+          A flat chained exception followed by an exception group. The{' '}
+          <code>RuntimeError</code> is a plain chained exception with no tree structure,
+          while the <code>ExceptionGroup</code> has child exceptions with the related
+          exceptions tree and toggle controls.
+        </p>
+        <IssueStackTrace event={makeEvent({platform: 'python'})} values={values} />
+      </Fragment>
+    );
   });
 
   story('StackTraceProvider - With Omitted Frames', () => {
