@@ -3,12 +3,11 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import {
-  DisplayOptions,
-  DownloadButton,
-  FrameContext,
+  FrameContent,
   IssueStackTrace,
   StackTrace,
   StackTraceFrameRow,
@@ -18,7 +17,6 @@ import {
   Toolbar,
   useStackTraceContext,
 } from 'sentry/components/stackTrace';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import * as Storybook from 'sentry/stories';
 import {
@@ -273,7 +271,7 @@ function makeStacktraceLinkComponents(): Array<
 
 function makeCircularStackTraceData(): StackTraceStoryData {
   const {event, stacktrace} = makeStackTraceData();
-  const recursiveFrame = {
+  const inAppRecursiveFrame = {
     ...stacktrace.frames[stacktrace.frames.length - 1]!,
     filename: 'raven/scripts/runner.py',
     module: 'raven.scripts.runner',
@@ -283,12 +281,29 @@ function makeCircularStackTraceData(): StackTraceStoryData {
     package: 'raven',
     instructionAddr: '0x00000001',
   };
+  const systemRecursiveFrame = {
+    ...stacktrace.frames[stacktrace.frames.length - 1]!,
+    filename: 'lib/urllib3/connectionpool.py',
+    module: 'urllib3.connectionpool',
+    function: '_make_request',
+    lineNo: 487,
+    inApp: false,
+    package: 'urllib3',
+    instructionAddr: '0x00000002',
+  };
 
   return {
     event,
     stacktrace: {
       ...stacktrace,
-      frames: [{...recursiveFrame}, {...recursiveFrame}, {...recursiveFrame}],
+      frames: [
+        {...systemRecursiveFrame},
+        {...systemRecursiveFrame},
+        {...systemRecursiveFrame},
+        {...inAppRecursiveFrame},
+        {...inAppRecursiveFrame},
+        {...inAppRecursiveFrame},
+      ],
     } as StacktraceWithFrames,
   };
 }
@@ -373,37 +388,6 @@ function makeRawFunctionAndPackageStackTraceData(): StackTraceStoryData {
             },
           ]
         : [],
-    } as StacktraceWithFrames,
-  };
-}
-
-function makeRegistersAndAssemblyStackTraceData(): StackTraceStoryData {
-  const {event, stacktrace} = makeStackTraceData();
-  const frames = stacktrace.frames;
-  const dotnetFrames = frames.map((frame, index) => ({
-    ...frame,
-    platform: 'csharp' as const,
-    inApp: true,
-    package:
-      index === frames.length - 1
-        ? 'Acme.Worker, Version=1.2.3.4, Culture=en-US, PublicKeyToken=abc123'
-        : frame.package,
-  }));
-
-  return {
-    event: makeEvent({
-      ...event,
-      platform: 'csharp',
-      contexts: {device: {type: 'device' as const, name: '', arch: 'x86_64'}},
-    }),
-    stacktrace: {
-      ...stacktrace,
-      frames: dotnetFrames,
-      registers: {
-        rax: '0x0000000000000001',
-        rbx: '0x0000000000000002',
-        rip: '0x0000000000401000',
-      },
     } as StacktraceWithFrames,
   };
 }
@@ -626,7 +610,7 @@ export default Storybook.story('StackTrace', story => {
             framesOmitted: [1, 3],
           }}
         >
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -637,16 +621,12 @@ export default Storybook.story('StackTrace', story => {
 
     return (
       <Fragment>
-        <p>
-          Pass <Storybook.JSXProperty name="components" value={Array} /> to inject Sentry
-          App stacktrace-link components, which appear as source links on each frame.
-        </p>
         <StoryStackTraceProvider
           event={event}
           stacktrace={stacktrace}
           components={makeStacktraceLinkComponents()}
         >
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -662,7 +642,7 @@ export default Storybook.story('StackTrace', story => {
           and collapsed into a single row with a repeat count badge.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -678,7 +658,7 @@ export default Storybook.story('StackTrace', story => {
           the most specific (rightmost) segments.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -698,7 +678,7 @@ export default Storybook.story('StackTrace', story => {
           <Storybook.JSXProperty name="map" value="string" /> are set).
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -713,7 +693,7 @@ export default Storybook.story('StackTrace', story => {
           Both the file path and function name are long here, testing two-column overflow.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -731,24 +711,7 @@ export default Storybook.story('StackTrace', story => {
           appears as a secondary label.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
-        </StoryStackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('StackTraceProvider - Registers and Assembly', () => {
-    const {event, stacktrace} = makeRegistersAndAssemblyStackTraceData();
-
-    return (
-      <Fragment>
-        <p>
-          When the event has a <code>device.arch</code> context and the stacktrace has{' '}
-          <Storybook.JSXProperty name="registers" value={Object} />, CPU register values
-          are shown below the last frame.
-        </p>
-        <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -778,11 +741,12 @@ export default Storybook.story('StackTrace', story => {
     }
 
     return (
-      <div>
+      <Flex direction="column" gap="md">
+        <LineCoverageLegend />
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames frameContextComponent={CoveredFrameContext} />
         </StoryStackTraceProvider>
-      </div>
+      </Flex>
     );
   });
 
@@ -818,7 +782,7 @@ export default Storybook.story('StackTrace', story => {
     return (
       <div>
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </div>
     );
@@ -834,7 +798,7 @@ export default Storybook.story('StackTrace', story => {
           stay aligned while still showing a chevron only on expandable rows.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -973,33 +937,6 @@ export default Storybook.story('StackTrace', story => {
     );
   });
 
-  story('StackTrace - Download Button (Native + Raw)', () => {
-    const {stacktrace} = makeStackTraceData();
-    const event = makeEvent({platform: 'cocoa'});
-
-    return (
-      <Fragment>
-        <p>
-          <Storybook.JSXNode name="DownloadButton" /> appears in the toolbar when the
-          platform is native (e.g. cocoa, objc, swift) and the view is set to Raw Stack
-          Trace. Switch to Raw Stack Trace via the display options to see it.
-        </p>
-        <StoryStackTraceProvider
-          event={event}
-          stacktrace={stacktrace}
-          platform="cocoa"
-          defaultView="raw"
-        >
-          <Flex justify="end" align="center" gap="sm" wrap="wrap" marginBottom="sm">
-            <DownloadButton projectSlug="my-project" />
-            <DisplayOptions />
-          </Flex>
-          <StackTraceFrames />
-        </StoryStackTraceProvider>
-      </Fragment>
-    );
-  });
-
   story('StackTrace - Hovercard Preview', () => {
     const {event, stacktrace} = makeStackTraceData();
 
@@ -1008,7 +945,7 @@ export default Storybook.story('StackTrace', story => {
         <WideHovercard
           body={
             <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames />
+              <StackTraceFrames frameContextComponent={FrameContent} />
             </StoryStackTraceProvider>
           }
         >
@@ -1021,9 +958,11 @@ export default Storybook.story('StackTrace', story => {
   story('StackTraceProvider - Minified Toggle', () => {
     const {stacktrace} = makeStackTraceData();
     const nodeEvent = makeEvent({platform: 'node'});
+    const stripVars = (frames: StacktraceWithFrames['frames']) =>
+      frames.map(frame => ({...frame, vars: {}}));
     const minifiedStacktrace: StacktraceWithFrames = {
       ...stacktrace,
-      frames: stacktrace.frames.map(frame => ({
+      frames: stripVars(stacktrace.frames).map(frame => ({
         ...frame,
         filename: frame.filename
           ? frame.filename.replace('.py', '.min.js')
@@ -1031,6 +970,7 @@ export default Storybook.story('StackTrace', story => {
         function: frame.function ? `_${frame.function}` : frame.function,
       })),
     };
+    stacktrace.frames = stripVars(stacktrace.frames);
     return (
       <Fragment>
         <p>
@@ -1046,7 +986,7 @@ export default Storybook.story('StackTrace', story => {
           defaultIsMinified
         >
           <Toolbar />
-          <StackTraceFrames />
+          <StackTraceFrames frameContextComponent={FrameContent} />
         </StoryStackTraceProvider>
       </Fragment>
     );

@@ -1,3 +1,6 @@
+import {useEffect} from 'react';
+
+import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {
@@ -23,6 +26,7 @@ function getLineCoverage(
 export function IssueStackTraceFrameContext() {
   const {event, frame, isExpanded} = useStackTraceFrameContext();
   const {project} = useStackTraceContext();
+  const {hasCoverageData, setHasCoverageData} = useLineCoverageContext();
   const organization = useOrganization({allowNull: true});
 
   const contextLines = isExpanded ? (frame.context ?? []) : [];
@@ -49,6 +53,18 @@ export function IssueStackTraceFrameContext() {
     coverageData.lineCoverage
       ? getLineCoverage(contextLines, coverageData.lineCoverage)
       : [];
+
+  useEffect(() => {
+    if (hasCoverageData) {
+      return;
+    }
+
+    const frameHasCoverageData =
+      !isLoadingCoverage && coverageData?.status === CodecovStatusCode.COVERAGE_EXISTS;
+    if (frameHasCoverageData) {
+      setHasCoverageData(true);
+    }
+  }, [coverageData, hasCoverageData, isLoadingCoverage, setHasCoverageData]);
 
   if (!isExpanded) {
     return null;

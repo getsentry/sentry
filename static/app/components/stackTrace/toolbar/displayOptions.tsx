@@ -2,7 +2,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {IconEllipsis, IconSettings} from 'sentry/icons';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 const VIEW_OPTION_VALUES = [

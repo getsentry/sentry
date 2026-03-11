@@ -15,7 +15,7 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
   const [start, end] = omittedFrames;
   return (
     <OmittedRow>
-      <Text size="xs" variant="muted">
+      <Text size="xs" variant="danger">
         {t('Frames %d to %d were omitted and not available.', start, end)}
       </Text>
     </OmittedRow>

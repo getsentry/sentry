@@ -12,7 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   DisplayOptions,
-  FrameContext,
+  FrameContent,
   IssueStackTrace,
   StackTraceFrames,
   StackTraceProvider,
@@ -99,7 +99,7 @@ function renderStackTrace() {
   render(
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
       <Toolbar />
-      <StackTraceFrames frameContextComponent={FrameContext} />
+      <StackTraceFrames frameContextComponent={FrameContent} />
     </TestStackTraceProvider>
   );
 }
@@ -150,6 +150,36 @@ describe('Core StackTrace', () => {
 
     expect(screen.getByText(/File "raven\/scripts\/runner.py"/)).toBeInTheDocument();
     expect(screen.queryByRole('list', {name: 'Stack frames'})).not.toBeInTheDocument();
+  });
+
+  it('does not render IssueStackTrace when event has threads', () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const eventWithThreads = EventFixture({
+      ...event,
+      entries: [
+        ...event.entries,
+        {type: 'threads' as const, data: {values: [{id: 0, current: true}]}},
+      ],
+    });
+
+    const {container} = render(
+      <IssueStackTrace
+        event={eventWithThreads}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('shares display options across chained issue exceptions', async () => {
@@ -206,7 +236,7 @@ describe('Core StackTrace', () => {
         minifiedStacktrace={minifiedStacktrace}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -265,12 +295,12 @@ describe('Core StackTrace', () => {
   it('shows and hides collapsed system frames', async () => {
     renderStackTrace();
 
-    const toggleButton = screen.getByRole('button', {name: 'Show 1 more frames'});
+    const toggleButton = screen.getByRole('button', {name: 'Show 1 more frame'});
 
     await userEvent.click(toggleButton);
 
     expect(screen.getAllByTestId('core-stacktrace-frame-row')).toHaveLength(5);
-    expect(screen.getByRole('button', {name: 'Hide 1 frames'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Hide 1 frame'})).toBeInTheDocument();
   });
 
   it('renders frame badges for in-app frames only', async () => {
@@ -397,7 +427,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>,
       {
         organization,
@@ -455,7 +485,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -482,7 +512,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -515,7 +545,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -555,7 +585,7 @@ describe('Core StackTrace', () => {
         ]}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -591,7 +621,7 @@ describe('Core StackTrace', () => {
         components={components}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -622,7 +652,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -664,7 +694,7 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -706,7 +736,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -739,7 +769,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -778,7 +808,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 
@@ -811,7 +841,7 @@ describe('Core StackTrace', () => {
         }}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
 

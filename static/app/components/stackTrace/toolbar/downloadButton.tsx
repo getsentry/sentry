@@ -4,6 +4,7 @@ import {
   useStackTraceContext,
   useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
@@ -34,6 +35,7 @@ export function DownloadButton({projectSlug}: DownloadButtonProps) {
     <LinkButton
       size="xs"
       href={href}
+      icon={<IconDownload />}
       tooltipProps={{title: t('Download raw stack trace file')}}
     >
       {t('Download')}

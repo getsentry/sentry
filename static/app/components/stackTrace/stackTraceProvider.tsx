@@ -17,11 +17,7 @@ import {
   getLastFrameIndex,
   getRows,
 } from './getRows';
-import {
-  StackTraceContext,
-  useStackTraceContext,
-  useStackTraceViewState,
-} from './stackTraceContext';
+import {StackTraceContext, useStackTraceViewState} from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
 import type {StackTraceProviderProps} from './types';
 

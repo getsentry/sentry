@@ -1,5 +1,5 @@
 export {IssueStackTrace} from './issueStackTrace';
-export {FrameContext} from './frame/frameContext';
+export {FrameContent} from './frame/frameContent';
 export {StackTraceFrameRow} from './frame/frameRow';
 export {StackTraceFrames} from './stackTraceFrames';
 export {StackTraceProvider} from './stackTraceProvider';

@@ -81,7 +81,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <MainContent>
+      <MainContent isMuted={hasLeadHint} isExpanded={isExpanded}>
         <FrameLocation
           frame={frame}
           nextFrame={nextFrame}
@@ -233,20 +233,21 @@ const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   text-align: left;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.tertiary};
+  background: ${p => p.theme.tokens.background.secondary};
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
 `;
 
-const MainContent = styled('div')`
+const MainContent = styled('div')<{isExpanded: boolean; isMuted: boolean}>`
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: ${p => (p.isExpanded && !p.isMuted ? 'wrap' : 'nowrap')};
   row-gap: ${p => p.theme.space['2xs']};
   column-gap: ${p => p.theme.space.sm};
   align-items: baseline;
-  color: ${p => p.theme.tokens.content.primary};
+  color: ${p =>
+    p.isMuted ? p.theme.tokens.content.secondary : p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.5;
   min-width: 0;
@@ -276,8 +277,6 @@ const LocationWrapper = styled('span')`
 `;
 
 const LeadHint = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-style: italic;
   font-size: inherit;
   line-height: inherit;
   white-space: nowrap;

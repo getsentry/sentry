@@ -18,7 +18,7 @@ import {
   SourceLinkAction,
   SourceMapsDebuggerAction,
 } from './actions';
-import {FrameContext} from './frameContext';
+import {FrameContent} from './frameContent';
 import {FrameHeader} from './frameHeader';
 
 interface StackTraceFrameRowProps {
@@ -113,7 +113,7 @@ const FrameRowActions = Object.assign(FrameRowActionsContainer, {
 });
 
 export const StackTraceFrameRow = Object.assign(StackTraceFrameRowRoot, {
-  Context: FrameContext,
+  Context: FrameContent,
   Header: FrameHeader,
   Actions: FrameRowActions,
 });

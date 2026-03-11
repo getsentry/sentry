@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import type {Event} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,

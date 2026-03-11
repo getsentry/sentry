@@ -1,4 +1,4 @@
-import {FrameContext} from './frame/frameContext';
+import {FrameContent} from './frame/frameContent';
 import {StackTraceViewStateProvider} from './stackTraceContext';
 import {StackTraceFrames} from './stackTraceFrames';
 import {StackTraceProvider} from './stackTraceProvider';
@@ -31,7 +31,7 @@ export function StackTrace({
     >
       <StackTraceProvider event={event} stacktrace={stacktrace} {...providerProps}>
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContext} />
+        <StackTraceFrames frameContextComponent={FrameContent} />
       </StackTraceProvider>
     </StackTraceViewStateProvider>
   );
