@@ -27,30 +27,42 @@ interface ChartLegendProps {
   selected: Record<string, boolean>;
 }
 
-/** Gap between the items container and the overflow trigger. */
-const OUTER_GAP: SpaceSize = 'xs';
-
-/** Gap between individual legend items inside the container. */
-const INNER_GAP: SpaceSize = 'md';
-
-const MAX_LABEL_WIDTH = 180;
-
 /**
  * Interactive chart legend with overflow handling.
  *
- * All items are always rendered in the DOM, but items that don't fit are
- * hidden with `visibility: hidden` so they still contribute to width
- * measurement. A `ResizeObserver` on the wrapper re-measures whenever the
- * available space changes, and items that overflow are shown in a dropdown
- * instead.
+ * ## Layout
  *
- * The overflow trigger button is always present in the DOM (hidden when not
- * needed) so its width is always measurable. This avoids a feedback loop where
- * the trigger's appearance changes the layout, which changes the overflow
- * calculation, which toggles the trigger, ad infinitum.
+ * All legend items are always rendered in the DOM. Items that overflow are
+ * hidden with `visibility: hidden` so they still contribute to width
+ * measurement. A `ResizeObserver` (via `useDimensions`) on the wrapper
+ * re-measures whenever available space changes, and overflowed items are
+ * shown in a dropdown trigger instead.
+ *
+ * The overflow trigger button is also always in the DOM — when there's no
+ * overflow, it's positioned absolutely and hidden so it doesn't affect
+ * layout but remains measurable via `getBoundingClientRect()`.
+ *
+ * ## Render flow
+ *
+ * 1. On mount (or when `wrapperWidth`/`items` change), `useLayoutEffect`
+ *    runs before the browser paints. It reads the trigger's current width
+ *    from its DOM ref, then walks children left-to-right, accumulating
+ *    widths until one exceeds `wrapperWidth - reservedSpace`. This sets
+ *    `firstOverflowIndex`.
+ *
+ * 2. The state change triggers a synchronous re-render (still before
+ *    paint). The trigger text updates to reflect the actual overflow count
+ *    (e.g. "+5 more"), and overflowed items become hidden. The effect does
+ *    NOT re-run because `firstOverflowIndex` is excluded from its deps —
+ *    only external inputs (resize, items) cause a re-computation.
+ *
+ * 3. A small `TRIGGER_WIDTH_BUFFER` is added to the measured trigger width
+ *    to account for the text potentially getting wider after step 2 (e.g.
+ *    "+9 more" → "+10 more" gains a digit).
  */
 export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
   const theme = useTheme();
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -58,11 +70,9 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const outerGap = parseInt(theme.space[OUTER_GAP], 10);
   const innerGap = parseInt(theme.space[INNER_GAP], 10);
 
-  // useDimensions handles ResizeObserver internally — when the wrapper
-  // resizes, this value updates and the useLayoutEffect below recomputes.
+  // ResizeObserver (via useDimensions) updates wrapperWidth on resize,
+  // which triggers the useLayoutEffect below to recompute overflow.
   const {width: wrapperWidth} = useDimensions({elementRef: wrapperRef});
-
-  // Measured after DOM commit so we read the actual (not stale) children.
   const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
 
   useLayoutEffect(() => {
@@ -74,21 +84,19 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
 
     const children = Array.from(container.children);
 
-    // Read trigger width directly from the DOM ref instead of from React state.
-    // Reading from state (via useDimensions) introduced a 1-render lag: the
-    // useDimensions layout effect and this effect run in the same commit, but
-    // React queues state updates from layout effects rather than applying them
-    // immediately. React guarantees that refs are attached before layout effects
-    // run, so reading from the ref here always reflects the current DOM state.
-    const triggerWidth = triggerRef.current?.getBoundingClientRect().width ?? 0;
+    // NOTE: Using `useDimensions` to track the trigger width introduces a
+    // 1-render lag: both layout effects run in the same commit, but React queues
+    // state updates from layout effects rather than applying them synchronously.
+    // This effect would read the trigger width from the *previous* render, one
+    // step behind. Reading from the ref directly avoids this. Add the buffer width
+    // to avoid hide/show thrashing.
+    const triggerWidth =
+      (triggerRef.current?.getBoundingClientRect().width ?? 0) + TRIGGER_WIDTH_BUFFER;
 
-    // Single pass: walk children left-to-right, accumulating width.
-    // At each step, check whether the remaining items would need an overflow
-    // trigger. If so, reserve space for it and stop as soon as we exceed
-    // the available width. The trigger is always in the DOM (hidden via CSS
-    // when there's no overflow) so triggerRef is always valid.
+    // Walk children left-to-right, accumulating width. At each step, if
+    // there are remaining items, reserve space for the trigger button.
     let usedWidth = 0;
-    let overflowIndex: number | null = null;
+    let newOverflowIndex: number | null = null;
 
     for (let i = 0; i < children.length; i++) {
       if (i > 0) {
@@ -96,24 +104,16 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       }
       usedWidth += children[i]!.getBoundingClientRect().width;
 
-      // Reserve space for the trigger + the gap between wrapper children
       const remainingItems = children.length - i - 1;
       const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
 
       if (usedWidth > wrapperWidth - reservedSpace) {
-        overflowIndex = i;
+        newOverflowIndex = i;
         break;
       }
     }
 
-    setFirstOverflowIndex(overflowIndex);
-
-    // `firstOverflowIndex` is intentionally NOT a dependency. Including it
-    // created a feedback loop: the effect sets the index → trigger appears →
-    // effect re-runs → trigger width changes → index changes → repeat.
-    // Instead the trigger is always in the DOM so its width is always readable,
-    // and the effect only re-runs on genuine external changes (resize, items).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setFirstOverflowIndex(newOverflowIndex);
   }, [wrapperWidth, items, innerGap, outerGap]);
 
   const overflowItems =
@@ -236,6 +236,23 @@ function renderLeadingCheckbox(item: LegendItem) {
     );
   };
 }
+
+// Gap between the items container and the overflow trigger
+const OUTER_GAP: SpaceSize = 'xs';
+
+// Gap between individual legend items inside the container
+const INNER_GAP: SpaceSize = 'md';
+
+const MAX_LABEL_WIDTH = 180;
+
+/**
+ * Extra pixels added to the measured trigger width to account for the text
+ * changing after the effect runs. The effect measures the trigger while it
+ * still shows its pre-update text (e.g. "+1 more"), but after re-render the
+ * text may be wider (e.g. "+10 more"). This buffer covers the width of an
+ * extra digit so the reserved space is always sufficient.
+ */
+const TRIGGER_WIDTH_BUFFER = 10;
 
 const HIDDEN_TRIGGER_STYLE: React.CSSProperties = {
   visibility: 'hidden',
