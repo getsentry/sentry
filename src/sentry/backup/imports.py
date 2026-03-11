@@ -36,7 +36,7 @@ from sentry.backup.services.import_export.model import (
 )
 from sentry.backup.services.import_export.service import ImportExportService
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
+from sentry.hybridcloud.models.outbox import ControlOutbox, OutboxFlushError, RegionOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -70,7 +70,9 @@ class ImportingError(Exception):
 def _clear_model_tables_before_import():
     reversed = reversed_dependencies()
 
-    for model in reversed:
+    # Outbox models are cleared last: some models (e.g. ProjectKey) use pre_delete signals
+    # that write outbox entries even during queryset-level deletes.
+    for model in reversed + [RegionOutbox, ControlOutbox]:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
         manager.all().delete()
