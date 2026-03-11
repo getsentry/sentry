@@ -38,7 +38,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import (
@@ -205,7 +205,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
-@region_silo_function
+@cell_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 

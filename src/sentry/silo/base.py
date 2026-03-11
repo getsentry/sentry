@@ -196,6 +196,6 @@ class FunctionSiloLimit(SiloLimit):
         return self.create_override(decorated_obj)
 
 
-region_silo_function = FunctionSiloLimit(SiloMode.REGION)
+cell_silo_function = FunctionSiloLimit(SiloMode.REGION)
 control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
 all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

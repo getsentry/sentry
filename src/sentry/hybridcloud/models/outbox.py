@@ -23,8 +23,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.db.postgres.transactions import (
@@ -432,7 +432,7 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_model
+@cell_silo_model
 class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"

@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.db.models.base import sane_repr
 from sentry.db.models.manager.base import BaseManager
@@ -66,7 +66,7 @@ class GroupHashModelManager(BaseManager["GroupHash"]):
         return GroupHashQuerySet(self.model, using=self._db)
 
 
-@region_silo_model
+@cell_silo_model
 class GroupHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
