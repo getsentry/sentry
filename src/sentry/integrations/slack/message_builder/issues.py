@@ -62,7 +62,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
@@ -506,9 +506,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self._is_compact = features.has(
             "organizations:slack-compact-alerts", self.group.organization
         )
-        self._has_autofix = SeerOperator.has_access(
+        self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
-        ) and SeerOperator.can_trigger_autofix(group=self.group)
+        ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
 
     def get_title_block(
         self,
