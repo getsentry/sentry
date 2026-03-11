@@ -213,6 +213,7 @@ describe('AutofixSection', () => {
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
+                  diff: '',
                   repo_name: 'org/repo',
                   patch: {
                     path: 'src/app.py',
@@ -225,6 +226,7 @@ describe('AutofixSection', () => {
                   },
                 },
                 {
+                  diff: '',
                   repo_name: 'org/repo',
                   patch: {
                     path: 'src/utils.py',
@@ -356,6 +358,7 @@ describe('AutofixSection', () => {
               ],
               merged_file_patches: [
                 {
+                  diff: '',
                   repo_name: 'org/repo',
                   patch: {
                     path: 'src/handler.py',
