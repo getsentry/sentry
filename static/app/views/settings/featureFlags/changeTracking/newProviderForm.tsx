@@ -199,20 +199,24 @@ function WebhookUrlField({
   organizationSlug,
 }: {
   organizationSlug: string;
-  provider: WebhookProviderEnum | '';
+  provider: string;
 }) {
-  const setupUrl = provider === '' ? undefined : PROVIDER_TO_SETUP_WEBHOOK_URL[provider];
-
   return (
     <Flex direction="row" gap="sm" align="center" justify="between" padding="xl">
       <Stack width="50%" gap="xs">
         <Text>{t('Webhook URL')}</Text>
         <Text size="sm" variant="muted">
-          {setupUrl
+          {Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
             ? tct(
                 "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
                 {
-                  link: <ExternalLink href={setupUrl} />,
+                  link: (
+                    <ExternalLink
+                      href={
+                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
+                      }
+                    />
+                  ),
                 }
               )
             : t(
@@ -221,8 +225,8 @@ function WebhookUrlField({
         </Text>
       </Stack>
       <Container flexGrow={1}>
-        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider}>
-          {provider
+        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
+          {provider.length
             ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
             : ''}
         </TextCopyInput>
