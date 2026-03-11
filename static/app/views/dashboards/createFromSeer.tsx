@@ -1,0 +1,194 @@
+import {useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import Feature from 'sentry/components/acl/feature';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+
+import {EMPTY_DASHBOARD} from './data';
+import DashboardDetail from './detail';
+import {assignDefaultLayout, assignTempId, getInitialColumnDepths} from './layoutUtils';
+import type {DashboardDetails, Widget} from './types';
+import {DashboardState} from './types';
+import {cloneDashboard} from './utils';
+
+const POLL_INTERVAL_MS = 500;
+
+// Camel case widget properties
+function normalizeWidget(raw: any): Widget {
+  const {display_type, widget_type, ...rest} = raw;
+  return {
+    ...rest,
+    displayType: display_type ?? raw.displayType,
+    widgetType: widget_type ?? raw.widgetType,
+    layout: raw.layout
+      ? {
+          x: raw.layout.x,
+          y: raw.layout.y,
+          w: raw.layout.w,
+          h: raw.layout.h,
+          minH: raw.layout.min_h,
+        }
+      : undefined,
+  };
+}
+
+function extractDashboardFromSession(
+  session: NonNullable<SeerExplorerResponse['session']>
+): {
+  title: string;
+  widgets: Widget[];
+} | null {
+  for (const block of session.blocks) {
+    for (const artifact of block.artifacts ?? []) {
+      if (artifact.key === 'dashboard' && artifact.data) {
+        const data = artifact.data as {title: string; widgets: any[]};
+        return {
+          title: data.title,
+          widgets: assignDefaultLayout(
+            data.widgets.map(normalizeWidget).map(assignTempId),
+            getInitialColumnDepths()
+          ),
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function extractMessages(
+  session: NonNullable<SeerExplorerResponse['session']>
+): string[] {
+  const messages: string[] = [];
+  for (const block of session.blocks ?? []) {
+    if (block.message?.content) {
+      messages.push(block.message.content);
+    }
+  }
+  return messages;
+}
+
+export default function CreateFromSeer() {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
+
+  const {data, isError} = useApiQuery<SeerExplorerResponse>(
+    makeSeerExplorerQueryKey(organization.slug, seerRunId),
+    {
+      staleTime: 0,
+      retry: false,
+      enabled: !!seerRunId,
+      refetchInterval: query => {
+        const status = query.state.data?.[0]?.session?.status;
+        if (status === 'completed' || status === 'error') {
+          return false;
+        }
+        return POLL_INTERVAL_MS;
+      },
+    }
+  );
+
+  const session = data?.session ?? null;
+  const sessionStatus = session?.status ?? null;
+
+  const blockMessages = useMemo(
+    () => (session ? extractMessages(session) : []),
+    [session]
+  );
+
+  const dashboard = useMemo<DashboardDetails>(() => {
+    const baseDashboard = cloneDashboard(EMPTY_DASHBOARD);
+    if (sessionStatus !== 'completed' || !session) {
+      return baseDashboard;
+    }
+    const dashboardData = extractDashboardFromSession(session);
+    if (!dashboardData) {
+      return baseDashboard;
+    }
+    return {
+      ...baseDashboard,
+      title: dashboardData.title,
+      widgets: dashboardData.widgets,
+    };
+  }, [session, sessionStatus]);
+
+  const isLoading =
+    !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
+
+  useEffect(() => {
+    if (sessionStatus === 'error' || isError) {
+      addErrorMessage(t('Failed to generate dashboard'));
+    }
+  }, [sessionStatus, isError]);
+
+  function renderDisabled() {
+    return (
+      <Layout.Page withPadding>
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
+        </Alert.Container>
+      </Layout.Page>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout.Page withPadding>
+        <Flex direction="column" gap="lg" align="center">
+          <LoadingIndicator>{t('Generating dashboard...')}</LoadingIndicator>
+          {blockMessages.length > 0 && (
+            <Flex direction="column" gap="sm" maxWidth="600px">
+              {blockMessages.map((message, index) => (
+                <MessageBlock key={index} text={message} />
+              ))}
+            </Flex>
+          )}
+        </Flex>
+      </Layout.Page>
+    );
+  }
+
+  return (
+    <Feature
+      features={['dashboards-edit', 'dashboards-ai-generate']}
+      organization={organization}
+      renderDisabled={renderDisabled}
+    >
+      <ErrorBoundary>
+        <DashboardDetail
+          initialState={DashboardState.PREVIEW}
+          dashboard={dashboard}
+          dashboards={[]}
+        />
+      </ErrorBoundary>
+    </Feature>
+  );
+}
+
+const MessageBlock = styled(MarkedText)`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.secondary};
+
+  p {
+    margin-bottom: 0;
+  }
+`;
