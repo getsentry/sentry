@@ -71,9 +71,9 @@ __all__ = [
     "Endpoint",
     "StatsMixin",
     "control_silo_endpoint",
-    "region_silo_endpoint",
+    "cell_silo_endpoint",
     "all_silo_endpoint",
-    "internal_region_silo_endpoint",
+    "internal_cell_silo_endpoint",
     "internal_all_silo_endpoint",
 ]
 
@@ -723,14 +723,14 @@ If a request is received and the application is not in CONTROL
 mode 404s will be returned.
 """
 
-region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+cell_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 """
 Apply to endpoints that exist in REGION silo.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
 
-internal_region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION, internal=True)
+internal_cell_silo_endpoint = EndpointSiloLimit(SiloMode.REGION, internal=True)
 """
 Apply to endpoints that exist in REGION silo that are internal only.
 Internal endpoints are not subject to URL pattern rules required
@@ -739,6 +739,10 @@ for public endpoints in cells.
 If a request is received and the application is not in REGION
 mode 404s will be returned.
 """
+
+# TODO(cells): remove aliases once no longer used by getsentry
+region_silo_endpoint = cell_silo_endpoint
+internal_region_silo_endpoint = internal_cell_silo_endpoint
 
 all_silo_endpoint = EndpointSiloLimit([SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH])
 """

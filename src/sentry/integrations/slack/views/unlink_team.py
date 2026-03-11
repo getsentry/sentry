@@ -6,7 +6,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.silo.base import SiloMode
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 
 from . import build_linking_url as base_build_linking_url
 
@@ -40,7 +40,7 @@ def build_team_unlinking_url(
     )
 
 
-@region_silo_view
+@cell_silo_view
 class SlackUnlinkTeamView(SlackLinkageView, UnlinkTeamView):
     """
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
