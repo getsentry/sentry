@@ -1,11 +1,16 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+
+import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Broadcast} from 'sentry/types/system';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -18,10 +23,52 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/components/primary';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {WhatsNewItem} from 'sentry/views/navigation/primary/whatsNew/item';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const MARK_SEEN_DELAY = 1000;
+
+export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
+  announcement: t('Announcement'),
+  feature: t('New Feature'),
+  blog: t('Blog Post'),
+  event: t('Event'),
+  video: t('Video'),
+};
+
+interface BroadcastPanelItemProps extends Pick<
+  Broadcast,
+  'hasSeen' | 'category' | 'title' | 'message' | 'link' | 'mediaUrl'
+> {}
+
+function WhatsNewItem({
+  hasSeen,
+  title,
+  message,
+  link,
+  mediaUrl,
+  category,
+}: BroadcastPanelItemProps) {
+  const organization = useOrganization();
+
+  const handlePanelClicked = useCallback(() => {
+    trackAnalytics('whats_new.link_clicked', {organization, title, category});
+  }, [organization, title, category]);
+
+  return (
+    <SidebarPanelItemRoot>
+      <Stack align="start" marginBottom="lg">
+        {category && (
+          <CategoryTag variant="muted">{BROADCAST_CATEGORIES[category]}</CategoryTag>
+        )}
+        <Title hasSeen={hasSeen} href={link} onClick={handlePanelClicked}>
+          {title}
+        </Title>
+        <Message>{message}</Message>
+      </Stack>
+      {mediaUrl && <Media src={mediaUrl} alt={title} />}
+    </SidebarPanelItemRoot>
+  );
+}
 
 function makeBroadcastsQueryKey({
   organization,
@@ -158,4 +205,37 @@ const Empty = styled('div')`
   padding: 0 60px;
   text-align: center;
   min-height: 150px;
+`;
+
+const SidebarPanelItemRoot = styled('div')`
+  line-height: 1.5;
+  margin: 0 ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.xl} 0;
+
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+`;
+
+const Title = styled(ExternalLink)<Pick<BroadcastPanelItemProps, 'hasSeen'>>`
+  font-size: ${p => p.theme.font.size.lg};
+  color: ${p => p.theme.tokens.content.accent};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.font.weight.sans.medium}`};
+  &:focus-visible {
+    box-shadow: none;
+  }
+`;
+
+const Message = styled('div')`
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const Media = styled('img')`
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid ${p => p.theme.colors.gray200};
+  max-width: 100%;
+`;
+
+const CategoryTag = styled(Tag)`
+  margin-bottom: ${p => p.theme.space.md};
 `;
