@@ -1,0 +1,496 @@
+name: CI Failure RCA
+
+on:
+  workflow_dispatch:
+    inputs:
+      failure_count:
+        description: 'Number of recent CI failures to analyze (5-20)'
+        required: true
+        type: number
+        default: 10
+      workflow_filter:
+        description: 'Which CI workflows to scan for failures'
+        required: true
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+          - acceptance
+        default: all
+      branch_filter:
+        description: 'Branch to scan (empty = all branches, "master" = master only)'
+        required: false
+        type: string
+        default: ''
+      severity:
+        description: 'Severity level — controls depth of analysis and notifications'
+        required: true
+        type: choice
+        options:
+          - deploy-blocked
+          - flaky-investigation
+          - general
+        default: deploy-blocked
+      notify_slack:
+        description: 'Post RCA summary to Slack'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  deployments: write
+  issues: write
+
+env:
+  CODER_URL: https://coder.sentry.dev
+
+jobs:
+  # ──────────────────────────────────────────────────────
+  # 1. Scan recent CI runs and collect failure context
+  # ──────────────────────────────────────────────────────
+  collect-failure-context:
+    name: Collect CI failure context
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      workspace_name: ${{ steps.name.outputs.workspace_name }}
+      failures_json: ${{ steps.collect.outputs.failures_json }}
+      failure_count: ${{ steps.collect.outputs.failure_count }}
+      summary: ${{ steps.collect.outputs.summary }}
+      has_failures: ${{ steps.collect.outputs.has_failures }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Compute workspace name
+        id: name
+        run: |
+          WORKSPACE_NAME="ci-rca-$(date +%Y%m%d-%H%M%S)"
+          echo "workspace_name=${WORKSPACE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Collect recent CI failures
+        id: collect
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          INPUT_FAILURE_COUNT: ${{ inputs.failure_count }}
+          INPUT_WORKFLOW_FILTER: ${{ inputs.workflow_filter }}
+          INPUT_BRANCH_FILTER: ${{ inputs.branch_filter }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const maxFailures = Math.min(Math.max(parseInt(process.env.INPUT_FAILURE_COUNT) || 10, 5), 20);
+            const workflowFilter = process.env.INPUT_WORKFLOW_FILTER;
+            const branchFilter = process.env.INPUT_BRANCH_FILTER || '';
+
+            // Map filter names to workflow file names
+            const WORKFLOW_FILES = {
+              all: ['backend.yml', 'frontend.yml', 'acceptance.yml'],
+              backend: ['backend.yml'],
+              frontend: ['frontend.yml'],
+              acceptance: ['acceptance.yml'],
+            };
+            const targetWorkflows = WORKFLOW_FILES[workflowFilter] || WORKFLOW_FILES.all;
+
+            core.info(`Scanning ${targetWorkflows.join(', ')} for up to ${maxFailures} failures`);
+            if (branchFilter) core.info(`Branch filter: ${branchFilter}`);
+
+            // Collect failed runs across all target workflows
+            const allFailedRuns = [];
+
+            for (const workflowFile of targetWorkflows) {
+              const params = {
+                owner, repo,
+                workflow_id: workflowFile,
+                status: 'failure',
+                per_page: Math.min(maxFailures * 2, 50), // fetch extra to account for filtering
+              };
+              if (branchFilter) params.branch = branchFilter;
+
+              try {
+                const { data } = await github.rest.actions.listWorkflowRuns(params);
+                for (const run of data.workflow_runs) {
+                  allFailedRuns.push({
+                    run_id: run.id,
+                    workflow: workflowFile.replace('.yml', ''),
+                    workflow_name: run.name,
+                    head_sha: run.head_sha,
+                    head_branch: run.head_branch,
+                    html_url: run.html_url,
+                    created_at: run.created_at,
+                    pr_number: run.pull_requests?.[0]?.number || null,
+                    pr_url: run.pull_requests?.[0]?.html_url || null,
+                  });
+                }
+              } catch (e) {
+                core.warning(`Failed to list runs for ${workflowFile}: ${e.message}`);
+              }
+            }
+
+            // Sort by most recent first, dedupe by run_id, take top N
+            allFailedRuns.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const seen = new Set();
+            const uniqueRuns = allFailedRuns.filter(r => {
+              if (seen.has(r.run_id)) return false;
+              seen.add(r.run_id);
+              return true;
+            }).slice(0, maxFailures);
+
+            if (uniqueRuns.length === 0) {
+              core.setOutput('has_failures', 'false');
+              core.setOutput('failure_count', '0');
+              core.setOutput('failures_json', '[]');
+              core.setOutput('summary', 'No recent CI failures found matching the filter criteria.');
+              core.info('No failures found.');
+              return;
+            }
+
+            core.info(`Found ${uniqueRuns.length} failed runs, collecting job-level details...`);
+
+            // For each failed run, collect job-level failure details
+            const failures = [];
+            for (const run of uniqueRuns) {
+              try {
+                const jobs = await github.paginate(
+                  github.rest.actions.listJobsForWorkflowRun,
+                  { owner, repo, run_id: run.run_id }
+                );
+
+                const failedJobs = jobs
+                  .filter(j => j.conclusion === 'failure')
+                  .map(job => {
+                    const failedSteps = (job.steps || [])
+                      .filter(s => s.conclusion === 'failure')
+                      .map(s => ({ name: s.name, number: s.number }));
+                    return {
+                      job_id: job.id,
+                      job_name: job.name,
+                      job_url: job.html_url,
+                      failed_steps: failedSteps,
+                    };
+                  });
+
+                failures.push({
+                  ...run,
+                  failed_jobs: failedJobs,
+                  failed_job_count: failedJobs.length,
+                });
+              } catch (e) {
+                core.warning(`Failed to get jobs for run ${run.run_id}: ${e.message}`);
+                failures.push({ ...run, failed_jobs: [], failed_job_count: 0 });
+              }
+            }
+
+            // Build human-readable summary
+            const summaryLines = failures.map((f, i) => {
+              const prRef = f.pr_number ? `PR #${f.pr_number}` : f.head_branch;
+              const jobNames = f.failed_jobs.map(j => j.job_name).join(', ') || 'unknown';
+              const shortSha = f.head_sha.slice(0, 7);
+              return `${i + 1}. **${f.workflow}** — [${shortSha}](${f.html_url}) on ${prRef} — failed: ${jobNames} (${f.created_at})`;
+            });
+
+            // Compute cross-failure stats
+            const jobNameCounts = {};
+            const branchCounts = {};
+            const shaCounts = {};
+            for (const f of failures) {
+              branchCounts[f.head_branch] = (branchCounts[f.head_branch] || 0) + 1;
+              shaCounts[f.head_sha] = (shaCounts[f.head_sha] || 0) + 1;
+              for (const j of f.failed_jobs) {
+                jobNameCounts[j.job_name] = (jobNameCounts[j.job_name] || 0) + 1;
+              }
+            }
+
+            const topJobs = Object.entries(jobNameCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 10)
+              .map(([name, count]) => `- \`${name}\`: ${count} failure(s)`);
+
+            const topBranches = Object.entries(branchCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([name, count]) => `- \`${name}\`: ${count} failure(s)`);
+
+            const summary = [
+              `## CI Failure Scan Results`,
+              ``,
+              `**Filter**: workflow=\`${workflowFilter}\`${branchFilter ? `, branch=\`${branchFilter}\`` : ', branch=all'}`,
+              `**Failures analyzed**: ${failures.length}`,
+              `**Time range**: ${failures[failures.length - 1]?.created_at || 'N/A'} → ${failures[0]?.created_at || 'N/A'}`,
+              ``,
+              `### Most Frequently Failing Jobs`,
+              ...topJobs,
+              ``,
+              `### Failures by Branch`,
+              ...topBranches,
+              ``,
+              `### Individual Failures`,
+              ...summaryLines,
+            ].join('\n');
+
+            core.setOutput('has_failures', 'true');
+            core.setOutput('failure_count', String(failures.length));
+            core.setOutput('failures_json', JSON.stringify(failures));
+            core.setOutput('summary', summary);
+
+            core.info(`Collected ${failures.length} failures with job details.`);
+
+      - name: Download test artifacts for recent failures
+        if: steps.collect.outputs.has_failures == 'true'
+        continue-on-error: true
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          FAILURES_JSON: ${{ steps.collect.outputs.failures_json }}
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const failures = JSON.parse(process.env.FAILURES_JSON);
+
+            fs.mkdirSync('/tmp/ci-artifacts', { recursive: true });
+
+            // Download pytest artifacts for the 5 most recent failures (to avoid rate limits)
+            for (const failure of failures.slice(0, 5)) {
+              try {
+                const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                  owner, repo, run_id: failure.run_id,
+                });
+
+                const pytestArtifacts = data.artifacts.filter(
+                  a => a.name.startsWith('pytest-results')
+                );
+
+                for (const artifact of pytestArtifacts.slice(0, 3)) {
+                  try {
+                    const download = await github.rest.actions.downloadArtifact({
+                      owner, repo,
+                      artifact_id: artifact.id,
+                      archive_format: 'zip',
+                    });
+                    const fname = `${failure.run_id}-${artifact.name}.zip`;
+                    fs.writeFileSync(`/tmp/ci-artifacts/${fname}`, Buffer.from(download.data));
+                    core.info(`Downloaded ${fname}`);
+                  } catch (e) {
+                    core.warning(`Failed to download ${artifact.name}: ${e.message}`);
+                  }
+                }
+              } catch (e) {
+                core.warning(`Failed to list artifacts for run ${failure.run_id}: ${e.message}`);
+              }
+            }
+
+      - name: Upload failure context bundle
+        if: steps.collect.outputs.has_failures == 'true'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4
+        with:
+          name: ci-failure-context
+          path: /tmp/ci-artifacts/
+          retention-days: 3
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────────────
+  # 2. Spin up Coder workspace and run the RCA agent
+  # ──────────────────────────────────────────────────────
+  rca-analysis:
+    name: Run RCA in Coder workspace
+    needs: collect-failure-context
+    if: needs.collect-failure-context.outputs.has_failures == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      rca_report: ${{ steps.run-agent.outputs.rca_report }}
+      root_causes: ${{ steps.run-agent.outputs.root_causes }}
+      action_items: ${{ steps.run-agent.outputs.action_items }}
+      overall_confidence: ${{ steps.run-agent.outputs.overall_confidence }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Coder
+        uses: coder/setup-action@4a607a8113d4e676e2d7c34caa20a814bc88bfda # v1.1.0
+        with:
+          access_url: ${{ env.CODER_URL }}
+          coder_session_token: ${{ secrets.CODER_SESSION_TOKEN }}
+
+      - name: Create Coder workspace
+        env:
+          WORKSPACE_NAME: ${{ needs.collect-failure-context.outputs.workspace_name }}
+        run: scripts/ci-rca/create-workspace.sh
+
+      - name: Wait for workspace ready
+        env:
+          WORKSPACE_NAME: ${{ needs.collect-failure-context.outputs.workspace_name }}
+        run: scripts/ci-rca/wait-for-workspace.sh
+
+      - name: Run RCA agent
+        id: run-agent
+        env:
+          WORKSPACE_NAME: ${{ needs.collect-failure-context.outputs.workspace_name }}
+          FAILURES_JSON: ${{ needs.collect-failure-context.outputs.failures_json }}
+          FAILURE_SUMMARY: ${{ needs.collect-failure-context.outputs.summary }}
+          FAILURE_COUNT: ${{ needs.collect-failure-context.outputs.failure_count }}
+          SEVERITY: ${{ inputs.severity }}
+          WORKFLOW_FILTER: ${{ inputs.workflow_filter }}
+          BRANCH_FILTER: ${{ inputs.branch_filter }}
+        run: scripts/ci-rca/run-agent.sh
+
+      - name: Destroy Coder workspace
+        if: always()
+        env:
+          WORKSPACE_NAME: ${{ needs.collect-failure-context.outputs.workspace_name }}
+        run: scripts/ci-rca/destroy-workspace.sh
+
+  # ──────────────────────────────────────────────────────
+  # 3. Post results back to GitHub and (optionally) Slack
+  # ──────────────────────────────────────────────────────
+  report-results:
+    name: Report RCA results
+    needs: [collect-failure-context, rca-analysis]
+    if: always() && needs.collect-failure-context.outputs.has_failures == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Create GitHub issue with RCA report
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          FAILURE_SUMMARY: ${{ needs.collect-failure-context.outputs.summary }}
+          FAILURE_COUNT: ${{ needs.collect-failure-context.outputs.failure_count }}
+          RCA_REPORT: ${{ needs.rca-analysis.outputs.rca_report || 'RCA agent did not produce a report. Check the workflow run for details.' }}
+          ROOT_CAUSES: ${{ needs.rca-analysis.outputs.root_causes || 'Unknown' }}
+          ACTION_ITEMS: ${{ needs.rca-analysis.outputs.action_items || 'Manual investigation required' }}
+          CONFIDENCE: ${{ needs.rca-analysis.outputs.overall_confidence || 'low' }}
+          SEVERITY: ${{ inputs.severity }}
+          WORKFLOW_FILTER: ${{ inputs.workflow_filter }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const severity = process.env.SEVERITY;
+            const failureCount = process.env.FAILURE_COUNT;
+            const confidence = process.env.CONFIDENCE;
+            const rcaRunUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const severityLabel = {
+              'deploy-blocked': 'Deploy Blocked',
+              'flaky-investigation': 'Flaky Investigation',
+              'general': 'General CI Analysis',
+            }[severity] || severity;
+
+            const labels = ['ci-failure', 'ci-rca'];
+            if (severity === 'deploy-blocked') labels.push('deploy-blocked');
+
+            const body = [
+              `## CI Failure Root Cause Analysis`,
+              ``,
+              `| Field | Value |`,
+              `|-------|-------|`,
+              `| **Severity** | \`${severity}\` |`,
+              `| **Confidence** | \`${confidence}\` |`,
+              `| **Failures Analyzed** | ${failureCount} |`,
+              `| **Workflow Filter** | \`${process.env.WORKFLOW_FILTER}\` |`,
+              `| **RCA Run** | [View](${rcaRunUrl}) |`,
+              ``,
+              `### Root Causes`,
+              process.env.ROOT_CAUSES,
+              ``,
+              `### Action Items`,
+              process.env.ACTION_ITEMS,
+              ``,
+              `---`,
+              ``,
+              `<details><summary>Full RCA Report</summary>`,
+              ``,
+              process.env.RCA_REPORT,
+              ``,
+              `</details>`,
+              ``,
+              `<details><summary>Failure Scan Context</summary>`,
+              ``,
+              process.env.FAILURE_SUMMARY,
+              ``,
+              `</details>`,
+            ].join('\n');
+
+            const issue = await github.rest.issues.create({
+              owner, repo,
+              title: `[CI RCA] ${severityLabel}: ${failureCount} failures analyzed (confidence: ${confidence})`,
+              body,
+              labels,
+            });
+
+            core.info(`Created issue: ${issue.data.html_url}`);
+            core.exportVariable('RCA_ISSUE_URL', issue.data.html_url);
+
+      - name: Post to Slack
+        if: inputs.notify_slack == true || inputs.severity == 'deploy-blocked'
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CI_FAILURES_SLACK_WEBHOOK }}
+          FAILURE_COUNT: ${{ needs.collect-failure-context.outputs.failure_count }}
+          ROOT_CAUSES: ${{ needs.rca-analysis.outputs.root_causes || 'Unknown — manual investigation required' }}
+          ACTION_ITEMS: ${{ needs.rca-analysis.outputs.action_items || 'N/A' }}
+          CONFIDENCE: ${{ needs.rca-analysis.outputs.overall_confidence || 'low' }}
+          SEVERITY: ${{ inputs.severity }}
+          RCA_ISSUE_URL: ${{ env.RCA_ISSUE_URL }}
+          RCA_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "No Slack webhook configured, skipping"
+            exit 0
+          fi
+
+          curl -fsSL -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg severity "$SEVERITY" \
+              --arg count "$FAILURE_COUNT" \
+              --arg root_causes "$ROOT_CAUSES" \
+              --arg actions "$ACTION_ITEMS" \
+              --arg confidence "$CONFIDENCE" \
+              --arg issue_url "${RCA_ISSUE_URL:-$RCA_RUN_URL}" \
+              --arg rca_url "$RCA_RUN_URL" \
+              '{
+                blocks: [
+                  {
+                    type: "header",
+                    text: {
+                      type: "plain_text",
+                      text: (if $severity == "deploy-blocked" then ":rotating_light: Deploy Blocked — CI Failure RCA" else ":mag: CI Failure RCA Complete" end),
+                      emoji: true
+                    }
+                  },
+                  {
+                    type: "section",
+                    fields: [
+                      { type: "mrkdwn", text: ("*Failures Analyzed:* " + $count) },
+                      { type: "mrkdwn", text: ("*Confidence:* `" + $confidence + "`") }
+                    ]
+                  },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: ("*Root Causes:*\n" + ($root_causes | split("\n") | map(select(length > 0)) | .[0:5] | join("\n"))) }
+                  },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: ("*Action Items:*\n" + ($actions | split("\n") | map(select(length > 0)) | .[0:5] | join("\n"))) }
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "View RCA Issue" },
+                        url: $issue_url,
+                        style: "primary"
+                      },
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "View Workflow Run" },
+                        url: $rca_url
+                      }
+                    ]
+                  }
+                ]
+              }')"
