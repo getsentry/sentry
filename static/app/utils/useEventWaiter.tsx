@@ -121,13 +121,9 @@ export function useEventWaiter({
       });
     }
 
-    const captureError = new Error(`Error polling for first ${eventType} event`);
-    try {
-      captureError.cause = err;
-    } catch {
-      // some browsers don't let you set a `cause`
-    }
-    Sentry.captureException(captureError);
+    Sentry.captureException(
+      new Error(`Error polling for first ${eventType} event`, {cause: err})
+    );
   }, [projectQuery.error, eventType]);
 
   if (firstEvent === null || firstEvent === false) {
