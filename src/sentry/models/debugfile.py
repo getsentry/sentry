@@ -15,7 +15,7 @@ from collections.abc import Container, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.utils import timezone
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
@@ -119,7 +119,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    file = FlexibleForeignKey("sentry.File")
+    file = FlexibleForeignKey("sentry.File", on_delete=models.PROTECT)
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
@@ -195,7 +195,16 @@ class ProjectDebugFile(Model):
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         ret = super().delete(*args, **kwargs)
-        self.file.delete()
+
+        # If another debug file row still references this File, keep the File.
+        # Concurrent last-reference deletes can still leave an unreferenced File
+        # row behind, but no surviving ProjectDebugFile should point to a deleted
+        # File.
+        try:
+            self.file.delete()
+        except ProtectedError:
+            pass
+
         return ret
 
 
