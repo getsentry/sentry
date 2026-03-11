@@ -891,8 +891,8 @@ class BadImportExportCommandTests(TestCase):
                     ],
                     catch_exceptions=False,
                 )
-            (msg, _) = excinfo.value.args
-            assert msg.startswith("Could not deserialize")
+            (msg,) = excinfo.value.args
+            assert msg.startswith("Unable to load PEM file")
 
     def test_import_unreadable_gcp_kms_config(self) -> None:
         with TemporaryDirectory() as tmp_dir:

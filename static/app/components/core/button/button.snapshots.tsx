@@ -21,6 +21,7 @@ describe('Button', () => {
         {/* Buttons need a bit of padding as rootElement.screenshot() clips to the
           element's CSS border-box. For buttons, box-shadows/outlines/focus rings
           extending outside #root get cut off. */}
+
         <div style={{padding: 8}}>
           <Button priority={priority}>{priority}</Button>
         </div>

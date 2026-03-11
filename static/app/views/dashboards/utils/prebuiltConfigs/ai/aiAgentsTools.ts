@@ -67,13 +67,13 @@ const TOOLS_TABLE = {
       fields: [
         SpanFields.GEN_AI_TOOL_NAME,
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
-        'count_if(span.status,equals,internal_error)',
+        'equation|count_if(span.status,equals,internal_error)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],

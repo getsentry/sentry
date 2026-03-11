@@ -761,6 +761,13 @@ class SpansBuffer:
                         category=DataCategory.SPAN_INDEXED,
                         quantity=dropped,
                     )
+            elif not payloads.get(key):
+                # BUG DETECTION: Segment was in the flush queue but both the data
+                # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
+                # This means the Redis keys expired before the flusher could process
+                # them, resulting in silent data loss. The spans were already committed
+                # from the ingest Kafka topic, so they cannot be recovered.
+                metrics.incr("spans.buffer.segment_expired_before_flush")
 
         for key, spans in payloads.items():
             if not spans:

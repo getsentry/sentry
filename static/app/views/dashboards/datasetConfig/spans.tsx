@@ -15,6 +15,7 @@ import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
   type DataUnit,
@@ -314,7 +315,11 @@ export const SpansConfig: DatasetConfig<
     ) {
       return renderTransactionAsLinkable;
     }
-    if (field === INTERNAL_ERROR_COUNT_FIELD) {
+    const strippedField = stripEquationPrefix(field);
+    if (
+      field === INTERNAL_ERROR_COUNT_FIELD ||
+      strippedField === INTERNAL_ERROR_COUNT_FIELD
+    ) {
       return renderInternalErrorCount(widget, dashboardFilters);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
@@ -497,7 +502,8 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
   return function (data: EventData, baggage: RenderFunctionBaggage) {
     const {organization, eventView} = baggage;
     const selection = eventView?.getPageFilters();
-    const value = data[INTERNAL_ERROR_COUNT_FIELD];
+    const value =
+      data[INTERNAL_ERROR_COUNT_FIELD] ?? data[`equation|${INTERNAL_ERROR_COUNT_FIELD}`];
     const count = typeof value === 'number' ? value : 0;
 
     if (count === 0) {
