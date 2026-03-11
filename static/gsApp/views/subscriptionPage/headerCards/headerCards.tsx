@@ -2,7 +2,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 
 import type {Subscription} from 'getsentry/types';
 import {

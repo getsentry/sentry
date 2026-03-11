@@ -10,7 +10,7 @@ import {
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 
 const DEFAULT_GETTING_STARTED_TASKS = [
