@@ -349,7 +349,6 @@ FRAMEWORKS: list[FrameworkDef] = [
         "base_platform": "javascript",
         "every": [
             {"path": "host.json", "match_content": r'"extensionBundle"'},
-            {"path": "local.settings.json"},
         ],
     },
     {
@@ -747,7 +746,6 @@ FRAMEWORKS: list[FrameworkDef] = [
         "some": [
             {"path": "Package.swift", "match_content": r"\.iOS\s*\("},
             {"path": "Podfile", "match_content": r"platform\s*:ios\b"},
-            {"match_ext": ".xcodeproj"},
             {"match_dir": ".xcodeproj"},
         ],
     },
@@ -904,6 +902,7 @@ _SUPERSESSION_MAP: dict[str, list[str]] = {}
 for _fw in FRAMEWORKS:
     if "supersedes" in _fw:
         _SUPERSESSION_MAP[_fw["platform"]] = _fw["supersedes"]
+del _fw
 
 # Platforms that are detected internally (as base platforms for framework
 # detection) but are not selectable in the frontend project creation picker.
@@ -1031,6 +1030,13 @@ def _parse_go_mod(content: str) -> _PackageManifest:
             continue
         if stripped.startswith("require (") or stripped.startswith("require("):
             in_require = True
+            # Handle single-line block: require (github.com/foo/bar v1.0)
+            if stripped.endswith(")"):
+                inner = stripped.split("(", 1)[1].rstrip(")")
+                parts = inner.strip().split()
+                if parts:
+                    deps.add(parts[0])
+                in_require = False
             continue
         if in_require:
             if stripped == ")":
@@ -1256,16 +1262,17 @@ def detect_platforms(
         for fw in _FRAMEWORKS_BY_PLATFORM.get(base_platform, []):
             if _framework_matches(fw, root_files, file_contents, manifest, root_dirs):
                 platform_id = fw["platform"]
-                seen_platforms.add(platform_id)
-                results.append(
-                    DetectedPlatform(
-                        platform=platform_id,
-                        language=language,
-                        bytes=byte_count,
-                        confidence="high",
-                        priority=100 - fw["sort"],
+                if platform_id not in seen_platforms:
+                    seen_platforms.add(platform_id)
+                    results.append(
+                        DetectedPlatform(
+                            platform=platform_id,
+                            language=language,
+                            bytes=byte_count,
+                            confidence="high",
+                            priority=100 - fw["sort"],
+                        )
                     )
-                )
 
         if base_platform not in seen_platforms:
             seen_platforms.add(base_platform)

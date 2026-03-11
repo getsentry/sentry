@@ -1653,7 +1653,7 @@ class TestDetectPlatforms:
         assert "node-cloudflare-pages" in platforms
         assert "node-cloudflare-workers" not in platforms
 
-    def test_azurefunctions_detected_from_host_and_local_settings(self) -> None:
+    def test_azurefunctions_detected_from_host_json(self) -> None:
         client = mock.MagicMock()
         client.get_languages.return_value = {"JavaScript": 50000}
 
@@ -1663,7 +1663,6 @@ class TestDetectPlatforms:
             if path.endswith("/contents"):
                 return [
                     {"name": "host.json", "type": "file"},
-                    {"name": "local.settings.json", "type": "file"},
                     {"name": "package.json", "type": "file"},
                 ]
             if "host.json" in path:
@@ -1689,7 +1688,6 @@ class TestDetectPlatforms:
             if path.endswith("/contents"):
                 return [
                     {"name": "host.json", "type": "file"},
-                    {"name": "local.settings.json", "type": "file"},
                     {"name": "package.json", "type": "file"},
                 ]
             if "host.json" in path:
