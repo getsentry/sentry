@@ -74,7 +74,7 @@ def schedule_batch(
     if not concurrency:
         concurrency = CONCURRENCY
     try:
-        for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
+        for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.value]:
             outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
             aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
