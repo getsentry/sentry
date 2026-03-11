@@ -24,10 +24,12 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 
 export interface StackTraceFramesProps {
   frameContextComponent: ComponentType;
+  frameActionsComponent?: ComponentType<{isHovering: boolean}>;
 }
 
 export function StackTraceFrames({
   frameContextComponent: FrameContextComponent,
+  frameActionsComponent: FrameActionsComponent = StackTraceFrameRow.Actions.Default,
 }: StackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
@@ -64,7 +66,7 @@ export function StackTraceFrames({
             <StackTraceFrameRow key={row.frameIndex} row={row}>
               <StackTraceFrameRow.Header
                 actions={({isHovering}) => (
-                  <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
+                  <FrameActionsComponent isHovering={isHovering} />
                 )}
               />
               <FrameContextComponent />

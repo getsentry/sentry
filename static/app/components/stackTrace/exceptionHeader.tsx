@@ -14,16 +14,16 @@ interface ExceptionHeaderProps {
 }
 
 const ExceptionHeaderHeading = styled(Heading)`
-  display: inline-block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export function ExceptionHeader({type, module}: ExceptionHeaderProps) {
   return (
     <Tooltip title={t('from %s', module)} disabled={!module} skipWrapper>
-      <ExceptionHeaderHeading as="h5" size="md">
+      <ExceptionHeaderHeading as="h5" size="md" wrap="nowrap">
         {type}
       </ExceptionHeaderHeading>
     </Tooltip>

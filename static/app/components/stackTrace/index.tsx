@@ -1,4 +1,5 @@
 export {IssueStackTrace} from './issueStackTrace';
+export {IssueFrameActions} from './issueStackTrace/issueFrameActions';
 export {FrameContent} from './frame/frameContent';
 export {StackTraceFrameRow} from './frame/frameRow';
 export {StackTraceFrames} from './stackTraceFrames';

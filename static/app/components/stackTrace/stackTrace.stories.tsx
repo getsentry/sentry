@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -17,7 +20,14 @@ import {
   Toolbar,
   useStackTraceContext,
 } from 'sentry/components/stackTrace';
+import {
+  ChevronAction,
+  HiddenFramesToggleAction,
+} from 'sentry/components/stackTrace/frame/actions';
+import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
+import {IconFix, IconLink, IconRefresh} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
   EventOrGroupType,
@@ -532,6 +542,44 @@ function makeChainedExceptionValues(): ExceptionValue[] {
   ];
 }
 
+function StoryFrameActions({isHovering: _isHovering}: {isHovering: boolean}) {
+  const {frame, timesRepeated} = useStackTraceFrameContext();
+
+  return (
+    <Fragment>
+      <Button size="zero" priority="default" onClick={e => e.stopPropagation()}>
+        <Flex align="center" gap="xs" as="span">
+          <IconLink size="xs" />
+          <span>{t('Open in IDE')}</span>
+        </Flex>
+      </Button>
+      <Button size="zero" priority="default" onClick={e => e.stopPropagation()}>
+        <Flex align="center" gap="xs" as="span">
+          <IconFix size="xs" />
+          <span>{t('Unminify Code')}</span>
+        </Flex>
+      </Button>
+      <HiddenFramesToggleAction />
+      {timesRepeated > 0 ? (
+        <Tooltip
+          title={tn('Frame repeated %s time', 'Frame repeated %s times', timesRepeated)}
+          skipWrapper
+        >
+          <Tag
+            icon={<IconRefresh size="xs" />}
+            variant="muted"
+            data-test-id="core-stacktrace-repeats-tag"
+          >
+            {timesRepeated}
+          </Tag>
+        </Tooltip>
+      ) : null}
+      {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
+      <ChevronAction />
+    </Fragment>
+  );
+}
+
 type StoryStackTraceProviderProps = React.ComponentProps<typeof StackTraceProvider> &
   Pick<
     StackTraceViewStateProviderProps,
@@ -610,7 +658,10 @@ export default Storybook.story('StackTrace', story => {
             framesOmitted: [1, 3],
           }}
         >
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -626,7 +677,10 @@ export default Storybook.story('StackTrace', story => {
           stacktrace={stacktrace}
           components={makeStacktraceLinkComponents()}
         >
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -642,7 +696,10 @@ export default Storybook.story('StackTrace', story => {
           and collapsed into a single row with a repeat count badge.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -658,7 +715,10 @@ export default Storybook.story('StackTrace', story => {
           the most specific (rightmost) segments.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -678,7 +738,10 @@ export default Storybook.story('StackTrace', story => {
           <Storybook.JSXProperty name="map" value="string" /> are set).
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -693,7 +756,10 @@ export default Storybook.story('StackTrace', story => {
           Both the file path and function name are long here, testing two-column overflow.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -711,7 +777,10 @@ export default Storybook.story('StackTrace', story => {
           appears as a secondary label.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -744,7 +813,10 @@ export default Storybook.story('StackTrace', story => {
       <Flex direction="column" gap="md">
         <LineCoverageLegend />
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
-          <StackTraceFrames frameContextComponent={CoveredFrameContext} />
+          <StackTraceFrames
+            frameContextComponent={CoveredFrameContext}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Flex>
     );
@@ -782,7 +854,10 @@ export default Storybook.story('StackTrace', story => {
     return (
       <div>
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </div>
     );
@@ -798,7 +873,10 @@ export default Storybook.story('StackTrace', story => {
           stay aligned while still showing a chevron only on expandable rows.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );
@@ -826,7 +904,7 @@ export default Storybook.story('StackTrace', story => {
                 <StackTraceFrameRow key={row.frameIndex} row={row}>
                   <StackTraceFrameRow.Header
                     actions={({isHovering}) => (
-                      <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
+                      <StoryFrameActions isHovering={isHovering} />
                     )}
                   />
                   <StackTraceFrameRow.Context />
@@ -868,12 +946,11 @@ export default Storybook.story('StackTrace', story => {
               }
 
               if (i === 0) {
-                // Default: all actions unchanged
                 return (
                   <StackTraceFrameRow key={row.frameIndex} row={row}>
                     <StackTraceFrameRow.Header
                       actions={({isHovering}) => (
-                        <StackTraceFrameRow.Actions.Default isHovering={isHovering} />
+                        <StoryFrameActions isHovering={isHovering} />
                       )}
                     />
                     <StackTraceFrameRow.Context />
@@ -882,14 +959,12 @@ export default Storybook.story('StackTrace', story => {
               }
 
               if (i === 1) {
-                // Custom: SourceLink + Chevron only (no source maps debugger, no hidden toggle)
                 return (
                   <StackTraceFrameRow key={row.frameIndex} row={row}>
                     <StackTraceFrameRow.Header
                       actions={
                         <Fragment>
-                          <StackTraceFrameRow.Actions.SourceLink />
-                          <StackTraceFrameRow.Actions.Chevron />
+                          <ChevronAction />
                         </Fragment>
                       }
                     />
@@ -898,17 +973,14 @@ export default Storybook.story('StackTrace', story => {
                 );
               }
 
-              // Custom: extra button injected before the chevron
               return (
                 <StackTraceFrameRow key={row.frameIndex} row={row}>
                   <StackTraceFrameRow.Header
                     actions={
-                      <StackTraceFrameRow.Actions>
-                        <StackTraceFrameRow.Actions.SourceLink />
-                        <StackTraceFrameRow.Actions.SourceMapsDebugger />
-                        <StackTraceFrameRow.Actions.HiddenFramesToggle />
-                        <StackTraceFrameRow.Actions.Chevron />
-                      </StackTraceFrameRow.Actions>
+                      <Fragment>
+                        <HiddenFramesToggleAction />
+                        <ChevronAction />
+                      </Fragment>
                     }
                   />
                   <StackTraceFrameRow.Context />
@@ -925,10 +997,10 @@ export default Storybook.story('StackTrace', story => {
         <p>
           Use <Storybook.JSXProperty name="actions" value="ReactNode" /> on{' '}
           <Storybook.JSXNode name="StackTraceFrameRow.Header" /> to compose exactly the
-          actions you need. The first frame uses the default actions, the second uses only{' '}
-          <Storybook.JSXNode name="SourceLink" /> + <Storybook.JSXNode name="Chevron" />,
-          and the rest use a fully custom <Storybook.JSXNode name="Frame.Actions" />{' '}
-          container.
+          actions you need. The first frame uses all actions, the second uses only{' '}
+          <Storybook.JSXNode name="Chevron" />, and the rest use{' '}
+          <Storybook.JSXNode name="HiddenFramesToggle" /> +{' '}
+          <Storybook.JSXNode name="Chevron" />.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
           <ComposedActionsContent />
@@ -945,7 +1017,10 @@ export default Storybook.story('StackTrace', story => {
         <WideHovercard
           body={
             <StoryStackTraceProvider event={event} stacktrace={stacktrace} maxDepth={5}>
-              <StackTraceFrames frameContextComponent={FrameContent} />
+              <StackTraceFrames
+                frameContextComponent={FrameContent}
+                frameActionsComponent={StoryFrameActions}
+              />
             </StoryStackTraceProvider>
           }
         >
@@ -986,7 +1061,10 @@ export default Storybook.story('StackTrace', story => {
           defaultIsMinified
         >
           <Toolbar />
-          <StackTraceFrames frameContextComponent={FrameContent} />
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={StoryFrameActions}
+          />
         </StoryStackTraceProvider>
       </Fragment>
     );

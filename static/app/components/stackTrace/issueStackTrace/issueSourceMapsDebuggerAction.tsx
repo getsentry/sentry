@@ -4,7 +4,12 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {
+  prepareSourceMapDebuggerFrameInformation,
+  useSourceMapDebuggerData,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from 'sentry/components/stackTrace/frame/actions/utils';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
@@ -14,14 +19,26 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
-
-export function SourceMapsDebuggerAction() {
+export function IssueSourceMapsDebuggerAction() {
   const {frame, event, frameIndex} = useStackTraceFrameContext();
-  const {frameSourceMapDebuggerData, hideSourceMapDebugger} = useStackTraceContext();
+  const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});
 
-  const frameSourceResolutionResults = frameSourceMapDebuggerData?.[frameIndex];
+  const sourceMapDebuggerData = useSourceMapDebuggerData(event, project?.slug ?? '');
+  const debuggerFrame =
+    exceptionIndex === undefined
+      ? undefined
+      : sourceMapDebuggerData?.exceptions[exceptionIndex]?.frames[frameIndex];
+  const frameSourceResolutionResults =
+    debuggerFrame && sourceMapDebuggerData
+      ? prepareSourceMapDebuggerFrameInformation(
+          sourceMapDebuggerData,
+          debuggerFrame,
+          event,
+          project?.platform
+        )
+      : undefined;
+
   const frameHasValidFileEndingForSourceMapDebugger =
     VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
       ending =>

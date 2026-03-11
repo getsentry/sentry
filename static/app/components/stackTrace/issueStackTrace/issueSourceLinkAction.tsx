@@ -9,44 +9,25 @@ import {
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
 
-import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from './utils';
-
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
-interface SourceLinkActionProps {
+interface IssueSourceLinkActionProps {
   isHovering?: boolean;
 }
 
-export function SourceLinkAction({isHovering = false}: SourceLinkActionProps) {
-  const {frame, event, isExpanded, frameIndex} = useStackTraceFrameContext();
-  const {components, frameSourceMapDebuggerData, hideSourceMapDebugger, project} =
-    useStackTraceContext();
+export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActionProps) {
+  const {frame, event, isExpanded} = useStackTraceFrameContext();
+  const {components, project} = useStackTraceContext();
 
   const contextLine = frame.context?.find(([lineNumber]) => lineNumber === frame.lineNo);
   const frameCanShowActions =
     !!frame.filename && (frame.inApp || event.platform === 'csharp');
   const canShowFrameActions = frameCanShowActions && (isExpanded || isHovering);
 
-  const frameSourceResolutionResults = frameSourceMapDebuggerData?.[frameIndex];
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
-      ending =>
-        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
-    );
-  const shouldShowSourceMapDebuggerButton =
-    !frame.context?.length &&
-    !hideSourceMapDebugger &&
-    frame.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
-    !!frameSourceResolutionResults &&
-    !frameSourceResolutionResults.frameIsResolved;
-
-  const showCodeMappingLink =
-    canShowFrameActions && !!project && !shouldShowSourceMapDebuggerButton;
+  const showCodeMappingLink = canShowFrameActions && !!project;
   const showSentryAppStacktraceLink = canShowFrameActions && components.length > 0;
 
-  const wouldShowCodeMappingLink =
-    frameCanShowActions && !!project && !shouldShowSourceMapDebuggerButton;
+  const wouldShowCodeMappingLink = frameCanShowActions && !!project;
   const wouldShowSentryAppStacktraceLink = frameCanShowActions && components.length > 0;
   const hasContent = wouldShowCodeMappingLink || wouldShowSentryAppStacktraceLink;
 

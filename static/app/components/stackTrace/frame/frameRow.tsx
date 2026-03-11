@@ -11,13 +11,7 @@ import {
 import type {StackTraceFrameContextValue} from 'sentry/components/stackTrace/stackTraceContext';
 import type {FrameRow} from 'sentry/components/stackTrace/types';
 
-import {
-  ChevronAction,
-  DefaultFrameActions,
-  HiddenFramesToggleAction,
-  SourceLinkAction,
-  SourceMapsDebuggerAction,
-} from './actions';
+import {ChevronAction, DefaultFrameActions, HiddenFramesToggleAction} from './actions';
 import {FrameContent} from './frameContent';
 import {FrameHeader} from './frameHeader';
 
@@ -108,8 +102,6 @@ const FrameRowActions = Object.assign(FrameRowActionsContainer, {
   Chevron: ChevronAction,
   Default: DefaultFrameActions,
   HiddenFramesToggle: HiddenFramesToggleAction,
-  SourceLink: SourceLinkAction,
-  SourceMapsDebugger: SourceMapsDebuggerAction,
 });
 
 export const StackTraceFrameRow = Object.assign(StackTraceFrameRowRoot, {

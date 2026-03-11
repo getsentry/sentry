@@ -3,22 +3,28 @@ import {Fragment} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  ChevronAction,
+  HiddenFramesToggleAction,
+} from 'sentry/components/stackTrace/frame/actions';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
-import {ChevronAction} from './chevron';
-import {HiddenFramesToggleAction} from './hiddenFramesToggle';
+import {IssueSourceLinkAction} from './issueSourceLinkAction';
+import {IssueSourceMapsDebuggerAction} from './issueSourceMapsDebuggerAction';
 
-interface DefaultFrameActionsProps {
+interface IssueFrameActionsProps {
   isHovering: boolean;
 }
 
-export function DefaultFrameActions({isHovering: _isHovering}: DefaultFrameActionsProps) {
+export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
   const {frame, timesRepeated} = useStackTraceFrameContext();
 
   return (
     <Fragment>
+      <IssueSourceLinkAction isHovering={isHovering} />
+      <IssueSourceMapsDebuggerAction />
       <HiddenFramesToggleAction />
       {timesRepeated > 0 ? (
         <Tooltip

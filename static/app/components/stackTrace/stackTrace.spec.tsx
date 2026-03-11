@@ -9,10 +9,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {
   DisplayOptions,
   FrameContent,
+  IssueFrameActions,
   IssueStackTrace,
   StackTraceFrames,
   StackTraceProvider,
@@ -106,6 +106,13 @@ function renderStackTrace() {
 
 describe('Core StackTrace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      },
+    });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/stacktrace-link/',
       body: {
@@ -218,6 +225,57 @@ describe('Core StackTrace', () => {
     expect(await screen.findAllByTestId('core-stacktrace-frame-row')).toHaveLength(10);
   });
 
+  it('renders chained exceptions in newest-first order by default and reverses on sort toggle', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'MiddleError',
+            value: 'middle cause',
+            module: 'raven.scripts.runner',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+          {
+            type: 'LeafError',
+            value: 'leaf cause',
+            module: 'raven.scripts.runner',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
+    );
+
+    const headings = screen.getAllByRole('heading', {level: 5});
+    expect(headings[0]).toHaveTextContent('LeafError');
+    expect(headings[1]).toHaveTextContent('MiddleError');
+    expect(headings[2]).toHaveTextContent('RootError');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Oldest'}));
+
+    const reorderedHeadings = screen.getAllByRole('heading', {level: 5});
+    expect(reorderedHeadings[0]).toHaveTextContent('RootError');
+    expect(reorderedHeadings[1]).toHaveTextContent('MiddleError');
+    expect(reorderedHeadings[2]).toHaveTextContent('LeafError');
+  });
+
   it('toggles minified stacktrace frames when minified data is provided', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const minifiedStacktrace = {
@@ -281,7 +339,16 @@ describe('Core StackTrace', () => {
   });
 
   it('toggles frame expansion when clicking reserved actions slot space', async () => {
-    renderStackTrace();
+    const {event, stacktrace} = makeStackTraceData();
+    render(
+      <TestStackTraceProvider event={event} stacktrace={stacktrace}>
+        <Toolbar />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>
+    );
 
     const firstActionsSlot = screen.getAllByTestId(
       'core-stacktrace-frame-actions-slot'
@@ -512,7 +579,10 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContent} />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
       </TestStackTraceProvider>,
       {organization}
     );
@@ -563,11 +633,49 @@ describe('Core StackTrace', () => {
 
   it('renders unminify action when frame source map debugger data is unresolved', async () => {
     const {event, stacktrace} = makeStackTraceData();
+    const javascriptEvent = EventFixture({
+      ...event,
+      sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+    });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = ProjectFixture({
+      id: javascriptEvent.projectID,
+      slug: 'project-slug',
+      platform: 'javascript',
+    });
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug-blue-thunder-edition/`,
+      body: {
+        dist: null,
+        exceptions: [
+          {
+            frames: [
+              {
+                debug_id_process: {
+                  debug_id: null,
+                  uploaded_source_file_with_correct_debug_id: false,
+                  uploaded_source_map_with_correct_debug_id: false,
+                },
+                release_process: null,
+              },
+            ],
+          },
+        ],
+        has_debug_ids: false,
+        has_uploaded_some_artifact_with_a_debug_id: false,
+        project_has_some_artifact_bundle: false,
+        release: null,
+        release_has_some_artifact: false,
+        sdk_debug_id_support: 'not-supported' as const,
+        sdk_version: '10.0.0',
+      },
+    });
 
     render(
       <TestStackTraceProvider
-        event={event}
+        event={javascriptEvent}
         stacktrace={{
           ...stacktrace,
           frames: [
@@ -580,13 +688,15 @@ describe('Core StackTrace', () => {
             },
           ],
         }}
-        frameSourceMapDebuggerData={[
-          {frameIsResolved: false} as FrameSourceMapDebuggerData,
-        ]}
+        exceptionIndex={0}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>,
+      {organization}
     );
 
     expect(
@@ -621,7 +731,10 @@ describe('Core StackTrace', () => {
         components={components}
       >
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContent} />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
       </TestStackTraceProvider>
     );
 
@@ -694,7 +807,10 @@ describe('Core StackTrace', () => {
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <Toolbar />
-        <StackTraceFrames frameContextComponent={FrameContent} />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
       </TestStackTraceProvider>,
       {organization}
     );

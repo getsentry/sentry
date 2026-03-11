@@ -62,6 +62,8 @@ export interface StackTraceProviderProps {
   stacktrace: StacktraceType;
   /** Sentry App integrations that provide "open in X" stacktrace links. */
   components?: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
+  /** Optional exception index in the full exception values list. */
+  exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   /** Hide the source maps debugger button entirely. */

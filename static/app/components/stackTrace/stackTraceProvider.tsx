@@ -29,6 +29,7 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 export function StackTraceProvider({
   children,
   components: componentsProp,
+  exceptionIndex,
   event,
   frameSourceMapDebuggerData,
   hideSourceMapDebugger,
@@ -131,6 +132,7 @@ export function StackTraceProvider({
   const value = useMemo<StackTraceContextValue>(
     () => ({
       components,
+      exceptionIndex,
       event,
       hasAnyExpandableFrames,
       platform,
@@ -152,6 +154,7 @@ export function StackTraceProvider({
     }),
     [
       components,
+      exceptionIndex,
       event,
       frameSourceMapDebuggerData,
       frames,

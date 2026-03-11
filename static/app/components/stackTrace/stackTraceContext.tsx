@@ -77,6 +77,8 @@ export interface StackTraceContextValue {
   stacktrace: StacktraceType;
   /** Toggles hidden system frames adjacent to a visible row. */
   toggleHiddenFrames: (frameIndex: number) => void;
+  /** Optional exception index in the full exception values list. */
+  exceptionIndex?: number;
   /** Optional per-frame source map debugger resolution data. */
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   /** Optional redaction metadata used by variable/register renderers. */
