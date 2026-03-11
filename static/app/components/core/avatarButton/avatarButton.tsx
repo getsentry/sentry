@@ -82,7 +82,7 @@ const AvatarContainer = styled('div')<{
         : p.size === 'xs'
           ? p.theme.radius.sm
           : p.theme.radius.xs};
-  padding: ${p => (p.padded ? p.theme.space.xs : '0')};
+  padding: ${p => (p.padded ? p.theme.space['2xs'] : '0')};
   background: ${p => (p.padded ? p.theme.tokens.background.primary : 'transparent')};
   position: relative;
 `;
