@@ -18,14 +18,14 @@
 
 import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-export interface ImportInfo {
+interface ImportInfo {
   /** The original exported name (e.g., 'Button' even if aliased locally). */
   imported: string;
   /** The module specifier (e.g., '@sentry/scraps/button'). */
   source: string;
 }
 
-export interface ImportTracker {
+interface ImportTracker {
   /**
    * Find the local name(s) for a given import source and exported name.
    * Returns all local aliases (handles `import {Foo as Bar}`).
