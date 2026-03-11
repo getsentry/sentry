@@ -70,14 +70,13 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
-          SENTRY_ORG: emerge-tools
-          SENTRY_PROJECT: sentry-frontend
         run: |
           ARGS=(
             --log-level=debug
             --auth-token "${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}"
             build snapshots "${{ env.SNAPSHOT_OUTPUT_DIR }}"
             --app-id sentry-frontend
+            --project sentry-frontend
             --head-sha "${{ github.event.pull_request.head.sha || github.sha }}"
             --vcs-provider github
             --head-repo-name "${{ github.repository }}"
