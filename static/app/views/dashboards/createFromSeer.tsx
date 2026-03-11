@@ -5,7 +5,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -100,13 +99,16 @@ export default function CreateFromSeer() {
   const location = useLocation();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
+  const hasFeature =
+    organization.features.includes('dashboards-edit') &&
+    organization.features.includes('dashboards-ai-generate');
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
       staleTime: 0,
       retry: false,
-      enabled: !!seerRunId,
+      enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
         const status = query.state.data?.[0]?.session?.status;
         if (status === 'completed' || status === 'error') {
@@ -150,7 +152,7 @@ export default function CreateFromSeer() {
     }
   }, [sessionStatus, isError]);
 
-  function renderDisabled() {
+  if (!hasFeature) {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
@@ -180,19 +182,13 @@ export default function CreateFromSeer() {
   }
 
   return (
-    <Feature
-      features={['dashboards-edit', 'dashboards-ai-generate']}
-      organization={organization}
-      renderDisabled={renderDisabled}
-    >
-      <ErrorBoundary>
-        <DashboardDetail
-          initialState={DashboardState.PREVIEW}
-          dashboard={dashboard}
-          dashboards={[]}
-        />
-      </ErrorBoundary>
-    </Feature>
+    <ErrorBoundary>
+      <DashboardDetail
+        initialState={DashboardState.PREVIEW}
+        dashboard={dashboard}
+        dashboards={[]}
+      />
+    </ErrorBoundary>
   );
 }
 
