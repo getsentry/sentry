@@ -434,7 +434,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "GET",
         "PUT",
     },
-    "/api/0/organizations/{organization_id_or_slug}/stats/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/tags/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/tags/{key}/values/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/onboarding-tasks/": {"POST"},

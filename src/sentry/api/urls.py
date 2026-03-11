@@ -790,7 +790,6 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldValuesEndpoint,
 )
 from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
-from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
@@ -2435,11 +2434,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/org-auth-tokens/(?P<token_id>[^/]+)/$",
         OrganizationAuthTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-org-auth-token-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/stats/$",
-        OrganizationStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/stats_v2/$",
