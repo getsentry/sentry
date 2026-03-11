@@ -2,12 +2,14 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   getApiQueryData,
   setApiQueryData,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 
 interface Variables extends Partial<Organization> {}
@@ -15,6 +17,11 @@ interface Variables extends Partial<Organization> {}
 export function useUpdateOrganization(organization: Organization) {
   const queryClient = useQueryClient();
 
+  const v1QueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ] as ApiQueryKey;
   const queryOptions = apiOptions.as<Organization>()(
     '/organizations/$organizationIdOrSlug/',
     {
@@ -33,7 +40,7 @@ export function useUpdateOrganization(organization: Organization) {
       const previousOrganization =
         queryClient.getQueryData<ApiResponse<Organization>>(queryOptions.queryKey)
           ?.json ||
-        getApiQueryData<Organization>(queryClient, queryOptions.queryKey) ||
+        getApiQueryData<Organization>(queryClient, v1QueryKey) ||
         OrganizationStore.get().organization ||
         organization;
 
@@ -51,7 +58,7 @@ export function useUpdateOrganization(organization: Organization) {
       OrganizationStore.onUpdate(updatedOrganization);
 
       // 2. update the v1 cache
-      setApiQueryData(queryClient, queryOptions.queryKey, updatedOrganization);
+      setApiQueryData(queryClient, v1QueryKey, updatedOrganization);
 
       // 3. update the v2 cache
       const prevApiResponse = queryClient.getQueryData<ApiResponse<Organization>>(
@@ -82,7 +89,7 @@ export function useUpdateOrganization(organization: Organization) {
         OrganizationStore.onUpdate(context.previousOrganization);
 
         // 2. rollback the v1 cache
-        setApiQueryData(queryClient, queryOptions.queryKey, context.previousOrganization);
+        setApiQueryData(queryClient, v1QueryKey, context.previousOrganization);
 
         // 3. rollback the v2 cache
         const prevApiResponse = queryClient.getQueryData<ApiResponse<Organization>>(
