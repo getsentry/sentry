@@ -1,7 +1,7 @@
 import {
   isRootCauseArtifact,
   isSolutionArtifact,
-  type ArtifactOrExplorerFilePatches,
+  type AutofixArtifact,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -15,9 +15,7 @@ import {
   type RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 
-export function artifactToMarkdown(
-  artifact: ArtifactOrExplorerFilePatches
-): string | null {
+export function artifactToMarkdown(artifact: AutofixArtifact): string | null {
   if (isRootCauseArtifact(artifact)) {
     return rootCauseArtifactToMarkdown(artifact);
   }

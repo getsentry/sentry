@@ -293,14 +293,11 @@ export function getOrderedArtifactKeys(
 const CODE_CHANGES_KEY = Symbol('codeChanges');
 
 type ArtifactKey = string | typeof CODE_CHANGES_KEY;
-export type ArtifactOrExplorerFilePatches =
-  | Artifact<unknown>
-  | ExplorerFilePatch[]
-  | RepoPRState[];
+export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
 
 export function getOrderedAutofixArtifacts(
   runState: ExplorerAutofixState | null
-): ArtifactOrExplorerFilePatches[] {
+): AutofixArtifact[] {
   const blocks = runState?.blocks ?? [];
   if (!blocks.length) {
     return [];
@@ -348,7 +345,7 @@ export function getOrderedAutofixArtifacts(
     }
   }
 
-  const artifacts: ArtifactOrExplorerFilePatches[] = [...artifactsByKey.values()]
+  const artifacts: AutofixArtifact[] = [...artifactsByKey.values()]
     .sort((artifact1, artifact2) => artifact1.index - artifact2.index)
     .map(artifact => {
       if (artifact.type === 'artifact') {
