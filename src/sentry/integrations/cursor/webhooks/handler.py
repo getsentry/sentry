@@ -26,7 +26,6 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     update_coding_agent_state,
 )
-from sentry.seer.models import SeerApiError
 
 logger = logging.getLogger(__name__)
 
@@ -232,26 +231,17 @@ class CursorWebhookEndpoint(Endpoint):
         agent_url: str | None = None,
         result: CodingAgentResult | None = None,
     ):
-        try:
-            update_coding_agent_state(
-                agent_id=agent_id,
-                status=status,
-                agent_url=agent_url,
-                result=result,
-            )
-            logger.info(
-                "cursor_webhook.status_updated_to_seer",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                    "has_result": result is not None,
-                },
-            )
-        except SeerApiError:
-            logger.warning(
-                "cursor_webhook.seer_update_error",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                },
-            )
+        update_coding_agent_state(
+            agent_id=agent_id,
+            status=status,
+            agent_url=agent_url,
+            result=result,
+        )
+        logger.info(
+            "cursor_webhook.status_updated_to_seer",
+            extra={
+                "agent_id": agent_id,
+                "status": status.value,
+                "has_result": result is not None,
+            },
+        )

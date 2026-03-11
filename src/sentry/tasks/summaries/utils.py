@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 from typing import Any, cast
 
@@ -20,7 +21,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import TeamStatus
+from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
@@ -29,6 +35,7 @@ from sentry.utils.snuba import raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 COMPARISON_PERIOD = 14
+logger = logging.getLogger(__name__)
 
 
 class OrganizationReportContext:
@@ -259,30 +266,40 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         if len(group_id_to_group) == 0:
             return
 
-        # Fine grained query for 3 most frequent events happend during last week
-        query = Query(
-            match=Entity("search_issues"),
-            select=[
-                Column("group_id"),
-                Function("count", []),
-            ],
-            where=[
-                Condition(Column("group_id"), Op.IN, list(group_id_to_group.keys())),
-                Condition(Column("timestamp"), Op.GTE, ctx.start),
-                Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
-                Condition(Column("project_id"), Op.EQ, project.id),
-            ],
-            groupby=[Column("group_id")],
-            orderby=[OrderBy(Function("count", []), Direction.DESC)],
-            limit=Limit(3),
+        snuba_rows = _project_key_performance_issues_snuba(
+            ctx=ctx,
+            project=project,
+            referrer=referrer,
+            group_ids=list(group_id_to_group.keys()),
         )
-        request = Request(
-            dataset=Dataset.IssuePlatform.value,
-            app_id="reports",
-            query=query,
-            tenant_ids={"organization_id": ctx.organization.id},
-        )
-        query_result = raw_snql_query(request, referrer=referrer)["data"]
+        query_result = snuba_rows
+
+        callsite = "tasks.summaries.project_key_performance_issues"
+        if EAPOccurrencesComparator.should_check_experiment(callsite):
+            eap_rows = _project_key_performance_issues_eap(
+                ctx=ctx,
+                project=project,
+                referrer=referrer,
+                group_ids=list(group_id_to_group.keys()),
+            )
+            query_result = EAPOccurrencesComparator.check_and_choose(
+                snuba_rows,
+                eap_rows,
+                callsite,
+                is_experimental_data_a_null_result=len(eap_rows) == 0,
+                reasonable_match_comparator=lambda snuba, eap: keyed_counts_subset_match(
+                    snuba,
+                    eap,
+                    key_fn=lambda row: int(row["group_id"]),
+                ),
+                debug_context={
+                    "organization_id": ctx.organization.id,
+                    "project_id": project.id,
+                    "candidate_group_ids_count": len(group_id_to_group),
+                    "start": ctx.start.isoformat(),
+                    "end": (ctx.end + timedelta(days=1)).isoformat(),
+                },
+            )
 
         key_performance_issues = []
         for result in query_result:
@@ -293,6 +310,90 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                 key_performance_issues.append((group, count))
 
         return key_performance_issues
+
+
+def _project_key_performance_issues_snuba(
+    ctx: OrganizationReportContext,
+    project: Project,
+    referrer: str,
+    group_ids: list[int],
+) -> list[dict[str, Any]]:
+    # Fine grained query for 3 most frequent events happened during last week.
+    query = Query(
+        match=Entity("search_issues"),
+        select=[
+            Column("group_id"),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(Column("timestamp"), Op.GTE, ctx.start),
+            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("group_id")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    request = Request(
+        dataset=Dataset.IssuePlatform.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    return raw_snql_query(request, referrer=referrer)["data"]
+
+
+def _project_key_performance_issues_eap(
+    ctx: OrganizationReportContext,
+    project: Project,
+    referrer: str,
+    group_ids: list[int],
+) -> list[dict[str, Any]]:
+    if len(group_ids) == 1:
+        query_string = f"group_id:{group_ids[0]}"
+    else:
+        query_string = f"group_id:[{', '.join(str(group_id) for group_id in group_ids)}]"
+
+    snuba_params = SnubaParams(
+        start=ctx.start,
+        end=ctx.end + timedelta(days=1),
+        organization=ctx.organization,
+        projects=[project],
+    )
+
+    try:
+        eap_response = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=query_string,
+            selected_columns=["group_id", "count()"],
+            orderby=["-count()"],
+            offset=0,
+            limit=3,
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.GENERIC,
+        )
+    except Exception:
+        logger.exception(
+            "summaries.key_performance_issues.eap_query_failed",
+            extra={
+                "organization_id": ctx.organization.id,
+                "project_id": project.id,
+                "group_ids_count": len(group_ids),
+            },
+        )
+        return []
+
+    normalized_rows = []
+    for row in eap_response.get("data", []):
+        group_id = row.get("group_id")
+        count = row.get("count()")
+        if group_id is None or count is None:
+            continue
+        normalized_rows.append({"group_id": int(group_id), "count()": int(count)})
+
+    return normalized_rows
 
 
 def project_key_transactions_this_week(ctx, project):

@@ -76,6 +76,8 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     domain_name: Literal["anthropic.com"] = "anthropic.com"
     environment_id: str | None = None
     workspace_name: str | None = None
+    agent_id: str | None = None
+    agent_version: str | None = None
 
 
 metadata = IntegrationMetadata(
@@ -335,31 +337,35 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             api_key=metadata.api_key,
             environment_id=metadata.environment_id,
             workspace_name=metadata.workspace_name,
+            agent_id=metadata.agent_id,
+            agent_version=metadata.agent_version,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
-        """Launch coding agent and persist the resolved environment ID."""
+        """Launch coding agent and persist resolved environment/agent IDs."""
         webhook_url = self.get_webhook_url()
         client = self.get_client()
 
         state = client.launch(webhook_url=webhook_url, request=request)
         state.integration_id = self.model.id
 
-        if client.environment_id and client.environment_id != self.environment_id:
-            self.update_environment_id(client.environment_id)
+        metadata = self._get_metadata()
+        metadata_changed = False
+
+        if client.environment_id and client.environment_id != metadata.environment_id:
+            metadata.environment_id = client.environment_id
+            metadata_changed = True
+
+        if client.agent_id and client.agent_id != metadata.agent_id:
+            metadata.agent_id = client.agent_id
+            metadata.agent_version = client.agent_version
+            metadata_changed = True
+
+        if metadata_changed:
+            self._persist_metadata(metadata)
 
         return state
 
     @property
     def api_key(self) -> str:
         return self._get_metadata().api_key
-
-    @property
-    def environment_id(self) -> str | None:
-        return self._get_metadata().environment_id
-
-    def update_environment_id(self, environment_id: str) -> None:
-        """Update the stored environment ID for this integration."""
-        metadata = self._get_metadata()
-        metadata.environment_id = environment_id
-        self._persist_metadata(metadata)

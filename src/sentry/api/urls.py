@@ -349,9 +349,6 @@ from sentry.issues.endpoints.organization_event_details import OrganizationEvent
 from sentry.issues.endpoints.organization_group_search_view_starred_order import (
     OrganizationGroupSearchViewStarredOrderEndpoint,
 )
-from sentry.issues.endpoints.organization_group_suspect_flags import (
-    OrganizationGroupSuspectFlagsEndpoint,
-)
 from sentry.issues.endpoints.organization_group_suspect_tags import (
     OrganizationGroupSuspectTagsEndpoint,
 )
@@ -838,7 +835,6 @@ from .endpoints.project_transaction_threshold import ProjectTransactionThreshold
 from .endpoints.project_transaction_threshold_override import (
     ProjectTransactionThresholdOverrideEndpoint,
 )
-from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay import (
     RelayDetailsEndpoint,
@@ -927,11 +923,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/suspect/flags/$",
-            OrganizationGroupSuspectFlagsEndpoint.as_view(),
-            name=f"{name_prefix}-suspect-flags",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/suspect/tags/$",
@@ -3151,11 +3142,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:user-feedback|user-reports)/$",
         ProjectUserReportsEndpoint.as_view(),
         name="sentry-api-0-project-user-reports",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/user-stats/$",
-        ProjectUserStatsEndpoint.as_view(),
-        name="sentry-api-0-project-userstats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/reprocessing/$",

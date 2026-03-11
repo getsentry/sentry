@@ -93,6 +93,8 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
