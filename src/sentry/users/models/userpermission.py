@@ -10,7 +10,7 @@ from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_regions_for_user
+from sentry.types.region import find_cells_for_user
 
 
 @control_silo_model
@@ -43,7 +43,7 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_regions_for_user(self.user_id)
+        regions = find_cells_for_user(self.user_id)
         return [
             outbox
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
