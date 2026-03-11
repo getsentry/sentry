@@ -529,7 +529,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   'span.description': {
     sortField: 'span.description',
     renderFunc: data => {
-      const value = data[SpanFields.SPAN_DESCRIPTION];
+      const value = data[SpanFields.SPAN_DESCRIPTION] ?? '';
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
         typeof data[SpanFields.PROJECT_ID] === 'number'
