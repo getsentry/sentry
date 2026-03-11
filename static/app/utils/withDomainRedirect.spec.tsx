@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
@@ -8,21 +7,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/utils/useRouter');
-
-// /settings/:orgId/:projectId/(searches/:searchId/)alerts/
-const projectRoutes = [
-  {path: '/', childRoutes: []},
-  {childRoutes: []},
-  {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
-  {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/', childRoutes: []},
-  {name: 'Alerts', path: 'alerts/'},
-];
 
 describe('withDomainRedirect', () => {
   function MyComponent() {
@@ -127,20 +114,13 @@ describe('withDomainRedirect', () => {
     );
   });
 
-  it('redirect when :orgId is present in the routes', () => {
+  it('redirect when :orgId is present in the routes', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-    const replaceFn = jest.fn();
-    jest.mocked(useRouter).mockReturnValue(
-      RouterFixture({
-        routes: projectRoutes,
-        replace: replaceFn,
-      })
-    );
     const WrappedComponent = withDomainRedirect(MyComponent);
-    const {container} = render(<WrappedComponent />, {
+    const {router} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -151,9 +131,7 @@ describe('withDomainRedirect', () => {
       },
     });
 
-    expect(container).toBeEmptyDOMElement();
-    expect(replaceFn).toHaveBeenCalledTimes(1);
-    expect(replaceFn).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
+    expect(router.location.pathname).toBe('/settings/react/alerts/');
   });
 
   it('does not redirect when :orgId is not present in the routes', () => {
@@ -161,8 +139,6 @@ describe('withDomainRedirect', () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-
-    jest.mocked(useRouter).mockReturnValue(RouterFixture({routes: []}));
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {router} = render(<WrappedComponent />, {
@@ -189,16 +165,9 @@ describe('withDomainRedirect', () => {
       sentryUrl: 'https://sentry.io',
       subdomain: '',
     });
-    const replaceFn = jest.fn();
-    jest.mocked(useRouter).mockReturnValue(
-      RouterFixture({
-        routes: projectRoutes,
-        replace: replaceFn,
-      })
-    );
 
     const WrappedComponent = withDomainRedirect(MyComponent);
-    render(<WrappedComponent />, {
+    const {router} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -209,7 +178,6 @@ describe('withDomainRedirect', () => {
       },
     });
 
-    expect(replaceFn).toHaveBeenCalledTimes(1);
-    expect(replaceFn).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
+    expect(router.location.pathname).toBe('/settings/react/alerts/');
   });
 });
