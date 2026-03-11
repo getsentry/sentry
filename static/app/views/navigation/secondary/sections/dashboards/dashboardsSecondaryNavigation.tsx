@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -12,7 +12,6 @@ import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarr
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
-import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function DashboardsSecondaryNavigation() {
@@ -22,14 +21,6 @@ export function DashboardsSecondaryNavigation() {
   const user = useUser();
 
   const {data: starredDashboards = []} = useGetStarredDashboards();
-
-  const {prebuiltDashboards, customDashboards} = useMemo(
-    () => ({
-      prebuiltDashboards: starredDashboards.filter(d => defined(d.prebuiltId)),
-      customDashboards: starredDashboards.filter(d => !defined(d.prebuiltId)),
-    }),
-    [starredDashboards]
-  );
 
   return (
     <Fragment>
@@ -46,34 +37,14 @@ export function DashboardsSecondaryNavigation() {
             {t('All Dashboards')}
           </SecondaryNavigation.Item>
         </SecondaryNavigation.Section>
-        {customDashboards.length > 0 ? (
+        {starredDashboards.length > 0 ? (
           <SecondaryNavigation.Section
             id="dashboards-starred"
             title={t('Starred Dashboards')}
           >
             <ErrorBoundary mini>
-              {organization.features.includes('dashboards-starred-reordering') ? (
-                <DashboardsNavigationItems initialDashboards={customDashboards} />
-              ) : (
-                <StarredDashboardItems
-                  dashboards={customDashboards}
-                  projects={projects}
-                  organizationSlug={organization.slug}
-                  organizationId={organization.id}
-                  userId={user.id}
-                />
-              )}
-            </ErrorBoundary>
-          </SecondaryNavigation.Section>
-        ) : null}
-        {prebuiltDashboards.length > 0 ? (
-          <SecondaryNavigation.Section
-            id="dashboards-starred-sentry"
-            title={t('Starred Sentry Built')}
-          >
-            <ErrorBoundary mini>
               <StarredDashboardItems
-                dashboards={prebuiltDashboards}
+                dashboards={starredDashboards}
                 projects={projects}
                 organizationSlug={organization.slug}
                 organizationId={organization.id}
