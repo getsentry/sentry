@@ -54,7 +54,6 @@ export function MetricSelector({
     search: debouncedSearch,
   });
   const hasMetricUnitsUI = useHasMetricUnitsUI();
-  const searchRef = useRef<HTMLInputElement>(null);
   const scrollElementRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -69,12 +68,7 @@ export function MetricSelector({
     isDismissable: true,
     shouldApplyMinWidth: true,
     onOpenChange: open => {
-      if (open) {
-        // Focus the search input when the overlay opens
-        requestAnimationFrame(() => {
-          searchRef.current?.focus();
-        });
-      } else {
+      if (!open) {
         setSearchInputValue('');
         setFocusedIndex(-1);
       }
@@ -277,7 +271,7 @@ export function MetricSelector({
       >
         {isOpen && (
           <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
-            <FocusScope contain restoreFocus>
+            <FocusScope contain restoreFocus autoFocus>
               <Flex direction={{xs: 'column', sm: 'row'}}>
                 <Stack
                   minWidth="300px"
@@ -305,7 +299,6 @@ export function MetricSelector({
                         </Flex>
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
-                        ref={searchRef}
                         placeholder={t('Search metrics\u2026')}
                         value={searchInputValue}
                         onChange={onSearchChange}
