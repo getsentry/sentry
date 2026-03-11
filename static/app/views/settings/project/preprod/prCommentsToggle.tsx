@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-const READ_KEY = 'sentry:preprod_distribution_pr_comments_enabled';
-const WRITE_KEY = 'preprodDistributionPrCommentsEnabled';
+const READ_KEY = 'sentry:preprod_distribution_pr_comments_enabled_by_customer';
+const WRITE_KEY = 'preprodDistributionPrCommentsEnabledByCustomer';
 
 export function PrCommentsToggle() {
   const {project} = useProjectSettingsOutlet();
