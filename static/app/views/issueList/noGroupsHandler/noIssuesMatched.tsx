@@ -7,12 +7,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 
 export function NoIssuesMatched() {
   const organization = useOrganization();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const location = useLocation();
   const onBreachedMetricsView = location.pathname.endsWith('/issues/breached-metrics/');
@@ -46,9 +46,7 @@ export function NoIssuesMatched() {
                     onClick={event => {
                       event.preventDefault();
                       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-                      if (router) {
-                        navigateTo(url, router);
-                      }
+                      navigateTo(url, navigate, location);
                     }}
                   />
                 ),

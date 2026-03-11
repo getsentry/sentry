@@ -228,11 +228,11 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
+      action: ({navigate, location}) => {
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
@@ -240,21 +240,23 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(performanceUrl, router);
+          navigateTo(performanceUrl, navigate, location);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
             `${performanceUrl}?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
-            router
+            navigate,
+            location
           );
           return;
         }
 
         navigateTo(
           `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
-          router
+          navigate,
+          location
         );
       },
       display: true,
@@ -267,8 +269,8 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'action',
-      action: router => {
-        router.push({
+      action: ({navigate}) => {
+        navigate({
           pathname: makeReplaysPathname({
             path: '/',
             organization,

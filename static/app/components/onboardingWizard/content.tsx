@@ -24,8 +24,9 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
@@ -177,7 +178,8 @@ interface TaskProps {
 function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
   const mutateOnboardingTasks = useMutateOnboardingTasks();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
@@ -214,7 +216,7 @@ function Task({task, hidePanel}: TaskProps) {
       }
 
       if (task.actionType === 'action') {
-        task.action(router);
+        task.action({navigate, location});
       }
 
       if (task.actionType === 'app') {
@@ -224,11 +226,11 @@ function Task({task, hidePanel}: TaskProps) {
         // Add referrer to all links
         to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-        navigateTo(to, router);
+        navigateTo(to, navigate, location);
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel, tours, sidebarTour]
+    [task, organization, navigate, location, hidePanel, tours, sidebarTour]
   );
 
   const handleMarkSkipped = useCallback(() => {
