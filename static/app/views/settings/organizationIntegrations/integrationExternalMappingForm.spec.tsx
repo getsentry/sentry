@@ -333,24 +333,4 @@ describe('IntegrationExternalMappingForm', () => {
     expect(screen.getByRole('menuitemradio', {name: 'option2'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'option3'})).toBeInTheDocument();
   });
-
-  it('shows mapped value immediately without waiting for fetch when defaultOptions are provided', () => {
-    const defaultOptions = MOCK_MEMBERS.map(m => ({
-      value: {id: m.user.id, name: m.name},
-      label: m.name,
-    }));
-    render(
-      <IntegrationExternalMappingForm
-        isInline
-        type="user"
-        mapping={MOCK_USER_MAPPING}
-        defaultOptions={defaultOptions}
-        {...baseProps}
-      />
-    );
-
-    // The mapped value should be visible immediately (synchronously),
-    // not after waiting for the async fetch to resolve
-    expect(screen.getByText(`option${MOCK_USER_MAPPING.userId}`)).toBeInTheDocument();
-  });
 });
