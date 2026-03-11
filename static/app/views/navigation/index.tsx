@@ -54,9 +54,11 @@ function UserOnlyNavigation() {
   // @TODO(JonasBadalic): Improve the UX of this case
   return (
     <PrimaryNavigation>
-      <PrimaryNavigation.Header>
-        <UserDropdown />
-      </PrimaryNavigation.Header>
+      <PrimaryNavigation.Sidebar>
+        <PrimaryNavigation.Header>
+          <UserDropdown />
+        </PrimaryNavigation.Header>
+      </PrimaryNavigation.Sidebar>
     </PrimaryNavigation>
   );
 }
