@@ -13,7 +13,8 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
 
     for artifact in artifacts:
         mobile_app_info = artifact.get_mobile_app_info()
-        app_name = mobile_app_info.app_name if mobile_app_info else "--"
+        app_name_value = mobile_app_info.app_name if mobile_app_info else None
+        app_name = app_name_value or "--"
         app_id = artifact.app_id or "--"
         version_string = mobile_app_info.format_version_string() if mobile_app_info else "--"
         config = artifact.build_configuration.name if artifact.build_configuration else "--"
