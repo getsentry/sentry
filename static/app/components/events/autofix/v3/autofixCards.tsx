@@ -198,7 +198,7 @@ function ArtifactCard({children, icon, title}: ArtifactCardProps) {
     <Container border="primary" radius="md" padding="md" background="primary">
       <Disclosure defaultExpanded>
         <Disclosure.Title>
-          <Flex area="header" gap="md" align="center">
+          <Flex gap="md" align="center">
             {icon}
             <Text bold>{title}</Text>
           </Flex>
