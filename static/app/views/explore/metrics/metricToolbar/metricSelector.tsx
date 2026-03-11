@@ -165,6 +165,18 @@ export function MetricSelector({
     [isFetching, previousOptions, metricOptions]
   );
 
+  useEffect(() => {
+    if (displayedOptions.length === 0) {
+      return;
+    }
+
+    if (focusedIndex < displayedOptions.length) {
+      return;
+    }
+
+    setFocusedIndex(Math.max(displayedOptions.length - 1, -1));
+  }, [displayedOptions.length, focusedIndex]);
+
   const longestOption = useMemo(
     () =>
       displayedOptions.reduce<MetricSelectOption | null>(

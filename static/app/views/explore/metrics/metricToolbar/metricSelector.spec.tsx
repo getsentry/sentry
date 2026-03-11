@@ -196,6 +196,47 @@ describe('MetricSelector', () => {
       );
     });
 
+    it('clamps focusedIndex when displayed options shrink', async () => {
+      const onChange = jest.fn();
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+
+      // Move focus near the end of the list
+      for (let i = 0; i < 5; i++) {
+        await userEvent.keyboard('{ArrowDown}');
+      }
+
+      // Simulate search that narrows the list by re-mocking with fewer results
+      MockApiClient.clearMockResponses();
+      setupEventsMock(
+        createTraceMetricFixtures(organization, project, new Date()).baseFixtures.slice(
+          0,
+          2
+        ),
+        [
+          MockApiClient.matchQuery({
+            dataset: 'tracemetrics',
+            referrer: 'api.explore.metric-options',
+          }),
+        ]
+      );
+
+      const searchInput = screen.getByPlaceholderText('Search metrics\u2026');
+      await userEvent.type(searchInput, 'b');
+
+      // After list shrinks, a single ArrowUp then Enter should select a valid option
+      await waitFor(() => {
+        expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(2);
+      });
+      await userEvent.keyboard('{ArrowUp}');
+      await userEvent.keyboard('{Enter}');
+      expect(onChange).toHaveBeenCalled();
+    });
+
     it('ArrowUp does not go below index 0', async () => {
       const onChange = jest.fn();
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
