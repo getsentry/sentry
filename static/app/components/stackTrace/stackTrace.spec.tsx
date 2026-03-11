@@ -966,6 +966,52 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders annotated text when exception value has PII scrubbing metadata', async () => {
+    const {event: baseEvent, stacktrace} = makeStackTraceData();
+    const entryIndex = 0;
+    const event = EventFixture({
+      ...baseEvent,
+      entries: [{type: 'exception' as const, data: {values: []}}],
+      _meta: {
+        entries: {
+          [entryIndex]: {
+            data: {
+              values: {
+                0: {
+                  value: {
+                    '': {
+                      rem: [['project:0', 's', 0, 0]],
+                      len: 18,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: null,
+            module: null,
+            mechanism: null,
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText('<redacted>')).toBeInTheDocument();
+  });
+
   it('shows raw exception type/value/module when minified toggle is active', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const rawStacktrace: StacktraceWithFrames = {

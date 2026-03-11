@@ -5,6 +5,7 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 
@@ -34,17 +35,27 @@ interface ExceptionDescriptionProps {
   mechanism: StackTraceMechanism | null;
   value: string | null;
   gap?: 'sm' | 'md' | 'lg';
+  meta?: Record<any, any>;
 }
 
 export function ExceptionDescription({
   value,
   mechanism,
   gap = 'sm',
+  meta,
 }: ExceptionDescriptionProps) {
+  const valueMeta = meta?.value?.[''];
+
   return (
     <Flex direction="column" gap={gap}>
-      {value && <ExceptionValue>{value}</ExceptionValue>}
-      {mechanism && <Mechanism data={mechanism} />}
+      {valueMeta && !value ? (
+        <ExceptionValue>
+          <AnnotatedText value={value} meta={valueMeta} />
+        </ExceptionValue>
+      ) : value ? (
+        <ExceptionValue>{value}</ExceptionValue>
+      ) : null}
+      {mechanism && <Mechanism data={mechanism} meta={meta?.mechanism} />}
     </Flex>
   );
 }

@@ -99,6 +99,11 @@ function IssueStackTraceContent({
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
+  const exceptionEntryIndex = event.entries?.findIndex(
+    entry => entry.type === EntryType.EXCEPTION
+  );
+  const meta = event._meta?.entries?.[exceptionEntryIndex ?? -1]?.data?.values;
+
   const exceptions = useMemo(() => {
     const indexed = values
       .map((exc, exceptionIndex) => ({...exc, exceptionIndex}))
@@ -139,7 +144,11 @@ function IssueStackTraceContent({
         >
           <Flex direction="column" gap="sm">
             <ExceptionHeader type={type} module={module} />
-            <ExceptionDescription value={value} mechanism={exc.mechanism} />
+            <ExceptionDescription
+              value={value}
+              mechanism={exc.mechanism}
+              meta={meta?.[exc.exceptionIndex]}
+            />
           </Flex>
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
@@ -242,6 +251,7 @@ function IssueStackTraceContent({
                     <ExceptionDescription
                       value={excValue}
                       mechanism={exc.mechanism}
+                      meta={meta?.[exc.exceptionIndex]}
                       gap="lg"
                     />
                     <RelatedExceptionsTree
