@@ -317,7 +317,7 @@ const ImageWrapper = styled('div')`
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.padding};
 `;
 
@@ -334,19 +334,19 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   word-break: break-word;
   line-height: 1.4;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   justify-content: center;
 `;
 
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;

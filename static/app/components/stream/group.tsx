@@ -27,7 +27,6 @@ import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
@@ -815,7 +814,7 @@ const Wrapper = styled(PanelItem)<{
 
 export const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
-  margin-left: ${p => space(p.canSelect ? 1 : 2)};
+  margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};
   flex: 1;
   display: flex;

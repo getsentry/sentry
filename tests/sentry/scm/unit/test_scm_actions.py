@@ -4,10 +4,14 @@ from typing import Any
 
 import pytest
 
-from sentry.constants import ObjectStatus
 from sentry.scm.actions import SourceCodeManager
-from sentry.scm.errors import SCMCodedError, SCMProviderException
-from sentry.scm.types import PaginatedActionResult, ReactionResult, Repository
+from sentry.scm.errors import (
+    SCMCodedError,
+    SCMProviderException,
+    SCMProviderNotSupported,
+    SCMUnhandledException,
+)
+from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
 
@@ -23,7 +27,7 @@ def fetch_repository(oid, rid) -> Repository:
         "integration_id": 1,
         "name": "test",
         "organization_id": 1,
-        "status": ObjectStatus.ACTIVE,
+        "is_active": True,
     }
 
 
@@ -125,64 +129,49 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
 @pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
 def test_rate_limited_action(method: str, kwargs: dict[str, Any]):
     class RateLimitedProvider(BaseTestProvider):
-        def is_rate_limited(self, oid, ref):
+        def is_rate_limited(self, referrer):
             return True
 
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: RateLimitedProvider(),
-    )
+    scm = SourceCodeManager(RateLimitedProvider())
 
     with raises_with_code(SCMCodedError, "rate_limit_exceeded"):
         getattr(scm, method)(**kwargs)
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_not_found(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: None,
-    )
-
+def test_repository_not_found():
     with raises_with_code(SCMCodedError, "repository_not_found"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=1,
+            repository_id=1,
+            fetch_repository=lambda _a, _b: None,
+        )
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_inactive(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: {
-            "integration_id": 1,
-            "name": "test",
-            "organization_id": 1,
-            "status": ObjectStatus.DISABLED,
-        },
-    )
-
+def test_repository_inactive():
     with raises_with_code(SCMCodedError, "repository_inactive"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=1,
+            repository_id=1,
+            fetch_repository=lambda _a, _b: {
+                "integration_id": 1,
+                "name": "test",
+                "organization_id": 1,
+                "is_active": False,
+            },
+        )
 
 
-@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
-def test_repository_organization_mismatch(method: str, kwargs: dict[str, Any]):
-    scm = SourceCodeManager(organization_id=2, repository_id=1, fetch_repository=fetch_repository)
-
+def test_repository_organization_mismatch():
     with raises_with_code(SCMCodedError, "repository_organization_mismatch"):
-        getattr(scm, method)(**kwargs)
+        SourceCodeManager.make_from_repository_id(
+            organization_id=2,
+            repository_id=1,
+            fetch_repository=fetch_repository,
+        )
 
 
 def make_scm():
-    return SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
-    )
+    return SourceCodeManager(BaseTestProvider())
 
 
 def _check_issue_comments(result: Any) -> None:
@@ -599,34 +588,18 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
 
 @pytest.mark.parametrize(("method", "kwargs", "check"), ACTION_TESTS)
 def test_action_success(method, kwargs: dict[str, Any], check):
-    result = method(make_scm(), **kwargs)
-    check(result)
+    metrics = []
 
+    def record_count(k, a, t):
+        metrics.append((k, a, t))
 
-def test_active_repository_with_int_status_is_not_rejected():
-    """ObjectStatus.ACTIVE is 0 (int), but exec_provider_fn compares against the string "active".
+    scm = SourceCodeManager(BaseTestProvider(), record_count=record_count)
+    check(method(scm, **kwargs))
 
-    map_repository_model_to_repository copies RepositoryModel.status as-is (an int),
-    so every real repository will fail the status check with repository_inactive.
-    """
-    from sentry.constants import ObjectStatus
-
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=lambda _a, _b: {
-            "integration_id": 1,
-            "name": "test",
-            "organization_id": 1,
-            "status": ObjectStatus.ACTIVE,
-        },
-        fetch_service_provider=lambda _a, _b: BaseTestProvider(),
-    )
-
-    # This should succeed, but currently raises SCMCodedError("repository_inactive")
-    # because 0 != "active" is always True.
-    result = scm.get_issue_comments(issue_id="1")
-    assert len(result["data"]) == 1
+    assert metrics == [
+        ("sentry.scm.actions.success_by_provider", 1, {"provider": "BaseTestProvider"}),
+        ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"}),
+    ]
 
 
 def test_provider_exception_is_not_wrapped():
@@ -638,12 +611,154 @@ def test_provider_exception_is_not_wrapped():
         ) -> PaginatedActionResult[ReactionResult]:
             raise SCMProviderException("GitHub API error")
 
-    scm = SourceCodeManager(
-        organization_id=1,
-        repository_id=1,
-        fetch_repository=fetch_repository,
-        fetch_service_provider=lambda _a, _b: FailingProvider(),
-    )
+    scm = SourceCodeManager(FailingProvider())
 
     with pytest.raises(SCMProviderException):
         scm.get_issue_reactions(issue_id="1")
+
+
+class MinimalProvider:
+    """A provider that implements Provider but no action protocols."""
+
+    organization_id: int = 1
+    repository: Repository = {
+        "integration_id": 1,
+        "name": "test",
+        "organization_id": 1,
+        "is_active": True,
+    }
+
+    def is_rate_limited(self, referrer: Referrer) -> bool:
+        return False
+
+
+@pytest.mark.parametrize(("method", "kwargs"), ALL_ACTIONS)
+def test_exec_raises_provider_not_supported_for_all_actions(method: str, kwargs: dict[str, Any]):
+    """Every SCM action raises SCMProviderNotSupported when the provider lacks the protocol."""
+    scm = SourceCodeManager(MinimalProvider())
+
+    with pytest.raises(SCMProviderNotSupported):
+        getattr(scm, method)(**kwargs)
+
+
+def test_exec_wraps_unhandled_exception():
+    """Non-SCM exceptions raised by the provider are wrapped as SCMUnhandledException."""
+
+    class ExplodingProvider(BaseTestProvider):
+        def get_branch(self, branch, request_options=None):
+            raise RuntimeError("unexpected failure")
+
+    scm = SourceCodeManager(ExplodingProvider())
+
+    with pytest.raises(SCMUnhandledException):
+        scm.get_branch(branch="main")
+
+
+def test_exec_records_failure_metric_on_unhandled_exception():
+    """record_count is called with the failure metric when a non-SCM exception occurs."""
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+
+    class ExplodingProvider(BaseTestProvider):
+        def get_branch(self, branch, request_options=None):
+            raise RuntimeError("boom")
+
+    scm = SourceCodeManager(
+        ExplodingProvider(), record_count=lambda k, a, t: metrics.append((k, a, t))
+    )
+
+    with pytest.raises(SCMUnhandledException):
+        scm.get_branch(branch="main")
+
+    assert metrics == [("sentry.scm.actions.failed", 1, {})]
+
+
+def test_exec_passes_custom_referrer():
+    """The referrer set on SourceCodeManager is forwarded through _exec to exec_provider_fn."""
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+
+    scm = SourceCodeManager(
+        BaseTestProvider(),
+        referrer="autofix",
+        record_count=lambda k, a, t: metrics.append((k, a, t)),
+    )
+    scm.get_branch(branch="main")
+
+    referrer_metrics = [(k, a, t) for k, a, t in metrics if "referrer" in t]
+    assert referrer_metrics == [
+        ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "autofix"}),
+    ]
+
+
+class TestCan:
+    """Tests for SourceCodeManager.can()."""
+
+    def test_can_returns_true_for_all_known_actions_with_full_provider(self):
+        """A provider implementing every protocol satisfies every action."""
+        scm = SourceCodeManager(BaseTestProvider())
+        actions = [name for name, _kwargs in ALL_ACTIONS]
+        assert scm.can(actions) is True
+
+    def test_can_returns_false_when_provider_lacks_protocol(self):
+        """A minimal provider that implements no action protocols fails every action."""
+        scm = SourceCodeManager(MinimalProvider())
+        for action_name, _ in ALL_ACTIONS:
+            assert scm.can([action_name]) is False, f"Expected can([{action_name!r}]) to be False"
+
+    def test_can_returns_false_for_unknown_action(self):
+        """An action name not in ActionMap causes can() to return False."""
+        scm = SourceCodeManager(BaseTestProvider())
+        assert scm.can(["nonexistent_action"]) is False
+
+    def test_can_returns_true_for_empty_list(self):
+        """An empty action list is trivially satisfiable."""
+        scm = SourceCodeManager(MinimalProvider())
+        assert scm.can([]) is True
+
+    def test_can_returns_false_when_any_action_unsupported(self):
+        """If even one action is unsupported the entire check fails."""
+        scm = SourceCodeManager(BaseTestProvider())
+        assert scm.can(["get_branch", "nonexistent_action"]) is False
+
+    def test_can_with_partial_provider(self):
+        """A provider implementing only branch protocols passes branch checks but not others."""
+
+        class BranchOnlyProvider:
+            organization_id: int = 1
+            repository: Repository = {
+                "integration_id": 1,
+                "name": "test",
+                "organization_id": 1,
+                "is_active": True,
+            }
+
+            def is_rate_limited(self, referrer: Referrer) -> bool:
+                return False
+
+            def get_branch(self, branch, request_options=None):
+                pass
+
+            def create_branch(self, branch, sha):
+                pass
+
+        scm = SourceCodeManager(BranchOnlyProvider())
+        assert scm.can(["get_branch", "create_branch"]) is True
+        assert scm.can(["get_branch", "get_commit"]) is False
+
+
+def test_exec_passes_custom_record_count():
+    """A custom record_count callable provided at construction is used by _exec."""
+    calls: list[tuple[str, int, dict[str, str]]] = []
+
+    def custom_record(key: str, amount: int, tags: dict[str, str]) -> None:
+        calls.append((key, amount, tags))
+
+    scm = SourceCodeManager(BaseTestProvider(), record_count=custom_record)
+    scm.get_branch(branch="main")
+
+    assert len(calls) == 2
+    assert calls[0] == (
+        "sentry.scm.actions.success_by_provider",
+        1,
+        {"provider": "BaseTestProvider"},
+    )
+    assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})

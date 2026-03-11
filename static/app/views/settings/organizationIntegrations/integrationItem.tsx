@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
@@ -50,7 +49,7 @@ const IntegrationName = styled('div')`
 // integration list.
 const DomainName = styled('div')<{compact: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${p => (p.compact ? space(1) : 'inherit')};
+  margin-left: ${p => (p.compact ? p.theme.space.md : 'inherit')};
   margin-top: ${p => (p.compact ? 'inherit' : 0)};
   font-size: ${p => p.theme.font.size.sm};
   overflow: hidden;

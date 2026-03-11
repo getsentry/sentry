@@ -144,7 +144,6 @@ export function getChartProps({
     | 'chartDateStartDisplay'
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
-    | 'chartStats'
     | 'cardStats'
   >;
   dataCategory: DataCategory;
@@ -324,7 +323,7 @@ export interface UsageStatsOrganizationProps {
     ) => void;
     orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
     usageChart: React.ReactNode;
-  }) => React.ReactNode | React.ReactNode;
+  }) => React.ReactNode;
   clientDiscard?: boolean;
   clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;

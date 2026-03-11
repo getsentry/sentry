@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   /**
    * Align items vertical center (assuming flex-direction isn't changed).
@@ -16,7 +14,7 @@ type Props = {
 const PanelItem = styled('div')<Props>`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  ${p => p.noPadding || `padding: ${space(2)}`};
+  padding: ${p => (p.noPadding ? 0 : p.theme.space.xl)};
   ${p => p.center && 'align-items: center'};
 
   &:last-child {

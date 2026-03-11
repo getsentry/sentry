@@ -31,7 +31,7 @@ import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
-  overall: WidgetDataResult & ReturnType<typeof transformDiscoverToSingleValue>;
+  overall: WidgetDataResult;
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {

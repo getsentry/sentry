@@ -67,6 +67,10 @@ class BuildsEndpoint(OrganizationEndpoint):
             if end:
                 queryset = queryset.filter(date_added__lte=end)
             queryset = queryset.filter(project_id__in=params["project_id"])
+
+            display = request.GET.get("display")
+            if display in ("size", "distribution"):
+                queryset = queryset.filter(preprodsnapshotmetrics__isnull=True)
         except InvalidSearchQuery as e:
             # CodeQL complains about str(e) below but ~all handlers
             # of InvalidSearchQuery do the same as this.

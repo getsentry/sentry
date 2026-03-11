@@ -44,6 +44,7 @@ interface SidebarItemDropdownProps {
   disableTooltip?: boolean;
   icon?: React.ReactNode;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
+  size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
@@ -116,6 +117,7 @@ export function SidebarMenu({
   onOpen,
   disableTooltip,
   icon,
+  size,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
@@ -153,6 +155,7 @@ export function SidebarMenu({
                 {...triggerProps}
                 isMobile={layout === NavLayout.MOBILE}
                 aria-label={showLabel ? undefined : label}
+                size={size}
                 onClick={event => {
                   if (organization) {
                     recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
@@ -471,8 +474,8 @@ export const SidebarItemUnreadIndicator = styled('span')<{
   variant?: 'accent' | 'danger' | 'warning';
 }>`
   position: absolute;
-  top: 0;
-  right: 0;
+  top: -${p => p.theme.space.xs};
+  right: -${p => p.theme.space.md};
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
