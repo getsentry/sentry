@@ -239,15 +239,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
   const received = !!firstIssue;
 
-  useEventWaiter({
-    eventType: 'transaction',
-    organization,
-    project: currentProject,
-    onIssueReceived: () => {
-      setReceived(true);
-    },
-  });
-
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)
     : undefined;
