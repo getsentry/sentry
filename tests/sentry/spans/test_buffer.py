@@ -9,7 +9,7 @@ import pytest
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
-from sentry.spans.segment_key import SegmentKey
+from sentry.spans.segment_key import SegmentKey, parse_segment_key
 from sentry.testutils.helpers.options import override_options
 
 DEFAULT_OPTIONS = {
@@ -31,6 +31,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
+    "spans.buffer.max-flush-segments-per-trace": 0,
 }
 
 
@@ -215,6 +216,7 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
                 _output_segment(b"b" * 16, b"b" * 16, True),
@@ -284,6 +286,7 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
                 _output_segment(b"b" * 16, b"b" * 16, True),
@@ -309,11 +312,15 @@ def test_observability_metrics_parent_span_already_oversized(
     # Disable compression so payload size in Redis is predictable, then force a
     # low max-segment-bytes threshold so the destination set is already too
     # large before merge.
-    oversized_parent_payload = orjson.dumps({"span_id": "b" * 16, "blob": "x" * 2048})
-    spans = [
+    #
+    # Batch 1: Span A (large payload, child of B) and Span B (root) build an
+    # oversized segment keyed on B.
+    # Batch 2: Span C (child of A) arrives in a separate batch. Its redirect
+    # resolves to B's set, triggering a merge where dest_bytes > threshold.
+    oversized_payload = orjson.dumps({"span_id": "a" * 16, "blob": "x" * 2048})
+    spans: list[Span | _SplitBatch] = [
         Span(
-            # payload=_payload("a" * 16),
-            payload=oversized_parent_payload,
+            payload=oversized_payload,
             trace_id="a" * 32,
             span_id="a" * 16,
             parent_span_id="b" * 16,
@@ -322,8 +329,7 @@ def test_observability_metrics_parent_span_already_oversized(
             end_timestamp=1700000000.0,
         ),
         Span(
-            # payload=oversized_parent_payload,
-            payload=_payload("a" * 16),
+            payload=_payload("b" * 16),
             trace_id="a" * 32,
             span_id="b" * 16,
             parent_span_id=None,
@@ -332,20 +338,27 @@ def test_observability_metrics_parent_span_already_oversized(
             project_id=1,
             end_timestamp=1700000000.0,
         ),
+        _SplitBatch(),
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="a" * 16,
+            segment_id=None,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        ),
     ]
 
-    with override_options(
-        {"spans.buffer.max-segment-bytes": 200, "spans.buffer.compression.level": -1}
-    ):
+    with override_options({"spans.buffer.max-segment-bytes": 200}):
         process_spans(spans, buffer, now=0)
 
-    emit_observability_metrics.assert_called_once()
-    args, _ = emit_observability_metrics.call_args
-    gauge_metrics = args[1]
+    assert emit_observability_metrics.call_count == 2
 
     oversized_metric_values = [
         value
-        for evalsha_metrics in gauge_metrics
+        for call in emit_observability_metrics.call_args_list
+        for evalsha_metrics in call[0][1]
         for metric_name, value in evalsha_metrics
         if metric_name == b"parent_span_set_already_oversized"
     ]
@@ -435,6 +448,7 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -517,6 +531,7 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -590,7 +605,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
         )
     }
     buffer.done_flush_segments(rv)
@@ -602,6 +617,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"b" * 16, False),
                 _output_segment(b"d" * 16, b"b" * 16, False),
@@ -670,10 +686,11 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
         ),
         _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"c" * 16, True),
             ],
@@ -688,6 +705,7 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"d" * 16, b"b" * 16, False),
                 _output_segment(b"e" * 16, b"b" * 16, False),
@@ -723,7 +741,7 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
+            queue_key=mock.ANY, project_id=1, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
         ),
     }
 
@@ -870,22 +888,14 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
         ),
     ]
 
-    with override_options({"spans.buffer.max-segment-bytes": 200}):
+    with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
 
+    # The entire segment should be dropped because it exceeds max_segment_bytes.
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    retained_span_ids = {span.payload["span_id"] for span in segment.spans}
-
-    # Some spans should be evicted because the segment is too large.
-    all_span_ids = {"a" * 16, "b" * 16, "c" * 16, "d" * 16, "e" * 16}
-    assert len(retained_span_ids) < len(all_span_ids), "Some spans should have been evicted"
-    assert retained_span_ids.issubset(all_span_ids)
-
-    # NB: We currently accept that we leak redirect keys when we limit segments.
-    # buffer.done_flush_segments(rv)
-    # assert_clean(buffer.client)
+    assert segment.spans == []
 
 
 @mock.patch("sentry.spans.buffer.Project")
@@ -977,7 +987,7 @@ def test_dropped_spans_emit_outcomes(
     )
 
     # Set a very small max-segment-bytes to force Redis to drop spans
-    with override_options({"spans.buffer.max-segment-bytes": 200}):
+    with override_options({"spans.buffer.max-segment-bytes": 100}):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         buffer.flush_segments(now=11)
@@ -1086,6 +1096,7 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
                 _output_segment(b"b" * 16, b"a" * 16, False),
@@ -1167,6 +1178,7 @@ def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
         assert rv == {
             _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
                 queue_key=mock.ANY,
+                project_id=1,
                 spans=[
                     _output_segment(b"a" * 16, b"b" * 16, False),
                     _output_segment(b"b" * 16, b"b" * 16, True),
@@ -1251,3 +1263,90 @@ def test_partition_routing_stable_across_rebalance() -> None:
 
         buf.done_flush_segments(rv)
         assert_clean(buf.client)
+
+
+def test_per_trace_flush_limit_throttles(buffer: SpansBuffer) -> None:
+    """A trace exceeding the per-trace limit is capped; other traces flush normally."""
+    spans_a = [
+        Span(
+            payload=_payload(f"a{i:015d}"),
+            trace_id="a" * 32,
+            span_id=f"a{i:015d}",
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        )
+        for i in range(3)
+    ]
+    spans_b = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="b" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=2,
+            end_timestamp=1700000000.0,
+        )
+    ]
+
+    process_spans(spans_a + spans_b, buffer, now=0)
+
+    with override_options({"spans.buffer.max-flush-segments-per-trace": 1}):
+        rv = buffer.flush_segments(now=11)
+        trace_a_key = ("a" * 32).encode()
+        trace_b_key = ("b" * 32).encode()
+        traces_flushed = set()
+        for seg_key in rv:
+            _, trace_id, _ = parse_segment_key(seg_key)
+            traces_flushed.add(trace_id)
+        assert trace_a_key in traces_flushed
+        assert trace_b_key in traces_flushed
+        assert len(rv) == 2
+        buffer.done_flush_segments(rv)
+
+        rv = buffer.flush_segments(now=12)
+        assert len(rv) == 1
+        buffer.done_flush_segments(rv)
+
+        rv = buffer.flush_segments(now=13)
+        assert len(rv) == 1
+        buffer.done_flush_segments(rv)
+
+
+def test_per_trace_flush_limit_disabled(buffer: SpansBuffer) -> None:
+    """With default option (0), all segments flush in one cycle."""
+    spans_a = [
+        Span(
+            payload=_payload(f"a{i:015d}"),
+            trace_id="a" * 32,
+            span_id=f"a{i:015d}",
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            end_timestamp=1700000000.0,
+        )
+        for i in range(3)
+    ]
+    spans_b = [
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="b" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=2,
+            end_timestamp=1700000000.0,
+        )
+    ]
+
+    process_spans(spans_a + spans_b, buffer, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    buffer.done_flush_segments(rv)
+    assert len(rv) == 4

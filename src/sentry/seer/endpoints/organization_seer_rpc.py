@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
@@ -54,7 +54,9 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_event_details,
     get_issue_and_event_details_v2,
+    get_issue_details,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
@@ -104,6 +106,8 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "execute_trace_table_query": execute_trace_table_query,
     "execute_issues_query": map_org_id_param(execute_issues_query),
     "get_issue_and_event_details_v2": get_issue_and_event_details_v2,
+    "get_issue_details": get_issue_details,
+    "get_event_details": get_event_details,
     "get_profile_flamegraph": rpc_get_profile_flamegraph,
     "get_replay_metadata": get_replay_metadata,
     "get_log_attributes_for_trace": map_org_id_param(get_log_attributes_for_trace),
@@ -144,7 +148,7 @@ class SeerRpcPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
     Public RPC endpoint for organization members to call read-only seer methods.

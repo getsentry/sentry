@@ -11,7 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useParams} from 'sentry/utils/useParams';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
-import InsightIssuesList from 'sentry/views/insights/common/components/issues';
+import {InsightIssuesList} from 'sentry/views/insights/common/components/issues';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -199,7 +199,7 @@ export function DatabaseSpanSummaryPage() {
                   <DatabaseSpanDescription
                     groupId={groupId}
                     preliminaryDescription={
-                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION]
+                      spanMetrics?.[SpanFields.NORMALIZED_DESCRIPTION] ?? undefined
                     }
                   />
                 </DescriptionContainer>

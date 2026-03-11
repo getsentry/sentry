@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import InputField from 'sentry/components/forms/fields/inputField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -34,7 +34,7 @@ type Props = {
   tierPlans: BillingConfig['planList'];
 };
 
-function PlanList({
+export function PlanList({
   activePlan,
   subscription,
   onSubmit,
@@ -274,5 +274,3 @@ const CurrentValueText = styled('div')`
 const AuditFields = styled('div')`
   margin-top: ${p => p.theme.space.xl};
 `;
-
-export default PlanList;

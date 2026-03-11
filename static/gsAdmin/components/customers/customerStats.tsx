@@ -7,11 +7,11 @@ import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import Legend from 'sentry/components/charts/components/legend';
+import {Legend} from 'sentry/components/charts/components/legend';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint} from 'sentry/types/echarts';
@@ -207,7 +207,10 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse' && point.by.reason === 'none') {
+      if (
+        point.by.outcome === 'abuse' &&
+        (!point.by.reason || point.by.reason === 'none')
+      ) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
@@ -215,7 +218,11 @@ export function populateChartData(
           };
         }
 
-        droppedData.abuse.data.push(dataObject);
+        if (dateIndex >= droppedData.abuse.data.length) {
+          droppedData.abuse.data.push(dataObject);
+        } else {
+          droppedData.abuse.data[dateIndex]!.value += dataObject.value;
+        }
 
         if (dateIndex >= totalDropped!.data.length) {
           totalDropped!.data.push({...dataObject, value: 0});

@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
@@ -31,8 +31,8 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -94,14 +94,11 @@ function LogDrainsLink({project}: {project: Project}) {
               }
             )
           : tct(
-              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel], or via the [otlpLink:OpenTelemetry Collector].',
               {
                 link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
                 vercelLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
-                ),
-                herokuLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
                 ),
                 otlpLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />

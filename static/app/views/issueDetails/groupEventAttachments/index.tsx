@@ -2,18 +2,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import GroupEventAttachments from './groupEventAttachments';
+import {GroupEventAttachments} from './groupEventAttachments';
 
 function GroupEventAttachmentsContainer() {
   const organization = useOrganization();
@@ -58,10 +57,10 @@ const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
-      padding: ${space(2)} 0;
+      padding: ${p.theme.space.xl} 0;
 
       @media (min-width: ${p.theme.breakpoints.md}) {
-        padding: ${space(2)} ${space(2)};
+        padding: ${p.theme.space.xl} ${p.theme.space.xl};
       }
     `}
 `;

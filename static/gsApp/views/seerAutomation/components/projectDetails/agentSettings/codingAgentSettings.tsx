@@ -14,12 +14,7 @@ interface Props {
   project: Project;
 }
 
-export default function CodingAgentSettings({
-  integration,
-  canWrite,
-  preference,
-  project,
-}: Props) {
+export function CodingAgentSettings({integration, canWrite, preference, project}: Props) {
   const disabledReason = canWrite
     ? null
     : t('You do not have permission to update this setting.');
@@ -52,9 +47,9 @@ export default function CodingAgentSettings({
           },
           {
             onSuccess: () =>
-              value
-                ? addSuccessMessage(t('Enabled pull request creation'))
-                : addSuccessMessage(t('Disabled pull request creation')),
+              addSuccessMessage(
+                value ? t('Enabled PR auto creation') : t('Disabled PR auto creation')
+              ),
             onError: () =>
               addErrorMessage(t('Error while changing pull request settings')),
           }

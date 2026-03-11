@@ -90,7 +90,7 @@ export function DiffImageDisplay({
   const diffPercent = pair.diff === null ? null : `${(pair.diff * 100).toFixed(1)}%`;
 
   return (
-    <Flex direction="column" gap="lg" padding="xl" height="100%">
+    <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
       {diffPercent && (
         <Text variant="muted" size="sm">
           {t('Diff: %s', diffPercent)}
@@ -120,7 +120,7 @@ export function DiffImageDisplay({
         />
       )}
 
-      <Flex justify="center">
+      <Flex justify="center" flexShrink={0}>
         <SegmentedControl value={diffMode} onChange={onDiffModeChange}>
           <SegmentedControl.Item key="split" icon={<IconPause />}>
             {t('Split')}

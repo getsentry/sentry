@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,7 @@ import {
  * 1. there are 2 or more same-trace issues (timeline).
  * 2. there is 1 same-trace issue, different from crashReportId (issue link).
  */
-export default function TraceDataSection({
+export function TraceDataSection({
   eventData,
   crashReportId,
 }: {

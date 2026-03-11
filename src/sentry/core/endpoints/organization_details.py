@@ -11,14 +11,14 @@ from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ONE_DAY, region_silo_endpoint
+from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -500,11 +500,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def _validate_granular_replay_permissions(self):
-        organization = self.context["organization"]
         request = self.context["request"]
-
-        if not features.has("organizations:granular-replay-permissions", organization):
-            raise NotFound("This feature is not enabled for your organization.")
 
         if not request.access.has_scope("org:write"):
             raise PermissionDenied(
@@ -1069,7 +1065,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import type {Client} from 'sentry/api';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

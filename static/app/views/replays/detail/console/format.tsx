@@ -39,7 +39,7 @@ interface FormatProps {
  *
  * %c is ignored for now
  */
-export default function Format({onExpand, expandPaths, args}: FormatProps) {
+export function Format({onExpand, expandPaths, args}: FormatProps) {
   const onToggleExpand = (expandedPaths: any, path: any) => {
     onExpand(path, Object.fromEntries(expandedPaths.map((item: any) => [item, true])));
   };

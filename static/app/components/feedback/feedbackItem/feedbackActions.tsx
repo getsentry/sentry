@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
+import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconCopy, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -26,7 +26,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function FeedbackActions({
+export function FeedbackActions({
   className,
   eventData,
   feedbackItem,

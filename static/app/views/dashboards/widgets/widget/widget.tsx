@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   MIN_HEIGHT,
@@ -184,5 +183,6 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
 export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => (p.noPadding ? 0 : `${space(1)} ${X_GUTTER} ${space(1)} ${X_GUTTER}`)};
+  padding: ${p =>
+    p.noPadding ? 0 : `${p.theme.space.md} ${X_GUTTER} ${p.theme.space.md} ${X_GUTTER}`};
 `;

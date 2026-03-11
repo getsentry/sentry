@@ -14,10 +14,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import LegacyFieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {FieldGroup as LegacyFieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';

@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,7 +32,7 @@ import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
-function WidgetBuilderSortBySelector() {
+export function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
   const widget = convertBuilderStateToWidget(state);
   const organization = useOrganization();
@@ -197,5 +197,3 @@ function WidgetBuilderSortBySelector() {
     </Fragment>
   );
 }
-
-export default WidgetBuilderSortBySelector;

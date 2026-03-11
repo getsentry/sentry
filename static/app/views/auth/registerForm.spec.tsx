@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import RegisterForm from 'sentry/views/auth/registerForm';
+import {RegisterForm} from 'sentry/views/auth/registerForm';
 
 describe('Register', () => {
   const emptyAuthConfig = {

@@ -7,11 +7,10 @@ import {Link} from '@sentry/scraps/link';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -133,7 +132,7 @@ type Props = {
   incidents?: Incident[];
 };
 
-function MetricHistory({incidents}: Props) {
+export function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
   const filteredIncidents = (incidents ?? []).filter(
     incident => incident.activities?.length
@@ -175,8 +174,6 @@ function MetricHistory({incidents}: Props) {
   );
 }
 
-export default MetricHistory;
-
 const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
   grid-template-columns: max-content 1fr repeat(2, max-content);
 
@@ -185,7 +182,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
   }
 
   div:last-of-type {
-    padding: ${p => p.isEmpty && `48px ${space(1)}`};
+    padding: ${p => p.isEmpty && `48px ${p.theme.space.md}`};
   }
 
   ${p =>

@@ -17,7 +17,7 @@ import {
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
@@ -32,7 +32,6 @@ import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -43,7 +42,7 @@ import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnR
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -82,7 +81,7 @@ function ReplayFilterMessage() {
   );
 }
 
-export default function GroupReplays({group}: Props) {
+export function GroupReplays({group}: Props) {
   return (
     <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
       <GroupReplaysContent group={group} />
@@ -306,7 +305,7 @@ function ReplayOverlay({
 
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
-    ? `${nextReplay.user.display_name || t('Anonymous User')}`
+    ? nextReplay.user.display_name || t('Anonymous User')
     : undefined;
 
   if (!nextReplayText || !replayCount) {
@@ -338,7 +337,7 @@ const StyledLayoutPage = styled(Layout.Page)<{hasStreamlinedUI?: boolean}>`
     css`
       border: 1px solid ${p.theme.tokens.border.primary};
       border-radius: ${p.theme.radius.md};
-      padding: ${space(1.5)};
+      padding: ${p.theme.space.lg};
     `}
 `;
 

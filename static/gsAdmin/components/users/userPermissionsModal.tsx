@@ -4,8 +4,8 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -22,7 +22,7 @@ type Props = ModalRenderProps & {
   user: User;
 };
 
-function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
+export function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props) {
   const api = useApi({persistInFlight: true});
 
   const {
@@ -145,5 +145,3 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
     </Fragment>
   );
 }
-
-export default UserPermissionsModal;

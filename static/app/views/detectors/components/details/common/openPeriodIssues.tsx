@@ -5,16 +5,16 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';

@@ -10,10 +10,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {WebVital} from 'sentry/utils/fields';
@@ -274,7 +273,7 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
 `;

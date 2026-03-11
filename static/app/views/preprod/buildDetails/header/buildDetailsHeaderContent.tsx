@@ -7,14 +7,14 @@ import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ConfirmDelete from 'sentry/components/confirmDelete';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {
   IconDelete,
   IconDownload,
@@ -29,8 +29,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   isSizeInfoCompleted,
@@ -50,7 +50,7 @@ interface BuildDetailsHeaderContentProps {
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
-  const router = useRouter();
+  const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
   const {buildDetailsQuery, projectSlug, artifactId, projectType} = props;
   const {
@@ -138,7 +138,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       project_type: projectType,
       project_slug: project?.slug,
     });
-    router.push(
+    navigate(
       getCompareBuildPath({
         organizationSlug: organization.slug,
         headArtifactId: buildDetailsData.id,

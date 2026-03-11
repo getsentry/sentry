@@ -3,7 +3,6 @@ from datetime import datetime
 
 import orjson
 import sentry_sdk
-from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
@@ -47,7 +46,7 @@ class ReplaySummaryPermission(ProjectPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
@@ -88,7 +87,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         try:
             response = make_replay_summary_start_request(
                 body,
-                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                timeout=5,
                 retries=0,
                 viewer_context=viewer_context,
             )
@@ -119,7 +118,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         try:
             response = make_replay_summary_state_request(
                 body,
-                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                timeout=5,
                 retries=0,
                 viewer_context=viewer_context,
             )

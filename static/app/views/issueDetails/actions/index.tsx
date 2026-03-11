@@ -15,11 +15,11 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ResolveActions from 'sentry/components/actions/resolve';
+import {ResolveActions} from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -56,7 +56,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
-import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
+import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
@@ -428,7 +428,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             </ResolvedWrapper>
 
             <Divider />
-            {resolveCap.enabled && (
+            {resolveCap.enabled && isResolved && (
               <Button
                 size="sm"
                 disabled={disabled || isAutoResolved}
@@ -440,7 +440,22 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   })
                 }
               >
-                {isResolved ? t('Unresolve') : t('Unarchive')}
+                {t('Unresolve')}
+              </Button>
+            )}
+            {isIgnored && (
+              <Button
+                size="sm"
+                disabled={disabled || isAutoResolved}
+                onClick={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              >
+                {t('Unarchive')}
               </Button>
             )}
           </Flex>

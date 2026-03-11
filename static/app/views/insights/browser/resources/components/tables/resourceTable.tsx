@@ -32,7 +32,7 @@ import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/
 import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {ResourceSizeCell} from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -86,7 +86,7 @@ type Props = {
   defaultResourceTypes?: string[];
 };
 
-function ResourceTable({sort, defaultResourceTypes}: Props) {
+export function ResourceTable({sort, defaultResourceTypes}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -142,7 +142,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     const {key} = col;
 
     if (key === NORMALIZED_DESCRIPTION) {
-      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
+      const fileExtension = (row[NORMALIZED_DESCRIPTION] ?? '').split('.').pop() || '';
       const extraLinkQueryParams = {};
       if (filters[SpanFields.USER_GEO_SUBREGION]) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -156,7 +156,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             moduleName={ModuleName.RESOURCE}
             projectId={row[PROJECT_ID]}
             spanOp={row[SPAN_OP]}
-            description={row[NORMALIZED_DESCRIPTION]}
+            description={row[NORMALIZED_DESCRIPTION] ?? ''}
             group={row[SPAN_GROUP]}
             extraLinkQueryParams={extraLinkQueryParams}
           />
@@ -173,7 +173,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       return <DurationCell milliseconds={row[key]} />;
     }
     if (key === SPAN_OP) {
-      const fileExtension = row[NORMALIZED_DESCRIPTION].split('.').pop() || '';
+      const fileExtension = (row[NORMALIZED_DESCRIPTION] ?? '').split('.').pop() || '';
       const spanOp = row[key];
       if (fileExtension === 'js' || spanOp === 'resource.script') {
         return <span>{t('JavaScript')}</span>;
@@ -261,5 +261,3 @@ function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
   }
   return <PlatformIcon platform="unknown" />;
 }
-
-export default ResourceTable;

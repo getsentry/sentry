@@ -9,7 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
@@ -59,7 +59,7 @@ interface CustomResolutionModalProps extends ModalRenderProps {
   projectSlug: string | undefined;
 }
 
-function CustomResolutionModal(props: CustomResolutionModalProps) {
+export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [version, setVersion] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -212,8 +212,6 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     </form>
   );
 }
-
-export default CustomResolutionModal;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;

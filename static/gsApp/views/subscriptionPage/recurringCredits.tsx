@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {Container} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 
@@ -33,7 +33,7 @@ type Props = {
   planDetails: Plan;
 };
 
-function RecurringCredits({displayType, planDetails}: Props) {
+export function RecurringCredits({displayType, planDetails}: Props) {
   const {recurringCredits, isLoading} = useRecurringCredits();
   if (isLoading) {
     return null;
@@ -139,8 +139,6 @@ function RecurringCredits({displayType, planDetails}: Props) {
     </Container>
   );
 }
-
-export default RecurringCredits;
 
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h4 {

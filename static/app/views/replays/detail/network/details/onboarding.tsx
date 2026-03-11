@@ -5,7 +5,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {

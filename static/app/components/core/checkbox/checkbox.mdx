@@ -18,9 +18,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/checkbox';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/checkbox');
 
 Checkboxes are form controls that allow users to select one or more options from a set. They represent a binary choice and can be in one of three states: unchecked, checked, or indeterminate.
 

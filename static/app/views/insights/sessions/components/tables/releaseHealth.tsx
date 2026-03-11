@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import ReleaseHealthTable from 'sentry/views/insights/sessions/components/tables/releaseHealthTable';
+import {ReleaseHealthTable} from 'sentry/views/insights/sessions/components/tables/releaseHealthTable';
 import useOrganizationReleases from 'sentry/views/insights/sessions/queries/useOrganizationReleases';
 
-export default function ReleaseHealth({filters}: {filters: string[]}) {
+export function ReleaseHealth({filters}: {filters: string[]}) {
   const {releaseData, isLoading, isError, pageLinks} = useOrganizationReleases({
     filters,
   });

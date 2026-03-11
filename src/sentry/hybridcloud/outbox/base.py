@@ -405,7 +405,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         this behavior.
         """
         return self.category.as_control_outboxes(
-            region_names=self.outbox_region_names(),
+            cell_names=self.outbox_region_names(),
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,

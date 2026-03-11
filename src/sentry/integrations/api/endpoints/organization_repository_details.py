@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -40,7 +40,7 @@ class RepositorySerializer(serializers.Serializer):
     integrationId = EmptyIntegerField(required=False, allow_null=True)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

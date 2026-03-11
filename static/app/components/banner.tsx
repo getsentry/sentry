@@ -7,7 +7,6 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const makeKey = (prefix: string) => `${prefix}-banner-dismissed`;
 
@@ -98,7 +97,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   align-items: center;
   justify-content: center;
   position: relative;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   box-shadow: ${p => p.theme.dropShadowMedium};
   border-radius: ${p => p.theme.radius.md};
   height: 180px;

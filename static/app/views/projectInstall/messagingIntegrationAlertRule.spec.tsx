@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import selectEvent from 'sentry-test/selectEvent';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
 function setupValidateChannelSpy() {

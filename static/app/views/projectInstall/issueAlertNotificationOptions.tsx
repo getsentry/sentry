@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
@@ -15,7 +15,7 @@ import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
-import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
   slack: {

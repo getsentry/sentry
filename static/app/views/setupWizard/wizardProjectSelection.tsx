@@ -10,7 +10,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {createablePlatforms} from 'sentry/data/platformPickerCategories';

@@ -6,7 +6,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 
 type Props = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
-function Chart(props: Props) {
+export function Chart(props: Props) {
   const theme = useTheme();
 
   const durationUnit = getDurationUnit(props.series);
@@ -41,5 +41,3 @@ function Chart(props: Props) {
     />
   );
 }
-
-export default Chart;

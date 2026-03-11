@@ -23,14 +23,14 @@ except ImportError:
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationReleasePermission
 from sentry.models.organization import Organization
 from sentry.objectstore import parse_accept_encoding
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

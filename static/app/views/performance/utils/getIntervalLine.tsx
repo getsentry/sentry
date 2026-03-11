@@ -1,14 +1,15 @@
 import type {Theme} from '@emotion/react';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import transformTransaction from 'sentry/views/performance/utils/transformTransaction';
+import transformTransaction, {
+  type BreakpointTransaction,
+} from 'sentry/views/performance/utils/transformTransaction';
 
 const DEFAULT_CHART_HEIGHT = 200;
 const X_AXIS_MARGIN_OFFSET = 23;
@@ -18,7 +19,7 @@ export function getIntervalLine(
   series: Series[],
   intervalRatio: number,
   label: boolean,
-  transaction?: NormalizedTrendsTransaction,
+  transaction?: BreakpointTransaction,
   useRegressionFormat?: boolean
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0]!.data?.length) {

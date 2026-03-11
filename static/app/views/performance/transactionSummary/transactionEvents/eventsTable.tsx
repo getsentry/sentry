@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Pagination from 'sentry/components/pagination';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
@@ -33,7 +33,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -113,7 +113,7 @@ type Props = {
   }) => ReactNode;
 };
 
-export default function EventsTable({
+export function EventsTable({
   eventView,
   location,
   organization,

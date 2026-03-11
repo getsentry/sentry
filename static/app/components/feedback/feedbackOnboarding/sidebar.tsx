@@ -14,15 +14,15 @@ import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboa
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   feedbackCrashApiPlatforms,
   feedbackNpmPlatforms,

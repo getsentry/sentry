@@ -6,7 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
+import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';

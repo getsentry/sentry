@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any, Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -13,6 +13,7 @@ from django.db.models import (
     IntegerField,
     OrderBy,
     OuterRef,
+    Q,
     Subquery,
     Value,
     When,
@@ -26,7 +27,7 @@ from rest_framework.views import APIView
 from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -92,9 +93,9 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_CACHES = 28
 
 
-class PrebuiltDashboard(TypedDict):
-    prebuilt_id: PrebuiltDashboardId
-    title: str
+class PrebuiltDashboard(TypedDict, total=False):
+    prebuilt_id: Required[PrebuiltDashboardId]
+    title: Required[str]
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -169,23 +170,23 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
-        "title": "AI Agents Models",
+        "title": "AI Agents Model Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
-        "title": "AI Agents Tools",
+        "title": "AI Agents Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
-        "title": "MCP Tools",
+        "title": "MCP Tool Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
-        "title": "MCP Resources",
+        "title": "MCP Resource Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
-        "title": "MCP Prompts",
+        "title": "MCP Prompt Details",
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
@@ -222,6 +223,28 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
 ]
 
 
+def get_enabled_prebuilt_dashboards(
+    organization: Organization,
+) -> list[PrebuiltDashboard]:
+    """
+    Returns the list of prebuilt dashboards that are enabled for the given organization,
+    based on the prebuilt-dashboard-ids option and the sync-all feature flag.
+    """
+    enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
+    should_sync_all_registered_prebuilt_dashboards = features.has(
+        "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+        organization,
+    )
+    all_prebuilt_dashboards = [dashboard for dashboard in PREBUILT_DASHBOARDS]
+    if should_sync_all_registered_prebuilt_dashboards:
+        return all_prebuilt_dashboards
+    return [
+        dashboard
+        for dashboard in all_prebuilt_dashboards
+        if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
+    ]
+
+
 def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt dashboards have a Dashboard record and
@@ -230,16 +253,7 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
     """
 
     with transaction.atomic(router.db_for_write(Dashboard)):
-        enabled_prebuilt_dashboard_ids = options.get("dashboards.prebuilt-dashboard-ids")
-        enabled_prebuilt_dashboards = [
-            dashboard
-            for dashboard in PREBUILT_DASHBOARDS
-            if dashboard["prebuilt_id"] in enabled_prebuilt_dashboard_ids
-            or features.has(
-                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-                organization,
-            )
-        ]
+        enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
 
         saved_prebuilt_dashboards = Dashboard.objects.filter(
             organization=organization,
@@ -314,7 +328,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -360,11 +374,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     name="sync_prebuilt_dashboards",
                 )
                 with lock.acquire():
-                    # Adds prebuilt dashboards to the database if they don't exist.
-                    # Deletes old prebuilt dashboards from the database if they should no longer exist.
                     sync_prebuilt_dashboards(organization)
             except UnableToAcquireLock:
-                # Another process is already syncing the prebuilt dashboards. We can skip syncing this time.
                 pass
             except Exception as err:
                 sentry_sdk.capture_exception(err)
@@ -374,15 +385,23 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = Dashboard.objects.filter(organization_id=organization.id)
         for f in filters:
             if f == "onlyFavorites":
-                dashboards = dashboards.filter(dashboardfavoriteuser__user_id=request.user.id)
+                dashboards = dashboards.filter(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
             elif f == "excludeFavorites":
-                dashboards = dashboards.exclude(dashboardfavoriteuser__user_id=request.user.id)
+                dashboards = dashboards.exclude(
+                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__favorited=True,
+                )
             elif f == "owned":
                 dashboards = dashboards.filter(created_by_id=request.user.id)
             elif f == "shared":
                 dashboards = dashboards.exclude(created_by_id=request.user.id)
             elif f == "excludePrebuilt":
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
+            elif f == "onlyPrebuilt":
+                dashboards = dashboards.filter(prebuilt_id__isnull=False)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
@@ -493,7 +512,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             "organizations:dashboards-starred-reordering", organization, actor=request.user
         ):
             dashboards = dashboards.annotate(
-                favorites_count=Count("dashboardfavoriteuser", distinct=True)
+                favorites_count=Count(
+                    "dashboardfavoriteuser",
+                    filter=Q(dashboardfavoriteuser__favorited=True),
+                    distinct=True,
+                )
             )
             order_by = [
                 "favorites_count" if desc else "-favorites_count",
@@ -506,7 +529,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                dashboard=OuterRef("pk"), user_id=request.user.id
+                dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
             )
 
             order_by_favorites = [
@@ -547,7 +570,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
-        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt"}
+        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt", "onlyPrebuilt"}
         render_pre_built_dashboard = True
         if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False

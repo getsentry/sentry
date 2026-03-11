@@ -14,7 +14,7 @@ import {
   ReplayAccessMembersField,
 } from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-function OrganizationMembershipSettingsForm({
+export function OrganizationMembershipSettingsForm({
   organization,
   onSave,
 }: MembershipSettingsProps) {
@@ -275,38 +275,36 @@ function OrganizationMembershipSettingsForm({
           )}
         </AutoSaveField>
 
-        {features.has('granular-replay-permissions') && (
-          <AutoSaveField
-            name="hasGranularReplayPermissions"
-            schema={membershipSchema}
-            initialValue={organization.hasGranularReplayPermissions ?? false}
-            mutationOptions={mutationOpts}
-            confirm={value =>
-              value
-                ? undefined
-                : t(
-                    'This will allow all members of your organization to access replay data. Do you want to continue?'
-                  )
-            }
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Restrict Replay Access')}
-                hintText={t(
-                  'Allow granular access to replay data by selecting specific members of your organization.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={baseDisabled}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-        )}
+        <AutoSaveField
+          name="hasGranularReplayPermissions"
+          schema={membershipSchema}
+          initialValue={organization.hasGranularReplayPermissions ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'This will allow all members of your organization to access replay data. Do you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Restrict Replay Access')}
+              hintText={t(
+                'Allow granular access to replay data by selecting specific members of your organization.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={baseDisabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveField>
 
-        {features.has('granular-replay-permissions') && hasGranularReplay && (
+        {hasGranularReplay && (
           <ReplayAccessMembersField
             organization={organization}
             onSave={onSave}
@@ -317,5 +315,3 @@ function OrganizationMembershipSettingsForm({
     </Fragment>
   );
 }
-
-export default OrganizationMembershipSettingsForm;

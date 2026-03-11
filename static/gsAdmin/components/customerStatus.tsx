@@ -62,7 +62,7 @@ const StatusList = styled('dl')`
   }
 `;
 
-function CustomerStatus({customer}: Props) {
+export function CustomerStatus({customer}: Props) {
   const label = getLabel(customer);
 
   return (
@@ -75,5 +75,3 @@ function CustomerStatus({customer}: Props) {
     </Fragment>
   );
 }
-
-export default CustomerStatus;

@@ -240,6 +240,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     withProfiler: SentryReact.withProfiler,
     metrics: {
+      count: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),

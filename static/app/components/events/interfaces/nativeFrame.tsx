@@ -24,7 +24,7 @@ import {
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import StrictClick from 'sentry/components/strictClick';
+import {StrictClick} from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
@@ -43,7 +43,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -363,7 +363,7 @@ function NativeFrame({
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
             ) : isDartAsyncSuspensionFrame ? (
-              `${t('Dart')}`
+              t('Dart')
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -547,8 +547,8 @@ const RowHeader = styled('span')<{
   column-gap: ${p => p.theme.space.md};
   background-color: ${p =>
     !p.isInAppFrame && p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.secondary}`};
+      ? p.theme.colors.surface200
+      : p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
   padding: ${p => p.theme.space.md};
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};

@@ -1,8 +1,8 @@
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

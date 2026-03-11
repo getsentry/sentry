@@ -12,10 +12,10 @@ import {useTheme} from '@emotion/react';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import Grid from 'sentry/components/charts/components/grid';
+import {Grid} from 'sentry/components/charts/components/grid';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
-import XAxis from 'sentry/components/charts/components/xAxis';
-import YAxis from 'sentry/components/charts/components/yAxis';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {YAxis} from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -33,7 +33,7 @@ interface Props
   setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;
 }
 
-export default function MemoryChart({
+export function MemoryChart({
   currentHoverTime,
   currentTime,
   setCurrentHoverTime,

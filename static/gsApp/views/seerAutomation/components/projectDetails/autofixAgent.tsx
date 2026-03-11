@@ -11,23 +11,23 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import CodingAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
-import SeerAgentSettings from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
+import {CodingAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
+import {SeerAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
 import {
   useAgentOptions,
   useMutateSelectedAgent,
-  useSelectedAgent,
-} from 'getsentry/views/seerAutomation/components/projectDetails/useAgentHooks';
+  useSelectedAgentFromProjectSettings,
+} from 'getsentry/views/seerAutomation/components/seerAgentHooks';
 
 interface Props {
   canWrite: boolean;
@@ -53,7 +53,7 @@ function AgentSpecificFields({
   return null;
 }
 
-export default function AutofixAgent({canWrite, preference, project}: Props) {
+export function AutofixAgent({canWrite, preference, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
@@ -64,12 +64,12 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
     select: data => data.json.integrations ?? [],
   });
   const options = useAgentOptions({integrations: integrations ?? []});
-  const selected = useSelectedAgent({
+  const selected = useSelectedAgentFromProjectSettings({
     preference,
     project,
     integrations: integrations ?? [],
   });
-  const mutateSelectedAgent = useMutateSelectedAgent({preference, project});
+  const mutateSelectedAgent = useMutateSelectedAgent({project});
 
   const disabledReason = canWrite
     ? null
@@ -77,7 +77,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
 
   return (
     <PanelNoMargin>
-      <PanelHeader>{t('Autofix Agent')}</PanelHeader>
+      <PanelHeader>{t('Autofix Handoff')}</PanelHeader>
       <PanelBody>
         {isPending ? (
           <Flex justify="center" align="center" padding="xl">
@@ -92,9 +92,9 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
               disabled={Boolean(disabledReason)}
               disabledReason={disabledReason}
               name="autofixAgent"
-              label={t('Autofix Agent')}
+              label={t('Autofix Handoff')}
               help={tct(
-                'Seer will orchestrate the autofix process, and automatically hand off issue data coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
+                'Seer will orchestrate the autofix process, and automatically hand off issue data to the coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
                 {
                   docsLink: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />

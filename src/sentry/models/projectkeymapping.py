@@ -22,7 +22,7 @@ class ProjectKeyMapping(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_key_id = BoundedBigIntegerField(db_index=True)
+    project_key_id = BoundedBigIntegerField()
     public_key = models.CharField(max_length=32, unique=True, db_index=True)
     cell_name = models.CharField(max_length=REGION_NAME_LENGTH)
     date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
@@ -30,6 +30,12 @@ class ProjectKeyMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectkeymapping"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_key_id", "cell_name"],
+                name="sentry_projectkeymapping_project_key_id_cell_name_uniq",
+            ),
+        ]
         indexes = [
             IndexWithPostgresNameLimits(
                 "cell_name",

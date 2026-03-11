@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationAlertRulePermission
 from sentry.api.helpers.teams import get_teams
@@ -76,7 +76,7 @@ def flip_sort_direction(sort_field: str) -> str:
     return sort_field
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     publish_status = {

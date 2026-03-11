@@ -282,7 +282,7 @@ function OnDemandDiff({
   );
 }
 
-function CartDiff({
+export function CartDiff({
   activePlan,
   formData,
   subscription,
@@ -615,8 +615,6 @@ function CartDiff({
     </Stack>
   );
 }
-
-export default CartDiff;
 
 const Change = styled('div')`
   display: flex;

@@ -6,11 +6,10 @@ import {Slider} from '@sentry/scraps/slider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import SliderAndInputWrapper from './sliderAndInputWrapper';
-import SliderLabel from './sliderLabel';
+import {SliderAndInputWrapper} from './sliderAndInputWrapper';
+import {SliderLabel} from './sliderLabel';
 
 type SliderProps = {
   name: string;
@@ -86,7 +85,7 @@ type SliderProps = {
   step?: number;
 };
 
-function RangeSlider({
+export function RangeSlider({
   id,
   value,
   allowedValues,
@@ -226,7 +225,5 @@ const StyledSlider = styled(Slider)`
 `;
 
 const StyledInput = styled(Input)<{hasLabel: boolean}>`
-  margin-top: ${p => space(p.hasLabel ? 2 : 1)};
+  margin-top: ${p => (p.hasLabel ? p.theme.space.xl : p.theme.space.md)};
 `;
-
-export default RangeSlider;

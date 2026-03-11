@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
-import withDomainRequired from 'sentry/utils/withDomainRequired';
+import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 
 describe('withDomainRequired', () => {
   function MyComponent() {

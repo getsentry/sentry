@@ -6,12 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Placeholder from 'sentry/components/placeholder';
-import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-export default function BrowserOSIcons({
+export function BrowserOSIcons({
   showBrowser = true,
   isLoading,
 }: {

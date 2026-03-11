@@ -15,7 +15,7 @@ import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
@@ -311,12 +311,8 @@ export function CreateProject() {
 
         addSuccessMessage(
           team
-            ? t('Created project %s', `${project.slug}`)
-            : t(
-                'Created %s under new team %s',
-                `${project.slug}`,
-                `#${project.team.slug}`
-              )
+            ? t('Created project %s', project.slug)
+            : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)
         );
 
         setCreatedProject({
@@ -338,7 +334,7 @@ export function CreateProject() {
           )
         );
       } catch (error: any) {
-        addErrorMessage(t('Failed to create project %s', `${projectName}`));
+        addErrorMessage(t('Failed to create project %s', projectName));
 
         if (error.status === 403) {
           Sentry.withScope(scope => {

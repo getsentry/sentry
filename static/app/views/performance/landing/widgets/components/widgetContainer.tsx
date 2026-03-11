@@ -11,7 +11,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -22,7 +21,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -41,7 +40,7 @@ import type {
 import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {HistogramWidget} from 'sentry/views/performance/landing/widgets/widgets/histogramWidget';
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
-import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
+import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
 import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
@@ -303,11 +302,12 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md} -${p =>
+      p.theme.space['2xs']};
   min-width: 0;
 
   button {
-    padding: ${space(0.5)} ${space(1)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
     font-size: ${p => p.theme.font.size.lg};
   }
 `;

@@ -81,7 +81,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             )
             return False
 
-        org_slug_regions_set = {org_slug.region_name for org_slug in org_slugs}
+        org_slug_regions_set = {org_slug.cell_name for org_slug in org_slugs}
         if update.region_name not in org_slug_regions_set:
             capture_exception(
                 OrganizationMappingConsistencyException(
@@ -112,7 +112,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         ).first()
         if org_slug_reservation is None:
             OrganizationSlugReservation(
-                region_name=mapping_update.region_name,
+                cell_name=mapping_update.region_name,
                 slug=mapping_update.slug,
                 organization_id=organization_id,
                 user_id=-1,

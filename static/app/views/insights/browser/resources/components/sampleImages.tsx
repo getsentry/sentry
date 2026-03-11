@@ -7,18 +7,17 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {ChartPanel} from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -311,7 +310,7 @@ const getFileNameFromDescription = (description: string) => {
 const ImageWrapper = styled('div')<{noVisualizationPadding?: boolean}>`
   display: grid;
   grid-template-columns: repeat(auto-fill, ${imageWidth});
-  padding-top: ${p => (p.noVisualizationPadding ? 0 : space(2))};
+  padding-top: ${p => (p.noVisualizationPadding ? 0 : p.theme.space.xl)};
   gap: 30px;
 `;
 

@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -57,7 +57,7 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

@@ -11,7 +11,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +40,7 @@ import {
   type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
@@ -63,7 +63,7 @@ import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import TableActions from './tableActions';
+import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 

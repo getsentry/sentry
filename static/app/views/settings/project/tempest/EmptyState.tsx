@@ -31,7 +31,7 @@ interface EmptyStateProps {
   tempestCredentials?: TempestCredentials[];
 }
 
-export default function EmptyState({
+export function EmptyState({
   project,
   tempestCredentials,
   isRemoving,
