@@ -342,7 +342,7 @@ export function useNavigationTourModal() {
       openModal(
         props => (
           <StartTourModal
-            img={{src: NavigationTourSvg, alt: t(' Navigation Tour')}}
+            img={{src: NavigationTourSvg, alt: t('Navigation Tour')}}
             header={t('Welcome to a simpler Sentry')}
             description={t(
               'Find what you need, faster. Our new navigation puts your top workflows front and center.'
