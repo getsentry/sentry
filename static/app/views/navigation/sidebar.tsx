@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import Hook from 'sentry/components/hook';
 import ConfigStore from 'sentry/stores/configStore';
@@ -52,11 +51,17 @@ export function Sidebar() {
 
   useNavigationTourModal();
 
+  const sidebarAnimationProps = useMemo(
+    () => makeCollapsedSecondaryWrapperAnimationProps(isOpen, secondarySidebarWidth),
+    [isOpen, secondarySidebarWidth]
+  );
+
   return (
     <Fragment>
       <Flex
         as="nav"
-        width={PRIMARY_SIDEBAR_WIDTH}
+        aria-label="Primary Navigation"
+        width={`${PRIMARY_SIDEBAR_WIDTH}px`}
         padding="lg 0 md 0"
         borderRight="primary"
         background="primary"
@@ -72,9 +77,18 @@ export function Sidebar() {
         >
           <OrganizationDropdown />
           {showSuperuserWarning && (
-            <SuperuserBadge>
+            <Container
+              position="absolute"
+              top={`-${theme.space.lg}`}
+              left={0}
+              width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+              style={{
+                zIndex: theme.zIndex.initial,
+                background: theme.tokens.background.danger.vibrant,
+              }}
+            >
               <Hook name="component:superuser-warning" organization={organization} />
-            </SuperuserBadge>
+            </Container>
           )}
         </Flex>
         <PrimaryNavigationItems />
@@ -85,11 +99,11 @@ export function Sidebar() {
           data-visible={isOpen}
           data-test-id="collapsed-secondary-sidebar"
           height="100%"
-          left={PRIMARY_SIDEBAR_WIDTH}
+          left={`${PRIMARY_SIDEBAR_WIDTH}px`}
           top={0}
           position="absolute"
           background="primary"
-          {...makeCollapsedSecondaryWrapperAnimationProps(isOpen, secondarySidebarWidth)}
+          {...sidebarAnimationProps}
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
@@ -119,12 +133,3 @@ const makeCollapsedSecondaryWrapperAnimationProps = (
     },
   };
 };
-
-const SuperuserBadge = styled('div')`
-  position: absolute;
-  top: -${p => p.theme.space.lg};
-  z-index: ${p => p.theme.zIndex.initial};
-  left: 0;
-  width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  background: ${p => p.theme.tokens.background.danger.vibrant};
-`;

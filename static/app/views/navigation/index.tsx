@@ -78,15 +78,18 @@ function UserAndOrganizationNavigation() {
 }
 
 function UserOnlyNavigation() {
+  const theme = useTheme();
   return (
     <Flex
       data-test-id="no-organization-sidebar"
-      width={PRIMARY_SIDEBAR_WIDTH}
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="lg 0 md 0"
       borderRight="primary"
       background="primary"
       direction="column"
+      align="center"
       justify="between"
+      style={{zIndex: theme.zIndex.sidebarPanel}}
     >
       <Flex direction="column" gap="md" justify="between">
         <UserDropdown />
