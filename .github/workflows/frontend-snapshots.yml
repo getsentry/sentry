@@ -97,7 +97,7 @@ jobs:
           sentry-cli "${ARGS[@]}"
 
       - name: Report upload failure to Sentry
-        if: ${{ failure() && steps.upload.outputs.outcome == 'failure' }}
+        if: ${{ failure() && steps.upload.outcome == 'failure' }}
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
         run: |
