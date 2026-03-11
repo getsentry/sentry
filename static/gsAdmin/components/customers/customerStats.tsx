@@ -559,11 +559,19 @@ export const CustomerStats = memo(
         if (regions.length === 0) {
           return;
         }
-        // Build a sparse series array that only touches the markArea series
-        // (indices 0..regions.length-1), leaving all other series untouched
-        const seriesUpdate = regions.map((_, i) => ({
-          markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
-        }));
+        // Get the total series count from the current chart option so we can
+        // pad the update array to the full length, preventing ECharts from
+        // accidentally merging markArea config into bar series
+        const totalSeries = instance.getOption?.()?.series?.length ?? 0;
+        if (totalSeries === 0) {
+          return;
+        }
+        const seriesUpdate: Array<Record<string, any>> = new Array(totalSeries).fill({});
+        regions.forEach((_, i) => {
+          seriesUpdate[i] = {
+            markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
+          };
+        });
         instance.setOption({series: seriesUpdate}, {replaceMerge: []});
       },
       []
@@ -618,7 +626,10 @@ export const CustomerStats = memo(
         const pixelPos = instance.convertToPixel('grid', [ts, 0]);
         if (pixelPos) {
           el.style.left = `${pixelPos[0]}px`;
-          el.textContent = `Abuse: ${value.toLocaleString()}`;
+          const textSpan = el.querySelector('[data-abuse-text]');
+          if (textSpan) {
+            textSpan.textContent = `Abuse: ${value.toLocaleString()}`;
+          }
           el.style.display = 'flex';
         }
       },
@@ -734,7 +745,10 @@ export const CustomerStats = memo(
                       grid={{top: 30, bottom: 0, left: 0, right: 0}}
                       {...zoomRenderProps}
                     />
-                    <AbuseTooltip ref={abuseTooltipRef} style={{display: 'none'}} />
+                    <AbuseTooltip ref={abuseTooltipRef} style={{display: 'none'}}>
+                      <AbuseDot />
+                      <span data-abuse-text />
+                    </AbuseTooltip>
                   </ChartContainer>
                   <Footer>
                     <FooterLegend points={stats} />
@@ -752,6 +766,15 @@ export const CustomerStats = memo(
 
 const ChartContainer = styled('div')`
   position: relative;
+`;
+
+const AbuseDot = styled('span')`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${p => p.theme.tokens.graphics.promotion.vibrant};
+  opacity: 0.3;
+  flex-shrink: 0;
 `;
 
 const AbuseTooltip = styled('div')`
