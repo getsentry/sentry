@@ -1,22 +1,20 @@
 import {useMemo} from 'react';
 
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
-import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import type {Group} from 'sentry/types/group';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
-import type {FlagDrawerItem} from 'sentry/views/issueDetails/groupFeatureFlags/types';
+import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface Props {
   environments: string[];
   group: Group;
   orderBy: OrderBy;
   search: string;
-  sortBy: SortBy;
 }
 
 interface Response {
   allGroupFlagCount: number;
-  displayFlags: FlagDrawerItem[];
+  displayFlags: GroupTag[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
@@ -27,10 +25,7 @@ export default function useGroupFlagDrawerData({
   group,
   orderBy,
   search,
-  sortBy,
 }: Props): Response {
-  const isSuspectEnabled = sortBy === SortBy.SUSPICION;
-
   // Fetch the base flag data
   const {
     data: groupFlags = [],
@@ -41,37 +36,6 @@ export default function useGroupFlagDrawerData({
     groupId: group.id,
     environment: environments,
   });
-
-  // Fetch the suspect data, if we need it for this render
-  const {
-    data: suspectScores,
-    isError: isSuspectError,
-    isPending: isSuspectPending,
-    refetch: refetchScores,
-  } = useGroupSuspectFlagScores({
-    groupId: group.id,
-    environment: environments.length ? environments : undefined,
-    enabled: isSuspectEnabled,
-  });
-
-  // Combine the flag and suspect data into SuspectGroupTag objects
-  const allFlagsWithScores = useMemo(() => {
-    const suspectScoresMap = suspectScores
-      ? Object.fromEntries(suspectScores.data.map(score => [score.flag, score]))
-      : {};
-
-    return groupFlags.map<FlagDrawerItem>(flag => ({
-      ...flag,
-      suspect: {
-        baselinePercent: suspectScoresMap[flag.key]?.baseline_percent,
-        score: suspectScoresMap[flag.key]?.score,
-      },
-      distribution: suspectScoresMap[flag.key]?.distribution ?? {
-        baseline: {},
-        outliers: {},
-      },
-    }));
-  }, [groupFlags, suspectScores]);
 
   // Flatten all the tag values together into a big string. This is meant as a
   // perf improvement: here we iterate over all tags&values once, (N*M) then
@@ -90,39 +54,36 @@ export default function useGroupFlagDrawerData({
 
   const filteredFlags = useMemo(() => {
     const searchLower = search.toLowerCase();
-    return allFlagsWithScores.filter(flag => {
+    return groupFlags.filter(flag => {
       return (
         flag.name.includes(searchLower) ||
         flag.key.includes(searchLower) ||
         tagValues[flag.key]?.includes(searchLower)
       );
     });
-  }, [allFlagsWithScores, search, tagValues]);
+  }, [groupFlags, search, tagValues]);
 
   const displayFlags = useMemo(() => {
-    if (sortBy === SortBy.ALPHABETICAL) {
-      const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
-      return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
+    if (orderBy === OrderBy.A_TO_Z) {
+      return filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
     }
-    if (sortBy === SortBy.DISTRIBUTION) {
-      const sorted = filteredFlags.toSorted((a, b) => {
-        const aTopPct = (a.topValues[0]?.count ?? 0) / a.totalValues;
-        const bTopPct = (b.topValues[0]?.count ?? 0) / b.totalValues;
-        return bTopPct - aTopPct;
-      });
-      return orderBy === OrderBy.HIGH_TO_LOW ? sorted : sorted.reverse();
+    if (orderBy === OrderBy.Z_TO_A) {
+      return filteredFlags.toSorted((a, b) => b.key.localeCompare(a.key));
     }
+    if (orderBy === OrderBy.OLDEST) {
+      return Array.from(filteredFlags).reverse();
+    }
+    // orderBy === OrderBy.NEWEST
     return filteredFlags;
-  }, [filteredFlags, orderBy, sortBy]);
+  }, [filteredFlags, orderBy]);
 
   return {
-    allGroupFlagCount: allFlagsWithScores.length,
+    allGroupFlagCount: groupFlags.length,
     displayFlags,
-    isError: isSuspectEnabled ? isFlagsError || isSuspectError : isFlagsError,
-    isPending: isSuspectEnabled ? isFlagsPending || isSuspectPending : isFlagsPending,
+    isError: isFlagsError,
+    isPending: isFlagsPending,
     refetch: () => {
       refetchFlags();
-      refetchScores();
     },
   };
 }

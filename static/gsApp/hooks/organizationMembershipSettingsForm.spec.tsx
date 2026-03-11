@@ -132,20 +132,9 @@ describe('OrganizationMembershipSettings', () => {
     ).toBeDisabled();
   });
 
-  it('does not render restrict replay access if org does not have granular-replay-permissions', () => {
+  it('renders restrict replay access toggle', () => {
     const organization = OrganizationFixture({
       features: ['invite-members'],
-      access: ['org:write'],
-    });
-    renderComponent(organization);
-    expect(
-      screen.queryByRole('checkbox', {name: 'Restrict Replay Access'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders restrict replay access if org has granular-replay-permissions', () => {
-    const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
       access: ['org:write'],
       hasGranularReplayPermissions: true,
     });
@@ -157,7 +146,7 @@ describe('OrganizationMembershipSettings', () => {
 
   it('disables restrict replay access if user does not have org:write access', () => {
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: [],
       hasGranularReplayPermissions: true,
     });
@@ -167,7 +156,7 @@ describe('OrganizationMembershipSettings', () => {
 
   it('does not render replay access members field when hasGranularReplayPermissions is false', () => {
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: false,
     });
@@ -182,7 +171,7 @@ describe('OrganizationMembershipSettings', () => {
 
   it('renders replay access members field when hasGranularReplayPermissions is true', () => {
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: true,
     });
@@ -194,7 +183,7 @@ describe('OrganizationMembershipSettings', () => {
 
   it('disables replay access members field if user does not have org:write access', () => {
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: [],
       hasGranularReplayPermissions: true,
     });
@@ -209,7 +198,7 @@ describe('OrganizationMembershipSettings', () => {
       body: OrganizationFixture({hasGranularReplayPermissions: true}),
     });
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: false,
     });
@@ -233,7 +222,7 @@ describe('OrganizationMembershipSettings', () => {
       body: OrganizationFixture({hasGranularReplayPermissions: false}),
     });
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: true,
     });
@@ -257,7 +246,7 @@ describe('OrganizationMembershipSettings', () => {
   it('keeps replay access members field visible when Restrict Replay Access cancel is dismissed', async () => {
     renderGlobalModal();
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: true,
     });
@@ -286,7 +275,7 @@ describe('OrganizationMembershipSettings', () => {
       body: OrganizationFixture({replayAccessMembers: [1]}),
     });
     const organization = OrganizationFixture({
-      features: ['invite-members', 'granular-replay-permissions'],
+      features: ['invite-members'],
       access: ['org:write'],
       hasGranularReplayPermissions: true,
     });

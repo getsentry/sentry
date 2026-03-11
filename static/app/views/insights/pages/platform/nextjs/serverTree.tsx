@@ -339,7 +339,7 @@ function TreeNodeRenderer({
                 showUnderline={!exploreLink}
                 body={
                   <OneLineCodeBlock>
-                    <code>{`${itemPath.join('/')}`}</code>
+                    <code>{itemPath.join('/')}</code>
                     <Button
                       size="zero"
                       priority="transparent"

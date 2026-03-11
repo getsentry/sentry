@@ -103,7 +103,7 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
       ? tct('[credits] credit', {
           credits: formatCurrency(0 - subscription.accountBalance),
         })
-      : `${formatCurrency(subscription.accountBalance)}`;
+      : formatCurrency(subscription.accountBalance);
 
   return (
     <Flex
