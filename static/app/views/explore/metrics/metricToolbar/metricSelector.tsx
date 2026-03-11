@@ -6,7 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -37,6 +37,7 @@ interface MetricSelectOption {
   metricType: TraceMetricTypeValue;
   value: string;
   metricUnit?: string;
+  trailingItems?: MenuListItemProps['trailingItems'];
 }
 
 export function MetricSelector({
@@ -403,19 +404,7 @@ export function MetricSelector({
                                       {isSelected && <IconCheckmark size="sm" />}
                                     </LeadWrap>
                                   }
-                                  trailingItems={
-                                    <Flex gap="xs" align="center" flexShrink={0}>
-                                      <MetricTypeBadge metricType={option.metricType} />
-                                      {hasMetricUnitsUI &&
-                                        option.metricUnit &&
-                                        option.metricUnit !== '-' &&
-                                        option.metricUnit !== NONE_UNIT && (
-                                          <Tag variant="promotion">
-                                            {option.metricUnit}
-                                          </Tag>
-                                        )}
-                                    </Flex>
-                                  }
+                                  trailingItems={option.trailingItems}
                                 />
                               </div>
                             );
