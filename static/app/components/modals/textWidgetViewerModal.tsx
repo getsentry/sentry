@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
@@ -28,7 +29,7 @@ import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegen
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
-export interface TextWidgetViewerModalOptions {
+interface TextWidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -106,7 +107,7 @@ function TextWidgetViewerModal(props: Props) {
       <Header closeButton>
         <Stack gap="md">
           <Flex align="center" gap="sm">
-            <h3>{widget.title}</h3>
+            <Heading as="h3">{widget.title}</Heading>
           </Flex>
         </Stack>
       </Header>

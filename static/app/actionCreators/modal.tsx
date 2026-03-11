@@ -317,20 +317,31 @@ export async function openWidgetViewerModal({
   onClose,
   ...options
 }: WidgetViewerModalOptions & {onClose?: () => void}) {
-  const {
-    default: Modal,
-    modalCss,
-    backdropCss,
-  } = options.widget.displayType === DisplayType.TEXT
-    ? await import('sentry/components/modals/textWidgetViewerModal')
-    : await import('sentry/components/modals/widgetViewerModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'none',
-    modalCss,
-    backdropCss,
-    onClose,
-  });
+  if (options.widget.displayType === DisplayType.TEXT) {
+    const {
+      default: Modal,
+      modalCss,
+      backdropCss,
+    } = await import('sentry/components/modals/textWidgetViewerModal');
+    openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'none',
+      modalCss,
+      backdropCss,
+      onClose,
+    });
+  } else {
+    const {
+      default: Modal,
+      modalCss,
+      backdropCss,
+    } = await import('sentry/components/modals/widgetViewerModal');
+    openModal(deps => <Modal {...deps} {...options} />, {
+      closeEvents: 'none',
+      modalCss,
+      backdropCss,
+      onClose,
+    });
+  }
 }
 
 export async function openCreateNewIntegrationModal() {
