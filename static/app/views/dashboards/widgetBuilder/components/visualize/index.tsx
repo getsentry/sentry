@@ -327,6 +327,7 @@ function Visualize({error, setError}: VisualizeProps) {
         .filter(
           column =>
             column !== '' &&
+            column !== SpanFields.IS_STARRED_TRANSACTION &&
             !stringSpanTags.hasOwnProperty(column) &&
             !numericSpanTags.hasOwnProperty(column) &&
             !booleanSpanTags.hasOwnProperty(column)
