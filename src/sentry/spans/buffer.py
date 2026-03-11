@@ -105,6 +105,8 @@ def get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
+done_flush_segment_script = redis.load_redis_script("spans/done-flush-segment.lua")
+done_flush_segment_data_script = redis.load_redis_script("spans/done-flush-segment-data.lua")
 
 
 # NamedTuples are faster to construct than dataclasses
@@ -137,6 +139,10 @@ class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
+    score: float = (
+        0.0  # Queue score at flush time, used for conditional cleanup in done_flush_segments
+    )
+    ingested_count: int = 0  # Ingested count at flush time, used for conditional data cleanup
 
 
 class SpansBuffer:
@@ -144,6 +150,8 @@ class SpansBuffer:
         self.assigned_shards = list(assigned_shards)
         self.slice_id = slice_id
         self.add_buffer_sha: str | None = None
+        self.done_flush_segment_sha: str | None = None
+        self.done_flush_segment_data_sha: str | None = None
         self.any_shard_at_limit = False
         self._last_decompress_latency_ms = 0
         self._current_compression_level = None
@@ -393,6 +401,26 @@ class SpansBuffer:
 
         return self.add_buffer_sha
 
+    def _ensure_done_flush_script(self) -> str:
+        if (
+            not self.done_flush_segment_sha
+            or not self.client.script_exists(self.done_flush_segment_sha)[0]
+        ):
+            self.done_flush_segment_sha = self.client.script_load(done_flush_segment_script.script)
+
+        return self.done_flush_segment_sha
+
+    def _ensure_done_flush_data_script(self) -> str:
+        if (
+            not self.done_flush_segment_data_sha
+            or not self.client.script_exists(self.done_flush_segment_data_sha)[0]
+        ):
+            self.done_flush_segment_data_sha = self.client.script_load(
+                done_flush_segment_data_script.script
+            )
+
+        return self.done_flush_segment_data_sha
+
     def _get_queue_key(self, shard: int) -> bytes:
         if self.slice_id is not None:
             return f"span-buf:q:{self.slice_id}-{shard}".encode("ascii")
@@ -505,22 +533,24 @@ class SpansBuffer:
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = self._get_queue_key(shard)
-                    p.zrangebyscore(key, 0, cutoff, start=0, num=max_segments_per_shard)
+                    p.zrangebyscore(
+                        key, 0, cutoff, start=0, num=max_segments_per_shard, withscores=True
+                    )
                     queue_keys.append(key)
 
                 result = p.execute()
         load_ids_latency_ms = int((time.monotonic() - ids_start) * 1000)
 
-        segment_keys: list[tuple[int, QueueKey, SegmentKey]] = []
-        for shard, queue_key, keys in zip(self.assigned_shards, queue_keys, result):
-            for segment_key in keys:
-                segment_keys.append((shard, queue_key, segment_key))
+        segment_keys: list[tuple[int, QueueKey, SegmentKey, float]] = []
+        for shard, queue_key, keys_with_scores in zip(self.assigned_shards, queue_keys, result):
+            for segment_key, score in keys_with_scores:
+                segment_keys.append((shard, queue_key, segment_key, score))
 
         segment_keys = self._apply_per_trace_limit(segment_keys, max_flush_segments_per_trace, now)
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
-            segments = self._load_segment_data([k for _, _, k in segment_keys])
+            segments, ingested_counts = self._load_segment_data([k for _, _, k, _ in segment_keys])
         load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
@@ -528,7 +558,7 @@ class SpansBuffer:
         any_shard_at_limit = False
         flusher_log_entries: list[FlusherLogEntry] = []
 
-        for shard, queue_key, segment_key in segment_keys:
+        for shard, queue_key, segment_key, score in segment_keys:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
             segment = segments.get(segment_key, [])
             project_id, _, _ = parse_segment_key(segment_key)
@@ -565,6 +595,8 @@ class SpansBuffer:
                 queue_key=queue_key,
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
+                score=score,
+                ingested_count=ingested_counts.get(segment_key, 0),
             )
             num_has_root_spans += int(has_root_span)
 
@@ -610,10 +642,10 @@ class SpansBuffer:
 
     def _apply_per_trace_limit(
         self,
-        segment_keys: list[tuple[int, QueueKey, SegmentKey]],
+        segment_keys: list[tuple[int, QueueKey, SegmentKey, float]],
         max_per_trace: int,
         now: int,
-    ) -> list[tuple[int, QueueKey, SegmentKey]]:
+    ) -> list[tuple[int, QueueKey, SegmentKey, float]]:
         """
         Limits how many segments a single trace can be flushed in one cycle.
         Prevents a trace from monopolizing the cycle and concentrating all
@@ -627,34 +659,38 @@ class SpansBuffer:
         if max_per_trace <= 0:
             return segment_keys
         trace_counts: dict[bytes, int] = {}
-        accepted: list[tuple[int, QueueKey, SegmentKey]] = []
-        deferred: list[tuple[int, QueueKey, SegmentKey]] = []
-        for shard, queue_key, segment_key in segment_keys:
+        accepted: list[tuple[int, QueueKey, SegmentKey, float]] = []
+        deferred: list[tuple[int, QueueKey, SegmentKey, float]] = []
+        for shard, queue_key, segment_key, score in segment_keys:
             _, trace_id, _ = parse_segment_key(segment_key)
             count = trace_counts.get(trace_id, 0)
             if count < max_per_trace:
-                accepted.append((shard, queue_key, segment_key))
+                accepted.append((shard, queue_key, segment_key, score))
                 trace_counts[trace_id] = count + 1
             else:
-                deferred.append((shard, queue_key, segment_key))
+                deferred.append((shard, queue_key, segment_key, score))
 
         if deferred:
             num_deferred = len(deferred)
             metrics.incr("spans.buffer.flush_segments.deferred", amount=num_deferred)
             with self.client.pipeline(transaction=False) as p:
-                for shard, queue_key, segment_key in deferred:
+                for shard, queue_key, segment_key, _score in deferred:
                     p.zadd(queue_key, {segment_key: now})
                 p.execute()
 
         return accepted
 
-    def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
+    def _load_segment_data(
+        self, segment_keys: list[SegmentKey]
+    ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, int]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
 
         :param segment_keys: List of segment keys to load.
-        :return: payloads mapping segment keys to lists of span payloads.
+        :return: Tuple of (payloads, ingested_counts). payloads maps segment
+            keys to lists of span payloads. ingested_counts maps segment keys
+            to ingested count at read time.
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
@@ -721,10 +757,16 @@ class SpansBuffer:
 
             ingested_results = p.execute()
 
+        # Build ingested counts dict for conditional cleanup in done_flush_segments
+        ingested_counts: dict[SegmentKey, int] = {}
+
         # Calculate dropped counts: total ingested - successfully loaded
         for i, key in enumerate(segment_keys):
             ingested_count = ingested_results[i * 2]
             ingested_byte_count = ingested_results[i * 2 + 1]
+
+            if ingested_count:
+                ingested_counts[key] = int(ingested_count)
 
             if ingested_byte_count:
                 metrics.timing(
@@ -772,26 +814,103 @@ class SpansBuffer:
 
         self._last_decompress_latency_ms = int(decompress_latency_ms)
 
-        return payloads
+        return payloads, ingested_counts
 
     def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]):
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
+            use_conditional_cleanup = options.get("spans.buffer.done-flush-conditional-zrem")
+
+            segments_to_skip: set[SegmentKey] = set()
+            if use_conditional_cleanup:
+                segment_key_list = list(segment_keys.items())
+
+                # Phase 1: Conditional ZREM on queue slot.
+                # Only remove queue entry if score hasn't changed (no new spans
+                # updated the deadline). This is an optimization to skip early.
+                done_flush_sha = self._ensure_done_flush_script()
+                with self.client.pipeline(transaction=False) as p:
+                    for segment_key, flushed_segment in segment_key_list:
+                        p.execute_command(
+                            "EVALSHA",
+                            done_flush_sha,
+                            1,
+                            flushed_segment.queue_key,
+                            segment_key,
+                            int(flushed_segment.score),
+                        )
+                    zrem_results = p.execute()
+
+                for (segment_key, _), was_removed in zip(segment_key_list, zrem_results):
+                    if not was_removed:
+                        segments_to_skip.add(segment_key)
+
+                # Phase 2: Conditional data deletion on segment slot.
+                # Even if Phase 1 succeeded, new spans may have arrived between
+                # ZREM and now. The Lua script atomically checks ingested count
+                # and only deletes data if unchanged. This is atomic with
+                # add-buffer.lua on the same {project_id:trace_id} slot,
+                # so it cannot interleave with process_spans.
+                done_flush_data_sha = self._ensure_done_flush_data_script()
+                with self.client.pipeline(transaction=False) as p:
+                    # Only run Phase 2 for segments that passed Phase 1
+                    phase2_keys = [
+                        (sk, fs) for sk, fs in segment_key_list if sk not in segments_to_skip
+                    ]
+                    for segment_key, flushed_segment in phase2_keys:
+                        p.execute_command(
+                            "EVALSHA",
+                            done_flush_data_sha,
+                            1,
+                            segment_key,
+                            flushed_segment.ingested_count,
+                        )
+                    data_delete_results = p.execute()
+
+                for (segment_key, _), was_deleted in zip(phase2_keys, data_delete_results):
+                    if not was_deleted:
+                        segments_to_skip.add(segment_key)
+
+                skipped = len(segments_to_skip)
+                if skipped:
+                    metrics.incr(
+                        "spans.buffer.done_flush_segments.skipped_cleanup",
+                        amount=skipped,
+                    )
+
             queue_removals: dict[bytes, list[SegmentKey]] = {}
             with self.client.pipeline(transaction=False) as p:
                 for segment_key, flushed_segment in segment_keys.items():
-                    p.delete(b"span-buf:hrs:" + segment_key)
-                    p.delete(b"span-buf:ic:" + segment_key)
-                    p.delete(b"span-buf:ibc:" + segment_key)
-                    p.unlink(segment_key)
-                    queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
+                    if segment_key in segments_to_skip:
+                        continue
 
-                    project_id, trace_id, _ = parse_segment_key(segment_key)
-                    redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+                    if use_conditional_cleanup:
+                        # Data keys (set, hrs, ic, ibc) were already deleted
+                        # by the Phase 2 Lua script. Only clean up redirect map.
+                        project_id, trace_id, _ = parse_segment_key(segment_key)
+                        redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
-                    for span_batch in itertools.batched(flushed_segment.spans, 100):
-                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
-                        p.hdel(redirect_map_key, *span_ids)
+                        for span_batch in itertools.batched(flushed_segment.spans, 100):
+                            span_ids = [
+                                output_span.payload["span_id"] for output_span in span_batch
+                            ]
+                            p.hdel(redirect_map_key, *span_ids)
+                    else:
+                        p.delete(b"span-buf:hrs:" + segment_key)
+                        p.delete(b"span-buf:ic:" + segment_key)
+                        p.delete(b"span-buf:ibc:" + segment_key)
+                        p.unlink(segment_key)
+
+                        project_id, trace_id, _ = parse_segment_key(segment_key)
+                        redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
+
+                        for span_batch in itertools.batched(flushed_segment.spans, 100):
+                            span_ids = [
+                                output_span.payload["span_id"] for output_span in span_batch
+                            ]
+                            p.hdel(redirect_map_key, *span_ids)
+
+                        queue_removals.setdefault(flushed_segment.queue_key, []).append(segment_key)
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):
