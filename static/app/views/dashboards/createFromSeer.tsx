@@ -26,13 +26,28 @@ import {cloneDashboard} from './utils';
 
 const POLL_INTERVAL_MS = 500;
 
-// Camel case widget properties
-function normalizeWidget(raw: any): Widget {
+type DashboardArtifact = {
+  title: string;
+  widgets: WidgetArtifact[];
+};
+
+type WidgetArtifact = {
+  display_type: Widget['displayType'];
+  layout: {h: number; min_h: number; w: number; x: number; y: number};
+  queries: Widget['queries'];
+  title: string;
+  widget_type: Widget['widgetType'];
+  description?: string;
+  limit?: number;
+};
+
+function normalizeWidget(raw: WidgetArtifact): Widget {
   const {display_type, widget_type, ...rest} = raw;
   return {
     ...rest,
-    displayType: display_type ?? raw.displayType,
-    widgetType: widget_type ?? raw.widgetType,
+    interval: '',
+    displayType: display_type,
+    widgetType: widget_type,
     layout: raw.layout
       ? {
           x: raw.layout.x,
@@ -54,7 +69,7 @@ function extractDashboardFromSession(
   for (const block of session.blocks) {
     for (const artifact of block.artifacts ?? []) {
       if (artifact.key === 'dashboard' && artifact.data) {
-        const data = artifact.data as {title: string; widgets: any[]};
+        const data = artifact.data as DashboardArtifact;
         return {
           title: data.title,
           widgets: assignDefaultLayout(
