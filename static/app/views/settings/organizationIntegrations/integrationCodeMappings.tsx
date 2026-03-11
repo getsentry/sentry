@@ -17,7 +17,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Integration,
   Repository,
@@ -41,7 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
+import RepositoryProjectPathConfigModal from './repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
   ButtonWrapper,
   InputPathColumn,
@@ -214,33 +213,15 @@ export default function IntegrationCodeMappings({
       });
 
       openModal(
-        ({Body, Header, closeModal}) => (
-          <Fragment>
-            <Header closeButton>
-              <h4>{t('Configure code path mapping')}</h4>
-            </Header>
-            <Body>
-              <RepositoryProjectPathConfigForm
-                organization={organization}
-                integration={integration}
-                projects={projects}
-                repos={repos}
-                onSubmitSuccess={() => {
-                  trackAnalytics('integrations.stacktrace_complete_setup', {
-                    setup_type: 'manual',
-                    view: 'integration_configuration_detail',
-                    provider: integration.provider.key,
-                    organization,
-                  });
-                  closeModal();
-                }}
-                existingConfig={pathConfig}
-                onCancel={() => {
-                  closeModal();
-                }}
-              />
-            </Body>
-          </Fragment>
+        modalProps => (
+          <RepositoryProjectPathConfigModal
+            {...modalProps}
+            organization={organization}
+            integration={integration}
+            projects={projects}
+            repos={repos}
+            existingConfig={pathConfig}
+          />
         ),
         {
           onClose: () => {
@@ -364,7 +345,7 @@ export default function IntegrationCodeMappings({
 
 const Layout = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   width: 100%;
   align-items: center;
   grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
@@ -373,5 +354,5 @@ const Layout = styled('div')`
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0 ${space(1)} 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 `;

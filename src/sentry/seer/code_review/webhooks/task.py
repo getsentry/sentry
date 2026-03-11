@@ -16,6 +16,7 @@ from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrReview,
 )
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -26,7 +27,7 @@ from sentry.utils import metrics
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
     convert_enum_keys_to_strings,
-    get_seer_endpoint_for_event,
+    get_seer_path_for_request,
     make_seer_request,
 )
 
@@ -130,8 +131,12 @@ def process_github_webhook_event(
     try:
         if tags:
             sentry_sdk.set_tags(tags)
-        path = get_seer_endpoint_for_event(github_event).value
-        make_seer_request(path=path, payload=event_payload)
+        viewer_context: SeerViewerContext | None = None
+        if tags and (org_id := tags.get("sentry_organization_id")):
+            viewer_context = SeerViewerContext(organization_id=int(org_id))
+
+        path = get_seer_path_for_request(github_event, event_payload)
+        make_seer_request(path=path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
         # Retryable errors are automatically retried by taskworker.

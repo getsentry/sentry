@@ -1,5 +1,5 @@
-import {Fragment, type MouseEventHandler} from 'react';
-import {css} from '@emotion/react';
+import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -11,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -43,16 +42,18 @@ interface SidebarItemDropdownProps {
   analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
   disableTooltip?: boolean;
+  icon?: React.ReactNode;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
+  size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 interface SidebarButtonProps {
   analyticsKey: string;
-  children: React.ReactNode;
   label: string;
   analyticsParams?: Record<string, unknown>;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  children?: React.ReactNode;
   className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
@@ -72,47 +73,39 @@ function recordPrimaryItemClick(
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
-  showLabel: boolean;
   disableTooltip?: boolean;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
-function SidebarItem({
-  children,
-  label,
-  showLabel,
-  disableTooltip,
-  ...props
-}: SidebarItemProps) {
+function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
-      <Tooltip
-        title={label}
-        disabled={showLabel || disableTooltip}
-        position="right"
-        skipWrapper
-        delay={0}
+      <Flex
+        as="li"
+        ref={ref}
+        justify="center"
+        align="center"
+        width={layout === NavLayout.MOBILE ? '100%' : undefined}
+        {...props}
       >
-        <Flex as="li" justify="center" align="center" {...props}>
+        <Tooltip
+          title={label}
+          disabled={layout === NavLayout.MOBILE || disableTooltip}
+          position="right"
+          skipWrapper
+          delay={600}
+        >
           {children}
-        </Flex>
-      </Tooltip>
+        </Tooltip>
+      </Flex>
     </IconDefaultsProvider>
   );
 }
 
-function SidebarItemIcon({
-  children,
-  layout,
-}: {
-  children: React.ReactNode;
-  layout: NavLayout;
-}) {
-  return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
-      {children}
-    </IconDefaultsProvider>
-  );
+// Stable module-level component to avoid remounts when used as `renderWrapAs`
+function PassthroughWrapper({children}: {children: React.ReactNode}) {
+  return children;
 }
 
 export function SidebarMenu({
@@ -123,48 +116,60 @@ export function SidebarMenu({
   label,
   onOpen,
   disableTooltip,
+  icon,
+  size,
   triggerWrap: TriggerWrap = Fragment,
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavContext();
+  const theme = useTheme();
 
   const showLabel = layout === NavLayout.MOBILE;
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
 
   return (
     <DropdownMenu
+      usePortal
+      portalContainerRef={portalContainerRef}
+      zIndex={theme.zIndex.sidebarDropdownMenu}
+      renderWrapAs={PassthroughWrapper}
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
-      trigger={props => {
+      trigger={triggerProps => {
         return (
-          <SidebarItem
-            label={label}
-            showLabel={showLabel}
-            disableTooltip={disableTooltip}
-          >
-            <TriggerWrap>
+          <TriggerWrap>
+            <Tooltip
+              title={label}
+              disabled={showLabel || disableTooltip}
+              position="right"
+              skipWrapper
+              delay={600}
+            >
               <NavButton
-                {...props}
+                {...triggerProps}
+                isMobile={layout === NavLayout.MOBILE}
                 aria-label={showLabel ? undefined : label}
+                size={size}
                 onClick={event => {
                   if (organization) {
                     recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
                   }
-                  props.onClick?.(event);
+                  triggerProps.onClick?.(event);
                   onOpen?.(event);
                 }}
-                isMobile={layout === NavLayout.MOBILE}
-                icon={
-                  showLabel ? (
-                    <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon>
-                  ) : null
-                }
+                icon={icon}
               >
-                {showLabel ? label : children}
+                {showLabel ? label : null}
+                {children}
               </NavButton>
-            </TriggerWrap>
-          </SidebarItem>
+            </Tooltip>
+          </TriggerWrap>
         );
       }}
       items={items}
@@ -231,7 +236,7 @@ export function SidebarLink({
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} showLabel {...props}>
+    <SidebarItem label={label} {...props}>
       <SidebarNavLink
         to={to}
         activeTo={activeTo}
@@ -259,25 +264,24 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel} className={className}>
+    <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavButton
         {...buttonProps}
-        analyticsParams={analyticsParams}
         isMobile={layout === NavLayout.MOBILE}
+        analyticsParams={analyticsParams}
+        className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           recordPrimaryItemClick(analyticsKey, organization, analyticsParams);
           buttonProps.onClick?.(e);
           onClick?.(e);
         }}
-        icon={
-          showLabel ? <SidebarItemIcon layout={layout}>{children}</SidebarItemIcon> : null
-        }
+        icon={buttonProps.icon}
       >
-        {null}
-        {showLabel ? label : children}
+        {showLabel ? label : null}
+        {children}
       </NavButton>
-    </SidebarItem>
+    </Tooltip>
   );
 }
 
@@ -298,11 +302,11 @@ export function SeparatorItem({
 const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space.lg};
   ${p =>
     p.hasMargin &&
     css`
-      margin: ${space(0.5)} 0;
+      margin: ${p.theme.space.xs} 0;
     `}
 `;
 
@@ -319,7 +323,7 @@ const NavLinkIconContainer = styled('span')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.sm};
   border-radius: ${p => p.theme.radius.md};
 `;
 
@@ -333,8 +337,8 @@ const NavLinkLabel = styled('div')`
 `;
 
 const NavLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
+  shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'size',
+})<{isMobile: boolean; size?: ButtonProps['size']}>`
   display: flex;
   position: relative;
   width: 100%;
@@ -343,10 +347,12 @@ const NavLink = styled(Link, {
   align-items: center;
 
   padding: ${p =>
-    p.isMobile ? `${space(1)} ${space(3)}` : `${space(0.75)} ${space(1.5)}`};
+    p.isMobile
+      ? `${p.theme.space.md} ${p.theme.space['2xl']}`
+      : `${p.theme.space.sm} ${p.theme.space.lg}`};
 
   /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
-  gap: ${p => (p.isMobile ? space(1) : space(0.5))};
+  gap: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.xs)};
 
   /* Disable default link styles and only apply them to the icon container */
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
@@ -413,62 +419,79 @@ const NavLink = styled(Link, {
   }
 `;
 
-const StyledNavButton = styled(Button, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{isMobile: boolean}>`
+const NavButton = styled(
+  ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
+    const {layout} = useNavContext();
+
+    return (
+      <Button
+        {...props}
+        size={layout === NavLayout.MOBILE ? 'zero' : props.size}
+        priority={layout === NavLayout.MOBILE ? 'transparent' : props.priority}
+      />
+    );
+  }
+)<{isMobile: boolean}>`
   display: flex;
   align-items: center;
 
   /* On mobile, the buttons are full width and have a gap between the icon and label */
   justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  height: ${p => (p.isMobile ? 'auto' : '44px')};
-  width: ${p => (p.isMobile ? '100%' : '44px')};
-  padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : space(0.5))};
-
-  svg {
-    margin-right: ${p => (p.isMobile ? space(1) : undefined)};
-  }
+  height: ${p => (p.isMobile ? 'auto' : p.size === undefined ? '44px' : undefined)};
+  width: ${p => (p.isMobile ? '100%' : p.size === undefined ? '44px' : undefined)};
+  padding: ${p =>
+    p.isMobile
+      ? `${p.theme.space.md} ${p.theme.space['2xl']}`
+      : p.size === undefined
+        ? p.theme.space.xs
+        : undefined};
 
   /* Disable interactionstatelayer hover */
   [data-isl] {
     display: none;
   }
+
+  /* Nav buttons are icon-only; allow icon content to overflow the inner span */
+  > span:last-child {
+    overflow: visible;
+  }
+
+  /* The indicator (SidebarItemUnreadIndicator) is passed as children, which causes
+   * Button's internal logic to set hasChildren=true and add margin-right to the icon
+   * wrapper. On desktop buttons are icon-only so we override to zero; on mobile the
+   * margin-right provides the gap between the icon and label text. */
+  ${p =>
+    !p.isMobile &&
+    css`
+      > span:last-child > span:first-child {
+        margin-right: 0;
+      }
+    `}
 `;
 
-type NavButtonProps = ButtonProps & {
+export const SidebarItemUnreadIndicator = styled('span')<{
   isMobile: boolean;
-};
-
-const NavButton = styled((props: NavButtonProps) => {
-  return (
-    <StyledNavButton
-      {...props}
-      aria-label={props['aria-label'] ?? ''}
-      size={props.isMobile ? 'zero' : undefined}
-    />
-  );
-})``;
-
-export const SidebarItemUnreadIndicator = styled('span')<{isMobile: boolean}>`
+  variant?: 'accent' | 'danger' | 'warning';
+}>`
   position: absolute;
-  top: ${p => (p.isMobile ? `8px` : `calc(50% - 12px)`)};
-  left: ${p => (p.isMobile ? '36px' : `calc(50% + 14px)`)};
-  transform: translate(-50%, -50%);
+  top: -${p => p.theme.space.xs};
+  right: -${p => p.theme.space.md};
   display: block;
   text-align: center;
   color: ${p => p.theme.colors.white};
   font-size: ${p => p.theme.font.size.xs};
-  background: ${p => p.theme.tokens.graphics.accent.vibrant};
+  background: ${p => p.theme.tokens.graphics[p.variant ?? 'accent'].vibrant};
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${p => p.theme.tokens.border.primary};
+  border: 2px solid ${p => p.theme.tokens.border[p.variant ?? 'accent'].muted};
 
   ${p =>
     p.isMobile &&
     css`
-      top: 5px;
-      left: 12px;
+      top: -${p.theme.space.xs};
+      right: auto;
+      left: 11px;
     `}
 `;
 
@@ -477,11 +500,11 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   display: flex;
   flex-direction: column;
   align-items: ${p => (p.isMobile ? 'stretch' : 'center')};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   width: 100%;
 
   /* TriggerWrap div is getting in the way here */
@@ -490,13 +513,4 @@ export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   > li {
     width: 100%;
   }
-`;
-
-export const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  margin-top: auto;
-  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
 `;

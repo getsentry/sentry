@@ -13,7 +13,6 @@ import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {DataPoint} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -208,7 +207,10 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse' && point.by.reason === 'none') {
+      if (
+        point.by.outcome === 'abuse' &&
+        (!point.by.reason || point.by.reason === 'none')
+      ) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
@@ -216,7 +218,11 @@ export function populateChartData(
           };
         }
 
-        droppedData.abuse.data.push(dataObject);
+        if (dateIndex >= droppedData.abuse.data.length) {
+          droppedData.abuse.data.push(dataObject);
+        } else {
+          droppedData.abuse.data[dateIndex]!.value += dataObject.value;
+        }
 
         if (dateIndex >= totalDropped!.data.length) {
           totalDropped!.data.push({...dataObject, value: 0});
@@ -509,8 +515,9 @@ const Footer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: ${space(3)} -${space(2)} -${space(2)} -${space(2)};
-  padding: ${space(2)};
+  margin: ${p => p.theme.space['2xl']} -${p => p.theme.space.xl} -${p =>
+      p.theme.space.xl} -${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -520,10 +527,10 @@ const LegendContainer = styled('div')`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: ${space(4)};
+    gap: ${p => p.theme.space['3xl']};
   }
 
   > div {
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space.xs};
   }
 `;

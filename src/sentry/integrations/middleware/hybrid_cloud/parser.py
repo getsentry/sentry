@@ -19,6 +19,7 @@ from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPay
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -30,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
+from sentry.types.region import Cell, find_regions_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -115,7 +116,7 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
+    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
         with metrics.timer(
             "integration_proxy.control.get_response_from_region_silo",
             tags={"destination_region": region.name},
@@ -137,7 +138,7 @@ class BaseRequestParser(ABC):
                 http_response = region_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_region_silos(self, regions: list[Region]) -> dict[str, RegionResult]:
+    def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a dict of region name to response/exception.
@@ -164,7 +165,7 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        regions: list[Region],
+        regions: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
     ) -> HttpResponseBase:
@@ -176,7 +177,9 @@ class BaseRequestParser(ABC):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        for region in regions:
+        # mailbox_name is provider:identifier, which is constant for all regions in
+        # this loop. Create all payloads first, then trigger a single drain.
+        payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
                 region=region.name,
@@ -185,6 +188,10 @@ class BaseRequestParser(ABC):
                 integration_id=integration_id,
                 request=self.request,
             )
+            for region in regions
+        ]
+        if payloads:
+            maybe_trigger_drain(payloads[0].mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
@@ -357,7 +364,7 @@ class BaseRequestParser(ABC):
 
     def get_regions_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
-    ) -> list[Region]:
+    ) -> list[Cell]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
         """
@@ -368,7 +375,7 @@ class BaseRequestParser(ABC):
             return []
 
         region_names = find_regions_for_orgs([org.id for org in organizations])
-        return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
+        return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
@@ -379,6 +386,9 @@ class BaseRequestParser(ABC):
         self,
         external_id: str | None = None,
     ):
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
+
         rollout_rate = options.get("codecov.forward-webhooks.rollout")
 
         # we don't want to emit metrics unless we've started to roll this out

@@ -20,10 +20,8 @@ import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSo
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
-  SORT_BY_OPTIONS,
   sortedFlags,
   type OrderBy,
-  type SortBy,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
 import {
@@ -32,7 +30,6 @@ import {
 } from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -45,7 +42,6 @@ interface FlagDrawerProps {
   group: Group;
   hydratedFlags: KeyValueDataContentProps[];
   initialOrderBy: OrderBy;
-  initialSortBy: SortBy;
   project: Project;
   focusControl?: FlagControlOptions;
 }
@@ -54,13 +50,11 @@ export function EventFeatureFlagDrawer({
   group,
   event,
   project,
-  initialSortBy,
   initialOrderBy,
   hydratedFlags,
   focusControl: initialFocusControl,
 }: FlagDrawerProps) {
   const organization = useOrganization();
-  const [sortBy, setSortBy] = useState<SortBy>(initialSortBy);
   const [orderBy, setOrderBy] = useState<OrderBy>(initialOrderBy);
   const [search, setSearch] = useState('');
   const {getFocusProps} = useFocusControl(initialFocusControl);
@@ -86,7 +80,6 @@ export function EventFeatureFlagDrawer({
         </InputGroup.TrailingItems>
       </InputGroup>
       <FeatureFlagSort
-        sortByOptions={SORT_BY_OPTIONS}
         orderByOptions={ORDER_BY_OPTIONS}
         orderBy={orderBy}
         setOrderBy={value => {
@@ -96,14 +89,6 @@ export function EventFeatureFlagDrawer({
             sortMethod: value as string,
           });
         }}
-        setSortBy={value => {
-          setSortBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
-        }}
-        sortBy={sortBy}
       />
     </Grid>
   );
@@ -146,22 +131,22 @@ export const CardContainer = styled('div')<{numCols: number}>`
 
   div {
     border: none;
-    border-radius: ${space(0.5)};
+    border-radius: ${p => p.theme.space.xs};
   }
 
   > * {
     padding-left: 0px;
 
     &:first-child {
-      margin-left: -${space(1)};
+      margin-left: -${p => p.theme.space.md};
     }
     :not(:last-child) {
       border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-right: ${space(2)};
+      padding-right: ${p => p.theme.space.xl};
     }
     :not(:first-child) {
       border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-left: ${space(2)};
+      padding-left: ${p => p.theme.space.xl};
       padding-right: 0;
       margin-left: -1px;
     }

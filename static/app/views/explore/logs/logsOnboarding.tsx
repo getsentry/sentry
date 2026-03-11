@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
@@ -38,7 +39,6 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -94,14 +94,11 @@ function LogDrainsLink({project}: {project: Project}) {
               }
             )
           : tct(
-              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel], or via the [otlpLink:OpenTelemetry Collector].',
               {
                 link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
                 vercelLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
-                ),
-                herokuLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
                 ),
                 otlpLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
@@ -178,6 +175,7 @@ const STEP_TITLES: Record<StepType, string> = {
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
+  const theme = useTheme();
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
@@ -350,7 +348,10 @@ function Onboarding({organization, project}: OnboardingProps) {
               }
             >
               <StepIndexProvider index={index}>
-                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+                <ContentBlocksRenderer
+                  spacing={theme.space.md}
+                  contentBlocks={step.content}
+                />
               </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
@@ -371,11 +372,11 @@ function Onboarding({organization, project}: OnboardingProps) {
 }
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LogDrainsLinkWrapper = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
@@ -386,19 +387,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -410,7 +411,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -423,7 +424,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -461,13 +462,13 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
 
 const OnboardingContainer = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 type LogsTabOnboardingProps = {

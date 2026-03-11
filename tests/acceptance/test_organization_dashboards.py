@@ -40,6 +40,9 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
+        # Prevent single-project auto-select from changing page filter behavior,
+        # which can cause the platform icon to overlap widget interaction targets.
+        self.create_project(organization=self.organization, name="Second Project")
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},

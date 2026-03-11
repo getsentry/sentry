@@ -14,11 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiInstallDetailsEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
-from sentry.preprod.build_distribution_utils import (
-    get_artifact_install_info,
-    get_download_count_for_artifact,
-    get_download_url_for_artifact,
-)
+from sentry.preprod.build_distribution_utils import get_artifact_install_info
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -71,13 +67,10 @@ class ProjectPreprodInstallDetailsEndpoint(PreprodArtifactEndpoint):
         if not head_artifact.installable_app_file_id:
             return Response({"error": "Installable file not available"}, status=404)
 
-        installable_url = get_download_url_for_artifact(head_artifact)
-        total_download_count = get_download_count_for_artifact(head_artifact)
-
         response_data: dict[str, Any] = {
-            "install_url": installable_url,
+            "install_url": info.install_url,
             "platform": head_artifact.platform,
-            "download_count": total_download_count,
+            "download_count": info.download_count,
             "release_notes": info.release_notes,
             "install_groups": info.install_groups,
         }

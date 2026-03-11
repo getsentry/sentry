@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {YAXisComponentOption} from 'echarts';
 
@@ -15,7 +16,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   MetricCondition,
   MetricDetectorConfig,
@@ -33,8 +33,8 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {getBackendDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
-import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
@@ -166,6 +166,7 @@ export function MetricDetectorChart({
   extrapolationMode,
   detectorId,
 }: MetricDetectorChartProps) {
+  const theme = useTheme();
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
     useTimePeriodSelection({
       dataset: getBackendDataset(detectorDataset),
@@ -181,7 +182,14 @@ export function MetricDetectorChart({
     ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : extrapolationMode;
 
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset,
     dataset,
     aggregate,
@@ -282,6 +290,8 @@ export function MetricDetectorChart({
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
     const isPercentage = outputType === 'percentage';
@@ -332,15 +342,17 @@ export function MetricDetectorChart({
     anomalyMarkerResult.incidentMarkerYAxis,
     detectionType,
     aggregate,
+    unit,
+    serverOutputType,
   ]);
 
   // Prepare grid with anomaly marker adjustments
   const grid = useMemo(() => {
     const baseGrid = {
-      left: space(0.25),
-      right: space(0.25),
-      top: space(1.5),
-      bottom: space(1),
+      left: theme.space['2xs'],
+      right: theme.space['2xs'],
+      top: theme.space.lg,
+      bottom: theme.space.md,
     };
 
     // Apply anomaly marker grid adjustments if available
@@ -352,7 +364,7 @@ export function MetricDetectorChart({
     }
 
     return baseGrid;
-  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid]);
+  }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid, theme.space]);
 
   return (
     <ChartContainer>
@@ -374,8 +386,12 @@ export function MetricDetectorChart({
           xAxis={isAnomalyDetection ? anomalyMarkerResult.incidentMarkerXAxis : undefined}
           onChartReady={isAnomalyDetection ? anomalyMarkerResult.onChartReady : undefined}
           tooltip={{
-            valueFormatter: getDetectorChartFormatters({detectionType, aggregate})
-              .formatTooltipValue,
+            valueFormatter: getDetectorChartFormatters({
+              detectionType,
+              aggregate,
+              unit,
+              serverOutputType,
+            }).formatTooltipValue,
           }}
         />
       )}

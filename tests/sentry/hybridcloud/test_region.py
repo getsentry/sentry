@@ -2,6 +2,7 @@ import pytest
 from django.test import override_settings
 
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
@@ -12,11 +13,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Region, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, RegionCategory, RegionResolutionError
 
 _TEST_REGIONS = (
-    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
 )
 
 
@@ -25,6 +26,24 @@ class RegionResolutionTest(TestCase):
     def setUp(self) -> None:
         self.target_region = _TEST_REGIONS[0]
         self.organization = self.create_organization(region=self.target_region)
+
+    def test_by_cell_name(self) -> None:
+        resolver = ByCellName()
+        # Primary path: callers using the new cell_name parameter
+        assert resolver.resolve({"cell_name": self.target_region.name}) == self.target_region
+        # Fallback: callers still using the old region_name parameter
+        assert resolver.resolve({"region_name": self.target_region.name}) == self.target_region
+        # When both are present, region_name takes precedence over cell_name
+        other_region = _TEST_REGIONS[1]
+        assert (
+            resolver.resolve(
+                {"cell_name": other_region.name, "region_name": self.target_region.name}
+            )
+            == self.target_region
+        )
+        # When neither is passed, raise KeyError
+        with pytest.raises(KeyError):
+            resolver.resolve({})
 
     def test_by_organization_id(self) -> None:
         region_resolution = ByOrganizationId()

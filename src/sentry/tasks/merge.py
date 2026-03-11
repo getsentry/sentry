@@ -7,6 +7,7 @@ from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
+from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
@@ -27,17 +28,16 @@ delete_logger = logging.getLogger("sentry.deletions.async")
 @track_group_async_operation
 def merge_groups(
     from_object_ids: list[int] | None = None,
-    to_object_id: list[int] | None = None,
+    to_object_id: int | str | None = None,
     transaction_id: int | None = None,
     recursed: bool = False,
     eventstream_state: Mapping[str, Any] | None = None,
-    **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
     from sentry.models.eventattachment import EventAttachment
-    from sentry.models.group import Group, get_group_with_redirect
+    from sentry.models.group import get_group_with_redirect
     from sentry.models.groupassignee import GroupAssignee
     from sentry.models.groupenvironment import GroupEnvironment
     from sentry.models.grouphash import GroupHash
@@ -207,7 +207,14 @@ def merge_groups(
         eventstream.backend.end_merge(eventstream_state)
 
 
-def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
+def merge_objects(
+    models,
+    group: Group,
+    new_group: Group,
+    limit: int = 1000,
+    logger: logging.Logger | None = None,
+    transaction_id: int | None = None,
+):
     has_more = False
     for model in models:
         all_fields = [f.name for f in model._meta.get_fields()]

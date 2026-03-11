@@ -20,7 +20,6 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -74,7 +73,7 @@ export function mergeAndSortTagValues(
       tagValueCollection[tagValue.value] = tagValue;
     }
   });
-  const allTagValues: TagValue[] = Object.values(tagValueCollection);
+  const allTagValues = Object.values(tagValueCollection);
   if (sort === 'count') {
     allTagValues.sort((a, b) => b.count - a.count);
   } else {
@@ -278,18 +277,9 @@ export function getGroupEventQueryKey({
 }
 
 export function useHasStreamlinedUI() {
-  const user = useUser();
-  const organization = useOrganization();
-  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
-
-  // If the organzation option is set to true, the new UI is used.
-  if (organization.streamlineOnly) {
-    return true;
-  }
-
-  // Apply the UI based on user preferences (default to streamlined UI for users
-  // who haven't explicitly set a preference, matching the previously enforced behavior)
-  return userStreamlinedUIOption ?? true;
+  // The old UI should never be shown to the user.
+  // TODO: Remove all usages of this hook, along with the legacy UI components.
+  return true;
 }
 
 export function useIsSampleEvent(): boolean {
@@ -317,8 +307,7 @@ const DEFAULT_SORT: TagSort = 'count';
 export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
   const organization = useOrganization();
   const location = useLocation();
-  const sort: TagSort =
-    (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
+  const sort = (location.query.tagDrawerSort as TagSort | undefined) ?? DEFAULT_SORT;
   useFetchIssueTagValues(
     {
       orgSlug: organization.slug,

@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
@@ -31,23 +32,26 @@ interface UseRawCountsOptions {
    */
   aggregate?: string;
   enabled?: boolean;
+  selection?: PageFilters;
 }
 
 export function useRawCounts({
   dataset,
   aggregate,
   enabled,
+  selection,
 }: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection: pageFilterSelection} = usePageFilters();
+  const effectiveSelection = selection ?? pageFilterSelection;
 
   const count = aggregate ?? getAggregateForDataset(dataset);
 
   const baseQueryParams = {
     dataset,
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
+    project: effectiveSelection.projects,
+    environment: effectiveSelection.environments,
+    ...normalizeDateTimeParams(effectiveSelection.datetime),
     field: [count],
     disableAggregateExtrapolation: '1',
   };

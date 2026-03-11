@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -23,7 +24,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -36,6 +36,7 @@ interface ProjectSeerProps {
 }
 
 export function AutofixRepositories({project}: ProjectSeerProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
@@ -256,7 +257,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             isHoverable
           />
         </Flex>
-        <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: theme.space.md}}>
           <DropdownMenu
             size="sm"
             triggerLabel={t('Manage Integration')}
@@ -372,7 +373,7 @@ const ReposContainer = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.danger};
   text-align: center;
   font-size: ${p => p.theme.font.size.md};

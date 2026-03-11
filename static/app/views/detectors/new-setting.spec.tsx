@@ -750,6 +750,134 @@ describe('DetectorEdit', () => {
     });
   });
 
+  describe('Metric Detector with Metrics dataset', () => {
+    it('shows metrics dataset option when tracemetrics-alerts feature flag is enabled', async () => {
+      const metricsOrganization = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'performance-view',
+          'tracemetrics-enabled',
+          'tracemetrics-alerts',
+        ],
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: metricsOrganization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {detectorType: 'metric_issue', project: project.id},
+          },
+        },
+      });
+
+      await screen.findByText('New Monitor');
+
+      // Open dataset dropdown
+      await userEvent.click(screen.getByText('Errors'));
+
+      expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
+    });
+
+    it('can submit a new metric detector with metrics dataset from URL params', async () => {
+      const metricsOrganization = OrganizationFixture({
+        features: [
+          'workflow-engine-ui',
+          'visibility-explore-view',
+          'performance-view',
+          'tracemetrics-enabled',
+          'tracemetrics-alerts',
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${metricsOrganization.slug}/events/`,
+        body: {data: []},
+      });
+
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${metricsOrganization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '999'}),
+      });
+
+      const {router} = render(<DetectorNewSettings />, {
+        organization: metricsOrganization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              detectorType: 'metric_issue',
+              project: project.id,
+              dataset: 'metrics',
+            },
+          },
+        },
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Metrics Alert{enter}');
+
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '500'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${metricsOrganization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Metrics Alert',
+              type: 'metric_issue',
+              dataSources: [
+                expect.objectContaining({
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_metric'],
+                  queryType: 1,
+                }),
+              ],
+            }),
+          })
+        );
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/organizations/${metricsOrganization.slug}/monitors/999/`
+        );
+      });
+    });
+
+    it('does not show metrics dataset option without tracemetrics-alerts feature flag', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {detectorType: 'metric_issue', project: project.id},
+          },
+        },
+      });
+
+      await screen.findByText('New Monitor');
+
+      // Open dataset dropdown
+      await userEvent.click(screen.getByText('Errors'));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Metrics/})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('Uptime Detector', () => {
     const uptimeRouterConfig = {
       ...initialRouterConfig,

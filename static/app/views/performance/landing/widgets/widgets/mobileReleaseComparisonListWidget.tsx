@@ -14,7 +14,6 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
@@ -414,7 +413,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 export default MobileReleaseComparisonListWidget;
 
 const StyledDurationWrapper = styled('div')`
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const LoadingWrapper = styled('div')<{height?: number}>`

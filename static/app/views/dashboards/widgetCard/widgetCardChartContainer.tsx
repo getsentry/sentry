@@ -10,6 +10,7 @@ import type {
   EChartLegendSelectChangeHandler,
   Series,
 } from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -37,7 +38,11 @@ type Props = {
   noPadding?: boolean;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
+    confidence?: Confidence;
+    dataScanned?: 'full' | 'partial';
+    isSampled?: boolean | null;
     pageLinks?: string;
+    sampleCount?: number;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
     timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -57,6 +62,7 @@ type Props = {
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
   tableItemLimit?: number;
+  widgetInterval?: string;
   windowWidth?: number;
 };
 
@@ -85,6 +91,7 @@ export function WidgetCardChartContainer({
   onWidgetTableSort,
   onWidgetTableResizeColumn,
   disableTableActions,
+  widgetInterval,
 }: Props) {
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
@@ -118,6 +125,7 @@ export function WidgetCardChartContainer({
       onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
+      widgetInterval={widgetInterval}
     >
       {({
         tableResults,
@@ -127,6 +135,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         confidence,
+        dataScanned,
         sampleCount,
         isSampled,
       }) => {
@@ -175,6 +184,7 @@ export function WidgetCardChartContainer({
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
+              dataScanned={dataScanned}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}

@@ -36,6 +36,7 @@ class SeerRepoDefinition(BaseModel):
     owner: str
     name: str
     external_id: str
+    is_private: bool | None = None
     branch_name: str | None = Field(
         default=None,
         description="The branch that will be used, otherwise the default branch will be used.",
@@ -83,7 +84,7 @@ class AutofixHandoffPoint(StrEnum):
 
 class SeerAutomationHandoffConfiguration(BaseModel):
     handoff_point: AutofixHandoffPoint
-    target: Literal["cursor_background_agent"]
+    target: Literal["cursor_background_agent", "claude_code_agent"]
     integration_id: int
     auto_create_pr: bool = False
 

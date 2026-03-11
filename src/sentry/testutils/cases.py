@@ -6,7 +6,7 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
@@ -82,7 +82,10 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstream.item_helpers import _build_occurrence_attributes
+from sentry.eventstream.item_helpers import (
+    _encode_attribute_data,
+    _gather_attribute_data_from_event_data,
+)
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issues.grouptype import (
@@ -216,7 +219,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_region_by_name
+from ..types.region import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -464,7 +467,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, region),
@@ -1172,16 +1175,35 @@ class SnubaTestCase(BaseTestCase):
         )
         assert response.status_code == 200
 
-    def store_occurrences(self, occurrences: Sequence[TraceItem]):
-        files = {
-            f"occurrence_{i}": occurrence.SerializeToString()
-            for i, occurrence in enumerate(occurrences)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
+    def produce_and_store_eap_items(
+        self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> list[TraceItem]:
+        """
+        Calls produce_fn while intercepting the Kafka produce call at
+        producer_mock_path, then inserts the captured TraceItems into Snuba
+        via the synchronous HTTP endpoint so they're immediately queryable.
+
+        Use this instead of calling EAP producers directly in tests, since
+        SingletonProducer only flushes on process exit.
+        """
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+
+        payloads: list[bytes] = []
+
+        def capture(topic: Any, payload: Any) -> None:
+            payloads.append(payload.value)
+
+        with mock.patch(producer_mock_path, side_effect=capture):
+            produce_fn(*args, **kwargs)
+
+        trace_items = []
+        for raw in payloads:
+            item = TraceItem()
+            item.CopyFrom(codec.decode(raw))
+            trace_items.append(item)
+
+        self.store_eap_items(trace_items)
+        return trace_items
 
     def store_events_to_snuba_and_eap(
         self,
@@ -1221,17 +1243,6 @@ class SnubaTestCase(BaseTestCase):
         files = {
             f"trace_metric_{i}": trace_metric.SerializeToString()
             for i, trace_metric in enumerate(trace_metrics)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-    def store_profile_functions(self, profile_functions):
-        files = {
-            f"profile_functions_{i}": profile_function.SerializeToString()
-            for i, profile_function in enumerate(profile_functions)
         }
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
@@ -1638,7 +1649,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1,
+            "version": (2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1),
         }
 
         msg["mapping_meta"] = {}
@@ -1858,7 +1869,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self,
         select: Sequence[MetricField],
         project_ids: Sequence[int] | None = None,
-        where: Sequence[BooleanCondition | Condition | MetricConditionField] | None = None,
+        where: (Sequence[BooleanCondition | Condition | MetricConditionField] | None) = None,
         having: ConditionGroup | None = None,
         groupby: Sequence[MetricGroupByField] | None = None,
         orderby: Sequence[MetricOrderByField] | None = None,
@@ -2035,7 +2046,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ) -> None:
         """Convert on-demand metric and store it.
 
-        For sets, value needs to be a unique identifier while for counters it is a count."""
+        For sets, value needs to be a unique identifier while for counters it is a count.
+        """
         relay_metric_spec = spec.to_metric_spec(self.project)
         metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
         tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
@@ -2401,7 +2413,7 @@ class UptimeCheckSnubaTestCase(TestCase):
             duration_ms = random.randint(1, 1000)
 
         http_status = default_if_not_set(
-            200 if check_status == "success" else random.choice([408, 500, 502, 503, 504]),
+            (200 if check_status == "success" else random.choice([408, 500, 502, 503, 504])),
             http_status,
         )
 
@@ -3581,16 +3593,20 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             "title": title,
             "type": occurrence_type,
         }
+        preprocessed: dict[str, Any] = {}
         if group_id is not None:
-            data["group_id"] = group_id
+            preprocessed["group_id"] = group_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
             data["transaction"] = transaction
         if attributes:
             data.update(attributes)
+        if tags is not None:
+            data["tags"] = tags.items()
 
-        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+        attr_data = _gather_attribute_data_from_event_data(data, preprocessed=preprocessed)
+        attributes_proto = _encode_attribute_data(attr_data)
 
         return TraceItem(
             organization_id=organization.id,
@@ -3982,7 +3998,7 @@ class ReplayEAPTestCase(BaseTestCase):
         **attributes,
     ):
         """Create single EAP replay breadcrumb TraceItem."""
-        from datetime import datetime, timezone
+        from datetime import datetime
         from uuid import uuid4
 
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -3992,7 +4008,7 @@ class ReplayEAPTestCase(BaseTestCase):
         if organization is None:
             organization = self.organization
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         if trace_id is None:
             trace_id = replay_id
 
@@ -4110,19 +4126,12 @@ class UptimeResultEAPTestCase(BaseTestCase):
         status_reason_description=None,
         span_id=None,
     ):
-        from datetime import datetime, timedelta, timezone
-        from uuid import uuid4
-
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-        from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
-
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
         if scheduled_check_time is None:
-            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+            scheduled_check_time = datetime.now(UTC) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if guid is None:
@@ -4223,3 +4232,72 @@ class UptimeResultEAPTestCase(BaseTestCase):
             # Reverse the ids here since these are stored in little endian in Clickhouse
             # and end up reversed.
             result.item_id = result.item_id[::-1]
+
+
+class ProcessingErrorTestCase(BaseTestCase):
+    """Test case for creating and storing EAP processing error items."""
+
+    def create_processing_error(
+        self,
+        *,
+        organization=None,
+        project=None,
+        timestamp=None,
+        trace_id=None,
+        event_id=None,
+        error_type="js_no_source",
+        symbolicator_type=None,
+        release=None,
+        environment=None,
+        platform="javascript",
+        sdk_name=None,
+        sdk_version=None,
+    ):
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now(UTC) - timedelta(minutes=1)
+        if trace_id is None:
+            trace_id = uuid4().hex
+        if event_id is None:
+            event_id = uuid4().hex
+
+        attributes_data: dict[str, str | int] = {
+            "event_id": event_id,
+            "error_type": error_type,
+        }
+
+        if symbolicator_type is not None:
+            attributes_data["symbolicator_type"] = symbolicator_type
+        if release is not None:
+            attributes_data["release"] = release
+        if environment is not None:
+            attributes_data["environment"] = environment
+        if platform is not None:
+            attributes_data["platform"] = platform
+        if sdk_name is not None:
+            attributes_data["sdk_name"] = sdk_name
+        if sdk_version is not None:
+            attributes_data["sdk_version"] = sdk_version
+
+        attributes_proto = {}
+        for k, v in attributes_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )

@@ -279,12 +279,19 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(
-                data["aggregate"],
-                allow_mri=True,
-                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
-            )
-            if is_mri(column) and dataset != Dataset.PerformanceMetrics:
+            try:
+                column_is_mri = is_mri(
+                    get_column_from_aggregate(
+                        data["aggregate"],
+                        allow_mri=True,
+                        allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+                    )
+                )
+            # If the column raises an invalid search query its definitely not an MRI, and validate_aggregate will
+            # determine if there's any issues with it
+            except InvalidSearchQuery:
+                column_is_mri = False
+            if column_is_mri and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
                 )
@@ -325,7 +332,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self._validate_snql_query(data, entity_subscription, projects)
 
     def _validate_snql_query(
-        self, data: dict[str, Any], entity_subscription: EntitySubscription, projects: list[Project]
+        self,
+        data: dict[str, Any],
+        entity_subscription: EntitySubscription,
+        projects: list[Project],
     ) -> None:
         end = timezone.now()
         start = end - timedelta(minutes=10)

@@ -60,9 +60,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
   });
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
-  const activeRepoName: string | undefined = activeReleaseRepo
-    ? activeReleaseRepo.name
-    : reposToRender[0];
+  const activeRepoName = activeReleaseRepo ? activeReleaseRepo.name : reposToRender[0];
 
   return (
     <Layout.Body>

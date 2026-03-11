@@ -217,7 +217,7 @@ export function usePRWidgetData({
                     </Text>
                   )}
                   <PRLink
-                    href={prState?.pr_url}
+                    href={prState?.pr_url ?? undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}

@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -37,12 +37,12 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 def monkey_patch_single_process_silo_mode_state():
     class LocalSiloModeState(threading.local):
         mode: SiloMode | None = None
-        region: Region | None = None
+        region: Cell | None = None
 
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
+    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
@@ -73,7 +73,7 @@ def monkey_patch_single_process_silo_mode_state():
     def get_mode() -> SiloMode | None:
         return state.mode
 
-    def get_region() -> Region | None:
+    def get_region() -> Cell | None:
         return state.region
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
@@ -82,15 +82,15 @@ def monkey_patch_single_process_silo_mode_state():
     SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
 
 
-def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
-    from sentry.api.utils import generate_region_url
+def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+    from sentry.api.utils import generate_locality_url
 
     single_tenants = frozenset(single_tenants)
     return tuple(
-        Region(
+        Cell(
             name=name,
             snowflake_id=index + 1,
-            address=generate_region_url(name),
+            address=generate_locality_url(name),
             category=(
                 RegionCategory.SINGLE_TENANT
                 if name in single_tenants
@@ -166,14 +166,14 @@ class SiloModeTestDecorator:
             Callable[..., Any],
         )
     ](
-        self, *, regions: Sequence[Region] = (), include_monolith_run: bool = False
+        self, *, regions: Sequence[Cell] = (), include_monolith_run: bool = False
     ) -> Callable[[T], T]: ...
 
     def __call__(
         self,
         decorated_obj: Any = None,
         *,
-        regions: Sequence[Region] = (),
+        regions: Sequence[Cell] = (),
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
@@ -189,7 +189,7 @@ class _SiloModeTestModification:
     """Encapsulate the set of changes made to a test class by a SiloModeTestDecorator."""
 
     silo_modes: frozenset[SiloMode]
-    regions: tuple[Region, ...]
+    regions: tuple[Cell, ...]
 
     def __post_init__(self) -> None:
         if not self.silo_modes:

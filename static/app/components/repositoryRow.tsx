@@ -14,7 +14,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import useApi from 'sentry/utils/useApi';
@@ -114,7 +113,8 @@ export default function RepositoryRow({
                 }
                 onConfirm={deleteRepo}
                 message={t(
-                  'Are you sure you want to remove this repository? All associated commit data will be removed in addition to the repository.'
+                  'Are you sure you want to remove %s? All associated commit data will be removed in addition to the repository.',
+                  <code>{repository.name}</code>
                 )}
               >
                 <Button
@@ -136,7 +136,7 @@ export default function RepositoryRow({
 
 const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
   /* shorter top padding because of title lineheight */
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   justify-content: space-between;
   align-items: center;
   flex: 1;

@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 from typing import TypedDict
 
-from django.conf import settings
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -36,6 +35,7 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
     QueryExecutionError,
@@ -202,11 +202,14 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
         project_id=project_id,
     )
 
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+
     try:
         response = make_replay_delete_request(
             seer_request,
-            timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+            timeout=5,
             retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
+            viewer_context=viewer_context,
         )
     except Exception:
         logger.exception(

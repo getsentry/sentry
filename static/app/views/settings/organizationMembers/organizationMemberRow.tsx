@@ -12,7 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
@@ -269,14 +268,14 @@ const StyledPanelItem = styled(PanelItem)`
       100px,
       1fr
     );
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 // Force action button at the end to align to right
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -302,7 +301,7 @@ const Email = styled('div')`
 const InvitedRole = styled(Section)``;
 const LoadingContainer = styled('div')`
   margin-top: 0;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const AuthStatus = styled(Section)``;

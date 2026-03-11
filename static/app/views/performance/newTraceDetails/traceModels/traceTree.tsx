@@ -140,12 +140,12 @@ export declare namespace TraceTree {
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
+    issue_type: number;
     level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    type: number;
     short_id?: string;
   };
 
@@ -529,7 +529,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       for (const occurrence of c.occurrences) {
-        traceNode.occurrences.add(occurrence);
+        traceNode.addOccurrence(occurrence);
       }
 
       if (c.value && 'measurements' in c.value) {
@@ -670,7 +670,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     for (const occurrence of additionalTraceNode.occurrences) {
-      baseTraceNode.occurrences.add(occurrence);
+      baseTraceNode.addOccurrence(occurrence);
     }
 
     for (const profiledEvent of tree.profiled_events) {
@@ -1022,7 +1022,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
             if (node.children[j]!.occurrences.size > 0) {
               for (const occurrence of node.children[j]!.occurrences) {
-                autoGroupedNode.occurrences.add(occurrence);
+                autoGroupedNode.addOccurrence(occurrence);
               }
             }
 
@@ -1233,7 +1233,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start: BaseNode | null = node.parent;
+    let start = node.parent;
 
     if (start?.isRootNodeChild() && !node.isLastChild()) {
       node.connectors = [-TraceTree.Depth(node)];
