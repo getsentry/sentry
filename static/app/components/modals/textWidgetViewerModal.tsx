@@ -1,9 +1,8 @@
 import {Fragment, memo, useMemo} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -113,7 +112,13 @@ function TextWidgetViewerModal(props: Props) {
       </Header>
       <Body>
         <Fragment>
-          <Container height={HALF_CONTAINER_HEIGHT}>
+          <Flex
+            display="flex"
+            direction="column"
+            height={`${HALF_CONTAINER_HEIGHT}px`}
+            position="relative"
+            paddingBottom="2xl"
+          >
             <MemoizedWidgetCardChartContainer
               api={api}
               selection={locationPageFilter}
@@ -121,34 +126,38 @@ function TextWidgetViewerModal(props: Props) {
               noPadding
               widgetLegendState={widgetLegendState}
             />
-          </Container>
+          </Flex>
         </Fragment>
       </Body>
       <Footer>
-        <ResultsContainer>
-          <Grid flow="column" align="center" gap="md">
-            {onEdit && widget.id && (
-              <Button
-                onClick={() => {
-                  closeModal();
-                  onEdit();
-                  trackAnalytics('dashboards_views.widget_viewer.edit', {
-                    organization,
-                    widget_type: widget.widgetType ?? 'null',
-                    display_type: widget.displayType,
-                  });
-                }}
-                disabled={!hasEditAccess}
-                tooltipProps={{
-                  title:
-                    !hasEditAccess && t('You do not have permission to edit this widget'),
-                }}
-              >
-                {t('Edit Widget')}
-              </Button>
-            )}
-          </Grid>
-        </ResultsContainer>
+        <Flex
+          display="flex"
+          flexGrow={1}
+          direction={{sm: 'row', xs: 'column'}}
+          align="center"
+          justify="right"
+        >
+          {onEdit && widget.id && (
+            <Button
+              onClick={() => {
+                closeModal();
+                onEdit();
+                trackAnalytics('dashboards_views.widget_viewer.edit', {
+                  organization,
+                  widget_type: widget.widgetType ?? 'null',
+                  display_type: widget.displayType,
+                });
+              }}
+              disabled={!hasEditAccess}
+              tooltipProps={{
+                title:
+                  !hasEditAccess && t('You do not have permission to edit this widget'),
+              }}
+            >
+              {t('Edit Widget')}
+            </Button>
+          )}
+        </Flex>
       </Footer>
     </Fragment>
   );
@@ -161,27 +170,6 @@ export const modalCss = css`
 
 export const backdropCss = css`
   z-index: 9998;
-`;
-
-const Container = styled('div')<{height?: number | null}>`
-  display: flex;
-  flex-direction: column;
-  height: ${p => (p.height ? `${p.height}px` : 'auto')};
-  position: relative;
-  padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const ResultsContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 `;
 
 export default withPageFilters(TextWidgetViewerModal);
