@@ -13,15 +13,15 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
 
     for artifact in artifacts:
         mobile_app_info = artifact.get_mobile_app_info()
-        app_name = mobile_app_info.app_name if mobile_app_info else None
-        app_id = artifact.app_id or "Unknown"
+        app_name = mobile_app_info.app_name if mobile_app_info else "--"
+        app_id = artifact.app_id or "--"
         version_string = mobile_app_info.format_version_string() if mobile_app_info else "--"
         config = artifact.build_configuration.name if artifact.build_configuration else "--"
         artifact_url = get_preprod_artifact_url(artifact, view_type="install")
 
-        name_cell = f"[{app_name or app_id}]({artifact_url})"
+        install_cell = f"[Install Build]({artifact_url})"
 
-        row = f"| {name_cell} | {version_string} | {config} |"
+        row = f"| {app_name} | {app_id} | {version_string} | {config} | {install_cell} |"
 
         if artifact.is_android():
             android_rows.append(row)
@@ -30,8 +30,8 @@ def format_pr_comment(artifacts: list[PreprodArtifact]) -> str:
 
     sections: list[str] = ["## Sentry Build Distribution"]
 
-    header = "| App | Version | Configuration |"
-    separator = "|-----|---------|---------------|"
+    header = "| App Name | App ID | Version | Configuration | Install Page |"
+    separator = "|----------|--------|---------|---------------|--------------|"
 
     if ios_rows:
         if android_rows:
