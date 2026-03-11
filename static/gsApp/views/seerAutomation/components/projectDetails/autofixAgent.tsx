@@ -69,7 +69,7 @@ export default function AutofixAgent({canWrite, preference, project}: Props) {
     project,
     integrations: integrations ?? [],
   });
-  const mutateSelectedAgent = useMutateSelectedAgent({preference, project});
+  const mutateSelectedAgent = useMutateSelectedAgent({project});
 
   const disabledReason = canWrite
     ? null

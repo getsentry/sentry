@@ -109,7 +109,7 @@ export default function EAPMetricsField({
     return [
       ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
       ...(metricOptionsData?.data?.map(option => ({
-        label: `${option[TraceMetricKnownFieldKey.METRIC_NAME]}`,
+        label: option[TraceMetricKnownFieldKey.METRIC_NAME],
         value: makeMetricSelectValue({
           name: option[TraceMetricKnownFieldKey.METRIC_NAME],
           type: option[TraceMetricKnownFieldKey.METRIC_TYPE] as TraceMetricTypeValue,

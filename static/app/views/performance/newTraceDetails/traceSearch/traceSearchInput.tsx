@@ -8,7 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
@@ -238,16 +237,14 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
-          {`${
-            traceState.search.query && !traceState.search.results?.length
-              ? t('no results')
-              : traceState.search.query
-                ? (traceState.search.resultIteratorIndex === null
-                    ? '-'
-                    : traceState.search.resultIteratorIndex + 1) +
-                  `/${traceState.search.results?.length ?? 0}`
-                : ''
-          }`}
+          {traceState.search.query && !traceState.search.results?.length
+            ? t('no results')
+            : traceState.search.query
+              ? (traceState.search.resultIteratorIndex === null
+                  ? '-'
+                  : traceState.search.resultIteratorIndex + 1) +
+                `/${traceState.search.results?.length ?? 0}`
+              : ''}
         </StyledTrailingText>
         {traceState.search.query ? (
           <Fragment>
@@ -352,9 +349,9 @@ const StyledTrailingText = styled('span')`
 
 const StyledSearchBar = styled(InputGroup)`
   flex: 1 1 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 
   > div > div:last-child {
-    gap: ${space(0.25)};
+    gap: ${p => p.theme.space['2xs']};
   }
 `;

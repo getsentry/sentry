@@ -1093,7 +1093,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               styles={{
                 container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
-                  marginBottom: `${space(1)}`,
+                  marginBottom: space(1),
                 }),
               }}
               options={projectOptions}

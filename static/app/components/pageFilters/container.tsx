@@ -22,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 

@@ -11,7 +11,6 @@ import {IconLightning} from 'sentry/icons/iconLightning';
 import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -179,14 +178,14 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
 }
 
 const SummaryContainer = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const SectionTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledIcon = styled('div')`
@@ -207,11 +206,11 @@ const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 
   code {
     font-family: ${p => p.theme.font.family.mono};
-    padding: ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
     background: ${p => p.theme.tokens.background.secondary};
     border-radius: ${p => p.theme.radius.md};
     font-size: 0.9em;

@@ -113,6 +113,9 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -157,6 +160,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
         "preprodDistributionEnabledByCustomer",
+        "preprodDistributionPrCommentsEnabledByCustomer",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -574,7 +578,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
         `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
-        `preprodSizeEnabledByCustomer`, and `preprodDistributionEnabledByCustomer`.
+        `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
+        and `preprodDistributionPrCommentsEnabledByCustomer`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -826,6 +831,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
                     "preprodDistributionEnabledQuery"
                 ]
+        if "preprodDistributionPrCommentsEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_pr_comments_enabled_by_customer",
+                result["preprodDistributionPrCommentsEnabledByCustomer"],
+            ):
+                changed_proj_settings[
+                    "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+                ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
                 project.delete_option("sentry:debug_files_role")

@@ -110,6 +110,8 @@ export enum IssueCategory {
   PREPROD = 'preprod',
 
   INSTRUMENTATION = 'instrumentation',
+
+  CONFIGURATION = 'configuration',
 }
 
 /**
@@ -127,6 +129,7 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.MOBILE,
   IssueCategory.FEEDBACK,
   IssueCategory.PREPROD,
+  IssueCategory.CONFIGURATION,
 ];
 
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
@@ -147,6 +150,9 @@ export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.PREPROD]: t('Problems detected via static analysis.'),
   [IssueCategory.INSTRUMENTATION]: t(
     'Improvements to your instrumentation and SDK usage.'
+  ),
+  [IssueCategory.CONFIGURATION]: t(
+    'Issues detected from SDK/tooling configuration problems.'
   ),
 };
 
@@ -202,6 +208,9 @@ export enum IssueType {
   PREPROD_STATIC = 'preprod_static',
   PREPROD_DELTA = 'preprod_delta',
   PREPROD_SIZE_ANALYSIS = 'preprod_size_analysis',
+
+  // Configuration Issues
+  SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -264,6 +273,9 @@ export enum IssueTitle {
   PREPROD_STATIC = 'Static Analysis',
   PREPROD_DELTA = 'Static Analysis Delta',
   PREPROD_SIZE_ANALYSIS = 'Size Analysis',
+
+  // Configuration Issues
+  SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -308,6 +320,8 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_static: IssueTitle.PREPROD_STATIC,
   preprod_delta: IssueTitle.PREPROD_DELTA,
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
+
+  sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {

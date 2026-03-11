@@ -64,7 +64,7 @@ export default function SessionHistory() {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={`${routePrefix}`}>
+                <TabList.Item key="settings" to={routePrefix}>
                   {t('Settings')}
                 </TabList.Item>
                 <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>

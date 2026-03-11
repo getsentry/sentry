@@ -1,7 +1,7 @@
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
-import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
@@ -49,9 +49,9 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
   }
 
   return (
-    <SecondaryNav.Section id={props.id} title={name}>
+    <SecondaryNavigation.Section id={props.id} title={name}>
       {navLinks}
-    </SecondaryNav.Section>
+    </SecondaryNavigation.Section>
   );
 }
 

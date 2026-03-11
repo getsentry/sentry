@@ -13,7 +13,6 @@ from urllib3.util.retry import Retry
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.integrations.claude_code.utils import ClaudeSessionStatus
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
@@ -82,20 +81,6 @@ class CodingAgentStatus(StrEnum):
 
         return status_mapping.get(cursor_status.upper(), None)
 
-    @classmethod
-    def from_claude_code_status(cls, claude_code_status: str) -> "CodingAgentStatus":
-        status_mapping = {
-            ClaudeSessionStatus.PENDING: cls.PENDING,
-            ClaudeSessionStatus.RUNNING: cls.RUNNING,
-            ClaudeSessionStatus.IDLE: cls.COMPLETED,
-            ClaudeSessionStatus.CLOSED: cls.COMPLETED,
-        }
-        try:
-            status = ClaudeSessionStatus(claude_code_status.lower())
-        except ValueError:
-            return cls.RUNNING
-        return status_mapping[status]
-
 
 class AutofixTriggerSource(StrEnum):
     ROOT_CAUSE = "root_cause"
@@ -160,6 +145,7 @@ class CodingAgentStateUpdateRequest(BaseModel):
 
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 
@@ -851,7 +837,8 @@ def update_coding_agent_state(
 ) -> None:
     """Send coding agent state update to Seer.
 
-    Raises SeerApiError for non-2xx responses.
+    Errors are logged and swallowed so that callers iterating over
+    multiple agents are never interrupted by a single failed update.
     """
     updates = CodingAgentStateUpdate(
         status=status,
@@ -864,7 +851,21 @@ def update_coding_agent_state(
         updates=updates,
     )
 
-    response = make_update_coding_agent_state_request(update_data, timeout=30)
+    try:
+        response = make_update_coding_agent_state_request(update_data, timeout=30)
+    except Exception:
+        logger.exception(
+            "coding_agent.state_update_error",
+            extra={"agent_id": agent_id},
+        )
+        return
 
     if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
+        logger.error(
+            "coding_agent.seer_update_error",
+            extra={
+                "agent_id": agent_id,
+                "status_code": response.status,
+                "response": response.data.decode("utf-8"),
+            },
+        )

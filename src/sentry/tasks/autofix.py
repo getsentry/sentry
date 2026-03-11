@@ -32,6 +32,15 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
+def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
+    """Fetch a Group by ID, returning None and logging a warning if it no longer exists."""
+    try:
+        return Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
+        return None
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.check_autofix_status",
     namespace=issues_tasks,
@@ -63,7 +72,9 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "generate_summary_and_run_automation")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()
@@ -99,7 +110,9 @@ def generate_issue_summary_only(group_id: int) -> None:
         get_issue_summary,
     )
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "generate_issue_summary_only")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()
@@ -139,7 +152,9 @@ def run_automation_only_task(group_id: int) -> None:
 
     from sentry.seer.autofix.issue_summary import run_automation
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "run_automation_only_task")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()

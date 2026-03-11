@@ -35,7 +35,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   DisplayModes,
@@ -92,7 +91,6 @@ function ReleaseOverview() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
   const navigate = useNavigate();
   const api = useApi();
 
@@ -247,7 +245,7 @@ function ReleaseOverview() {
     if (start && end) {
       const parser = utc ? moment.utc : moment;
 
-      router.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -260,7 +258,7 @@ function ReleaseOverview() {
       return;
     }
 
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
