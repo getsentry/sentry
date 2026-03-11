@@ -51,11 +51,8 @@ import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-import type {
-  DashboardDetails,
-  DashboardFilterType,
-  DashboardListItem,
-} from 'sentry/views/dashboards/types';
+import {DashboardFilter} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
 
@@ -66,6 +63,7 @@ import {
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
   DASHBOARD_TABLE_NUM_ROWS,
+  DEFAULT_PREBUILT_SORT,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import TemplateCard from './templateCard';
@@ -141,7 +139,7 @@ function getDefaultSort({
   organization: Organization;
 }) {
   if (isOnlyPrebuilt) {
-    return 'mostPopular';
+    return DEFAULT_PREBUILT_SORT;
   }
 
   if (
@@ -163,10 +161,9 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const urlFilter = decodeScalar(location.query.filter) as
-    | DashboardFilterType
-    | undefined;
-  const isOnlyPrebuilt = hasPrebuiltDashboards && urlFilter === 'onlyPrebuilt';
+  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
+  const isOnlyPrebuilt =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -206,9 +203,7 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(isOnlyPrebuilt
-            ? {filter: 'onlyPrebuilt' satisfies DashboardFilterType}
-            : {}),
+          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
         },
       },
     ],

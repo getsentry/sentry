@@ -11,7 +11,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import type {DashboardFilterType, DashboardListItem} from 'sentry/views/dashboards/types';
+import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardFilter} from 'sentry/views/dashboards/types';
+import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
@@ -28,10 +30,8 @@ export function DashboardsSecondaryNavigation() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const urlFilter = decodeScalar(location.query.filter) as
-    | DashboardFilterType
-    | undefined;
-  const isOnlyPrebuilt = urlFilter === 'onlyPrebuilt';
+  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
+  const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
 
   return (
     <Fragment>
@@ -50,7 +50,7 @@ export function DashboardsSecondaryNavigation() {
           </SecondaryNavigation.Item>
           {hasPrebuiltDashboards ? (
             <SecondaryNavigation.Item
-              to={`${baseUrl}/?filter=onlyPrebuilt`}
+              to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
               isActive={isOnlyPrebuilt}
               analyticsItemName="dashboards_sentry_built"
             >
