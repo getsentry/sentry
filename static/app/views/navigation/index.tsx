@@ -49,8 +49,6 @@ function UserAndOrganizationNavigation() {
 }
 
 function UserOnlyNavigation() {
-  useNavigationCommandPalette();
-
   // @TODO(JonasBadalic): Improve the UX of this case
   return (
     <PrimaryNavigation>
