@@ -118,11 +118,11 @@ function useNavigationTourCompleted() {
   const {data: assistantData} = useAssistant();
 
   return useMemo(() => {
-    const NavigationTourData = assistantData?.find(
+    const navigationTourData = assistantData?.find(
       item => item.guide === NAVIGATION_TOUR_GUIDE_KEY
     );
 
-    return NavigationTourData?.seen ?? true;
+    return navigationTourData?.seen ?? true;
   }, [assistantData]);
 }
 
@@ -374,7 +374,7 @@ export function useNavigationTourModal() {
   ]);
 }
 
-const NAVIGATION_TOUR_REFERRER = 'navigation-tour';
+const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 export function useIsNavigationTourActive() {
   const location = useLocation();
