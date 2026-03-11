@@ -210,6 +210,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
             ref={mergeRefs(triggerRef, triggerProps.ref)}
             size="xs"
             aria-hidden={!hasOverflow}
+            tabIndex={hasOverflow ? undefined : -1}
             style={hasOverflow ? undefined : HIDDEN_TRIGGER_STYLE}
           >
             {t('+%s more', Math.max(overflowItems.length, 1))}
