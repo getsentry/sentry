@@ -111,7 +111,7 @@ export function useEventWaiter({
 
     const err = projectQuery.error;
     if (err instanceof RequestError) {
-      if (err.status && [401, 403, 404, 0].includes(err.status)) {
+      if (err.status !== undefined && [401, 403, 404, 0].includes(err.status)) {
         return;
       }
 
