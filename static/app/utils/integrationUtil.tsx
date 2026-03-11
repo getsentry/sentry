@@ -1,7 +1,5 @@
 import * as qs from 'query-string';
 
-import type {Result} from '@sentry/scraps/select';
-
 import {
   IconAsana,
   IconBitbucket,
@@ -322,11 +320,6 @@ export const getExternalActorEndpointDetails = (
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
   };
 };
-
-export const sentryNameToOption = ({id, name}: any): Result => ({
-  value: id,
-  label: name,
-});
 
 export function getIntegrationStatus(integration: Integration) {
   // there are multiple status fields for an integration we consider
