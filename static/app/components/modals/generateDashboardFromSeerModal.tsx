@@ -7,7 +7,6 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +16,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 export interface GenerateDashboardFromSeerModalProps {
-  api: Client;
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
@@ -57,6 +55,8 @@ function GenerateDashboardFromSeerModal({
       const runId = response.run_id;
       if (!runId) {
         addErrorMessage(t('Failed to start dashboard generation'));
+        setIsGenerating(false);
+        return;
       }
 
       closeModal();

@@ -655,7 +655,6 @@ function ManageDashboards() {
                           onClick={() => {
                             openGenerateDashboardFromSeerModal({
                               organization,
-                              api,
                               location,
                               navigate,
                             });
