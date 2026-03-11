@@ -85,7 +85,9 @@ export const NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-const NAVIGATION_TOUR_GUIDE_KEY = 'tour.navigation';
+// Note: this key is used as an analytics/assistant guide identifier and must
+// remain stable — do not rename it even if the surrounding code is refactored.
+const NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
 const NavigationTourContext = createContext<TourContextType<NavigationTour> | null>(null);
 
