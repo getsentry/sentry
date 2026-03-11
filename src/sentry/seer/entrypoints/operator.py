@@ -679,7 +679,7 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                 if not entrypoint_cls.has_access(organization=organization):
                     continue
 
-                cache_payload = SeerOperatorExplorerCache.get(
+                cache_payload = SeerOperatorExplorerCache[Any].get(
                     entrypoint_key=str(entrypoint_key),
                     run_id=run_id,
                 )
