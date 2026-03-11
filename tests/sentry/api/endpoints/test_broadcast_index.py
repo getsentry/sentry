@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models.broadcast import Broadcast, BroadcastSeen
@@ -78,12 +80,17 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast1.id) in [str(broadcast["id"]) for broadcast in response.data]
         assert str(broadcast2.id) in [str(broadcast["id"]) for broadcast in response.data]
 
-    def test_organization_fallback_when_no_active_broadcasts(self) -> None:
-        # When no active broadcasts exist, return the 3 most recent regardless of status
-        broadcast1 = Broadcast.objects.create(message="oldest", is_active=False)
-        broadcast2 = Broadcast.objects.create(message="middle", is_active=False)
-        broadcast3 = Broadcast.objects.create(message="recent", is_active=False)
-        broadcast4 = Broadcast.objects.create(message="newest", is_active=False)
+    @patch(
+        "sentry.api.endpoints.broadcast_index.BroadcastIndexEndpoint._secondary_filtering",
+        return_value=[],
+    )
+    def test_organization_fallback_when_no_org_targeted_broadcasts(self, mock_filter) -> None:
+        # When _secondary_filtering returns nothing (no org-targeted broadcasts),
+        # fall back to the 3 most recent globally-active broadcasts.
+        broadcast1 = Broadcast.objects.create(message="oldest", is_active=True)
+        broadcast2 = Broadcast.objects.create(message="middle", is_active=True)
+        broadcast3 = Broadcast.objects.create(message="recent", is_active=True)
+        broadcast4 = Broadcast.objects.create(message="newest", is_active=True)
 
         self.login_as(user=self.user)
 
@@ -98,9 +105,13 @@ class BroadcastListTest(APITestCase):
         assert str(broadcast2.id) in returned_ids
         assert str(broadcast1.id) not in returned_ids
 
-    def test_organization_fallback_has_seen_field(self) -> None:
+    @patch(
+        "sentry.api.endpoints.broadcast_index.BroadcastIndexEndpoint._secondary_filtering",
+        return_value=[],
+    )
+    def test_organization_fallback_has_seen_field(self, mock_filter) -> None:
         # Fallback broadcasts include hasSeen for the current user
-        broadcast = Broadcast.objects.create(message="expired post", is_active=False)
+        broadcast = Broadcast.objects.create(message="active post", is_active=True)
         BroadcastSeen.objects.create(broadcast=broadcast, user_id=self.user.id)
 
         self.login_as(user=self.user)
@@ -110,6 +121,23 @@ class BroadcastListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["hasSeen"] is True
+
+    @patch(
+        "sentry.api.endpoints.broadcast_index.BroadcastIndexEndpoint._secondary_filtering",
+        return_value=[],
+    )
+    def test_organization_fallback_excludes_inactive_broadcasts(self, mock_filter) -> None:
+        # Fallback only returns active, non-expired broadcasts
+        Broadcast.objects.create(message="inactive", is_active=False)
+        active = Broadcast.objects.create(message="active", is_active=True)
+
+        self.login_as(user=self.user)
+
+        url = reverse("sentry-api-0-organization-broadcasts", args=[self.organization.slug])
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(active.id)
 
     def test_organization_active_broadcasts_not_replaced_by_fallback(self) -> None:
         # When active broadcasts exist, they are returned normally (no fallback)
