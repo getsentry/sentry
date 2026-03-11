@@ -10,7 +10,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import ConfigStore from 'sentry/stores/configStore';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 import {ClientSecretModal} from './clientSecretModal';
 

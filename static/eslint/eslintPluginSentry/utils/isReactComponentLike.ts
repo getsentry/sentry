@@ -74,45 +74,52 @@ function isStyledComponentInit(node: TSESTree.Node) {
 }
 
 export function isReactComponentLike(node: TSESTree.Node, sourceCode: SourceCode) {
-  if (node.type === AST_NODE_TYPES.Identifier) {
-    return isPascalCase(node.name);
-  }
+  switch (node.type) {
+    case AST_NODE_TYPES.ClassDeclaration:
+      return (
+        node.superClass !== null &&
+        node.superClass.type === AST_NODE_TYPES.Identifier &&
+        node.superClass.name.includes('Component')
+      );
 
-  if (
-    node.type === AST_NODE_TYPES.FunctionDeclaration ||
-    node.type === AST_NODE_TYPES.FunctionExpression ||
-    node.type === AST_NODE_TYPES.ArrowFunctionExpression
-  ) {
-    const name = getFunctionName(node);
-    if (name && isPascalCase(name)) {
-      return true;
+    case AST_NODE_TYPES.FunctionDeclaration:
+    case AST_NODE_TYPES.FunctionExpression:
+    case AST_NODE_TYPES.ArrowFunctionExpression: {
+      const name = getFunctionName(node);
+      if (name && isPascalCase(name)) {
+        return true;
+      }
+
+      return containsJsx(node.body, sourceCode);
     }
 
-    return containsJsx(node.body, sourceCode);
-  }
+    case AST_NODE_TYPES.Identifier:
+      return isPascalCase(node.name);
 
-  if (node.type === AST_NODE_TYPES.VariableDeclarator) {
-    if (
-      node.id.type !== AST_NODE_TYPES.Identifier ||
-      !node.init ||
-      !isPascalCase(node.id.name)
-    ) {
+    case AST_NODE_TYPES.VariableDeclarator: {
+      if (
+        node.id.type !== AST_NODE_TYPES.Identifier ||
+        !node.init ||
+        !isPascalCase(node.id.name)
+      ) {
+        return false;
+      }
+
+      if (
+        node.init.type === AST_NODE_TYPES.ArrowFunctionExpression ||
+        node.init.type === AST_NODE_TYPES.FunctionExpression
+      ) {
+        return containsJsx(node.init, sourceCode);
+      }
+
+      if (isStyledComponentInit(node.init)) {
+        return true;
+      }
+
       return false;
     }
 
-    if (
-      node.init.type === AST_NODE_TYPES.FunctionExpression ||
-      node.init.type === AST_NODE_TYPES.ArrowFunctionExpression
-    ) {
-      return containsJsx(node.init, sourceCode);
-    }
-
-    if (isStyledComponentInit(node.init)) {
-      return true;
-    }
-
-    return false;
+    default:
+      return false;
   }
-
-  return false;
 }

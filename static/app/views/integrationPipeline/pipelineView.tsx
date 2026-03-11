@@ -22,10 +22,10 @@ import useApi from 'sentry/utils/useApi';
 import {GithubInstallationSelect} from 'sentry/views/integrationPipeline/githubInstallationSelect';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
-import AwsLambdaCloudformation from './awsLambdaCloudformation';
+import {AwsLambdaCloudformation} from './awsLambdaCloudformation';
 import {AwsLambdaFailureDetails} from './awsLambdaFailureDetails';
-import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
-import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
+import {AwsLambdaFunctionSelect} from './awsLambdaFunctionSelect';
+import {AwsLambdaProjectSelect} from './awsLambdaProjectSelect';
 
 const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],

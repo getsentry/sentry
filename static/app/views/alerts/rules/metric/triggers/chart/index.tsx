@@ -81,7 +81,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import ThresholdsChart from './thresholdsChart';
+import {ThresholdsChart} from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];
