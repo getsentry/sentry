@@ -539,7 +539,7 @@ export const CustomerStats = memo(
             utc: dataDatetime.utc,
             statsPeriod: dataDatetime.period,
             interval: getInterval(dataDatetime),
-            groupBy: ['outcome', 'reason'],
+            groupBy: ['outcome', 'reason', 'category'],
             field: 'sum(quantity)',
             outcome: ['abuse'],
             ...(projectId ? {project: projectId} : {}),
