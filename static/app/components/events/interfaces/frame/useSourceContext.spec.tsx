@@ -1,7 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {SourceContextResponse} from 'sentry/components/events/interfaces/frame/useSourceContext';
 import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
@@ -40,7 +40,7 @@ describe('useSourceContext', () => {
       body: mockResponse,
     });
 
-    const {result} = renderHook(useSourceContext, {
+    const {result} = renderHookWithProviders(useSourceContext, {
       initialProps: {
         event,
         frame,
@@ -64,7 +64,7 @@ describe('useSourceContext', () => {
       body: {context: [], sourceUrl: null, error: null},
     });
 
-    renderHook(() =>
+    renderHookWithProviders(() =>
       useSourceContext(
         {
           event,
@@ -91,7 +91,7 @@ describe('useSourceContext', () => {
       body: mockResponse,
     });
 
-    const {result} = renderHook(useSourceContext, {
+    const {result} = renderHookWithProviders(useSourceContext, {
       initialProps: {
         event,
         frame,
