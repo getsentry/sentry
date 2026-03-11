@@ -7,11 +7,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
-} from 'sentry/views/nav/constants';
-import {useNavigationContext} from 'sentry/views/nav/context';
+} from 'sentry/views/navigation/constants';
+import {useNavigationContext} from 'sentry/views/navigation/context';
 
 export enum LayoutKey {
   /**
@@ -99,7 +99,7 @@ export default function useReplayLayout() {
   const theme = useTheme();
   const {isCollapsed} = useNavigationContext();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
-    NAV_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+    NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
   const defaultLayout = getDefaultLayout(isCollapsed, theme, secondarySidebarWidth);
