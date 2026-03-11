@@ -415,6 +415,120 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         )
         mock_client.create_comment.assert_not_called()
 
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_updates_comment_from_previous_commit(self, mock_format, mock_get_client):
+        """When a previous commit on the same PR already has a comment_id,
+        a new commit should update that comment instead of creating a new one."""
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "updated body"
+
+        # Commit A already posted a comment
+        cc_a = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+            extras={
+                "pr_comments": {
+                    "build_distribution": {"success": True, "comment_id": "prev_commit_123"}
+                }
+            },
+        )
+
+        # Commit B on the same PR — no comment_id yet
+        cc_b = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        artifact = self._create_artifact(commit_comparison=cc_b)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="prev_commit_123",
+            data={"body": "updated body"},
+        )
+        mock_client.create_comment.assert_not_called()
+
+        # comment_id stored on cc_b as well
+        cc_b.refresh_from_db()
+        build_dist = cc_b.extras["pr_comments"]["build_distribution"]
+        assert build_dist["comment_id"] == "prev_commit_123"
+
+        # cc_a unchanged
+        cc_a.refresh_from_db()
+        assert cc_a.extras["pr_comments"]["build_distribution"]["comment_id"] == "prev_commit_123"
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_creates_comment_when_no_sibling_has_comment_id(self, mock_format, mock_get_client):
+        """When multiple commits exist on the same PR but none has a
+        comment_id, a new comment should be created."""
+        mock_client = Mock()
+        mock_client.create_comment.return_value = {"id": 55555}
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "new body"
+
+        # Two commits on the same PR, neither with a comment_id
+        CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        cc_b = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        artifact = self._create_artifact(commit_comparison=cc_b)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            data={"body": "new body"},
+        )
+        mock_client.update_comment.assert_not_called()
+
+        cc_b.refresh_from_db()
+        build_dist = cc_b.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is True
+        assert build_dist["comment_id"] == "55555"
+
     def test_skips_xcarchive_without_valid_code_signature(self):
         artifact = self._create_artifact(extras={"is_code_signature_valid": False})
 
