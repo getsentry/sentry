@@ -45,6 +45,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
       per_page: 25,
+      display: activeDisplay,
       ...normalizeDateTimeParams(location.query),
     };
 
