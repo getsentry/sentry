@@ -98,7 +98,7 @@ function ThresholdSection({
   return (
     <section>
       <DefineThresholdParagraph>
-        <Text bold>{t('Define threshold & set priority (at least one required)')}</Text>
+        <Text bold>{t('Define threshold & set priority')}</Text>
         <Text variant="muted">
           {t('Issues will be created when the query value passes the set threshold.')}
         </Text>
@@ -165,7 +165,11 @@ function PriorityRow({
           hideLabel
           inline
           required={false}
-          validate={validateAtLeastOneThreshold}
+          validate={
+            priority === DetectorPriorityLevel.HIGH
+              ? validateAtLeastOneThreshold
+              : undefined
+          }
           preserveOnUnmount
         />
         <ThresholdSuffix>{isPercentage ? '%' : 'MB'}</ThresholdSuffix>
