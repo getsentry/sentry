@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.urls import reverse
@@ -46,35 +47,44 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
-    def test_count(self) -> None:
-        event_counts = [6, 0, 6, 3, 0, 3]
-        occurrences = []
-        for hour, count in enumerate(event_counts):
-            occurrences.extend(
-                [
-                    self.create_eap_occurrence(
-                        tags={"status": "success"},
-                        timestamp=self.start + timedelta(hours=hour, minutes=minute),
-                        attributes={"description": "foo"},
-                    )
-                    for minute in range(count)
-                ],
+    def _store_occurrences_and_request_timeseries(
+        self, event_counts: list[int], y_axis: str, **occurrence_kwargs: Any
+    ):
+        """Create a group, build occurrences from event_counts (with group_id), store them, run timeseries request."""
+        group = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                timestamp=self.start + timedelta(hours=hour, minutes=minute),
+                **occurrence_kwargs,
             )
+            for hour, count in enumerate(event_counts)
+            for minute in range(count)
+        ]
         self.store_eap_items(occurrences)
-
         with self.options(
             {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
         ):
-            response = self._do_request(
+            return self._do_request(
                 data={
                     "start": self.start,
                     "end": self.end,
                     "interval": "1h",
-                    "yAxis": "count()",
+                    "yAxis": y_axis,
                     "project": self.project.id,
                     "dataset": "occurrences",
                 },
             )
+
+    def test_count(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        response = self._store_occurrences_and_request_timeseries(
+            event_counts,
+            "count()",
+            tags={"status": "success"},
+            attributes={"description": "foo"},
+        )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
             "dataset": "occurrences",
@@ -99,3 +109,52 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             "valueUnit": None,
             "interval": 3_600_000,
         }
+
+    def _run_rate_timeseries_test(
+        self,
+        y_axis: str,
+        value_unit: str,
+        divisor: float,
+        *,
+        tolerance: float = 0.001,
+    ) -> None:
+        """Helper for eps/epm timeseries: request yAxis, assert rate per bucket."""
+        event_counts = [2, 0, 2, 1, 0, 1]  # per 1h bucket
+        response = self._store_occurrences_and_request_timeseries(
+            event_counts, y_axis, attributes={"fingerprint": ["g1"]}
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["dataset"] == "occurrences"
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == y_axis
+        assert timeseries["meta"]["valueType"] == "rate"
+        assert timeseries["meta"]["valueUnit"] == value_unit
+        assert timeseries["meta"]["interval"] == 3_600_000
+        expected_rates = [c / divisor for c in event_counts]
+        values = sorted(timeseries["values"], key=lambda r: r["timestamp"])
+        assert len(values) == 6, (
+            f"expected 6 buckets, got {len(values)}. "
+            f"First row keys (from backend): {list(values[0].keys()) if values else 'no values'}"
+        )
+        for i, row in enumerate(values):
+            actual = row["value"]
+            expected = expected_rates[i]
+            assert abs(actual - expected) < tolerance, (
+                f"bucket {i}: got {actual!r}, expected {expected!r}"
+            )
+
+    def test_eps_timeseries(self) -> None:
+        """Rate aggregate eps() on /events-timeseries: events/sec per bucket, meta rate/1/second.
+        eps() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        self._run_rate_timeseries_test(
+            "eps()",
+            "1/second",
+            3600.0,
+            tolerance=0.0001,
+        )
+
+    def test_epm_timeseries(self) -> None:
+        """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute.
+        epm() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        self._run_rate_timeseries_test("epm()", "1/minute", 60.0)
