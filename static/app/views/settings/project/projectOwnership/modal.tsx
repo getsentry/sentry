@@ -182,8 +182,6 @@ function ProjectOwnershipModal({
         organization={organization}
         project={project}
         initialText={ownership?.raw || ''}
-        urls={urls}
-        paths={paths}
         dateUpdated={ownership.lastUpdated}
         onCancel={onCancel}
         page="issue_details"

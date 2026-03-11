@@ -54,7 +54,7 @@ export default function ReplayTimeline() {
   return (
     <CenteredStack
       style={{
-        width: `${toPercent(timelineScale)}`,
+        width: toPercent(timelineScale),
         translate: `${toPercent(translate())} 0%`,
       }}
       ref={stackedRef}

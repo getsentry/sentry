@@ -14,25 +14,8 @@ describe('ReplayAccess', () => {
     ConfigStore.set('user', user);
   });
 
-  it('renders children when granular-replay-permissions feature is not enabled', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
-
-    render(
-      <ReplayAccess fallback={<div>No access</div>}>
-        <div>Has access</div>
-      </ReplayAccess>,
-      {organization}
-    );
-
-    expect(screen.getByText('Has access')).toBeInTheDocument();
-    expect(screen.queryByText('No access')).not.toBeInTheDocument();
-  });
-
   it('renders children when hasGranularReplayPermissions is false', () => {
     const organization = OrganizationFixture({
-      features: ['granular-replay-permissions'],
       hasGranularReplayPermissions: false,
     });
 
@@ -49,7 +32,6 @@ describe('ReplayAccess', () => {
 
   it('renders children when user is in replayAccessMembers', () => {
     const organization = OrganizationFixture({
-      features: ['granular-replay-permissions'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [1],
     });
@@ -67,7 +49,6 @@ describe('ReplayAccess', () => {
 
   it('renders fallback when user is not in replayAccessMembers', () => {
     const organization = OrganizationFixture({
-      features: ['granular-replay-permissions'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999],
     });
@@ -85,7 +66,6 @@ describe('ReplayAccess', () => {
 
   it('renders null fallback by default when user does not have access', () => {
     const organization = OrganizationFixture({
-      features: ['granular-replay-permissions'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999],
     });

@@ -237,7 +237,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         ) : coverage &&
           shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
+            coverageUrl={frame.sourceLink}
             status={coverage.status}
             organization={organization}
             event={event}

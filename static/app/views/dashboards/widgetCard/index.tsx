@@ -2,11 +2,16 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -234,7 +239,10 @@ function WidgetCard(props: Props) {
   }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
-    if (!isWidgetViewerPath(location.pathname)) {
+    if (isWidgetViewerPath(location.pathname)) {
+      return;
+    }
+    if (currentDashboardId) {
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -248,6 +256,22 @@ function WidgetCard(props: Props) {
         }),
         {preventScrollReset: true}
       );
+    } else {
+      openWidgetViewerModal({
+        organization,
+        widget,
+        widgetLegendState,
+        dashboardFilters,
+        widgetInterval,
+        onClose: () => {
+          // Filter out Widget Viewer Modal query params when exiting the Modal
+          const query = omit(location.query, Object.values(WidgetViewerQueryField));
+          navigate(
+            {pathname: location.pathname, query},
+            {preventScrollReset: true, replace: true}
+          );
+        },
+      });
     }
   };
 
@@ -288,7 +312,8 @@ function WidgetCard(props: Props) {
         location,
         props.onDelete,
         props.onDuplicate,
-        props.onEdit
+        props.onEdit,
+        data?.timeseriesResults
       )
     : [];
 
@@ -319,13 +344,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
-            onFullScreenViewClick={
-              disableFullscreen
-                ? undefined
-                : currentDashboardId
-                  ? onFullScreenViewClick
-                  : undefined
-            }
+            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           >
@@ -370,13 +389,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={
-            disableFullscreen
-              ? undefined
-              : currentDashboardId
-                ? onFullScreenViewClick
-                : undefined
-          }
+          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding

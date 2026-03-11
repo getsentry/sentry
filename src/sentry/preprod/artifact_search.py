@@ -40,6 +40,7 @@ search_config = SearchConfig.create_from(
         "download_size",
         "git_pr_number",
         "install_size",
+        "state",
     },
     # Keys that support date filtering
     # date_keys={"date_built", "date_added"},
@@ -69,6 +70,7 @@ search_config = SearchConfig.create_from(
         "is",
         "platform_name",
         "size_state",
+        "state",
     },
     # Enable boolean operators
     # allow_boolean=True,

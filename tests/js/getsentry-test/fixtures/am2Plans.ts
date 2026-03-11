@@ -133,7 +133,7 @@ const commonFields = {
 };
 
 // TODO: Update with correct pricing and structure
-const AM2_PLANS: Record<string, Plan> = {
+const AM2_PLANS = {
   am2_business: {
     ...commonFields,
     id: 'am2_business',
@@ -5174,6 +5174,6 @@ const AM2_PLANS: Record<string, Plan> = {
     metricDetectorLimit: -1,
     hasOnDemandModes: false,
   },
-};
+} as const satisfies Record<string, Plan>;
 
 export default AM2_PLANS;

@@ -852,6 +852,7 @@ def detect_expired_preprod_artifacts() -> None:
     expired_artifacts = PreprodArtifact.objects.filter(
         state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
         date_updated__lte=timeout_threshold,
+        preprodsnapshotmetrics__isnull=True,
     )
 
     expired_artifacts_count = 0

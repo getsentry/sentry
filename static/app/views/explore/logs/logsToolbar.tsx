@@ -165,7 +165,7 @@ function ToolbarVisualize() {
     [setVisualizes, visualizes]
   );
 
-  const onDelete = useCallback(
+  const handleDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
         return visualize.serialize();
@@ -183,11 +183,11 @@ function ToolbarVisualize() {
       <ToolbarVisualizeHeader />
       {visualizes.map((visualize, group) => {
         if (isVisualizeFunction(visualize)) {
+          const onDelete = canDelete ? () => handleDelete(group) : undefined;
           return (
             <VisualizeDropdown
               key={group}
-              canDelete={canDelete}
-              onDelete={() => onDelete(group)}
+              onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
               sortedBooleanKeys={sortedBooleanKeys}
@@ -212,20 +212,18 @@ function ToolbarVisualize() {
 }
 
 interface VisualizeDropdownProps {
-  canDelete: boolean;
   loading: boolean;
   onClose: () => void;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   onSearch: (search: string) => void;
   sortedBooleanKeys: string[];
   sortedNumberKeys: string[];
   sortedStringKeys: string[];
   visualize: VisualizeFunction;
+  onDelete?: () => void;
 }
 
 function VisualizeDropdown({
-  canDelete,
   loading,
   onDelete,
   onReplace,
@@ -324,7 +322,6 @@ function VisualizeDropdown({
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
-      canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}

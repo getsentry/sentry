@@ -132,19 +132,22 @@ export function PrimaryNavigationWhatsNew() {
 
   return (
     <Fragment>
-      <WhatsNewButton
+      <SidebarButton
         analyticsKey="broadcasts"
         label={t("What's New")}
-        buttonProps={overlayTriggerProps}
+        buttonProps={{
+          ...overlayTriggerProps,
+          icon: <IconBroadcast />,
+          size: 'sm',
+        }}
       >
-        <IconBroadcast />
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator
             data-test-id="whats-new-unread-indicator"
             isMobile={layout === NavLayout.MOBILE}
           />
         )}
-      </WhatsNewButton>
+      </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent unseenPostIds={unseenPostIds} />
@@ -153,15 +156,6 @@ export function PrimaryNavigationWhatsNew() {
     </Fragment>
   );
 }
-
-const WhatsNewButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
-`;
 
 const Empty = styled('div')`
   display: flex;

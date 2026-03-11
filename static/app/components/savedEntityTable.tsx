@@ -18,7 +18,6 @@ import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import useProjects from 'sentry/utils/useProjects';
@@ -117,7 +116,7 @@ SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
   ${p =>
     p.hasButton &&
     css`
-      padding: 0 ${space(0.5)};
+      padding: 0 ${p.theme.space.xs};
     `}
 `;
 

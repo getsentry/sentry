@@ -16,8 +16,6 @@ export function IssuesSecondaryNav() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
-
   return (
     <Fragment>
       <SecondaryNav.Header>
@@ -28,14 +26,6 @@ export function IssuesSecondaryNav() {
           <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
             {t('Feed')}
           </SecondaryNav.Item>
-          {hasTopIssuesUI && (
-            <SecondaryNav.Item
-              to={`${baseUrl}/dynamic-groups/`}
-              analyticsItemName="issues_dynamic_groups"
-            >
-              {t('Top Issues')}
-            </SecondaryNav.Item>
-          )}
         </SecondaryNav.Section>
         <SecondaryNav.Section id="issues-types">
           {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (

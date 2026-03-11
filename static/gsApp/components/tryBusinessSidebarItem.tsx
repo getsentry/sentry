@@ -55,8 +55,11 @@ function TryBusinessNavigationItem({
           onClick();
         }}
         analyticsKey="try-business"
+        buttonProps={{
+          size: layout === NavLayout.MOBILE ? 'xs' : 'sm',
+          icon: <IconBusiness size="md" />,
+        }}
       >
-        <IconBusiness size="md" />
         {showIsNew && (
           <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
         )}

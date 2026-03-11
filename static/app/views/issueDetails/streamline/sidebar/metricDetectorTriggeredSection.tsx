@@ -264,6 +264,7 @@ function ContributingIssues({
     end,
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
+    groupStatsPeriod: 'auto',
   };
 
   const discoverUrl: LocationDescriptor = {
@@ -304,7 +305,7 @@ function ContributingIssues({
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            withChart={false}
+            withChart
             withPagination={false}
             source="metric-issue-contributing-issues"
             numPlaceholderRows={3}
