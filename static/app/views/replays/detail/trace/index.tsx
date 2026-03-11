@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ function PerfDisabled() {
   );
 }
 
-export default function TraceFeature() {
+export function TraceFeature() {
   const organization = useOrganization();
   const replay = useReplayReader();
 

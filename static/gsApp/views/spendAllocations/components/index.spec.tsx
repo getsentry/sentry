@@ -4,7 +4,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import ProjectSelectControl from 'getsentry/views/spendAllocations/components/projectSelectControl';
+import {ProjectSelectControl} from 'getsentry/views/spendAllocations/components/projectSelectControl';
 
 describe('projectSelectControl', () => {
   const {projects} = initializeOrg();

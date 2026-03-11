@@ -29,7 +29,7 @@ const MARK_TAGS = {
   highlightPostTag: '</mark>',
 };
 
-function HelpSource({children, query, platforms}: Props) {
+export function HelpSource({children, query, platforms}: Props) {
   const [results, setResults] = useState<Result[]>([]);
   const [isLoading, setLoading] = useState(true);
   const [search] = useState(
@@ -114,5 +114,3 @@ function mapSearchResults(results: SearchResult[]) {
 
   return items;
 }
-
-export default HelpSource;

@@ -22,7 +22,7 @@ interface WidgetBuilderGroupBySelectorProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
-function WidgetBuilderGroupBySelector({
+export function WidgetBuilderGroupBySelector({
   validatedWidgetResponse,
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -113,5 +113,3 @@ function WidgetBuilderGroupBySelector({
     </Fragment>
   );
 }
-
-export default WidgetBuilderGroupBySelector;

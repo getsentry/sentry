@@ -6,7 +6,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -33,7 +33,7 @@ import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
-import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
+import {IssueTagsPreview} from 'sentry/views/issueDetails/streamline/issueTagsPreview';
 import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/streamline/issueUptimeCheckTimeline';
 import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrenceSummary';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';

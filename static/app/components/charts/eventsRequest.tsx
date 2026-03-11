@@ -5,7 +5,7 @@ import omitBy from 'lodash/omitBy';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
   getPreviousSeriesName,

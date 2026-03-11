@@ -29,7 +29,7 @@ interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
+export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();

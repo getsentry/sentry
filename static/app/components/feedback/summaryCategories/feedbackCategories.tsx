@@ -37,7 +37,7 @@ function getSearchTermForLabelList(labels: string[]) {
   return `[${searchTerms.join(',')}]`;
 }
 
-export default function FeedbackCategories() {
+export function FeedbackCategories() {
   const {isError, isPending, categories, tooFewFeedbacks} = useFeedbackCategories();
   // if we are showing this component, gen-ai-features must be true
   // and org.hideAiFeatures must be false,

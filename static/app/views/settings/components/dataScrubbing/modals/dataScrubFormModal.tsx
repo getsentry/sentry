@@ -44,8 +44,8 @@ import {
   validateTraceItemFieldSelector,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import AttributeField from './form/attributeField';
-import EventIdField from './form/eventIdField';
+import {AttributeField} from './form/attributeField';
+import {EventIdField} from './form/eventIdField';
 import SourceField from './form/sourceField';
 import handleError, {ErrorType} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';

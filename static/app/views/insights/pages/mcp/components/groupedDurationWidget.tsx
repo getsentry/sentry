@@ -34,7 +34,7 @@ interface GroupedDurationWidgetProps {
   title: string;
 }
 
-export default function GroupedDurationWidget(props: GroupedDurationWidgetProps) {
+export function GroupedDurationWidget(props: GroupedDurationWidgetProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',

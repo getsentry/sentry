@@ -5,13 +5,13 @@ import invariant from 'invariant';
 import {Flex} from '@sentry/scraps/layout';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import FullViewport from 'sentry/components/layouts/fullViewport';
+import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -22,12 +22,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
-import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
-import ReplayDetailsMetadata from 'sentry/views/replays/detail/header/replayDetailsMetadata';
-import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
-import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
-import ReplayDetailsPage from 'sentry/views/replays/detail/page';
+import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
+import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
+import {ReplayDetailsMetadata} from 'sentry/views/replays/detail/header/replayDetailsMetadata';
+import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
+import {ReplayDetailsPage} from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
   return (

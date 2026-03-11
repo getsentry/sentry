@@ -5,7 +5,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import useProjects from 'sentry/utils/useProjects';
 
-export default function ProjectPicker({
+export function ProjectPicker({
   onChange,
   project,
 }: {

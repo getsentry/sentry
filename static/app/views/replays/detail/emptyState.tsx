@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: 100%;
   width: 100%;
   display: flex;
@@ -10,5 +10,3 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   align-items: center;
   justify-content: center;
 `;
-
-export default StyledEmptyStateWarning;

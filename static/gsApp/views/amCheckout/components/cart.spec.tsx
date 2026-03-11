@@ -25,7 +25,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import Cart from 'getsentry/views/amCheckout/components/cart';
+import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 // Jun 06 2022 - with milliseconds

@@ -4,8 +4,8 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconSeer} from 'sentry/icons/iconSeer';

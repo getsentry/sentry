@@ -13,7 +13,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import TeamStore from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
-import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
+import {InviteRequestRow} from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles: OrgRole[] = [
   {

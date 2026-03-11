@@ -329,9 +329,10 @@ describe('ArtifactCard expand/collapse', () => {
 
     render(<RootCauseCard artifact={artifact} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
 
-    expect(screen.queryByText('Hidden why')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bug')).not.toBeVisible();
+    expect(screen.queryByText('Hidden why')).not.toBeVisible();
   });
 
   it('clicking again re-shows children', async () => {
@@ -346,10 +347,15 @@ describe('ArtifactCard expand/collapse', () => {
 
     render(<RootCauseCard artifact={artifact} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
-    expect(screen.queryByText('Toggle why')).not.toBeInTheDocument();
+    expect(screen.getByText('Bug')).toBeVisible();
+    expect(screen.getByText('Toggle why')).toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    expect(screen.getByText('Toggle why')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
+    expect(screen.queryByText('Bug')).not.toBeVisible();
+    expect(screen.queryByText('Toggle why')).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
+    expect(screen.getByText('Bug')).toBeVisible();
+    expect(screen.getByText('Toggle why')).toBeVisible();
   });
 });

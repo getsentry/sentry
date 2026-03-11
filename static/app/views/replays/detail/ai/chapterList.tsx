@@ -6,7 +6,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -20,8 +20,8 @@ import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
-import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {BreadcrumbRow} from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
   timeRanges: TimeRanges;

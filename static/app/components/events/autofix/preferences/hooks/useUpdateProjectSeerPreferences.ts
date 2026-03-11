@@ -6,8 +6,8 @@ import {
 } from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
-import apiFetch from 'sentry/utils/api/apiFetch';
 import {
+  fetchDataQuery,
   fetchMutation,
   getApiQueryData,
   setApiQueryData,
@@ -32,12 +32,12 @@ export function useFetchProjectSeerPreferences({project}: {project: Project}) {
   const queryKey = makeProjectSeerPreferencesQueryKey(organization.slug, project.slug);
 
   return useCallback(async () => {
-    const response = await queryClient.fetchQuery({
+    const [data] = await queryClient.fetchQuery({
       queryKey,
-      queryFn: apiFetch<SeerPreferencesResponse>,
+      queryFn: fetchDataQuery<SeerPreferencesResponse>,
       staleTime: 0,
     });
-    return response.json.preference;
+    return data?.preference;
   }, [queryClient, queryKey]);
 }
 

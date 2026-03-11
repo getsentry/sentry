@@ -8,7 +8,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {PerformanceScoreSubtext} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {
   getWebVitalScoresFromTableDataRow,
   type WebVitalScores,

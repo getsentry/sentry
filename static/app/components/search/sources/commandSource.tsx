@@ -162,7 +162,7 @@ type Props = {
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-function CommandSource({searchOptions, query, children}: Props) {
+export function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
   const params = useParams();
@@ -200,5 +200,3 @@ function CommandSource({searchOptions, query, children}: Props) {
 
   return children({isLoading: fuzzy === null, results});
 }
-
-export default CommandSource;

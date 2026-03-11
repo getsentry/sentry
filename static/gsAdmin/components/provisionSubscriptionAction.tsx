@@ -14,8 +14,8 @@ import NumberField, {
   NumberField as NumberFieldNoContext,
 } from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';

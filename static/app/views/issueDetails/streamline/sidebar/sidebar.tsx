@@ -21,14 +21,14 @@ import {
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
-import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
+import {FirstLastSeenSection} from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
-import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
-import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 
 type Props = {group: Group; project: Project; event?: Event};

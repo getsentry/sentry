@@ -24,7 +24,7 @@ type Props = {
   timeSpentTotal: number;
 };
 
-function ResourceInfo(props: Props) {
+export function ResourceInfo(props: Props) {
   const {
     isLoading,
     avgContentLength,
@@ -126,5 +126,3 @@ function ResourceInfo(props: Props) {
     </Fragment>
   );
 }
-
-export default ResourceInfo;

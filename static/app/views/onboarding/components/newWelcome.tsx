@@ -19,7 +19,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,

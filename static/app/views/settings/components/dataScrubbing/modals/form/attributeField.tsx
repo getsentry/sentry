@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -39,7 +39,7 @@ type Props = {
   projectId?: Project['id'];
 };
 
-export default function AttributeField({
+export function AttributeField({
   dataset,
   fieldProps,
   onChange,

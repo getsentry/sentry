@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
-import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
+import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -19,7 +19,7 @@ type Props = {
   superuserNeedsToBeProjectMember?: boolean;
 };
 
-function NoProjectMessage({
+export function NoProjectMessage({
   children,
   organization,
   superuserNeedsToBeProjectMember,
@@ -107,8 +107,6 @@ function NoProjectMessage({
     </Flex>
   );
 }
-
-export default NoProjectMessage;
 
 const StyledNoProjectEmptyState = styled(NoProjectEmptyState)`
   width: 100%;

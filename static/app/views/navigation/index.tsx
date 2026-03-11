@@ -14,7 +14,7 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/context';
-import MobileTopbar from 'sentry/views/navigation/mobileTopbar';
+import {MobileTopbar} from 'sentry/views/navigation/mobileTopbar';
 import {
   NavigationTourProvider,
   useNavigationTour,

@@ -44,7 +44,7 @@ import {
   getNextAvailablePosition,
   pickDefinedStoreKeys,
 } from './layoutUtils';
-import SortableWidget from './sortableWidget';
+import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';

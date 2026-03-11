@@ -51,7 +51,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function LoginForm({authConfig}: Props) {
+export function LoginForm({authConfig}: Props) {
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -160,5 +160,3 @@ const LostPasswordLink = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default LoginForm;

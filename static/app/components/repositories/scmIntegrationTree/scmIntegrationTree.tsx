@@ -8,9 +8,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {buildIntegrationTreeNodes} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
 import {ScmIntegrationTreeRow} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeRow';
 import type {

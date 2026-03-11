@@ -11,7 +11,7 @@ import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
-import SubscriptionHeader from 'getsentry/views/subscriptionPage/subscriptionHeader';
+import {SubscriptionHeader} from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
 describe('SubscriptionHeader', () => {
   beforeEach(() => {

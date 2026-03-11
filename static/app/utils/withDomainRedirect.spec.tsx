@@ -9,7 +9,7 @@ import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
-import withDomainRedirect from 'sentry/utils/withDomainRedirect';
+import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/utils/useRouter');

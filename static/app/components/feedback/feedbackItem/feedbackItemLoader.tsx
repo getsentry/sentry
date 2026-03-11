@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackEmptyDetails from 'sentry/components/feedback/details/feedbackEmptyDetails';
-import FeedbackErrorDetails from 'sentry/components/feedback/details/feedbackErrorDetails';
-import FeedbackItem from 'sentry/components/feedback/feedbackItem/feedbackItem';
+import {FeedbackEmptyDetails} from 'sentry/components/feedback/details/feedbackEmptyDetails';
+import {FeedbackErrorDetails} from 'sentry/components/feedback/details/feedbackErrorDetails';
+import {FeedbackItem} from 'sentry/components/feedback/feedbackItem/feedbackItem';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import useFetchFeedbackData from 'sentry/components/feedback/useFetchFeedbackData';
@@ -17,7 +17,7 @@ interface Props {
   onBackToList?: () => void;
 }
 
-export default function FeedbackItemLoader({onBackToList}: Props = {}) {
+export function FeedbackItemLoader({onBackToList}: Props = {}) {
   const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
   const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});

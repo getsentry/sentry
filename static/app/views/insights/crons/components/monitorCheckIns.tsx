@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';

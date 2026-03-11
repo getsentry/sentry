@@ -7,7 +7,7 @@ import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-export default function ZoomTriangles() {
+export function ZoomTriangles() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
 

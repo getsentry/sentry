@@ -11,8 +11,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';

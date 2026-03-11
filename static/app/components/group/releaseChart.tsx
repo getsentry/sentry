@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Count from 'sentry/components/count';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {Count} from 'sentry/components/count';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';

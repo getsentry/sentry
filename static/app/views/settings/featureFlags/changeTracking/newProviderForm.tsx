@@ -21,7 +21,7 @@ import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -57,7 +57,7 @@ interface Props {
   existingSecret?: Secret;
 }
 
-export default function NewProviderForm({
+export function NewProviderForm({
   onCreatedSecret,
   setSelectedProvider,
   setError,

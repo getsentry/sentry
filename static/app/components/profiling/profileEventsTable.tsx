@@ -3,17 +3,17 @@ import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import UserMisery from 'sentry/components/userMisery';
-import Version from 'sentry/components/version';
+import {UserMisery} from 'sentry/components/userMisery';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

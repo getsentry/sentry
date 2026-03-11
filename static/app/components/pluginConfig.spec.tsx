@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import plugins from 'sentry/plugins';
 
-import PluginConfig from './pluginConfig';
+import {PluginConfig} from './pluginConfig';
 
 describe('PluginConfig', () => {
   const {organization, project} = initializeOrg();

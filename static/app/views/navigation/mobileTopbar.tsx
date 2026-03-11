@@ -22,7 +22,7 @@ import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigat
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
-function MobileTopbar() {
+export function MobileTopbar() {
   const location = useLocation();
   const organization = useOrganization();
   const activeGroup = useActiveNavigationGroup();
@@ -79,8 +79,6 @@ function MobileTopbar() {
     </Topbar>
   );
 }
-
-export default MobileTopbar;
 
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
 function updateNavigationStyleAttributes(view: ActiveView) {

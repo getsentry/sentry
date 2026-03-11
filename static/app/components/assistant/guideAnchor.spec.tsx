@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 

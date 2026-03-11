@@ -13,7 +13,7 @@ type State = {
   organizations: OrganizationSummary[];
 };
 
-function withOrganizations<P extends InjectedOrganizationsProps>(
+export function withOrganizations<P extends InjectedOrganizationsProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   class WithOrganizations extends Component<
@@ -50,5 +50,3 @@ function withOrganizations<P extends InjectedOrganizationsProps>(
 
   return WithOrganizations;
 }
-
-export default withOrganizations;

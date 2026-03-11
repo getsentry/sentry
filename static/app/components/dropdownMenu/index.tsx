@@ -313,7 +313,4 @@ export {DropdownMenu};
 const DropdownMenuWrap = styled('div')`
   display: contents;
   list-style-type: none;
-  > :first-child {
-    margin-left: -1px;
-  }
 `;

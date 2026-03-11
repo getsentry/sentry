@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +24,7 @@ type Props = {
   orgSlug: string;
 };
 
-function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
+export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -135,5 +135,3 @@ function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
     </Flex>
   );
 }
-
-export default MonitorHeaderActions;

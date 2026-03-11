@@ -11,7 +11,7 @@ import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 
 interface ArithmeticBuilderProps {
   aggregations: string[];

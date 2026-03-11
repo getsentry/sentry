@@ -11,7 +11,7 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   name: string;
@@ -25,7 +25,7 @@ type Props = {
  * organization owners an email requesting a new organization integration. It
  * lets the user attach an optional message to be included in the email.
  */
-export default function RequestIntegrationModal(props: Props) {
+export function RequestIntegrationModal(props: Props) {
   const [isSending, setIsSending] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const organization = useOrganization();

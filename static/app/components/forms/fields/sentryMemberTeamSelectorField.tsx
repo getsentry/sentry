@@ -23,7 +23,7 @@ interface RenderFieldProps extends SelectFieldProps<any> {
   valueIsSlug?: boolean;
 }
 
-function SentryMemberTeamSelectorField({
+export function SentryMemberTeamSelectorField({
   avatarSize = 20,
   placeholder = t('Choose Teams and Members'),
   memberOfProjectSlugs,
@@ -64,5 +64,3 @@ function SentryMemberTeamSelectorField({
     />
   );
 }
-
-export default SentryMemberTeamSelectorField;

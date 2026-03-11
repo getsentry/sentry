@@ -6,13 +6,13 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import BillingDetailsForm from 'getsentry/components/billingDetails/form';
+import {BillingDetailsForm} from 'getsentry/components/billingDetails/form';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
@@ -24,7 +24,7 @@ import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
 /**
  * Panel displaying existing billing details.
  */
-function BillingDetailsPanel({
+export function BillingDetailsPanel({
   organization,
   subscription,
   analyticsEvent,
@@ -182,5 +182,3 @@ function BillingDetailsPanel({
     </Flex>
   );
 }
-
-export default BillingDetailsPanel;

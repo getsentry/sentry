@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
@@ -31,7 +31,7 @@ const defaultValues: z.input<typeof commitSchema> = {
   commit: null,
 };
 
-function CustomCommitsResolutionModal({
+export function CustomCommitsResolutionModal({
   onSelected,
   orgSlug,
   projectSlug,
@@ -110,5 +110,3 @@ function CustomCommitsResolutionModal({
     </form.AppForm>
   );
 }
-
-export default CustomCommitsResolutionModal;
