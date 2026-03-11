@@ -726,3 +726,26 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,none)"] == 1
+
+    def test_aggregation_with_none_includes_items_with_none_explicitly_set(self):
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration", 100.0, "distribution", metric_unit="millisecond"
+            ),
+            self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
+        ]
+        self.store_trace_metrics(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["count(value,request_duration,distribution,none)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+
+        assert len(data) == 1
+        assert data[0]["count(value,request_duration,distribution,none)"] == 1
