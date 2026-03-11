@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 
 type Props = React.ComponentProps<typeof Confirm>;
 
-function RemoveConfirm(props: Props) {
+export function RemoveConfirm(props: Props) {
   return (
     <Confirm
       {...props}
@@ -14,5 +14,3 @@ function RemoveConfirm(props: Props) {
     />
   );
 }
-
-export default RemoveConfirm;

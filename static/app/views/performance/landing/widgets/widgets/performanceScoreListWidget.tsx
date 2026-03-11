@@ -8,8 +8,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Truncate from 'sentry/components/truncate';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/formatTimeSeriesResultsToChartData';

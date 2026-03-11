@@ -13,9 +13,9 @@ import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-function GenerateSpikeProjectionsForBatch() {
+export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
   const regions = ConfigStore.get('regions');
   const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
@@ -150,5 +150,3 @@ const BatchInput = styled(Input)`
 const BatchRunTime = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default GenerateSpikeProjectionsForBatch;

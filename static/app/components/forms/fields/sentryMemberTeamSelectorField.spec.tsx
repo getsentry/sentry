@@ -10,7 +10,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
+import {SentryMemberTeamSelectorField} from './sentryMemberTeamSelectorField';
 
 describe('SentryMemberTeamSelectorField', () => {
   const org = OrganizationFixture();

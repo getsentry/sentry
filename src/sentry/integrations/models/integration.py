@@ -98,7 +98,7 @@ class Integration(DefaultFieldsModelExisting):
                 shard_identifier=identifier,
                 object_identifier=identifier,
                 category=OutboxCategory.INTEGRATION_UPDATE,
-                region_name=region_name,
+                cell_name=region_name,
             )
             for region_name in find_regions_for_orgs(org_ids)
         ]

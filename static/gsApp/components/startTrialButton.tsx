@@ -22,7 +22,7 @@ type StartTrialButtonProps = React.PropsWithChildren<{
 }> &
   (Omit<ButtonProps, 'children'> | Omit<LinkButtonProps, 'children'>);
 
-export default function StartTrialButton({
+export function StartTrialButton({
   children,
   organization,
   source,

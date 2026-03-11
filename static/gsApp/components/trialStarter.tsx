@@ -4,7 +4,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';

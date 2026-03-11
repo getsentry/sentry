@@ -4,7 +4,7 @@ import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -19,7 +19,7 @@ type Props = {
   activeTab: 'stream' | 'rules';
 };
 
-function AlertHeader({activeTab}: Props) {
+export function AlertHeader({activeTab}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -100,5 +100,3 @@ function AlertHeader({activeTab}: Props) {
     </Layout.Header>
   );
 }
-
-export default AlertHeader;

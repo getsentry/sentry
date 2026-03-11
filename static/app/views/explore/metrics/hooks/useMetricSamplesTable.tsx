@@ -107,7 +107,11 @@ function useMetricsQueryKey({
             traceMetric.unit
           );
         } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addOp('(');
           newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+          newSearch.addOp('OR');
+          newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, NONE_UNIT);
+          newSearch.addOp(')');
         }
       }
     }

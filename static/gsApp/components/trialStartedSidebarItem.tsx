@@ -17,7 +17,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import TrialRequestedStore from 'getsentry/stores/trialRequestedStore';
 import type {Subscription} from 'getsentry/types';
 import {hasJustStartedPlanTrial} from 'getsentry/utils/billing';
-import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
+import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 type Props = {
   api: Client;

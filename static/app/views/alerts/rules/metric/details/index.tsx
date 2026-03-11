@@ -10,8 +10,8 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,10 +35,10 @@ import {
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
-import MetricDetailsBody from './body';
+import {MetricDetailsBody} from './body';
 import type {TimePeriodType} from './constants';
 import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
-import DetailsHeader from './header';
+import {DetailsHeader} from './header';
 import {buildMetricGraphDateRange} from './utils';
 
 interface Props {

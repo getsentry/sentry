@@ -7,7 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ContextPickerModal from 'sentry/components/contextPickerModal';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {
   makeCloseButton,
   ModalBody,

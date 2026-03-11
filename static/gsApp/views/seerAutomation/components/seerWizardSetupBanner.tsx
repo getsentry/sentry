@@ -13,7 +13,7 @@ import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
-export default function SeerWizardSetupBanner() {
+export function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const theme = useInvertedTheme();
 

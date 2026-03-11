@@ -30,7 +30,7 @@ type OnCallServiceFormProps = {
   onSave: () => void;
 };
 
-function OnCallServiceForm({
+export function OnCallServiceForm({
   action,
   onCallService,
   onCancel,
@@ -136,5 +136,3 @@ function OnCallServiceForm({
     </Flex>
   );
 }
-
-export default OnCallServiceForm;

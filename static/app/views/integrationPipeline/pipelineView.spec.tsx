@@ -7,7 +7,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import PipelineView from 'sentry/views/integrationPipeline/pipelineView';
+import {PipelineView} from 'sentry/views/integrationPipeline/pipelineView';
 
 function MockAwsLambdaProjectSelect() {
   return <div>mock_AwsLambdaProjectSelect</div>;

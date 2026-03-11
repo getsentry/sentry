@@ -27,7 +27,7 @@ interface Props {
   additionalFilters?: string[];
 }
 
-function StartDurationWidget({additionalFilters}: Props) {
+export function StartDurationWidget({additionalFilters}: Props) {
   const location = useLocation();
   const {primaryRelease, isLoading: isReleasesLoading} = useReleaseSelection();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
@@ -96,5 +96,3 @@ function StartDurationWidget({additionalFilters}: Props) {
     />
   );
 }
-
-export default StartDurationWidget;

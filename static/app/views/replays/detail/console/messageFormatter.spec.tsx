@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
-import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
+import {MessageFormatter} from 'sentry/views/replays/detail/console/messageFormatter';
 
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {

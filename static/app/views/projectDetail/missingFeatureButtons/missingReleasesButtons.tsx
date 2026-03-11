@@ -20,7 +20,12 @@ type Props = {
   projectId?: string;
 };
 
-function MissingReleasesButtons({organization, health, projectId, platform}: Props) {
+export function MissingReleasesButtons({
+  organization,
+  health,
+  projectId,
+  platform,
+}: Props) {
   function handleTourAdvance(step: number, duration: number) {
     trackAnalytics('project_detail.releases_tour.advance', {
       organization,
@@ -83,5 +88,3 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
     </Grid>
   );
 }
-
-export default MissingReleasesButtons;

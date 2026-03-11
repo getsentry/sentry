@@ -130,7 +130,7 @@ class ApiApplication(Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.API_APPLICATION_UPDATE,
-                region_name=region_name,
+                cell_name=region_name,
             )
             for region_name in find_all_cell_names()
         ]

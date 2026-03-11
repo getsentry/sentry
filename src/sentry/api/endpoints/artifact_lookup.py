@@ -29,6 +29,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.api")
@@ -91,10 +92,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
-            # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
-            # be always empty, so using the `organization_id` instead.
             file_m = (
-                ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
+                ReleaseFile.objects.filter(
+                    id=ty_id,
+                    organization_id=project.organization.id,
+                    release_id__in=ReleaseProject.objects.filter(
+                        project=project,
+                    ).values("release_id"),
+                )
                 .select_related("file")
                 .first()
             )

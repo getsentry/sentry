@@ -7,7 +7,7 @@ import {
   EventDrawerBody,
   EventDrawerContainer,
 } from 'sentry/components/events/eventDrawer';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

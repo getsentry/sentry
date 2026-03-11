@@ -72,7 +72,7 @@ const LOG_OPERATIONS = [
   value: aggregate as OurLogsAggregate,
 })) satisfies Array<{label: string; value: OurLogsAggregate}>;
 
-export default function EAPField({aggregate, onChange, eventTypes, project}: Props) {
+export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
   const organization = useOrganization();
   const traceItemType =
     getTraceItemTypeForDatasetAndEventType(

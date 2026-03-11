@@ -18,7 +18,7 @@ interface Props {
   onDidHide?: () => void;
 }
 
-export default function BulkDeleteAlert({projectId, onDidHide}: Props) {
+export function BulkDeleteAlert({projectId, onDidHide}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
   const shouldRender = useShouldRenderBulkDeleteAlert({organization, project});

@@ -12,7 +12,7 @@ import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export default function FlagActionDropdown({
+export function FlagActionDropdown({
   flag,
   result,
   generateAction,

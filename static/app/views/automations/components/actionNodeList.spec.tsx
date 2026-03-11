@@ -13,7 +13,7 @@ import {
   ActionType,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
-import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 
 const slackActionHandler = ActionHandlerFixture();

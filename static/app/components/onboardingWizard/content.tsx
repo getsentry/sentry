@@ -14,7 +14,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -26,7 +26,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -181,7 +181,7 @@ function Task({task, hidePanel}: TaskProps) {
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
-  const sidebarTour = useStackedNavigationTour();
+  const sidebarTour = useNavigationTour();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {

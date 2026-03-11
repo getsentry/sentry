@@ -6,11 +6,9 @@ type Props = {
   command: string;
 };
 
-function Terminal({command}: Props) {
+export function Terminal({command}: Props) {
   return <StyledCodeSnippet language="bash">{command}</StyledCodeSnippet>;
 }
-
-export default Terminal;
 
 const StyledCodeSnippet = styled(CodeBlock)`
   padding-left: ${p => p.theme.space.xl};

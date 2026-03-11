@@ -138,7 +138,7 @@ function getToolStatus(
   return 'success';
 }
 
-function BlockComponent({
+export function BlockComponent({
   block,
   blockIndex,
   runId,
@@ -523,8 +523,6 @@ function BlockComponent({
 }
 
 BlockComponent.displayName = 'BlockComponent';
-
-export default BlockComponent;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;

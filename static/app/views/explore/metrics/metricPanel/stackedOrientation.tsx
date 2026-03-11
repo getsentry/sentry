@@ -5,7 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {type TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
 import {MetricsGraph} from 'sentry/views/explore/metrics/metricGraph';
-import MetricInfoTabs from 'sentry/views/explore/metrics/metricInfoTabs';
+import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {HideContentButton} from 'sentry/views/explore/metrics/metricPanel/hideContentButton';
 import {PanelPositionSelector} from 'sentry/views/explore/metrics/metricPanel/panelPositionSelector';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';

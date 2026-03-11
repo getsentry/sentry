@@ -5,8 +5,8 @@ import {useHover} from '@react-aria/interactions';
 import {Link} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventMessage} from 'sentry/components/events/eventMessage';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
 import type {Event} from 'sentry/types/event';
@@ -19,7 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
-import EventTitleError from './eventTitleError';
+import {EventTitleError} from './eventTitleError';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
@@ -73,7 +73,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-function EventOrGroupHeader({
+export function EventOrGroupHeader({
   data,
   query,
   onClick,
@@ -195,8 +195,6 @@ const TitleWithoutLink = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-weight: ${p => p.theme.font.weight.sans.medium};

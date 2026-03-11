@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {openModal} from 'sentry/actionCreators/modal';
 import {IconEdit, IconStack} from 'sentry/icons';
 
-import EditAdminOptionModal from 'admin/components/editAdminOptionModal';
-import PageHeader from 'admin/components/pageHeader';
+import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 export interface SerializedOption {

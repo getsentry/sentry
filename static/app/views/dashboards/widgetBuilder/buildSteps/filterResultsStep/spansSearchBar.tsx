@@ -8,7 +8,7 @@ import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/trace
  * A search bar for exploring tags and values for spans in Dashboards.
  * This assumes that the dataset used is the EAP spans dataset.
  */
-function SpansSearchBar({
+export function SpansSearchBar({
   widgetQuery,
   onSearch,
   portalTarget,
@@ -35,5 +35,3 @@ function SpansSearchBar({
 
   return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
 }
-
-export default SpansSearchBar;

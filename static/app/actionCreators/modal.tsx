@@ -3,6 +3,7 @@ import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modal
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {DataWidgetViewerModalOptions} from 'sentry/components/modals/dataWidgetViewerModal';
 import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
+import type {GenerateDashboardFromSeerModalProps} from 'sentry/components/modals/generateDashboardFromSeerModal';
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
@@ -271,6 +272,17 @@ export async function openImportDashboardFromFileModal(
   openModal(deps => <Modal {...deps} {...options} />, {
     closeEvents: 'escape-key',
     modalCss,
+  });
+}
+
+export async function openGenerateDashboardFromSeerModal(
+  options: GenerateDashboardFromSeerModalProps
+) {
+  const {default: Modal} =
+    await import('sentry/components/modals/generateDashboardFromSeerModal');
+
+  openModal(deps => <Modal {...deps} {...options} />, {
+    closeEvents: 'escape-key',
   });
 }
 

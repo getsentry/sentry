@@ -29,8 +29,6 @@ const styles = (theme: Theme) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme}: {theme: Theme}) {
+export function GlobalStyles({theme}: {theme: Theme}) {
   return <Global styles={styles(theme)} />;
 }
-
-export default GlobalStyles;

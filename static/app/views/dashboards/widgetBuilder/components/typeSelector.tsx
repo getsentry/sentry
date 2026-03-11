@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,7 +36,10 @@ interface WidgetBuilderTypeSelectorProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorProps) {
+export function WidgetBuilderTypeSelector({
+  error,
+  setError,
+}: WidgetBuilderTypeSelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const config = getDatasetConfig(state.dataset);
   const source = useDashboardWidgetSource();
@@ -159,8 +162,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     </Fragment>
   );
 }
-
-export default WidgetBuilderTypeSelector;
 
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;

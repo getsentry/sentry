@@ -10,7 +10,7 @@ type Props = {
   activities: RelayActivity[];
 };
 
-function ActivityList({activities}: Props) {
+export function ActivityList({activities}: Props) {
   return (
     <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>
       {activities.map(({relayId, version, firstSeen, lastSeen}) => {
@@ -25,8 +25,6 @@ function ActivityList({activities}: Props) {
     </StyledPanelTable>
   );
 }
-
-export default ActivityList;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, 2fr);

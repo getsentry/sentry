@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
 

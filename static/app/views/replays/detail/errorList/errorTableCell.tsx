@@ -19,7 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';
 
@@ -31,7 +31,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-export default function ErrorTableCell({
+export function ErrorTableCell({
   columnIndex,
   frame,
   onMouseEnter,

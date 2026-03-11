@@ -10,8 +10,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import TextField from 'sentry/components/forms/fields/textField';
-import List from 'sentry/components/list';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {List} from 'sentry/components/list';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -41,7 +41,7 @@ interface StacktraceLinkModalProps extends ModalRenderProps {
   platform?: string;
 }
 
-function StacktraceLinkModal({
+export function StacktraceLinkModal({
   closeModal,
   onSubmit,
   organization,
@@ -366,5 +366,3 @@ const StyledTextField = styled(TextField)`
     margin-left: 0px;
   }
 `;
-
-export default StacktraceLinkModal;

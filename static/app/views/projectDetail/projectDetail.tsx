@@ -12,16 +12,16 @@ import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
@@ -38,16 +38,16 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
-import ProjectScoreCards from './projectScoreCards/projectScoreCards';
+import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
-import ProjectFilters from './projectFilters';
-import ProjectIssues from './projectIssues';
-import ProjectLatestAlerts from './projectLatestAlerts';
-import ProjectLatestReleases from './projectLatestReleases';
-import ProjectQuickLinks from './projectQuickLinks';
-import ProjectTeamAccess from './projectTeamAccess';
+import {ProjectFilters} from './projectFilters';
+import {ProjectIssues} from './projectIssues';
+import {ProjectLatestAlerts} from './projectLatestAlerts';
+import {ProjectLatestReleases} from './projectLatestReleases';
+import {ProjectQuickLinks} from './projectQuickLinks';
+import {ProjectTeamAccess} from './projectTeamAccess';
 
-export default function ProjectDetail() {
+export function ProjectDetail() {
   const api = useApi();
   const params = useParams<{orgId: string; projectId: string}>();
   const location = useLocation();

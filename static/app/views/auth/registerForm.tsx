@@ -17,7 +17,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function RegisterForm({authConfig}: Props) {
+export function RegisterForm({authConfig}: Props) {
   const {hasNewsletter} = authConfig;
   const navigate = useNavigate();
 
@@ -104,5 +104,3 @@ const PrivacyPolicyLink = styled(ExternalLink)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default RegisterForm;

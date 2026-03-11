@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 
 type UnitTypeProps = {
@@ -9,7 +9,7 @@ type UnitTypeProps = {
   weight: string;
 };
 
-export default function UnitTypeItem({unitName, description, weight}: UnitTypeProps) {
+export function UnitTypeItem({unitName, description, weight}: UnitTypeProps) {
   return (
     <UnitTypeContainer>
       <UnitColumn>

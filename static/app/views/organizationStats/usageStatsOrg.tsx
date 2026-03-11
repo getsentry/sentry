@@ -10,12 +10,12 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import NotAvailable from 'sentry/components/notAvailable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
@@ -51,7 +51,7 @@ import UsageChart, {
   ChartDataTransform,
   SeriesTypes,
 } from './usageChart';
-import UsageStatsPerMin from './usageStatsPerMin';
+import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
 type ChartData = {

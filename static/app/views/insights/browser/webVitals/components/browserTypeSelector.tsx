@@ -66,7 +66,7 @@ const browserOptions = [
   },
 ];
 
-export default function BrowserTypeSelector() {
+export function BrowserTypeSelector() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();

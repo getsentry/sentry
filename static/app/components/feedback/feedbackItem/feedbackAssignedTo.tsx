@@ -20,7 +20,7 @@ interface Props {
   feedbackIssue: Group;
 }
 
-export default function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
+export function FeedbackAssignedTo({feedbackIssue, feedbackEvent}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const project = feedbackIssue.project;

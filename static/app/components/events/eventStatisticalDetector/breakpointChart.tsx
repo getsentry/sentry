@@ -2,7 +2,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventsStatsData} from 'sentry/types/organization';
@@ -22,13 +22,13 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
-import Chart from './lineChart';
+import {LineChart as Chart} from './lineChart';
 
 type EventBreakpointChartProps = {
   event: Event;
 };
 
-function EventBreakpointChart({event}: EventBreakpointChartProps) {
+export function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -120,5 +120,3 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     </InterimSection>
   );
 }
-
-export default EventBreakpointChart;

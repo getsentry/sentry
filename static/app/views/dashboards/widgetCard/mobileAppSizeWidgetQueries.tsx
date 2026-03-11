@@ -15,7 +15,7 @@ type MobileAppSizeWidgetQueriesProps = {
   widgetInterval?: string;
 };
 
-function MobileAppSizeWidgetQueries({
+export function MobileAppSizeWidgetQueries({
   children,
   widget,
   dashboardFilters,
@@ -40,5 +40,3 @@ function MobileAppSizeWidgetQueries({
     fixed: <div />,
   });
 }
-
-export default MobileAppSizeWidgetQueries;
