@@ -1000,7 +1000,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 and legend_type == DashboardWidgetLegendType.BREAKDOWN
             )
             supports_field_links = (
-                widget_display_type is DashboardWidgetDisplayTypes.TABLE or is_breakdown_chart
+                widget_display_type == DashboardWidgetDisplayTypes.TABLE or is_breakdown_chart
             )
 
             if not supports_field_links and len(linked_dashboards) > 0:
