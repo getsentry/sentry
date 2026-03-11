@@ -22,8 +22,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {
+  PREBUILT_DASHBOARDS,
+  PrebuiltDashboardId,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -71,8 +74,13 @@ export function WebVitalsDetailPanel({
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
-    dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
+  const {dashboard: linkedWebVitalsSummaryDashboard} = useResolveLinkedDashboardIds(
+    dashboardFilters === undefined
+      ? undefined
+      : {
+          ...PREBUILT_DASHBOARDS[PrebuiltDashboardId.WEB_VITALS_SUMMARY],
+          prebuiltId: PrebuiltDashboardId.WEB_VITALS_SUMMARY,
+        }
   );
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});

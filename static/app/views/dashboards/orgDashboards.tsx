@@ -14,7 +14,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
@@ -81,8 +82,11 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
+  const prebuiltConfig = selectedDashboard?.prebuiltId
+    ? PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId]
+    : undefined;
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
-    useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
+    useResolveLinkedDashboardIds(prebuiltConfig);
 
   // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
   // Preserve user-saved state (filters and page filters) from the DB record so changes persist.

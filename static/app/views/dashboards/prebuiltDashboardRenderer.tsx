@@ -12,7 +12,7 @@ import {
   type DashboardFilters,
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 
 import {PREBUILT_DASHBOARDS, type PrebuiltDashboardId} from './utils/prebuiltConfigs';
 
@@ -29,8 +29,9 @@ export function PrebuiltDashboardRenderer({
 }: PrebuiltDashboardRendererProps) {
   const organization = useOrganization();
   const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
-  const {dashboard: populatedPrebuiltDashboard, isLoading} =
-    useGetPrebuiltDashboard(prebuiltId);
+  const {dashboard: populatedPrebuiltDashboard, isLoading} = useResolveLinkedDashboardIds(
+    {...prebuiltDashboard, prebuiltId}
+  );
 
   const {title, filters} = prebuiltDashboard;
   const widgets = populatedPrebuiltDashboard?.widgets ?? prebuiltDashboard.widgets;

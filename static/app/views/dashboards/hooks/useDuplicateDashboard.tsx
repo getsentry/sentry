@@ -14,7 +14,7 @@ import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {resolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {resolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 
 interface UseDuplicateDashboardProps {
   onSuccess?: (copiedDashboard: DashboardDetails) => void;
