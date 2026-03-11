@@ -12,6 +12,7 @@ import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarr
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function DashboardsSecondaryNavigation() {
@@ -43,13 +44,17 @@ export function DashboardsSecondaryNavigation() {
             title={t('Starred Dashboards')}
           >
             <ErrorBoundary mini>
-              <StarredDashboardItems
-                dashboards={starredDashboards}
-                projects={projects}
-                organizationSlug={organization.slug}
-                organizationId={organization.id}
-                userId={user.id}
-              />
+              {organization.features.includes('dashboards-starred-reordering') ? (
+                <DashboardsNavigationItems initialDashboards={starredDashboards} />
+              ) : (
+                <StarredDashboardItems
+                  dashboards={starredDashboards}
+                  projects={projects}
+                  organizationSlug={organization.slug}
+                  organizationId={organization.id}
+                  userId={user.id}
+                />
+              )}
             </ErrorBoundary>
           </SecondaryNavigation.Section>
         ) : null}
