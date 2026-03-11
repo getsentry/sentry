@@ -7,7 +7,7 @@ import {
   NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAV_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 
 /**
@@ -16,7 +16,7 @@ import {NavLayout} from 'sentry/views/nav/types';
  * to prevent accidental dismissals.
  */
 export function useResetActiveNavGroup(): DOMAttributes<FocusableElement> {
-  const {layout, setActivePrimaryNavGroup} = useNavContext();
+  const {layout, setActivePrimaryNavGroup} = useNavigationContext();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetActiveNavGroup = useCallback(() => {

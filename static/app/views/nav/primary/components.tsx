@@ -20,7 +20,7 @@ import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/nav/constants';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import type {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -78,7 +78,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
       <Flex
@@ -122,7 +122,7 @@ export function SidebarMenu({
 }: SidebarItemDropdownProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const theme = useTheme();
 
   const showLabel = layout === NavLayout.MOBILE;
@@ -186,7 +186,7 @@ function SidebarNavLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavGroup} = useNavContext();
+  const {layout, activePrimaryNavGroup} = useNavigationContext();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
@@ -260,7 +260,7 @@ export function SidebarButton({
   label,
 }: SidebarButtonProps) {
   const organization = useOrganization();
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
@@ -421,7 +421,7 @@ const NavLink = styled(Link, {
 
 const NavButton = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
-    const {layout} = useNavContext();
+    const {layout} = useNavigationContext();
 
     return (
       <Button

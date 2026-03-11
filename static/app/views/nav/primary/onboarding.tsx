@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/nav/context';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -43,7 +43,7 @@ function OnboardingItem({
   refetch: () => void;
 }) {
   const theme = useTheme();
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
   const isMobile = layout === NavLayout.MOBILE;
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
