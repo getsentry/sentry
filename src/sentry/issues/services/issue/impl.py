@@ -100,7 +100,7 @@ class DatabaseBackedIssueService(IssueService):
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
     ) -> RpcGroupShareMetadata | None:
-        self.get_shared_for_cell(cell_name=region_name, share_id=share_id)
+        return self.get_shared_for_cell(cell_name=region_name, share_id=share_id)
 
     def upsert_issue_email_reply(
         self, *, organization_id: int, group_id: int, from_email: str, text: str

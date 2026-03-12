@@ -37,6 +37,6 @@ class DatabaseBackedSentryAppRequestService(SentryAppRequestService):
         region_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
     ) -> list[RpcSentryAppRequest] | None:
-        self.get_buffer_requests_for_cell(
+        return self.get_buffer_requests_for_cell(
             cell_name=region_name, sentry_app_id=sentry_app_id, filter=filter
         )
