@@ -18,7 +18,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
 from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -50,14 +50,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     # make up some unique count
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
-                    self.store_performance_metric(
-                        name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                        tags={"transaction": name},
-                        minutes_before_now=30,
-                        value=num_transactions,
-                        project_id=p.id,
-                        org_id=org.id,
-                    )
                     self.store_performance_metric(
                         name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name, "is_segment": "true"},

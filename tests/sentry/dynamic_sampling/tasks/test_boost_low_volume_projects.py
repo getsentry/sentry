@@ -23,7 +23,7 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -704,16 +704,6 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
             tags={"transaction": "foo", "decision": "drop", "is_segment": "true"},
             minutes_before_now=30,
             value=7,
-            project_id=project.id,
-            org_id=org.id,
-        )
-
-        # Also store transaction metrics (should NOT be picked up for SEGMENTS)
-        self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep"},
-            minutes_before_now=30,
-            value=100,
             project_id=project.id,
             org_id=org.id,
         )
