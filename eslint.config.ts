@@ -1103,7 +1103,11 @@ export default typescript.config([
         // --- stories ---
         {
           type: 'story-files',
-          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+          pattern: [
+            'static/**/*.stories.{ts,tsx}',
+            'static/**/*.mdx',
+            'static/**/__stories__/*.{ts,tsx}',
+          ],
           mode: 'full',
         },
         {
@@ -1273,7 +1277,7 @@ export default typescript.config([
             // --- stories ---
             {
               from: ['story-files', 'story-book'],
-              allow: ['core*', 'sentry*', 'story-book'],
+              allow: ['core*', 'sentry*', 'story-book', 'story-files'],
             },
             // --- debug tools (e.g. notifications) ---
             {
