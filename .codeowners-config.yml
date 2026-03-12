@@ -1,0 +1,108 @@
+# CODEOWNERS Coverage Configuration for Sentry
+
+# Path to CODEOWNERS file
+codeowners_path: '.github/CODEOWNERS'
+
+# Path to baseline file
+baseline_path: '.github/codeowners-coverage-baseline.txt'
+
+team_allowlist:
+  - getsentry/alerts-create-issues
+  - getsentry/alerts-notifications
+  - getsentry/app-frontend
+  - getsentry/codecov
+  - getsentry/codecov-merge
+  - getsentry/coding-workflows
+  - getsentry/crons
+  - getsentry/dashboards
+  - getsentry/data
+  - getsentry/data-browsing
+  - getsentry/design
+  - getsentry/design-engineering
+  - getsentry/dev-infra
+  - getsentry/ecosystem
+  - getsentry/emerge-tools
+  - getsentry/enterprise
+  - getsentry/explore
+  - getsentry/feedback-backend
+  - getsentry/feedback-frontend
+  - getsentry/foundational-storage
+  - getsentry/gdx
+  - getsentry/hybrid-cloud
+  - getsentry/ingest
+  - getsentry/issue-detection-backend
+  - getsentry/issue-detection-frontend
+  - getsentry/issue-workflow
+  - getsentry/machine-learning-ai
+  - getsentry/ops
+  - getsentry/owners-api
+  - getsentry/owners-auth
+  - getsentry/owners-js-build
+  - getsentry/owners-js-deps
+  - getsentry/owners-legal
+  - getsentry/owners-migrations
+  - getsentry/owners-python-build
+  - getsentry/owners-sentry-dev
+  - getsentry/owners-snuba
+  - getsentry/product-owners-settings-integrations
+  - getsentry/profiling
+  - getsentry/python-typing
+  - getsentry/release-approvers
+  - getsentry/replay-backend
+  - getsentry/replay-frontend
+  - getsentry/revenue
+  - getsentry/scm
+  - getsentry/security
+  - getsentry/sre-infrastructure-engineering
+  - getsentry/streaming-platform
+  - getsentry/team-javascript-sdks
+  - getsentry/team-web-sdk-backend
+  - getsentry/telemetry-experience
+
+# File patterns to exclude from coverage checking
+exclusions:
+  # Python artifacts
+  - '**/__pycache__/**'
+  - '**/*.pyc'
+  - '**/*.pyo'
+  - '**/*.egg-info/**'
+  - '.venv/**'
+  - '.tox/**'
+  - '.pytest_cache/**'
+  - '.mypy_cache/**'
+
+  # JavaScript artifacts
+  - 'node_modules/**'
+  - 'dist/**'
+  - 'build/**'
+  - '**/coverage/**'
+  - '**/.next/**'
+
+  # Build/CI artifacts
+  - '.git/**'
+  - 'htmlcov/**'
+  - '.coverage'
+  - '**/.DS_Store'
+  - '.artifacts/**'
+
+  # Generated files
+  - '**/*.generated.*'
+  - '**/generated/**'
+
+  # Vendor/third-party
+  - 'vendor/**'
+  - 'fixtures/**'
+
+  # Documentation build artifacts
+  - 'docs/_build/**'
+
+  # Temporary files
+  - '**/*.tmp'
+  - '**/*.temp'
+  - '**/.cache/**'
+
+  # Agent files
+  - '.claude/**'
+  - '.cursor/**'
+  - '.craft.yml'
+  - '.mcp.json'
