@@ -138,8 +138,6 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             order_by=order_by,
             on_results=lambda x: self._serialize_objects(x, request),
             paginator_cls=paginator_cls,
-            default_per_page=3,
-            max_per_page=100,
         )
 
     def put(self, request: Request) -> Response:
