@@ -31,6 +31,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 
@@ -338,6 +339,17 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 extra={
                     "integration_id": slack_request.integration.id,
                     "organization_id": organization_id,
+                },
+            )
+            return self.respond()
+
+        if organization_context.organization.status != OrganizationStatus.ACTIVE:
+            _logger.info(
+                "on_app_mention.organization-not-active",
+                extra={
+                    "integration_id": slack_request.integration.id,
+                    "organization_id": organization_id,
+                    "status": organization_context.organization.status,
                 },
             )
             return self.respond()
