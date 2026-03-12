@@ -15,7 +15,7 @@ from sentry.workflow_engine.models import (
 
 class TestActionFilterCache(TestCase):
     def create_workflow_with_filters(
-        self, num_filters=1, num_conditions=1
+        self, num_filters: int = 1, num_conditions: int = 1
     ) -> tuple[
         Workflow,
         list[DataConditionGroup],
