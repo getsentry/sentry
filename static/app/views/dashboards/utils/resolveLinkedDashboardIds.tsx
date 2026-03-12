@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import * as Sentry from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
@@ -112,6 +113,12 @@ function resolveIds<T extends DashboardInput>(
     ? fetchedDashboards.find(d => d.prebuiltId === dashboard.prebuiltId)?.id
     : undefined;
 
+  if (dashboard.prebuiltId && !realId) {
+    Sentry.captureMessage('Failed to resolve prebuilt dashboard ID', {
+      extra: {prebuiltId: dashboard.prebuiltId},
+    });
+  }
+
   const resolved = {
     ...dashboard,
     ...(realId ? {id: realId} : {}),
@@ -127,15 +134,23 @@ function resolveIds<T extends DashboardInput>(
       ...widget,
       queries: widget.queries.map(query => ({
         ...query,
-        linkedDashboards: query.linkedDashboards?.map(ld => {
-          if (!ld.staticDashboardId) {
-            return ld;
-          }
-          const linkedId = fetchedDashboards.find(
-            d => d.prebuiltId === ld.staticDashboardId
-          )?.id;
-          return linkedId ? {...ld, dashboardId: linkedId} : ld;
-        }),
+        linkedDashboards: query.linkedDashboards
+          ?.map(ld => {
+            if (!ld.staticDashboardId) {
+              return ld;
+            }
+            const linkedId = fetchedDashboards.find(
+              d => d.prebuiltId === ld.staticDashboardId
+            )?.id;
+            if (!linkedId) {
+              Sentry.captureMessage('Failed to resolve linked dashboard prebuilt ID', {
+                extra: {staticDashboardId: ld.staticDashboardId},
+              });
+              return null;
+            }
+            return {...ld, dashboardId: linkedId};
+          })
+          .filter(defined),
       })),
     })),
   };
