@@ -8,23 +8,21 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
-import Panel from 'sentry/components/panels/panel';
-import {
-  FrameContent,
-  IssueStackTrace,
-  StackTrace,
-  StackTraceFrameRow,
-  StackTraceFrames,
-  StackTraceProvider,
-  StackTraceViewStateProvider,
-  Toolbar,
-  useStackTraceContext,
-} from 'sentry/components/stackTrace';
+import {Panel} from 'sentry/components/panels/panel';
 import {
   ChevronAction,
   HiddenFramesToggleAction,
 } from 'sentry/components/stackTrace/frame/actions';
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
+import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {
+  StackTraceViewStateProvider,
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -1180,7 +1178,6 @@ export default Storybook.story('StackTrace', story => {
           complete control over layout.
         </p>
         <StoryStackTraceProvider event={event} stacktrace={stacktrace}>
-          <Toolbar />
           <ComposedContent />
         </StoryStackTraceProvider>
       </Fragment>
@@ -1316,30 +1313,11 @@ export default Storybook.story('StackTrace', story => {
           minifiedStacktrace={minifiedStacktrace}
           defaultIsMinified
         >
-          <Toolbar />
           <StackTraceFrames
             frameContextComponent={FrameContent}
             frameActionsComponent={StoryFrameActions}
           />
         </StoryStackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('StackTrace - Empty', () => {
-    const event = makeEvent({platform: 'python'});
-    const stacktrace: StacktraceWithFrames = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: {},
-      frames: [],
-    };
-    return (
-      <Fragment>
-        <p>
-          An empty frames array renders a placeholder indicating no frames are available.
-        </p>
-        <StackTrace event={event} stacktrace={stacktrace} />
       </Fragment>
     );
   });

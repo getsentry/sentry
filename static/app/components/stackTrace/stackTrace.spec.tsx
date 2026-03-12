@@ -9,16 +9,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  DisplayOptions,
-  FrameContent,
-  IssueFrameActions,
-  IssueStackTrace,
-  StackTraceFrames,
-  StackTraceProvider,
-  StackTraceViewStateProvider,
-  Toolbar,
-} from 'sentry/components/stackTrace';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
+import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
+import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
@@ -98,7 +95,7 @@ function renderStackTrace() {
 
   render(
     <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-      <Toolbar />
+      <DisplayOptions />
       <StackTraceFrames frameContextComponent={FrameContent} />
     </TestStackTraceProvider>
   );
@@ -293,7 +290,7 @@ describe('Core StackTrace', () => {
         stacktrace={stacktrace}
         minifiedStacktrace={minifiedStacktrace}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -342,7 +339,7 @@ describe('Core StackTrace', () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}
           frameActionsComponent={IssueFrameActions}
@@ -493,7 +490,7 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>,
       {
@@ -551,7 +548,7 @@ describe('Core StackTrace', () => {
           frames: [singleNonAppFrame],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -578,7 +575,7 @@ describe('Core StackTrace', () => {
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}
           frameActionsComponent={IssueFrameActions}
@@ -614,7 +611,7 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -690,7 +687,7 @@ describe('Core StackTrace', () => {
         }}
         exceptionIndex={0}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}
           frameActionsComponent={IssueFrameActions}
@@ -730,7 +727,7 @@ describe('Core StackTrace', () => {
         stacktrace={stacktrace}
         components={components}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}
           frameActionsComponent={IssueFrameActions}
@@ -764,7 +761,7 @@ describe('Core StackTrace', () => {
           frames: [frameWithAbsolutePath],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -806,7 +803,7 @@ describe('Core StackTrace', () => {
 
     render(
       <TestStackTraceProvider event={event} stacktrace={stacktrace}>
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}
           frameActionsComponent={IssueFrameActions}
@@ -851,7 +848,7 @@ describe('Core StackTrace', () => {
           frames: [{...recursiveFrame}, {...recursiveFrame}, {...recursiveFrame}],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -884,7 +881,7 @@ describe('Core StackTrace', () => {
           ],
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -923,7 +920,7 @@ describe('Core StackTrace', () => {
           },
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -956,7 +953,7 @@ describe('Core StackTrace', () => {
           registers: {},
         }}
       >
-        <Toolbar />
+        <DisplayOptions />
         <StackTraceFrames frameContextComponent={FrameContent} />
       </TestStackTraceProvider>
     );
@@ -1159,8 +1156,8 @@ describe('Core StackTrace', () => {
 
     const rawText = await screen.findByText(/FirstError: first/);
     const pre = rawText.closest('pre')!;
-    const firstIdx = pre.textContent!.indexOf('FirstError: first');
-    const secondIdx = pre.textContent!.indexOf('SecondError: second');
+    const firstIdx = pre.textContent.indexOf('FirstError: first');
+    const secondIdx = pre.textContent.indexOf('SecondError: second');
     // FirstError appears before SecondError (not reversed despite default newest-first)
     expect(firstIdx).toBeLessThan(secondIdx);
   });

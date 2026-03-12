@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import type {PlatformKey} from 'sentry/types/project';
 
