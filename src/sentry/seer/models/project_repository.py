@@ -21,7 +21,6 @@ class SeerProjectRepository(DefaultFieldsModel):
     repository = FlexibleForeignKey("sentry.Repository", on_delete=models.CASCADE)
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
-    branch_overrides = models.JSONField(default=list, blank=True)
 
     class Meta:
         app_label = "seer"
@@ -29,3 +28,30 @@ class SeerProjectRepository(DefaultFieldsModel):
         unique_together = (("project", "repository"),)
 
     __repr__ = sane_repr("project_id", "repository_id")
+
+
+@cell_silo_model
+class SeerProjectRepositoryBranchOverride(DefaultFieldsModel):
+    """
+    A conditional branch override for a project-repository link.
+    When an issue event has a tag matching tag_name/tag_value,
+    autofix uses the corresponding branch_name instead of the default.
+    """
+
+    __relocation_scope__ = RelocationScope.Global
+
+    seer_project_repository = FlexibleForeignKey(
+        "seer.SeerProjectRepository",
+        on_delete=models.CASCADE,
+        related_name="branch_overrides",
+    )
+    tag_name = models.TextField()
+    tag_value = models.TextField()
+    branch_name = models.TextField()
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_projectrepositorybranchoverride"
+        unique_together = (("seer_project_repository", "tag_name", "tag_value"),)
+
+    __repr__ = sane_repr("seer_project_repository_id", "tag_name", "tag_value")
