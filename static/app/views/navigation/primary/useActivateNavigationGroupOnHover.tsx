@@ -1,9 +1,8 @@
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
-import {useWindowHeight} from 'sentry/views/navigation/primary/useWindowHeight';
 import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
@@ -111,4 +110,29 @@ export function useActivateNavigationGroupOnHover({
       onClick,
     };
   };
+}
+
+function useWindowHeight(): number {
+  const [windowHeight, setWindowHeight] = useState(() => window.innerHeight);
+
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver(() => {
+      setWindowHeight(window.innerHeight);
+    });
+
+    resizeObserver.observe(document.documentElement);
+
+    const handleResize = (): void => {
+      setWindowHeight(window.innerHeight);
+    };
+
+    window.addEventListener('resize', handleResize, {passive: true});
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return windowHeight;
 }

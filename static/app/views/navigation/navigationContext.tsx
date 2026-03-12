@@ -15,7 +15,6 @@ interface NavigationContext {
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
   layout: NavigationLayout;
-  navigationParentRef: React.RefObject<HTMLDivElement | null>;
   setActivePrimaryNavigationGroup: (
     activePrimaryNavigationGroup: PrimaryNavigationGroup | null
   ) => void;
@@ -25,7 +24,6 @@ interface NavigationContext {
 }
 
 const NavigationContext = createContext<NavigationContext>({
-  navigationParentRef: {current: null},
   layout: NavigationLayout.SIDEBAR,
   isCollapsed: false,
   setIsCollapsed: () => {},
@@ -42,9 +40,11 @@ export function useNavigationContext(): NavigationContext {
   return useContext(NavigationContext);
 }
 
-export function NavigationContextProvider({children}: {children: React.ReactNode}) {
-  const navigationParentRef = useRef<HTMLDivElement>(null);
+interface NavigationContextProviderProps {
+  children: React.ReactNode;
+}
 
+export function NavigationContextProvider(props: NavigationContextProviderProps) {
   const isInteractingRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
@@ -67,7 +67,6 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
 
   const value = useMemo(
     () => ({
-      navigationParentRef,
       layout: isMobile ? NavigationLayout.MOBILE : NavigationLayout.SIDEBAR,
       isCollapsed,
       setIsCollapsed,
@@ -94,7 +93,9 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
 
   return (
     <NavigationTourReminderContextProvider>
-      <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
+      <NavigationContext.Provider value={value}>
+        {props.children}
+      </NavigationContext.Provider>
     </NavigationTourReminderContextProvider>
   );
 }

@@ -145,10 +145,9 @@ function DashboardTable({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderHeadCell(column: GridColumnOrder<string>) {

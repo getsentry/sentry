@@ -28,9 +28,7 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function InsightsSecondaryNavigation() {
   const user = useUser();
@@ -53,9 +51,7 @@ export function InsightsSecondaryNavigation() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.INSIGHTS].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Insights')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="insights-main">
           <SecondaryNavigation.Item

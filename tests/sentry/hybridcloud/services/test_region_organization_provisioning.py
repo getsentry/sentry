@@ -69,8 +69,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -83,8 +83,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user, create_default_team=False)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -104,8 +104,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         assert existing_org.id == organization_id
 
         provision_options = self.get_provisioning_args(user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -125,8 +125,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
@@ -142,8 +142,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         provision_options.provision_options.name = "a" * 128
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=42, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=42, provision_payload=provision_options, cell_name="us"
         )
 
         assert result is True
@@ -161,8 +161,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
@@ -183,8 +183,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         )
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
@@ -201,8 +201,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         self.create_organization(slug="santry", name="Santry", owner=user)
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
@@ -217,10 +217,10 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        region_organization_provisioning_rpc_service.create_organization_in_region(
+        region_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id,
             provision_payload=provision_options,
-            region_name="us",
+            cell_name="us",
         )
         with assume_test_silo_mode(SiloMode.CELL):
             org: Organization = Organization.objects.get(id=organization_id)

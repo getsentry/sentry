@@ -29,7 +29,7 @@ type State = {
   results: any[];
 };
 
-export default class UserEmailLog extends Component<Props, State> {
+export class UserEmailLog extends Component<Props, State> {
   state: State = {
     loading: null,
     error: false,

@@ -11,6 +11,7 @@ import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/en
 import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import {Providers} from 'sentry/components/replays/player/__stories__/providers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
@@ -40,8 +41,9 @@ export function ReplaySlugChooser({children}: Props) {
     organization,
     queryReferrer: 'replayList',
   });
+  const {url, options} = parseQueryKey(listQueryKey);
   const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-    queryKey: ['infinite', ...(listQueryKey ?? '')],
+    queryKey: [{infinite: true, version: 'v1'}, url, options ?? {}],
     enabled: Boolean(listQueryKey),
   });
 
