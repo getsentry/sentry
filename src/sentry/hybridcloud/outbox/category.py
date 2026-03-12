@@ -8,7 +8,7 @@ from sentry.hybridcloud.outbox.signals import process_control_outbox, process_re
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
     from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
@@ -135,9 +135,9 @@ class OutboxCategory(IntEnum):
         payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: type[RegionOutboxBase] | None = None,
-    ) -> RegionOutboxBase:
-        from sentry.hybridcloud.models.outbox import RegionOutbox
+        outbox: type[CellOutboxBase] | None = None,
+    ) -> CellOutboxBase:
+        from sentry.hybridcloud.models.outbox import CellOutbox
 
         scope = self.get_scope()
 
@@ -145,7 +145,7 @@ class OutboxCategory(IntEnum):
             scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
         )
 
-        Outbox = outbox or RegionOutbox
+        Outbox = outbox or CellOutbox
 
         return Outbox(
             shard_scope=scope,

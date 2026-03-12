@@ -8,7 +8,7 @@ from django.db import models
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
-from sentry.hybridcloud.models.outbox import RegionOutboxBase
+from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.hybridcloud.outbox.base import RegionOutboxProducingManager, ReplicatedRegionModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.roles import team_roles
@@ -41,7 +41,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
 
     __repr__ = sane_repr("team_id", "organizationmember_id")
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
+    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         return super().outbox_for_update(
             shard_identifier=(
                 self.organizationmember.organization_id

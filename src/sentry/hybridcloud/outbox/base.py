@@ -19,7 +19,7 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
 
 
 logger = logging.getLogger("sentry.outboxes")
@@ -73,7 +73,7 @@ class RegionOutboxProducingModel(Model):
         with self.prepare_outboxes(outbox_before_super=True, flush=False):
             return super().delete(*args, **kwds)
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
+    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         raise NotImplementedError
 
 
@@ -104,7 +104,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
                 )
                 ids = [i for (i,) in cursor.fetchall()]
 
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.append(obj.outbox_for_update())
@@ -124,7 +124,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
@@ -141,7 +141,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
@@ -161,7 +161,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     """
 
     category: OutboxCategory
-    outbox_type: type[RegionOutboxBase] | None = None
+    outbox_type: type[CellOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -176,7 +176,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         """
         return None
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
+    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
         Subclasses generally should override payload_for_update to customize
