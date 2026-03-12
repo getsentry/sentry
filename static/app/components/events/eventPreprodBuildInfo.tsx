@@ -40,6 +40,10 @@ import {
   getShaUrl,
 } from 'sentry/views/preprod/utils/vcsLinkUtils';
 
+function ExternalLinkOrText({url, label}: {label: string; url: string | null}) {
+  return url ? <ExternalLink href={url}>{label}</ExternalLink> : label;
+}
+
 function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}) {
   const organization = useOrganization();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,63 +156,63 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
   }
 
   if (vcs_info.head_repo_name) {
-    const repoUrl = getRepoUrl(vcs_info, vcs_info.head_repo_name);
     items.push({
       key: 'repo',
       subject: t('Repo'),
-      value: repoUrl ? (
-        <ExternalLink href={repoUrl}>{vcs_info.head_repo_name}</ExternalLink>
-      ) : (
-        vcs_info.head_repo_name
+      value: (
+        <ExternalLinkOrText
+          url={getRepoUrl(vcs_info, vcs_info.head_repo_name)}
+          label={vcs_info.head_repo_name}
+        />
       ),
     });
   }
 
   if (vcs_info.head_ref) {
-    const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
     items.push({
       key: 'branch',
       subject: t('Branch'),
-      value: branchUrl ? (
-        <ExternalLink href={branchUrl}>{vcs_info.head_ref}</ExternalLink>
-      ) : (
-        vcs_info.head_ref
+      value: (
+        <ExternalLinkOrText
+          url={getBranchUrl(vcs_info, vcs_info.head_ref)}
+          label={vcs_info.head_ref}
+        />
       ),
     });
   }
 
   if (vcs_info.pr_number) {
-    const prUrl = getPrUrl(vcs_info);
-    const prLabel = `#${vcs_info.pr_number}`;
     items.push({
       key: 'pr',
       subject: t('PR'),
-      value: prUrl ? <ExternalLink href={prUrl}>{prLabel}</ExternalLink> : prLabel,
+      value: (
+        <ExternalLinkOrText url={getPrUrl(vcs_info)} label={`#${vcs_info.pr_number}`} />
+      ),
     });
   }
 
   if (vcs_info.head_sha) {
-    const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
     items.push({
       key: 'sha',
       subject: t('SHA'),
-      value: shaUrl ? (
-        <ExternalLink href={shaUrl}>{vcs_info.head_sha.slice(0, 7)}</ExternalLink>
-      ) : (
-        vcs_info.head_sha.slice(0, 7)
+      value: (
+        <ExternalLinkOrText
+          url={getShaUrl(vcs_info, vcs_info.head_sha)}
+          label={vcs_info.head_sha.slice(0, 7)}
+        />
       ),
     });
   }
 
   if (vcs_info.base_sha) {
-    const baseShaUrl = getShaUrl(vcs_info, vcs_info.base_sha, true);
     items.push({
       key: 'base-sha',
       subject: t('Base SHA'),
-      value: baseShaUrl ? (
-        <ExternalLink href={baseShaUrl}>{vcs_info.base_sha.slice(0, 7)}</ExternalLink>
-      ) : (
-        vcs_info.base_sha.slice(0, 7)
+      value: (
+        <ExternalLinkOrText
+          url={getShaUrl(vcs_info, vcs_info.base_sha, true)}
+          label={vcs_info.base_sha.slice(0, 7)}
+        />
       ),
     });
   }
