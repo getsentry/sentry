@@ -187,7 +187,7 @@ const AGENTS_TRACES_TABLE = {
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
-  limit: 20,
+  limit: 10,
   queries: [
     {
       conditions: '',
