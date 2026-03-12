@@ -1,15 +1,16 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {FieldGroup} from '@sentry/scraps/form';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import {LegacyJsonFormAdapter} from 'sentry/components/legacyJsonFormAdapter';
 import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -26,8 +27,13 @@ import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -376,25 +382,42 @@ function ConfigureIntegration() {
     const instructions =
       integration.dynamicDisplayInformation?.configure_integration?.instructions;
 
+    const integrationEndpoint = getApiUrl(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+      {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+    );
+    const integrationMutationOptions = mutationOptions({
+      mutationFn: (data: Record<string, unknown>) =>
+        fetchMutation({method: 'POST', url: integrationEndpoint, data}),
+      onSuccess: () => {
+        void queryClient.invalidateQueries({
+          queryKey: makeIntegrationQuery(organization, integrationId),
+        });
+      },
+    });
+
     return (
       <Fragment>
         {integration.configOrganization.length > 0 && (
-          <Form
-            hideFooter
-            saveOnBlur
-            allowUndo
-            apiMethod="POST"
-            initialData={integration.configData || {}}
-            apiEndpoint={`/organizations/${organization.slug}/integrations/${integration.id}/`}
+          <FieldGroup
+            title={
+              integration.provider.aspects.configure_integration?.title ||
+              t('Organization Integration Settings')
+            }
           >
-            <JsonForm
-              fields={integration.configOrganization}
-              title={
-                integration.provider.aspects.configure_integration?.title ||
-                t('Organization Integration Settings')
-              }
-            />
-          </Form>
+            {integration.configOrganization.map(fieldConfig => (
+              <LegacyJsonFormAdapter
+                key={fieldConfig.name}
+                field={fieldConfig}
+                initialValue={
+                  (integration.configData as Record<string, unknown> | null)?.[
+                    fieldConfig.name
+                  ]
+                }
+                mutationOptions={integrationMutationOptions}
+              />
+            ))}
+          </FieldGroup>
         )}
 
         {instructions && instructions.length > 0 && (

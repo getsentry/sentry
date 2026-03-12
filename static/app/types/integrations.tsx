@@ -1,6 +1,7 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {Field} from 'sentry/components/forms/types';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/legacyJsonFormAdapter/types';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
@@ -440,7 +441,7 @@ type ConfigData = {
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
-  configOrganization: Field[];
+  configOrganization: JsonFormAdapterFieldConfig[];
   externalId: string;
   organizationId: string;
 }
@@ -448,7 +449,7 @@ export interface OrganizationIntegration extends Integration {
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {
   configData: ConfigData;
-  configOrganization: Field[];
+  configOrganization: JsonFormAdapterFieldConfig[];
 }
 
 /**
