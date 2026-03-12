@@ -3,8 +3,7 @@ import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {BROADCAST_CATEGORIES} from 'sentry/views/navigation/primary/whatsNew/item';
-import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 
 jest.mock('sentry/utils/analytics');
 
@@ -101,10 +100,10 @@ describe('WhatsNew', () => {
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
 
     // Verify that the broadcast content is rendered correctly
-    expect(await screen.findByText(BROADCAST_CATEGORIES.blog)).toBeInTheDocument();
+    expect(await screen.findByText('Blog Post')).toBeInTheDocument();
     const titleLink = screen.getByRole('link', {name: broadcast.title});
     expect(titleLink).toHaveAttribute('href', broadcast.link);
-    expect(screen.getByText(/Source maps are JSON/)).toBeInTheDocument();
+    expect(screen.getByText(broadcast.message)).toBeInTheDocument();
 
     // Simulate click and check if analytics tracking is called
     await userEvent.click(titleLink);

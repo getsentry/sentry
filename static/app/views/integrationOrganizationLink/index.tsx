@@ -31,7 +31,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import {AddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {

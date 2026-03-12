@@ -1,4 +1,3 @@
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 
 export function AdminSecondaryNavigation() {
@@ -27,7 +26,6 @@ export function AdminSecondaryNavigation() {
           ],
         },
       ]}
-      primaryNavGroup={PrimaryNavigationGroup.ADMIN}
     />
   );
 }

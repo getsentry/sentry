@@ -7,10 +7,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -18,9 +17,7 @@ export function IssuesSecondaryNavigation() {
   const baseUrl = `/organizations/${organization.slug}/issues`;
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.ISSUES].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="issues-feed">
           <SecondaryNavigation.Item

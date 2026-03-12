@@ -3,9 +3,7 @@ import {Fragment} from 'react';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function MonitorsSecondaryNavigation() {
   const organization = useOrganization();
@@ -13,9 +11,7 @@ export function MonitorsSecondaryNavigation() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.MONITORS].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Monitors')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="monitors-views">
           <SecondaryNavigation.Item
@@ -58,6 +54,14 @@ export function MonitorsSecondaryNavigation() {
               analyticsItemName="monitors_uptime"
             >
               {t('Uptime')}
+            </SecondaryNavigation.Item>
+          </Feature>
+          <Feature features={['organizations:preprod-size-monitors-frontend']}>
+            <SecondaryNavigation.Item
+              to={`${baseUrl}/mobile-builds/`}
+              analyticsItemName="monitors_mobile_builds"
+            >
+              {t('Mobile Builds')}
             </SecondaryNavigation.Item>
           </Feature>
         </SecondaryNavigation.Section>

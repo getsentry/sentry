@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import Cookies from 'js-cookie';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -500,6 +501,136 @@ describe('IssueListOverview (actions)', () => {
       );
 
       expect(screen.getByText('Medium priority issue')).toBeInTheDocument();
+    });
+  });
+
+  describe('realtime mode', () => {
+    const group1 = GroupFixture({
+      id: '1',
+      metadata: {title: 'Group 1'},
+      shortId: 'JAVASCRIPT-1',
+    });
+    const group2 = GroupFixture({
+      id: '2',
+      metadata: {title: 'Group 2'},
+      shortId: 'JAVASCRIPT-2',
+    });
+
+    beforeEach(() => {
+      jest.spyOn(Cookies, 'get').mockImplementation((name?: string) => {
+        if (name === 'realtimeActive') {
+          return 'true';
+        }
+        return {};
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('removes a resolved issue from the stream without triggering a refetch', async () => {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+      // This is the GET for the initial load; we track calls to assert no refetch happens
+      const getIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved'},
+          },
+        },
+      });
+
+      const groups = await screen.findAllByTestId('group');
+
+      await userEvent.click(
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
+      );
+
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      const initialGetCallCount = getIssueMock.mock.calls.length;
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1']}),
+          data: {status: 'resolved', statusDetails: {}, substatus: null},
+        })
+      );
+
+      // Issue should be removed from the stream
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      // No additional GET request should have been triggered by the action
+      expect(getIssueMock.mock.calls).toHaveLength(initialGetCallCount);
+    });
+
+    it('removes an archived issue from the stream without triggering a refetch', async () => {
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+      const getIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: 'is:unresolved'},
+          },
+        },
+      });
+
+      const groups = await screen.findAllByTestId('group');
+
+      await userEvent.click(
+        within(groups[0]!).getByRole('checkbox', {name: /select issue/i})
+      );
+
+      const initialGetCallCount = getIssueMock.mock.calls.length;
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
+
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1']}),
+        })
+      );
+
+      expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 2')).toBeInTheDocument();
+
+      // No additional GET request should have been triggered by the action
+      expect(getIssueMock.mock.calls).toHaveLength(initialGetCallCount);
     });
   });
 });
