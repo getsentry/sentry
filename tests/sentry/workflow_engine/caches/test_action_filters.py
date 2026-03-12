@@ -171,3 +171,16 @@ class TestActionFilterCache(TestCase):
             mock_query.assert_not_called()
 
         assert result[workflow.id] == []
+
+    def test_prefetched_conditions_survive_cache(self) -> None:
+        workflow, _ = self.create_workflow_with_filters(num_conditions=2)
+
+        # First call populates cache
+        get_action_filters_by_workflows([workflow])
+
+        # Second call retrieves from cache
+        with self.assertNumQueries(0):  # No DB queries
+            cached_results = get_action_filters_by_workflows([workflow])
+
+            for dcg in cached_results[workflow.id]:
+                list(dcg.conditions.all())
