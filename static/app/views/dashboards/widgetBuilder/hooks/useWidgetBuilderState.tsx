@@ -62,7 +62,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-export const TEXT_WIDGET_CONTENT_SESSION_KEY = 'dashboard:edit-widget:text-content';
+const TEXT_WIDGET_CONTENT_SESSION_KEY = 'dashboard:edit-widget:text-content';
 
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
