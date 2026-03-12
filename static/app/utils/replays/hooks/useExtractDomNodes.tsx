@@ -9,7 +9,7 @@ interface Params {
   replay: null | ReplayReader;
 }
 
-export default function useExtractDomNodes({replay, frame, enabled = true}: Params) {
+export function useExtractDomNodes({replay, frame, enabled = true}: Params) {
   return useQuery<Extraction | null>({
     queryKey: ['getDomNodes', frame, replay],
     // Note: we filter out `style` mutations due to perf issues.

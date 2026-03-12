@@ -18,7 +18,7 @@ import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {FileSize} from 'sentry/components/fileSize';
 import {BadgeDisplayName} from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {UserMisery} from 'sentry/components/userMisery';

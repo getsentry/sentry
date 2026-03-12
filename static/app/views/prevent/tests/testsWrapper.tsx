@@ -9,7 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function TestAnalyticsPageWrapper() {
   const organization = useOrganization();

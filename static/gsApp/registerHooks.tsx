@@ -83,10 +83,10 @@ import {
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
-import useButtonTracking from './hooks/useButtonTracking';
-import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
+import {useButtonTracking} from './hooks/useButtonTracking';
+import {useGetMaxRetentionDays} from './hooks/useGetMaxRetentionDays';
 import {useDefaultMaxPickableDays, useMaxPickableDays} from './hooks/useMaxPickableDays';
-import useRouteActivatedHook from './hooks/useRouteActivatedHook';
+import {useRouteActivatedHook} from './hooks/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
 const DisabledDiscover2Page = lazy(

@@ -9,7 +9,7 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ReplayContextKey} from 'sentry/types/event';
 import {FieldKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';

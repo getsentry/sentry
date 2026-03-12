@@ -27,7 +27,7 @@ import {
   SettingScope,
 } from 'sentry/utils/crashReports';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

@@ -11,7 +11,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation, useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me'}});

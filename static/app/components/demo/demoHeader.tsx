@@ -15,7 +15,7 @@ import {
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 import {initDemoMode} from 'sentry/utils/demoMode/utils';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const DEMO_HEADER_HEIGHT_PX = 70;
 

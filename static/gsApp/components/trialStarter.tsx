@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';

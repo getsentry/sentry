@@ -1,7 +1,7 @@
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useHasPlatformizedAiAndMcp() {
+export function useHasPlatformizedAiAndMcp() {
   const organization = useOrganization();
   const location = useLocation();
 

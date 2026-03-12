@@ -33,7 +33,7 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import showNewSeer from 'sentry/utils/seer/showNewSeer';
 import slugify from 'sentry/utils/slugify';
 import {useMembers} from 'sentry/utils/useMembers';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',

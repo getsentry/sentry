@@ -4,7 +4,7 @@ import type {Theme} from '@emotion/react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -95,7 +95,7 @@ function getDefaultLayout(
   return LayoutKey.SIDEBAR_LEFT;
 }
 
-export default function useReplayLayout() {
+export function useReplayLayout() {
   const theme = useTheme();
   const {isCollapsed} = useSecondaryNavigation();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(

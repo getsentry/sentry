@@ -8,7 +8,7 @@ import type {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 export type CreateReleaseIntegrationModalOptions = {
   onCancel: () => void;

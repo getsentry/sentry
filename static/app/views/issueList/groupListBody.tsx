@@ -7,9 +7,9 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 

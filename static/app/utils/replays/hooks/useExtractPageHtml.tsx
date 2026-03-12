@@ -54,7 +54,7 @@ interface Props {
   replay: ReplayReader | null;
 }
 
-export default function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
+export function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
   return useQuery({
     queryKey: ['extractPageHtml', replay, offsetMsToStopAt],
     queryFn: () =>

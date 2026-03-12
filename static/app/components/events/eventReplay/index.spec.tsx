@@ -11,7 +11,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 type Props = {
@@ -20,7 +20,7 @@ interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
   replayId: string;
 }
 
-export default function useLoadReplayReader({
+export function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,

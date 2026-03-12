@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {Client} from 'sentry/api';
 import AlertStore from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const POLICY_URL =
   'https://www.notion.so/sentry/Sentry-Rules-for-Handling-Customer-Data-9612532c37e14eeb943a6a584abbac99';

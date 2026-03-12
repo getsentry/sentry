@@ -6,8 +6,9 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useRouteActivatedHook, {
+import {
   DELAY_TIME_MS,
+  useRouteActivatedHook,
 } from 'getsentry/hooks/useRouteActivatedHook';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import useResizable from 'sentry/utils/useResizable';
+import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,

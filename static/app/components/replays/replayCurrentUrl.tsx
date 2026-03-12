@@ -10,8 +10,8 @@ import {t, tct} from 'sentry/locale';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function ReplayCurrentUrl() {
   const replay = useReplayReader();

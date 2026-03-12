@@ -7,7 +7,7 @@ import type {
   TError,
   TVariables,
 } from 'sentry/components/feedback/useMutateActivity';
-import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,7 +23,7 @@ import type {
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';

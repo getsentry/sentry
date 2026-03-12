@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {defined} from 'sentry/utils';
 import {decodeScalar, type decodeList, type decodeSorts} from 'sentry/utils/queryString';
 import {useUrlBatchContext} from 'sentry/utils/url/urlParamBatchContext';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 
 interface UseQueryParamStateWithScalarDecoder<T> {
   fieldName: string;

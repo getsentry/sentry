@@ -7,7 +7,7 @@ interface Props {
   replay: ReplayReader | null;
 }
 
-export default function useTouchEventsCheck({replay}: Props) {
+export function useTouchEventsCheck({replay}: Props) {
   useEffect(() => {
     if (!replay?.getVideoEvents().length) {
       return;

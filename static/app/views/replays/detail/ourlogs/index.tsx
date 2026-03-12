@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
@@ -26,7 +26,7 @@ import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
-import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import {useOurLogFilters} from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
 export function OurLogs() {
   const replay = useReplayReader();

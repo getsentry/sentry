@@ -13,7 +13,7 @@ import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
-import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

@@ -15,7 +15,7 @@ import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';

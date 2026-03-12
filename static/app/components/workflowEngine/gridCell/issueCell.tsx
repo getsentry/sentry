@@ -11,7 +11,7 @@ import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tct} from 'sentry/locale';
 import type {SimpleGroup} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type IssueCellProps = {
   group: SimpleGroup | null;

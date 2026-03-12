@@ -1,5 +1,5 @@
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {Ai} from 'sentry/views/replays/detail/ai/ai';
 import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
 import {Console} from 'sentry/views/replays/detail/console';

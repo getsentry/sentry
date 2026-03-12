@@ -7,7 +7,7 @@ import Confirm from 'sentry/components/confirm';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
 
