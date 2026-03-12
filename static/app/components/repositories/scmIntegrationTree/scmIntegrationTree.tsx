@@ -49,6 +49,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     scmProviders,
     scmIntegrations,
     connectedIdentifiers,
+    refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
     reposQueryKey,
@@ -142,6 +143,10 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       return `repo:${node.repo.identifier}`;
     },
   });
+
+  const handleAddIntegration = useCallback(() => {
+    refetchIntegrations();
+  }, [refetchIntegrations]);
 
   const handleToggleRepo = useCallback(
     async (
@@ -282,7 +287,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
                   transform: `translateY(${virtualItem.start}px)`,
                   height: virtualItem.size,
                 }}
-                orgSlug={organization.slug}
+                onAddIntegration={handleAddIntegration}
                 onToggleProvider={toggleProvider}
                 onToggleIntegration={toggleIntegration}
                 onToggleRepo={handleToggleRepo}
