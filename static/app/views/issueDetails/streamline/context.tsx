@@ -98,6 +98,8 @@ export const enum SectionKey {
 
   XRAY_DIFF = 'xray-diff',
 
+  PREPROD_BUILD_METADATA = 'preprod-build-metadata',
+
   INSTRUMENTATION_FIX = 'instrumentation-fix',
 
   PROFILE_PREVIEW = 'profile-preview',
