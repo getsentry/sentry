@@ -1252,7 +1252,7 @@ def test_add_owner_ids_to_schema_serializes_ids_as_strings() -> None:
     Test that add_owner_ids_to_schema converts numeric IDs to strings.
     This ensures the frontend Actor type contract (id: string) is respected.
     """
-    rules = [
+    rules: list[dict[str, Any]] = [
         {
             "matcher": {"type": "path", "pattern": "*.js"},
             "owners": [
@@ -1265,7 +1265,9 @@ def test_add_owner_ids_to_schema_serializes_ids_as_strings() -> None:
 
     add_owner_ids_to_schema(rules, owners_id)
 
-    assert rules[0]["owners"][0]["id"] == "12345"
-    assert rules[0]["owners"][1]["id"] == "67890"
-    assert isinstance(rules[0]["owners"][0]["id"], str)
-    assert isinstance(rules[0]["owners"][1]["id"], str)
+    first_rule = rules[0]
+    owners = first_rule["owners"]
+    assert owners[0]["id"] == "12345"
+    assert owners[1]["id"] == "67890"
+    assert isinstance(owners[0]["id"], str)
+    assert isinstance(owners[1]["id"], str)
