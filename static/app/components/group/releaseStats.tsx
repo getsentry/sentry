@@ -154,7 +154,7 @@ function GroupReleaseStats({
           )}
         </Fragment>
       ) : (
-        <Placeholder height="346px" bottomGutter={4} />
+        <Placeholder height="346px" bottomGutter="3xl" />
       )}
     </div>
   );

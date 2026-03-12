@@ -12,7 +12,6 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -58,10 +57,10 @@ type Props = DefaultProps & {
 } & Partial<PageFilters['datetime']>;
 
 const CHART_GRID = {
-  left: space(2),
-  right: space(2),
-  top: space(4),
-  bottom: space(2),
+  left: '16px',
+  right: '16px',
+  top: '32px',
+  bottom: '16px',
 };
 
 // Colors to use for trigger thresholds

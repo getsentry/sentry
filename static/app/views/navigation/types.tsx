@@ -1,8 +1,3 @@
-export enum NavigationLayout {
-  MOBILE = 'mobile',
-  SIDEBAR = 'sidebar',
-}
-
 export enum PrimaryNavigationGroup {
   ISSUES = 'issues',
   DASHBOARDS = 'dashboards',

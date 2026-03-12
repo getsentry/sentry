@@ -34,12 +34,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-
-# TODO(cells): Temporarily imported for getsentry tests
-from sentry.types.region import (
-    subdomain_is_locality,
-    subdomain_is_region,  # noqa
-)
+from sentry.types.region import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length

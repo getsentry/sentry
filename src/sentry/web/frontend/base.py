@@ -151,10 +151,6 @@ and are not accessible via cell routing.
 This is generally for debug/development views.
 """
 
-# TODO(cells): remove aliases once no longer used by getsentry
-region_silo_view = cell_silo_view
-internal_region_silo_view = internal_cell_silo_view
-
 
 class _HasRespond(Protocol):
     active_organization: RpcUserOrganizationContext | None

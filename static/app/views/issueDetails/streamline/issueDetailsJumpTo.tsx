@@ -86,7 +86,7 @@ export function IssueDetailsJumpTo() {
   return (
     <JumpTo>
       <JumpToLabel aria-hidden>{t('Jump to:')}</JumpToLabel>
-      <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
+      <ScrollCarousel gap="2xs" aria-label={t('Jump to section links')}>
         {eventSectionConfigs.map(config => (
           <JumpToLink key={config.key} config={config} />
         ))}
