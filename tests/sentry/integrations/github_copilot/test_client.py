@@ -7,6 +7,7 @@ from sentry.integrations.github_copilot.models import GithubCopilotTask
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class GithubCopilotAgentClientTest(TestCase):
@@ -103,9 +104,9 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.status == "running"
         assert result.artifacts is None
 
-    def _make_launch_request(self) -> CodingAgentLaunchRequest:
+    def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:
         return CodingAgentLaunchRequest(
-            prompt="Fix the bug",
+            prompt=prompt,
             repository=SeerRepoDefinition(
                 provider="github",
                 owner="getsentry",
@@ -213,3 +214,57 @@ class GithubCopilotAgentClientTest(TestCase):
         result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
 
         assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_truncates_prompt_with_json_escaping(self, mock_post: Mock) -> None:
+        """Prompt with many escapable chars is truncated based on JSON-encoded length"""
+        # Build a prompt full of newlines — each \n is 1 Python char but 2 JSON chars
+        prompt = "line\n" * 20000  # 100,000 Python chars, ~120,000 JSON-encoded chars
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        sent_prompt = call_data["problem_statement"]
+        encoded_length = len(json.dumps(sent_prompt)) - 2
+        assert encoded_length <= 29900
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
+        """Short prompts are sent as-is without truncation"""
+        prompt = "Fix this bug please."
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        assert call_data["problem_statement"] == prompt
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_truncates_prompt_with_heavy_escaping(self, mock_post: Mock) -> None:
+        """Prompt with backslashes and quotes (like minified JS) stays under limit"""
+        # Each char here expands to 2 chars in JSON: \" and \\
+        prompt = '\\"' * 20000  # 40,000 Python chars, ~80,000 JSON-encoded chars
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        sent_prompt = call_data["problem_statement"]
+        encoded_length = len(json.dumps(sent_prompt)) - 2
+        assert encoded_length <= 29900
