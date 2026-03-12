@@ -57,7 +57,7 @@ export function convertWidgetToBuilderStateParams(
   }
 
   const description =
-    widget.displayType === DisplayType.TEXT ? undefined : widget.description;
+    widget.displayType === DisplayType.TEXT ? undefined : (widget.description ?? '');
 
   return {
     title: widget.title,
