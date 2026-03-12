@@ -14,8 +14,8 @@ import type {
 import type {Member} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 import {IntegrationExternalMappings} from './integrationExternalMappings';

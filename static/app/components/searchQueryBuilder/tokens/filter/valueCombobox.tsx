@@ -74,8 +74,8 @@ import {
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useKeyPress from 'sentry/utils/useKeyPress';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useKeyPress} from 'sentry/utils/useKeyPress';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;

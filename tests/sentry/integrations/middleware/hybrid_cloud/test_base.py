@@ -51,7 +51,7 @@ class BaseRequestParserTest(TestCase):
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_responses_from_region_silos(regions=self.region_config)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_fails_in_region_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()

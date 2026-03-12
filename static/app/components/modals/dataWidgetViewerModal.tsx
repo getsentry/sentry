@@ -57,11 +57,11 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
@@ -82,6 +82,7 @@ import {
   getWidgetReleasesUrl,
   isUsingPerformanceScore,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {
@@ -120,7 +121,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
-export interface WidgetViewerModalOptions {
+export interface DataWidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -131,7 +132,7 @@ export interface WidgetViewerModalOptions {
   widgetInterval?: string;
 }
 
-interface Props extends ModalRenderProps, WidgetViewerModalOptions {
+interface Props extends ModalRenderProps, DataWidgetViewerModalOptions {
   organization: Organization;
   selection: PageFilters;
 }
@@ -181,7 +182,7 @@ async function fetchDiscoverTotal(
   }
 }
 
-function WidgetViewerModal(props: Props) {
+function DataWidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
@@ -603,6 +604,12 @@ function WidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.TABLE &&
     widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
 
+  const shouldRenderTable =
+    // At the moment, issue tables do not support aggregates, so we should never render the table in full screen for timeseries widgets
+    !(widget.widgetType === WidgetType.ISSUE && usesTimeSeriesData(widget.displayType)) &&
+    widget.displayType !== DisplayType.RAGE_AND_DEAD_CLICKS &&
+    widget.displayType !== DisplayType.SERVER_TREE;
+
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -736,7 +743,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </QueryContainer>
         )}
-        {renderWidgetViewerTable()}
+        {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
     );
   }
@@ -1213,4 +1220,4 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-export default withPageFilters(WidgetViewerModal);
+export default withPageFilters(DataWidgetViewerModal);

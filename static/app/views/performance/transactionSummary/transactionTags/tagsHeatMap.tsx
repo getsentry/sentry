@@ -32,7 +32,7 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {
   TableDataRow,
   TableData as TagTableData,

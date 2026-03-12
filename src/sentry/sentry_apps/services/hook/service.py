@@ -14,7 +14,7 @@ from sentry.silo.base import SiloMode
 
 class HookService(RpcService):
     key = "hook"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

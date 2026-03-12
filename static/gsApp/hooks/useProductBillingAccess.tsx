@@ -1,7 +1,7 @@
 import type {DataCategory} from 'sentry/types/core';
 
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {getParentAddOn} from 'getsentry/utils/billing';
 
 /**

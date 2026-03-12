@@ -1,6 +1,6 @@
 import type {SentryRouteObject} from 'sentry/router/types';
 
-const legacyOrganizationRedirectRoutes = (): SentryRouteObject => ({
+export const legacyOrganizationRedirectRoutes = (): SentryRouteObject => ({
   children: [
     {
       path: 'support/',
@@ -40,5 +40,3 @@ const legacyOrganizationRedirectRoutes = (): SentryRouteObject => ({
     },
   ],
 });
-
-export default legacyOrganizationRedirectRoutes;

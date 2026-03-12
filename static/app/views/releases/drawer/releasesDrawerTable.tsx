@@ -19,7 +19,7 @@ import type {
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
+import {useQueryBasedSorting} from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -30,7 +30,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   cleanReleaseCursors,

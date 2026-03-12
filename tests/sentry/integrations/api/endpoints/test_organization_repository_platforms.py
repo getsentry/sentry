@@ -53,20 +53,20 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000, "JavaScript": 30000},
             status=200,
         )
-        # 404 for all manifest file lookups (no framework detection)
-        for manifest in ("requirements.txt", "pyproject.toml", "Pipfile", "package.json"):
-            responses.add(
-                method=responses.GET,
-                url=f"https://api.github.com/repos/Test-Organization/foo/contents/{manifest}",
-                json={"message": "Not Found"},
-                status=404,
-            )
+        # Root directory listing (no manifest files -> no framework detection)
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents",
+            json=[],
+            status=200,
+        )
 
         with self.feature(FEATURE_FLAG):
             response = self.get_success_response(
                 self.organization.slug, self.repo.id, status_code=200
             )
 
+        # Only the top language by bytes is returned
         assert response.data == {
             "platforms": [
                 {
@@ -74,12 +74,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                     "language": "Python",
                     "bytes": 50000,
                     "confidence": "medium",
-                },
-                {
-                    "platform": "javascript",
-                    "language": "JavaScript",
-                    "bytes": 30000,
-                    "confidence": "medium",
+                    "priority": 1,
                 },
             ]
         }
@@ -121,18 +116,21 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                     "language": "Python",
                     "bytes": 50000,
                     "confidence": "high",
+                    "priority": 90,
                 },
                 {
                     "platform": "python-celery",
                     "language": "Python",
                     "bytes": 50000,
                     "confidence": "high",
+                    "priority": 40,
                 },
                 {
                     "platform": "python",
                     "language": "Python",
                     "bytes": 50000,
                     "confidence": "medium",
+                    "priority": 1,
                 },
             ]
         }

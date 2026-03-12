@@ -14,9 +14,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {EditConnectedMonitors} from './editConnectedMonitors';
 

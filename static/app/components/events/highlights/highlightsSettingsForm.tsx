@@ -14,7 +14,7 @@ import {
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {

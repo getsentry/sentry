@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import filterThreadInfo, {type ThreadInfo} from './filterThreadInfo';
 import {Option} from './option';

@@ -6,7 +6,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';

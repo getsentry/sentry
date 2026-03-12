@@ -8,7 +8,7 @@ import {
   decodeScalar,
   type QueryValue,
 } from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 
 jest.mock('sentry/utils/useLocation');

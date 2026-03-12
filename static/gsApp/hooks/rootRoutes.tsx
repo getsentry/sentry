@@ -6,7 +6,7 @@ import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 
 import {OrganizationSubscriptionContext} from 'getsentry/components/organizationSubscriptionContext';
 
-const rootRoutes = (): SentryRouteObject => ({
+export const rootRoutes = (): SentryRouteObject => ({
   children: [
     {
       path: '/checkout/',
@@ -31,5 +31,3 @@ const rootRoutes = (): SentryRouteObject => ({
     },
   ],
 });
-
-export default rootRoutes;

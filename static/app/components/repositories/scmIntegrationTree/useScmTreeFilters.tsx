@@ -15,7 +15,7 @@ const repoParser = parseAsStringLiteral(
   REPO_FILTER_OPTIONS.map(option => option.value)
 ).withDefault('all');
 
-export default function useScmTreeFilters() {
+export function useScmTreeFilters() {
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')

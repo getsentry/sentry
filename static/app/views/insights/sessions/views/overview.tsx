@@ -10,7 +10,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
@@ -21,7 +21,7 @@ import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/char
 import {FilterReleaseDropdown} from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import {ReleaseTableSearch} from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import {ReleaseHealth} from 'sentry/views/insights/sessions/components/tables/releaseHealth';
-import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {useProjectHasSessions} from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';

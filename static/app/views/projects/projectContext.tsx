@@ -12,8 +12,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
@@ -21,7 +21,7 @@ import {
   addProjectFeaturesHandler,
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withProjects} from 'sentry/utils/withProjects';
 

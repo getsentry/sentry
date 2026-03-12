@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
@@ -104,7 +104,7 @@ const FILTERS = {
     JSON.stringify(item).toLowerCase().includes(searchTerm),
 };
 
-function useBreadcrumbFilters({frames}: Options): Return {
+export function useBreadcrumbFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   // Keep a reference of object paths that are expanded (via <StructuredEventData>)
@@ -181,5 +181,3 @@ function useBreadcrumbFilters({frames}: Options): Return {
     type,
   };
 }
-
-export default useBreadcrumbFilters;

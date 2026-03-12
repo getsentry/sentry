@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 
 import {getKeyCode} from './getKeyCode';
 

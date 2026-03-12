@@ -14,7 +14,7 @@ import {
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import GuideStore from 'sentry/stores/guideStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {

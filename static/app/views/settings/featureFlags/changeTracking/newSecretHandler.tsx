@@ -11,7 +11,7 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function NewSecretHandler({
   secret,

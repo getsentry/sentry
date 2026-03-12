@@ -70,7 +70,7 @@ def update_privilege(
     name="sentry.tasks.scim.privilege_sync.sync_scim_team_privileges",
     namespace=auth_tasks,
     retry=Retry(times=3, on=(Exception,)),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     processing_deadline_duration=600,  # 10 minutes
 )
 def sync_scim_team_privileges(

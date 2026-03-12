@@ -11,7 +11,7 @@ import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];

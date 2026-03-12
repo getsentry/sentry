@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ReplayFrame, WebVitalFrame} from 'sentry/utils/replays/types';
 import {isSpanFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   allowShowSnippet: boolean;

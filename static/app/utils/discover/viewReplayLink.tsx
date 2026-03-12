@@ -4,7 +4,7 @@ import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 
 export function ViewReplayLink({
   children,

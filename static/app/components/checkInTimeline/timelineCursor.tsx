@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
 import {Sticky} from 'sentry/components/sticky';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 

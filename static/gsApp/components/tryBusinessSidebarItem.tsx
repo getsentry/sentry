@@ -5,12 +5,11 @@ import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
@@ -44,7 +43,7 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <TrialStartedSidebarItem {...{organization, subscription}}>
@@ -56,13 +55,11 @@ function TryBusinessNavigationItem({
         }}
         analyticsKey="try-business"
         buttonProps={{
-          size: layout === NavigationLayout.MOBILE ? 'xs' : 'sm',
+          size: layout === 'mobile' ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
         }}
       >
-        {showIsNew && (
-          <SidebarItemUnreadIndicator isMobile={layout === NavigationLayout.MOBILE} />
-        )}
+        {showIsNew && <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} />}
       </SidebarButton>
     </TrialStartedSidebarItem>
   );

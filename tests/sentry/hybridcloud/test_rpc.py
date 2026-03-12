@@ -108,7 +108,7 @@ class RpcServiceTest(TestCase):
             role=None,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
 
@@ -163,7 +163,7 @@ class DispatchRemoteCallTest(TestCase):
         assert result == response_value
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_region_to_control_null_result(self) -> None:
         self._set_up_mock_response("organization/get_organization_by_id", None)
 
