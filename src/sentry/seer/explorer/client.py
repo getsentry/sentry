@@ -239,6 +239,7 @@ class SeerExplorerClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
+        override_ce_enable: bool | None = True,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -312,6 +313,13 @@ class SeerExplorerClient:
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
         ):  # Set to True at the start of the run and persist in Seer explorer run state
             chat_body["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-explorer-context-engine-allow-fe-override",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["is_context_engine_enabled"] = override_ce_enable
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 
