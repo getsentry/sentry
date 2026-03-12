@@ -180,6 +180,21 @@ class SpansBuffer:
         project_id, trace_id, span_id = parse_segment_key(segment_key)
         return b"span-buf:mk:{%s:%s}:%s" % (project_id, trace_id, span_id)
 
+    def _cleanup_distributed_keys(self, segment_keys: set[SegmentKey]) -> None:
+        """Delete member-keys tracking sets and distributed payload keys for the
+        given segments, and remove them from the sub-keys map so
+        done_flush_segments doesn't try again."""
+        with self.client.pipeline(transaction=False) as p:
+            for key in segment_keys:
+                sub_keys = self._distributed_sub_keys_map.get(key, [])
+                if sub_keys:
+                    mk_key = self._get_payload_key_index(key)
+                    p.delete(mk_key)
+                    for batch in itertools.batched(sub_keys, 100):
+                        p.unlink(*batch)
+                self._distributed_sub_keys_map.pop(key, None)
+            p.execute()
+
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
         """
@@ -790,19 +805,8 @@ class SpansBuffer:
                 else:
                     cursors[key] = cursor
 
-        # Clean up distributed keys for segments that were dropped due to size.
-        if dropped_segments and (distribute_write or distribute_read):
-            with self.client.pipeline(transaction=False) as p:
-                for dropped_key in dropped_segments:
-                    sub_keys = self._distributed_sub_keys_map.get(dropped_key, [])
-                    if sub_keys:
-                        mk_key = self._get_payload_key_index(dropped_key)
-                        p.delete(mk_key)
-                        for batch in itertools.batched(sub_keys, 100):
-                            p.unlink(*batch)
-                    # Remove from map so done_flush_segments doesn't try again.
-                    self._distributed_sub_keys_map.pop(dropped_key, None)
-                p.execute()
+        if dropped_segments:
+            self._cleanup_distributed_keys(dropped_segments)
 
         # Fetch ingested counts for all segments to calculate dropped spans
         with self.client.pipeline(transaction=False) as p:
