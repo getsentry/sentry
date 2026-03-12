@@ -156,6 +156,18 @@ class TestActionFilterCache(TestCase):
         self.assert_cache_result(results, workflow, action_filters)
         self.assert_cache_result(results, workflow_two, action_filters_two)
 
-    def test_cache_metrics(self) -> None:
-        # TODO -- test these
-        pass
+    def test_workflow_with_no_filters_is_cached(self) -> None:
+        workflow = self.create_workflow()
+
+        # First call - cache miss, queries DB
+        result = get_action_filters_by_workflows([workflow])
+        assert result[workflow.id] == []
+
+        # Second call - should be cache hit, no DB query
+        with patch(
+            "sentry.workflow_engine.caches.action_filters._get_action_filters_by_workflows"
+        ) as mock_query:
+            result = get_action_filters_by_workflows([workflow])
+            mock_query.assert_not_called()
+
+        assert result[workflow.id] == []
