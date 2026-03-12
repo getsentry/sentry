@@ -20,7 +20,13 @@ class TestBuildWorkflowEventDataFromEvent(TestCase):
     def test_raises_for_pending_deletion_project(self) -> None:
         self.project.update(status=ObjectStatus.PENDING_DELETION)
 
-        with pytest.raises(ProjectNotActiveError):
+        with (
+            mock.patch(
+                "sentry.workflow_engine.tasks.utils.nodestore.backend.get",
+                return_value={"event_id": "fake-event-id", "project": self.project.id},
+            ),
+            pytest.raises(ProjectNotActiveError),
+        ):
             build_workflow_event_data_from_event(
                 event_id="fake-event-id",
                 group_id=self.group.id,
@@ -29,7 +35,13 @@ class TestBuildWorkflowEventDataFromEvent(TestCase):
     def test_raises_for_deletion_in_progress_project(self) -> None:
         self.project.update(status=ObjectStatus.DELETION_IN_PROGRESS)
 
-        with pytest.raises(ProjectNotActiveError):
+        with (
+            mock.patch(
+                "sentry.workflow_engine.tasks.utils.nodestore.backend.get",
+                return_value={"event_id": "fake-event-id", "project": self.project.id},
+            ),
+            pytest.raises(ProjectNotActiveError),
+        ):
             build_workflow_event_data_from_event(
                 event_id="fake-event-id",
                 group_id=self.group.id,
