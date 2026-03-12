@@ -535,6 +535,49 @@ This script (`scripts/extractFormFields.ts`) scans all TSX files, finds `<FormSe
 
 If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i.e., it had entries in `sentry/data/forms`), you **must** add a `FormSearch` wrapper to the new form so search functionality is preserved. The old and new sources coexist — new registry entries take precedence over old ones for the same route + field combination — but once you remove the legacy form the old entries will disappear.
 
+## Handling Nullable Initial Values
+
+Legacy select fields often started with an empty/undefined value and required a selection. In the new system, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
+
+**Old:**
+
+```tsx
+{
+  name: 'provider',
+  type: 'select',
+  required: true,
+  choices: [['github', 'GitHub'], ['launchdarkly', 'LaunchDarkly']],
+}
+```
+
+**New:**
+
+```tsx
+const schema = z.object({
+  provider: z
+    .enum(['github', 'launchdarkly'])
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
+});
+
+// z.input accepts null; z.output (after refine) does not
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+};
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    // schema.parse narrows null away — mutation receives z.output
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
+This pattern is necessary whenever a required field has no meaningful initial value. The `z.input` / `z.output` distinction ensures the form accepts `null` as default while the mutation receives the validated, non-null type.
+
 ## Intentionally Not Migrated
 
 | Feature     | Usage   | Reason                                                                                |
