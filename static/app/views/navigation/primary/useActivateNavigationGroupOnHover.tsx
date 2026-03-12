@@ -2,9 +2,9 @@ import {useEffect, useRef, useState} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
