@@ -520,11 +520,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     // from each option and from the raw form value. This allows
     // object-valued selects to match by a derived key (e.g. an id)
     // instead of reference equality.
-    const getOptVal: ((opt: any) => any) | undefined = (rest as any).getOptionValue;
+    const getOptVal: ((opt: SelectValue<OptionType>) => string) | undefined =
+      rest.getOptionValue;
     const findOption = getOptVal
-      ? (val: any) =>
+      ? (val: OptionType) =>
           flatOptions.find(option => getOptVal(option) === getOptVal({value: val}))
-      : (val: any) => flatOptions.find(option => option.value === val);
+      : (val: OptionType) => flatOptions.find(option => option.value === val);
 
     mappedValue =
       props.multiple && Array.isArray(value)
