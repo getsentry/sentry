@@ -8,12 +8,12 @@ import {Button} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';

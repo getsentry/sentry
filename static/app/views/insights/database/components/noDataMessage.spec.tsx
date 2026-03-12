@@ -5,7 +5,7 @@ import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import importedUsePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters as importedUsePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 

@@ -5,7 +5,7 @@ import type {Environment} from 'sentry/types/project';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AGE_COMPARISON_CHOICES,
   MODEL_AGE_CHOICES,

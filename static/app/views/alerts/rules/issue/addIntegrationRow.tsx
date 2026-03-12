@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import Access from 'sentry/components/acl/access';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 

@@ -11,8 +11,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Spinner} from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {

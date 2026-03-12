@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconArrow} from 'sentry/icons';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {StoryTreeNode} from './storyTree';
 import {useFlatStoryList} from './storyTree';

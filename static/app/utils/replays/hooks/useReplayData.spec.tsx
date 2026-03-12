@@ -13,7 +13,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const organization = OrganizationFixture();

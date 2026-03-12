@@ -3,7 +3,7 @@ import {useEffect, useEffectEvent, useRef} from 'react';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ENGAGED_VIEW_THRESHOLD_MS = 10000;
 

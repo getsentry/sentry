@@ -16,9 +16,9 @@ import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct, tn} from 'sentry/locale';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MonitorSortOption,
   MonitorSortOrder,

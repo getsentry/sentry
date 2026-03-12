@@ -26,7 +26,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**

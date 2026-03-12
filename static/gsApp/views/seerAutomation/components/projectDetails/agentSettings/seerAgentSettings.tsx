@@ -8,7 +8,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;

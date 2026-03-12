@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import FormContext from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function EnvironmentSelector() {
   const value = useFormField<string | null>('environment');

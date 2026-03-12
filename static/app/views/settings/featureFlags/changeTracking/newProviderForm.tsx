@@ -28,7 +28,7 @@ import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClie
 import RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeFetchSecretQueryKey,
   type Secret,

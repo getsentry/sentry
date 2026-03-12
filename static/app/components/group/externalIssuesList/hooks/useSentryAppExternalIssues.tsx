@@ -9,9 +9,9 @@ import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStor
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 export function useSentryAppExternalIssues({
   group,

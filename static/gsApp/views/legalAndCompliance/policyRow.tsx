@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {Policy, Subscription} from 'getsentry/types';
 import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';

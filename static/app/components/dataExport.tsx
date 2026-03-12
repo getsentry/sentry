@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {

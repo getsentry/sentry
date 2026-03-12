@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {
   DashboardState,

@@ -23,7 +23,7 @@ import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils'
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},

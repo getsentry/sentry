@@ -14,7 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
-import useNetworkFilters from './useNetworkFilters';
+import {useNetworkFilters} from './useNetworkFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

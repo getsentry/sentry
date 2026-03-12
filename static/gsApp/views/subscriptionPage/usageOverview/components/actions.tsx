@@ -7,7 +7,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 

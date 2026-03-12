@@ -5,9 +5,9 @@ import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedRepl
 import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
 import {ReplayRequestsThrottledAlert} from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ReplayReaderResult = ReturnType<typeof useLoadReplayReader>;
 

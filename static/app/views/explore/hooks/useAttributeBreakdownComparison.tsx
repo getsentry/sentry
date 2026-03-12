@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -9,7 +9,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export type AttributeBreakdownsComparison = {
@@ -32,7 +32,7 @@ export type AttributeBreakdownsComparison = {
   }>;
 };
 
-function useAttributeBreakdownComparison({
+export function useAttributeBreakdownComparison({
   aggregateFunction,
   range,
   query,
@@ -99,5 +99,3 @@ function useAttributeBreakdownComparison({
     }
   );
 }
-
-export default useAttributeBreakdownComparison;

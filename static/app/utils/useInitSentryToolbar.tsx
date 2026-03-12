@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-export default function useInitSentryToolbar(organization: null | Organization) {
+export function useInitSentryToolbar(organization: null | Organization) {
   const isEnvEnabled = !!process.env.ENABLE_SENTRY_TOOLBAR;
   const showDevToolbar =
     !!organization && !!organization.features.includes('init-sentry-toolbar');

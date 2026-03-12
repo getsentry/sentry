@@ -5,7 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import FormContext from 'sentry/components/forms/formContext';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 

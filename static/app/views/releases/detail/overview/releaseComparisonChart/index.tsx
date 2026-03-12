@@ -40,7 +40,7 @@ import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/ses
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,

@@ -32,8 +32,8 @@ import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import slugify from 'sentry/utils/slugify';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
   getRequestDataFragment,

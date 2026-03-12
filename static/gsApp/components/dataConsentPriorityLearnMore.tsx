@@ -10,7 +10,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import getOrganizationAge from 'sentry/utils/getOrganizationAge';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';

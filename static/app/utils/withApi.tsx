@@ -1,6 +1,6 @@
 import type {Client} from 'sentry/api';
 import getDisplayName from 'sentry/utils/getDisplayName';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type InjectedApiProps = {
   api: Client;

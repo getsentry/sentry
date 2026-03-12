@@ -18,8 +18,8 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration: string;

@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';

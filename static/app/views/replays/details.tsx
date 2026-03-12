@@ -14,12 +14,12 @@ import {
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';

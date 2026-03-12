@@ -18,8 +18,8 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
   docsConfig,

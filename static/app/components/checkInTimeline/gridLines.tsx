@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 import {useTimelineCursor, type CursorOffsets} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
