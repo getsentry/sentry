@@ -63,7 +63,7 @@ function mapMembers(members: Member[]) {
   return members
     .filter(member => member.user)
     .map(({user, email, name}) => {
-      const label = email === name ? `${email}` : `${name} - ${email}`;
+      const label = email === name ? email : `${name} - ${email}`;
       return {
         value: {id: user?.id!, name: label},
         label,
