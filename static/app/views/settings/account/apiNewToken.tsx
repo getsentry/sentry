@@ -39,7 +39,7 @@ import PermissionSelection, {
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 const schema = z.object({
-  name: z.string().optional(),
+  name: z.string(),
 });
 
 const INITIAL_PERMISSIONS: Permissions = {
