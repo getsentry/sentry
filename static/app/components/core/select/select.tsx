@@ -415,6 +415,12 @@ export interface ControlProps<
    * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
    */
   isInsideModal?: boolean;
+
+  /**
+   * custom value comparator function
+   * defaults to === comparison of the option values
+   */
+  isValueEqual?: (optionA: OptionType['value'], optionB: OptionType['value']) => boolean;
   /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
@@ -516,21 +522,18 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
-    // When getOptionValue is provided, use it to extract a comparable key
-    // from each option and from the raw form value. This allows
-    // object-valued selects to match by a derived key (e.g. an id)
-    // instead of reference equality.
-    const getOptVal: ((opt: SelectValue<OptionType>) => string) | undefined =
-      rest.getOptionValue;
-    const findOption = getOptVal
-      ? (val: OptionType) =>
-          flatOptions.find(option => getOptVal(option) === getOptVal({value: val}))
-      : (val: OptionType) => flatOptions.find(option => option.value === val);
+
+    const compare = (a: OptionType['value'], b: OptionType['value']) => {
+      if (props.isValueEqual) {
+        return props.isValueEqual(a, b);
+      }
+      return a === b;
+    };
 
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => findOption(val))
-        : findOption(value) || value;
+        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
+        : flatOptions.find(opt => compare(opt.value, value)) || value;
   }
 
   // Override the default style with in-field labels if they are provided

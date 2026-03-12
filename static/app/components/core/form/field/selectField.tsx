@@ -51,6 +51,11 @@ type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<SelectValue<TValue>>;
+    /**
+     * custom value comparator function
+     * defaults to === comparison of the option values
+     */
+    isValueEqual?: (optionA: TValue, optionB: TValue) => boolean;
   };
 
 // Helper type for non-array constraint

@@ -201,7 +201,7 @@ function InlineMappingForm({
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
-              getOptionValue={opt => opt.value.id}
+              isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry Team')}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
@@ -209,7 +209,7 @@ function InlineMappingForm({
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
-              getOptionValue={opt => opt.value.id}
+              isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry User')}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
@@ -326,7 +326,7 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
-                    getOptionValue={opt => opt.value.id}
+                    isValueEqual={(a, b) => a.id === b.id}
                     placeholder={t('Select Sentry Team')}
                     queryOptions={makeTeamSelectQueryOptions(
                       orgSlug,
@@ -340,7 +340,7 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
-                    getOptionValue={opt => opt.value.id}
+                    isValueEqual={(a, b) => a.id === b.id}
                     placeholder={t('Select Sentry User')}
                     queryOptions={makeMemberSelectQueryOptions(
                       orgSlug,
