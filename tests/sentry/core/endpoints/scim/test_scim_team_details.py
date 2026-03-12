@@ -329,6 +329,65 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert OrganizationMemberTeam.objects.filter(team_id=self.team.id).count() == 1
 
+    def test_replace_members_query_count(self) -> None:
+        """The replace-members path should use a bounded number of core data
+        queries regardless of member count: 1 SELECT existing OMTs,
+        1 SELECT new OrgMembers, 1 bulk DELETE, 1 bulk INSERT.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_one.id,
+                        "display": "test.user@okta.local",
+                    },
+                    {
+                        "value": self.member_two.id,
+                        "display": "test.user2@okta.local",
+                    },
+                ],
+            }
+        ]
+
+        # Removes 1 existing member (member_on_team), adds 2 new members.
+        with CaptureQueriesContext(connection) as ctx:
+            self.get_success_response(
+                self.organization.slug, self.team.id, **self.base_data, status_code=204
+            )
+
+        # Count the core replace-path queries:
+        # - SELECT on OMT with JOIN to OM (fetch existing with select_related)
+        # - DELETE on OMT (bulk delete removed members)
+        # - SELECT on OM with IN clause (batch fetch new members)
+        # - INSERT on OMT (bulk create new memberships)
+        # Exclude: auth lookups, outbox replication callbacks, savepoints,
+        # audit logs, bulk_delete pre-fetches, and sequence nextval calls.
+        core_queries = []
+        for q in ctx.captured_queries:
+            sql = q["sql"]
+            is_fetch_existing = "INNER JOIN" in sql and "sentry_organizationmember_teams" in sql
+            is_bulk_delete = sql.startswith("DELETE") and "sentry_organizationmember_teams" in sql
+            is_fetch_new = (
+                sql.startswith("SELECT")
+                and '"sentry_organizationmember"' in sql
+                and "IN" in sql
+                and "sentry_organizationmember_teams" not in sql
+            )
+            is_bulk_insert = sql.startswith("INSERT") and "sentry_organizationmember_teams" in sql
+            if is_fetch_existing or is_bulk_delete or is_fetch_new or is_bulk_insert:
+                core_queries.append(sql)
+
+        # Exactly 4 core queries, none of which scale with member count
+        assert len(core_queries) <= 4, (
+            f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
+            + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
+        )
+
     def test_replace_members_with_empty_list(self) -> None:
         # Replacing with an empty list should remove all members
         self.base_data["Operations"] = [
