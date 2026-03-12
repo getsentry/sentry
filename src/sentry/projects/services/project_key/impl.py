@@ -39,15 +39,21 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         key = ProjectKey.get_default(project)
         return serialize_project_key(key) if key else None
 
-    def get_project_key_by_region(
-        self, *, region_name: str, project_id: int, role: ProjectKeyRole
+    def get_project_key_by_cell(
+        self, *, cell_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         return self._get_project_key(project_id=project_id, role=role)
 
-    def get_project_keys_by_region(
+    # TODO(cells): Deprecated in favor of get_project_key_by_cell
+    def get_project_key_by_region(
+        self, *, region_name: str, project_id: int, role: ProjectKeyRole
+    ) -> RpcProjectKey | None:
+        return self.get_project_key_by_cell(cell_name=region_name, project_id=project_id, role=role)
+
+    def get_project_keys_by_cell(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         project_ids: list[int],
         role: ProjectKeyRole,
     ) -> list[RpcProjectKey]:
@@ -59,3 +65,15 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
             status=ProjectKeyStatus.ACTIVE,
         ).order_by("-date_added")
         return [serialize_project_key(pk) for pk in project_keys]
+
+    # TODO(cells): Deprecated in favor of get_project_keys_by_cell
+    def get_project_keys_by_region(
+        self,
+        *,
+        region_name: str,
+        project_ids: list[int],
+        role: ProjectKeyRole,
+    ) -> list[RpcProjectKey]:
+        return self.get_project_keys_by_cell(
+            cell_name=region_name, project_ids=project_ids, role=role
+        )

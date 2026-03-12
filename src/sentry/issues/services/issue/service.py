@@ -49,6 +49,14 @@ class IssueService(RpcService):
 
     @regional_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
     @abstractmethod
+    def get_shared_for_cell(
+        self, *, region_name: str, share_id: str
+    ) -> RpcGroupShareMetadata | None:
+        pass
+
+    # TODO(cells): Deprecated in favor of get_shared_for_cell
+    @regional_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
+    @abstractmethod
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
     ) -> RpcGroupShareMetadata | None:
