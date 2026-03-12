@@ -157,8 +157,8 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
-function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
-  const sanitizedName = name?.trim();
+function getInitials(name: string | null | undefined): Tagged<string, '__avatar'> {
+  const sanitizedName = (name ?? '').trim();
 
   if (!sanitizedName) {
     return '?' as Tagged<string, '__avatar'>;
