@@ -55,7 +55,7 @@ export function useOrganizationFlagLogInfinite({
 
   const apiQuery = useInfiniteApiQuery<RawFlagData>({
     queryKey: [
-      'infinite' as const,
+      {infinite: true, version: 'v1'},
       getApiUrl('/organizations/$organizationIdOrSlug/flags/logs/', {
         path: {
           organizationIdOrSlug: organization.slug,

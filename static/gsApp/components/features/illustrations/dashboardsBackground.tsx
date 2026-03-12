@@ -4,7 +4,7 @@ type Props = {
   anchorRef: React.Ref<SVGForeignObjectElement>;
 };
 
-function DashboardBackground({anchorRef}: Props) {
+export function DashboardBackground({anchorRef}: Props) {
   return (
     <StyledSvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 766.42 604.59">
       <path
@@ -922,8 +922,6 @@ function DashboardBackground({anchorRef}: Props) {
     </StyledSvg>
   );
 }
-
-export default DashboardBackground;
 
 const StyledSvg = styled('svg')`
   margin-left: 270px;

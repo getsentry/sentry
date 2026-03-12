@@ -9,7 +9,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default function FeatureFlagCTAContent({
   handleSetupButtonClick,

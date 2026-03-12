@@ -32,7 +32,7 @@ from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -338,7 +338,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return HttpResponse(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

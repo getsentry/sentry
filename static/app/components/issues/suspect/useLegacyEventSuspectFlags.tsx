@@ -21,7 +21,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
  * Returns up to 3 recently changed flags from the intersection of A) the flags on one EVENT (rawFlagData) and
  * B) organization audit logs (queried from /logs/).
  */
-export default function useLegacyEventSuspectFlags({
+export function useLegacyEventSuspectFlags({
   enabled,
   event,
   firstSeen,

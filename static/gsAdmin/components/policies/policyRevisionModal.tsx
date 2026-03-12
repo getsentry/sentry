@@ -1,6 +1,6 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 
-import JsonFormModal from 'admin/components/jsonFormModal';
+import {JsonFormModal} from 'admin/components/jsonFormModal';
 import {PolicyRevisionSchema} from 'admin/schemas/policies';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
@@ -16,7 +16,7 @@ const suggestedNextVersion = (version: string): string => {
   return v.join('.');
 };
 
-function PolicyRevisionModal({policy, revision, ...props}: Props) {
+export function PolicyRevisionModal({policy, revision, ...props}: Props) {
   return (
     <JsonFormModal
       title={revision ? `Edit ${revision.version}` : 'Add Revision'}
@@ -37,5 +37,3 @@ function PolicyRevisionModal({policy, revision, ...props}: Props) {
     />
   );
 }
-
-export default PolicyRevisionModal;

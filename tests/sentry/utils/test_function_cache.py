@@ -3,14 +3,14 @@ from unittest.mock import create_autospec
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_model
+from sentry.db.models import cell_silo_model
 from sentry.testutils.cases import TestCase
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 
 cache_func_for_models
 
 
-@region_silo_model
+@cell_silo_model
 class CacheModel(models.Model):
     __relocation_scope__ = RelocationScope.Excluded
     some_field = models.TextField()

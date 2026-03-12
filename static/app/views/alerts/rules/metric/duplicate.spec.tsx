@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 
-import MetricRuleDuplicate from './duplicate';
+import {MetricRuleDuplicate} from './duplicate';
 import type {Action} from './types';
 import {AlertRuleTriggerType, Dataset, EventTypes, ExtrapolationMode} from './types';
 
@@ -83,7 +83,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${rule.id}`,
+            duplicateRuleId: rule.id,
           },
         },
       },
@@ -138,7 +138,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${rule.id}`,
+            duplicateRuleId: rule.id,
           },
         },
       },
@@ -182,7 +182,7 @@ describe('MetricRuleDuplicate', () => {
         location: {
           query: {
             createFromDuplicate: 'true',
-            duplicateRuleId: `${ruleWithExtrapolation.id}`,
+            duplicateRuleId: ruleWithExtrapolation.id,
           },
         },
       },

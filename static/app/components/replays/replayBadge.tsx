@@ -13,7 +13,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -21,7 +21,7 @@ interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 }
 
-export default function ReplayBadge({replay}: Props) {
+export function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;

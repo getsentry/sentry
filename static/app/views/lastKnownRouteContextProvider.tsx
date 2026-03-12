@@ -1,6 +1,6 @@
 import {createContext, useContext, useEffect, useRef} from 'react';
 
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 interface Props {

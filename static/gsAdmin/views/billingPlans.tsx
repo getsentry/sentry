@@ -5,13 +5,13 @@ import {useQuery} from '@tanstack/react-query';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-import ResultTable from 'admin/components/resultTable';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {ResultTable} from 'admin/components/resultTable';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {

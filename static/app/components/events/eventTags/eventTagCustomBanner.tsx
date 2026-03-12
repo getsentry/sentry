@@ -5,11 +5,11 @@ import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 import {LinkButton} from '@sentry/scraps/button';
 
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 
-export default function EventTagCustomBanner() {
+export function EventTagCustomBanner() {
   return (
     <Wrapper data-test-id="event-tags-custom-banner">
       <Body>

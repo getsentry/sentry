@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const EventAnnotation = styled('span')`
+export const EventAnnotation = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   padding-left: ${p => p.theme.space.md};
@@ -14,5 +14,3 @@ const EventAnnotation = styled('span')`
     }
   }
 `;
-
-export default EventAnnotation;

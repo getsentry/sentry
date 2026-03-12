@@ -3,7 +3,7 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {t} from 'sentry/locale';
 
-function FeedbackConfigToggle({
+export function FeedbackConfigToggle({
   emailToggle,
   onEmailToggle,
   nameToggle,
@@ -40,5 +40,3 @@ function FeedbackConfigToggle({
     </Flex>
   );
 }
-
-export default FeedbackConfigToggle;

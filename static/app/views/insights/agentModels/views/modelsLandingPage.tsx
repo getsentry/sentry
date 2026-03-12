@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {DataCategory} from 'sentry/types/core';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -20,17 +20,17 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
-import TokenCostWidget from 'sentry/views/insights/pages/agents/components/modelCostWidget';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {ModelCostWidget as TokenCostWidget} from 'sentry/views/insights/pages/agents/components/modelCostWidget';
 import {ModelsTable} from 'sentry/views/insights/pages/agents/components/modelsTable';
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
-import TokenTypesWidget from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
-import TokenUsageWidget from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
+import {TokenTypesWidget} from 'sentry/views/insights/pages/agents/components/tokenTypesWidget';
+import {TokenUsageWidget} from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
 import {useAgentMonitoringTrackPageView} from 'sentry/views/insights/pages/agents/hooks/useAgentMonitoringTrackPageView';
 import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/useAgentSpanSearchProps';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import useHasPlatformizedAiAndMcp from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -47,7 +47,7 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
   useAgentMonitoringTrackPageView();
 
   const {view} = useDomainViewFilters();
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  const hasPlatformized = useHasPlatformizedInsights();
   if (hasPlatformized) {
     return (
       <PrebuiltDashboardRenderer

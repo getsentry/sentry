@@ -174,7 +174,7 @@ def _webhook_issue_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     processing_deadline_duration=8,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 def send_alert_webhook_v2(
@@ -280,7 +280,7 @@ def send_alert_webhook_v2(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 def send_alert_webhook(
@@ -452,7 +452,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     processing_deadline_duration=150,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 @sentry_sdk.trace(name="process_resource_change_bound")
@@ -543,7 +543,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 def workflow_notification(
@@ -602,7 +602,7 @@ def workflow_notification(
     name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 def build_comment_webhook(
@@ -698,7 +698,7 @@ def get_webhook_data(
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
     processing_deadline_duration=8,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry_decorator
 def send_resource_change_webhook(
@@ -913,7 +913,7 @@ def regenerate_service_hooks_for_installation(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def broadcast_webhooks_for_organization(
     *,

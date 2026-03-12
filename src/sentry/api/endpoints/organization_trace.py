@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -18,7 +18,7 @@ from sentry.snuba.trace import SerializedEvent, query_trace_data
 from sentry.utils.validators import is_event_id
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
     """Replaces OrganizationEventsTraceEndpoint"""
 
@@ -56,9 +56,16 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         error_id: str | None = None,
         additional_attributes: list[str] | None = None,
         include_uptime: bool = False,
+        *,
+        organization: Organization,
     ) -> list[SerializedEvent]:
         return query_trace_data(
-            snuba_params, trace_id, error_id, additional_attributes, include_uptime
+            snuba_params,
+            trace_id,
+            error_id,
+            additional_attributes,
+            include_uptime,
+            organization=organization,
         )
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
@@ -88,7 +95,12 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
                 update_snuba_params_with_timestamp(request, snuba_params)
 
                 spans = self.query_trace_data(
-                    snuba_params, trace_id, error_id, additional_attributes, include_uptime
+                    snuba_params,
+                    trace_id,
+                    error_id,
+                    additional_attributes,
+                    include_uptime,
+                    organization=organization,
                 )
             return spans
 

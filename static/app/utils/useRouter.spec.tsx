@@ -2,7 +2,7 @@ import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 describe('useRouter', () => {
   it('returns a router shim and supports navigation', async () => {

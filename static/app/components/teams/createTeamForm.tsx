@@ -4,7 +4,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 type Payload = {
   slug: string;
@@ -19,7 +19,7 @@ type Props = {
   organization: Organization;
 };
 
-function CreateTeamForm({organization, onSubmit}: Props) {
+export function CreateTeamForm({organization, onSubmit}: Props) {
   return (
     <Fragment>
       <p>
@@ -51,5 +51,3 @@ function CreateTeamForm({organization, onSubmit}: Props) {
     </Fragment>
   );
 }
-
-export default CreateTeamForm;

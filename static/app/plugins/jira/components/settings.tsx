@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import DefaultSettings from 'sentry/plugins/components/settings';
 

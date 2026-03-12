@@ -7,14 +7,14 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';
+import {getTransformedData} from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import {
   StructuredData,
   type StructedEventDataConfig,
 } from 'sentry/components/structuredEventData';
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';

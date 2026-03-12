@@ -696,28 +696,33 @@ class TestCan:
         """A provider implementing every protocol satisfies every action."""
         scm = SourceCodeManager(BaseTestProvider())
         actions = [name for name, _kwargs in ALL_ACTIONS]
-        assert scm.can(actions) is True
+        result = scm.can(actions)
+        assert all(result.values())
+        assert set(result.keys()) == set(actions)
 
     def test_can_returns_false_when_provider_lacks_protocol(self):
         """A minimal provider that implements no action protocols fails every action."""
         scm = SourceCodeManager(MinimalProvider())
         for action_name, _ in ALL_ACTIONS:
-            assert scm.can([action_name]) is False, f"Expected can([{action_name!r}]) to be False"
+            result = scm.can([action_name])
+            assert result[action_name] is False, f"Expected {action_name!r} to be False"
 
     def test_can_returns_false_for_unknown_action(self):
         """An action name not in ActionMap causes can() to return False."""
         scm = SourceCodeManager(BaseTestProvider())
-        assert scm.can(["nonexistent_action"]) is False
+        result = scm.can(["nonexistent_action"])
+        assert result == {"nonexistent_action": False}
 
-    def test_can_returns_true_for_empty_list(self):
-        """An empty action list is trivially satisfiable."""
+    def test_can_returns_empty_dict_for_empty_list(self):
+        """An empty action list returns an empty dict."""
         scm = SourceCodeManager(MinimalProvider())
-        assert scm.can([]) is True
+        assert scm.can([]) == {}
 
-    def test_can_returns_false_when_any_action_unsupported(self):
-        """If even one action is unsupported the entire check fails."""
+    def test_can_mixed_supported_and_unsupported(self):
+        """Returns a mix of True and False for supported and unsupported actions."""
         scm = SourceCodeManager(BaseTestProvider())
-        assert scm.can(["get_branch", "nonexistent_action"]) is False
+        result = scm.can(["get_branch", "nonexistent_action"])
+        assert result == {"get_branch": True, "nonexistent_action": False}
 
     def test_can_with_partial_provider(self):
         """A provider implementing only branch protocols passes branch checks but not others."""
@@ -741,8 +746,11 @@ class TestCan:
                 pass
 
         scm = SourceCodeManager(BranchOnlyProvider())
-        assert scm.can(["get_branch", "create_branch"]) is True
-        assert scm.can(["get_branch", "get_commit"]) is False
+        result = scm.can(["get_branch", "create_branch"])
+        assert result == {"get_branch": True, "create_branch": True}
+
+        result = scm.can(["get_branch", "get_commit"])
+        assert result == {"get_branch": True, "get_commit": False}
 
 
 def test_exec_passes_custom_record_count():

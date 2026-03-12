@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import LogsWidgetQueries from './logsWidgetQueries';
+import {LogsWidgetQueries} from './logsWidgetQueries';
 
 describe('logsWidgetQueries', () => {
   afterEach(() => {

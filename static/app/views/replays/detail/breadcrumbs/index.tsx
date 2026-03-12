@@ -5,25 +5,26 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import {Flex} from '@sentry/scraps/layout';
 
 import Placeholder from 'sentry/components/placeholder';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons, {
+import {
+  useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
-import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
-import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
-import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import {BreadcrumbFilters} from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
+import {BreadcrumbRow} from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import {useBreadcrumbFilters} from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
+import {useScrollToCurrentItem} from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
+import {TabItemContainer} from 'sentry/views/replays/detail/tabItemContainer';
 
 // Estimated row height - matches previous minHeight from cellMeasurer config
 const ESTIMATED_ROW_HEIGHT = 50;
 
-export default function Breadcrumbs() {
+export function Breadcrumbs() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();

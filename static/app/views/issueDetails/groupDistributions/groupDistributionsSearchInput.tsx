@@ -11,7 +11,7 @@ interface Props {
   search: string;
 }
 
-export default function GroupDistributionsSearchInput({
+export function GroupDistributionsSearchInput({
   includeFeatureFlagsTab,
   search,
   onChange,

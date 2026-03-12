@@ -47,59 +47,93 @@ class ControlReplicaService(RpcService):
 
 class RegionReplicaService(RpcService):
     key = "region_replica"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
+        self,
+        *,
+        auth_provider: RpcAuthProvider,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
+        self,
+        *,
+        auth_identity: RpcAuthIdentity,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def upsert_replicated_api_key(self, *, api_key: RpcApiKey, region_name: str) -> None:
+    def upsert_replicated_api_key(
+        self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+    def upsert_replicated_api_token(
+        self,
+        *,
+        api_token: RpcApiToken,
+        cell_name: str | None = None,
+        region_name: str | None = None,
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def delete_replicated_api_token(self, *, apitoken_id: int, region_name: str) -> None:
+    def delete_replicated_api_token(
+        self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+    def upsert_replicated_org_auth_token(
+        self,
+        *,
+        token: RpcOrgAuthToken,
+        cell_name: str | None = None,
+        region_name: str | None = None,
+    ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_org_slug_reservation(
-        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+        self,
+        *,
+        slug_reservation: RpcOrganizationSlugReservation,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_org_slug_reservation(
-        self, *, organization_slug_reservation_id: int, region_name: str
+        self,
+        *,
+        organization_slug_reservation_id: int,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         pass
 
     @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+    def delete_replicated_auth_provider(
+        self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         pass
 
     @classmethod

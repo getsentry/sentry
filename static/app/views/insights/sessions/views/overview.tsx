@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
@@ -18,10 +18,10 @@ import {
   type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
-import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
-import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
-import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {FilterReleaseDropdown} from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import {ReleaseTableSearch} from 'sentry/views/insights/sessions/components/releaseTableSearch';
+import {ReleaseHealth} from 'sentry/views/insights/sessions/components/tables/releaseHealth';
+import {useProjectHasSessions} from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';

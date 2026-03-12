@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
-import SubscriptionStore from './subscriptionStore';
+import {SubscriptionStore} from './subscriptionStore';
 
 describe('SubscriptionStore', () => {
   const organization = OrganizationFixture();
