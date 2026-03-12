@@ -61,10 +61,7 @@ export function OwnershipRulesTable({
    * All unique actors from both codeowners and project rules
    */
   const allActors = useMemo(() => {
-    const actors = combinedRules
-      .flatMap(rule => rule.owners)
-      .filter(actor => actor.name)
-      .map(owner => ({...owner, id: owner.id}));
+    const actors = combinedRules.flatMap(rule => rule.owners).filter(actor => actor.name);
     return (
       uniqBy(actors, actor => `${actor.type}:${actor.id}`)
         // Sort by type, then by name
@@ -167,8 +164,7 @@ export function OwnershipRulesTable({
       >
         {chunkedRules[page]?.map((rule, index) => {
           let name: string | undefined = 'unknown';
-          // ID might not be a string, so we need to convert it
-          const owners = rule.owners.map(owner => ({...owner, id: owner.id}));
+          const {owners} = rule;
           if (owners[0]?.type === 'team') {
             const team = TeamStore.getById(owners[0].id);
             if (team?.slug) {

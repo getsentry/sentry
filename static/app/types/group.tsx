@@ -528,6 +528,11 @@ export interface ParsedOwnershipRule {
   owners: Actor[];
 }
 
+export interface OwnershipSchema {
+  $version: number;
+  rules: ParsedOwnershipRule[];
+}
+
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -539,7 +544,7 @@ export type IssueOwnership = {
   isActive: boolean;
   lastUpdated: string | null;
   raw: string | null;
-  schema?: {rules: ParsedOwnershipRule[]; version: number};
+  schema?: OwnershipSchema | null;
 };
 
 export enum GroupActivityType {

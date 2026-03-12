@@ -11,7 +11,7 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {ParsedOwnershipRule} from './group';
+import type {OwnershipSchema} from './group';
 import type {PlatformKey} from './project';
 import type {BaseRelease} from './release';
 import type {User} from './user';
@@ -601,11 +601,11 @@ export type CodeOwner = {
     users_without_access: string[];
   };
   id: string;
-  provider: 'github' | 'gitlab' | 'perforce';
+  provider: 'github' | 'gitlab' | 'perforce' | 'unknown';
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
-  schema?: {rules: ParsedOwnershipRule[]; version: number};
+  schema?: OwnershipSchema | null;
 };
 
 export type CodeownersFile = {
