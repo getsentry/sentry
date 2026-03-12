@@ -1,14 +1,12 @@
 from django.db.models import F
 
-from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.projects.services.project_key import ProjectKeyRole, ProjectKeyService, RpcProjectKey
 from sentry.projects.services.project_key.serial import serialize_project_key
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
     def _get_project_key(self, project_id: int, role: ProjectKeyRole) -> RpcProjectKey | None:
-        from sentry.models.projectkey import ProjectKey
-
         project_keys = ProjectKey.objects.filter(
             use_case=UseCase.USER.value,
             project=project_id,
@@ -29,7 +27,6 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self, *, organization_id: int, project_id: int
     ) -> RpcProjectKey | None:
         from sentry.models.project import Project
-        from sentry.models.projectkey import ProjectKey
 
         try:
             project = Project.objects.get_from_cache(id=project_id)
@@ -49,31 +46,3 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self, *, region_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         return self.get_project_key_by_cell(cell_name=region_name, project_id=project_id, role=role)
-
-    def get_project_keys_by_cell(
-        self,
-        *,
-        cell_name: str,
-        project_ids: list[int],
-        role: ProjectKeyRole,
-    ) -> list[RpcProjectKey]:
-        # TODO: This query is unbounded and will need to be addressed in the future.
-        project_keys = ProjectKey.objects.filter(
-            use_case=UseCase.USER.value,
-            project__in=project_ids,
-            roles=F("roles").bitor(role.as_orm_role()),
-            status=ProjectKeyStatus.ACTIVE,
-        ).order_by("-date_added")
-        return [serialize_project_key(pk) for pk in project_keys]
-
-    # TODO(cells): Deprecated in favor of get_project_keys_by_cell
-    def get_project_keys_by_region(
-        self,
-        *,
-        region_name: str,
-        project_ids: list[int],
-        role: ProjectKeyRole,
-    ) -> list[RpcProjectKey]:
-        return self.get_project_keys_by_cell(
-            cell_name=region_name, project_ids=project_ids, role=role
-        )

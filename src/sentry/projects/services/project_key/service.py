@@ -50,16 +50,5 @@ class ProjectKeyService(RpcService):
     ) -> RpcProjectKey | None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def get_project_keys_by_region(
-        self,
-        *,
-        region_name: str,
-        project_ids: list[int],
-        role: ProjectKeyRole,
-    ) -> list[RpcProjectKey]:
-        pass
-
 
 project_key_service = ProjectKeyService.create_delegation()
