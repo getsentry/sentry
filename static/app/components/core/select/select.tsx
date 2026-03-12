@@ -401,66 +401,75 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
-  extends
-    AsyncProps<OptionType>,
-    Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
-  /**
-   * Enable async option loading.
-   */
-  async?: boolean;
-  cache?: Record<string, unknown>;
-  /**
-   * Backwards compatible shim to work with select2 style choice type.
-   */
-  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
-  /**
-   * Enable 'clearable' which allows values to be removed.
-   */
-  clearable?: boolean;
-  /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-  disabled?: boolean;
-  /**
-   * Set to true to prefix selected values with content
-   */
-  inFieldLabel?: string;
-  inputRef?: React.Ref<any>;
-  /**
-   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
-   */
-  isInsideModal?: boolean;
-  /**
-   * Maximum width of the menu component. Menu item labels that overflow the
-   * menu's boundaries will automatically be truncated.
-   */
-  maxMenuWidth?: number | string;
-  /**
-   * Used by MultiSelectControl.
-   */
-  multiple?: boolean;
-  /**
-   * Handler for changes. Narrower than the types in react-select.
-   */
-  onChange?: (value: OptionType) => void;
-  ref?: React.Ref<any>;
-  searchable?: boolean;
-  /**
-   * Show line dividers between options
-   */
-  showDividers?: boolean;
-  size?: FormSize;
+type MultipleProps<OptionType extends OptionTypeBase> = {
+  multiple: true;
+  onChange: (option: OptionType[]) => void;
+};
 
-  /**
-   * Unlike react-select which expects an OptionType as its value
-   * we accept the option.value and resolve the option object.
-   * Because this type is embedded in the OptionType generic we
-   * can't have a good type here.
-   */
-  value?: any;
-}
+type SingleProps<OptionType extends OptionTypeBase> = {
+  onChange: (option: OptionType) => void;
+  multiple?: false;
+};
+
+type SelectProps<OptionType extends OptionTypeBase> =
+  | MultipleProps<OptionType>
+  | SingleProps<OptionType>;
+
+export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
+  SelectProps<OptionType> &
+    AsyncProps<OptionType> &
+    Omit<
+      ReactSelectProps<OptionType>,
+      'onChange' | 'value' | 'menuPlacement' | 'theme'
+    > & {
+      /**
+       * Enable async option loading.
+       */
+      async?: boolean;
+      cache?: Record<string, unknown>;
+      /**
+       * Backwards compatible shim to work with select2 style choice type.
+       */
+      choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
+      /**
+       * Enable 'clearable' which allows values to be removed.
+       */
+      clearable?: boolean;
+      /**
+       * Enable 'create' mode which allows values to be created inline.
+       */
+      creatable?: boolean;
+      disabled?: boolean;
+      /**
+       * Set to true to prefix selected values with content
+       */
+      inFieldLabel?: string;
+      inputRef?: React.Ref<any>;
+      /**
+       * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+       */
+      isInsideModal?: boolean;
+      /**
+       * Maximum width of the menu component. Menu item labels that overflow the
+       * menu's boundaries will automatically be truncated.
+       */
+      maxMenuWidth?: number | string;
+      ref?: React.Ref<any>;
+      searchable?: boolean;
+      /**
+       * Show line dividers between options
+       */
+      showDividers?: boolean;
+      size?: FormSize;
+
+      /**
+       * Unlike react-select which expects an OptionType as its value
+       * we accept the option.value and resolve the option object.
+       * Because this type is embedded in the OptionType generic we
+       * can't have a good type here.
+       */
+      value?: any;
+    };
 
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic

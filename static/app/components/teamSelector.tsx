@@ -83,7 +83,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-interface Props extends ControlProps {
+type Props = ControlProps & {
   onChange: (value: any) => any;
   /**
    * Controls whether the dropdown allows to create a new team
@@ -110,7 +110,7 @@ interface Props extends ControlProps {
    * Flag that lets the caller decide to use the team value by default if there is only one option
    */
   useTeamDefaultIfOnlyOne?: boolean;
-}
+};
 
 type TeamActor = {
   id: string;
