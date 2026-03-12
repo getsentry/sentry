@@ -5,7 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-import usePollReplayRecord from './usePollReplayRecord';
+import {usePollReplayRecord} from './usePollReplayRecord';
 
 const organization = OrganizationFixture();
 

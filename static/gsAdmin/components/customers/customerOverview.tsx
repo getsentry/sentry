@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -49,9 +49,9 @@ import {
   getReservedBudgetDisplayName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {

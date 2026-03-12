@@ -10,9 +10,9 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {MIN_CANVAS_SUPPORTED_SDK} from 'sentry/utils/replays/sdkVersions';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 const LOCAL_STORAGE_KEY = 'replay-canvas-supported';
 

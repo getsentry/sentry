@@ -9,7 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type CategoryInfo = {
   api_name: string;
@@ -124,9 +124,7 @@ function DeleteBillingMetricHistoryModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization'>;
 
-const deleteBillingMetricHistory = (opts: Options) =>
+export const deleteBillingMetricHistory = (opts: Options) =>
   openModal(deps => <DeleteBillingMetricHistoryModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default deleteBillingMetricHistory;

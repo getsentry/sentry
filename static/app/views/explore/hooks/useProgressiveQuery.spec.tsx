@@ -2,10 +2,10 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {
   SAMPLING_MODE,
   useProgressiveQuery,

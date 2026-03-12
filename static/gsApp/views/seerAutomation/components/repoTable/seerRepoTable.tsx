@@ -23,8 +23,8 @@ import {
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
-import parseAsSort from 'sentry/utils/url/parseAsSort';
-import useOrganization from 'sentry/utils/useOrganization';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';

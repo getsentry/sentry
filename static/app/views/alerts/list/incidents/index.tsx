@@ -23,7 +23,7 @@ import Projects from 'sentry/utils/projects';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FilterBar} from 'sentry/views/alerts/filterBar';
 import {AlertHeader} from 'sentry/views/alerts/list/header';
 import {Onboarding} from 'sentry/views/alerts/list/onboarding';

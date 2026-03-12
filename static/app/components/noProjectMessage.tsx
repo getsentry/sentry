@@ -9,7 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 

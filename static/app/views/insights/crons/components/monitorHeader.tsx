@@ -2,7 +2,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 

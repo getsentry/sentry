@@ -32,8 +32,8 @@ import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;

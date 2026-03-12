@@ -1,11 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-import useRouteAnalyticsHookSetup from './useRouteAnalyticsHookSetup';
+import {useRouteAnalyticsHookSetup} from './useRouteAnalyticsHookSetup';
 
 function TestComponent() {
   useRouteAnalyticsHookSetup();

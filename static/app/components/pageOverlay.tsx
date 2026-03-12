@@ -6,7 +6,7 @@ import {motion} from 'framer-motion';
 import {Prose} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.

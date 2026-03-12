@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface ListLinkProps extends Omit<

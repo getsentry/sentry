@@ -4,13 +4,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import {ORG_ROLES} from 'sentry/constants';
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Scope} from 'sentry/types/core';
 import type {DetailedTeam} from 'sentry/types/organization';
 

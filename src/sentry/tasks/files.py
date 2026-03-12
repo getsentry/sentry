@@ -20,7 +20,7 @@ MAX_RETRIES = 5
         delay=60 * 5,
         on=(DatabaseError, IntegrityError),
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_file_region(path, checksum, **kwargs):
     from sentry.models.files import FileBlob
@@ -61,7 +61,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
         times=MAX_RETRIES,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):

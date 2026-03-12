@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 export const prettyDate = (x: moment.MomentInput) => moment(x).format('ll');
 

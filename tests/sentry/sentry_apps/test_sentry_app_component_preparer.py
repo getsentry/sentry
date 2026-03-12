@@ -21,7 +21,7 @@ class TestPreparerIssueLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.get()
@@ -101,7 +101,7 @@ class TestPreparerStacktraceLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.get()
@@ -172,7 +172,7 @@ class TestPreparerAlertRuleAction(TestCase):
         )
 
         self.component = self.sentry_app.components.first()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.first()

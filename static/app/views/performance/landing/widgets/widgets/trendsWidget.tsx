@@ -7,7 +7,7 @@ import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/me
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {withProjects} from 'sentry/utils/withProjects';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';

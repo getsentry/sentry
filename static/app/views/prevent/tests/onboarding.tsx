@@ -23,7 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
 import {

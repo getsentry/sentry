@@ -8,7 +8,7 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';

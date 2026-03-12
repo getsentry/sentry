@@ -5,7 +5,7 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type FetchGroupQueryParameters = {

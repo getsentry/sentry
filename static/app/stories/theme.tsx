@@ -4,7 +4,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconMoon} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 export function ThemeSwitcher() {

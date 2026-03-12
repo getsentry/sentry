@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -22,7 +22,7 @@ import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataCondi
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   elideTagBasedAttributes,
   useTraceItemAttributeKeys,

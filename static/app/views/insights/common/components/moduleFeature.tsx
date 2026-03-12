@@ -1,6 +1,6 @@
 import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
 

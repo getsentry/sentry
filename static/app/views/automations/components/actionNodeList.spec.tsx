@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {
   ActionGroup,
   ActionType,

@@ -10,17 +10,17 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
   type IssueView,
 } from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 interface IssueViewItemProps {
   /**
@@ -77,7 +77,7 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useNavigationContext();
+  const {startInteraction, endInteraction, isInteractingRef} = useSecondaryNavigation();
 
   return (
     <StyledReorderItem

@@ -10,9 +10,9 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {
   getAutomationActions,

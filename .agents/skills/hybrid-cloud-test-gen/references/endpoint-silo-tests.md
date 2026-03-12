@@ -21,7 +21,7 @@ Match the endpoint's silo decorator to the test's silo decorator:
 
 | Endpoint Decorator                           | Test Decorator                                          |
 | -------------------------------------------- | ------------------------------------------------------- |
-| `@region_silo_endpoint`                      | `@region_silo_test`                                     |
+| `@cell_silo_endpoint`                        | `@region_silo_test`                                     |
 | `@control_silo_endpoint`                     | `@control_silo_test`                                    |
 | `@control_silo_endpoint` (proxies to region) | `@control_silo_test(regions=create_test_regions("us"))` |
 | No silo decorator                            | `@no_silo_test`                                         |

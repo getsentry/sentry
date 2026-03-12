@@ -13,11 +13,11 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansContent as ScreenLoadPage} from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';

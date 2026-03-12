@@ -106,7 +106,7 @@ def schedule_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=RETRYABLE_ERRORS),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_github_webhook_event(
     *,

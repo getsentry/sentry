@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.api.bases.organization_repository import OrganizationRepositoryEndpoint
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.platform_detection import detect_platforms
@@ -21,7 +21,7 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

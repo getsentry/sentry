@@ -12,17 +12,16 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
   SidebarButton,
   SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
@@ -186,7 +185,7 @@ export function PrimaryNavSeerConfigReminder() {
     state,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -218,7 +217,7 @@ export function PrimaryNavSeerConfigReminder() {
       >
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavigationLayout.MOBILE}
+          isMobile={layout === 'mobile'}
         />
       </SidebarButton>
       {isOpen && (

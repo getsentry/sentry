@@ -7,7 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';

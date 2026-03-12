@@ -39,7 +39,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;

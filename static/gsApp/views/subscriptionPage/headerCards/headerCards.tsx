@@ -2,7 +2,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {Organization} from 'sentry/types/organization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
 import {
@@ -74,7 +74,7 @@ function getCards(organization: Organization, subscription: Subscription) {
 
 export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
-  const {isCollapsed: navIsCollapsed} = useNavigationContext();
+  const {isCollapsed: navIsCollapsed} = useSecondaryNavigation();
 
   return (
     <ErrorBoundary mini>

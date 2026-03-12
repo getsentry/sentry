@@ -3,8 +3,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {handleUpdateQueryName} from './savedQuery/utils';

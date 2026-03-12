@@ -12,7 +12,7 @@ import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {Version} from 'sentry/components/version';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
