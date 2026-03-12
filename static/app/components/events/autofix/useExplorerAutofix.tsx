@@ -399,7 +399,7 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
 }
 
 export function isPullRequestSection(section: AutofixSection): boolean {
-  return section.step === 'pull_requests';
+  return section.step === 'pull_request';
 }
 
 export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
