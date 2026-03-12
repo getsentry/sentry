@@ -10,8 +10,8 @@ import {
   useUpdateBulkAutofixAutomationSettings,
 } from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -25,10 +25,10 @@ import parseAsSort from 'sentry/utils/url/parseAsSort';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import ProjectTableHeader from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
-import SeerProjectTableRow from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
+import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
+import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
 
-export default function SeerProjectTable() {
+export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();

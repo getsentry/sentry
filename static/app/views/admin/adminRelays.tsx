@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {Button} from '@sentry/scraps/button';
 
 import Confirm from 'sentry/components/confirm';
-import ResultGrid from 'sentry/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';

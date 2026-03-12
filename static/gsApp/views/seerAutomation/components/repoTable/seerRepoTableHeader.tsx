@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -46,7 +46,7 @@ const COLUMNS = [
   },
 ];
 
-export default function SeerRepoTableHeader({
+export function SeerRepoTableHeader({
   gridColumns,
   isFetchingNextPage,
   isPending,

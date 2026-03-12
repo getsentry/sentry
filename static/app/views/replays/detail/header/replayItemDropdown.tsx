@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useDeleteReplay from 'sentry/utils/replays/hooks/useDeleteReplay';
-import useShareReplayAtTimestamp from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
+import {useShareReplayAtTimestamp} from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,7 +26,7 @@ interface Props {
   replayRecord: ReplayRecord | undefined;
 }
 
-export default function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
+export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const isEmployee = useIsSentryEmployee();

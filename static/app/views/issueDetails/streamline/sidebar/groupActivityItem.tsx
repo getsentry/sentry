@@ -4,12 +4,12 @@ import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Duration} from 'sentry/components/duration';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
@@ -24,7 +24,7 @@ import type {User} from 'sentry/types/user';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
-export default function getGroupActivityItem(
+export function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   project: Project,

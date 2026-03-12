@@ -5,7 +5,7 @@ type Props = {
   platform: string;
 };
 
-function StacktracePlatformIcon({platform}: Props) {
+export function StacktracePlatformIcon({platform}: Props) {
   return (
     <StyledPlatformIcon
       platform={platform}
@@ -26,5 +26,3 @@ const StyledPlatformIcon = styled(PlatformIcon)`
     display: none;
   }
 `;
-
-export default StacktracePlatformIcon;

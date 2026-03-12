@@ -7,11 +7,9 @@ type Props = {
   children: string;
 };
 
-function CommandLine({children}: Props) {
+export function CommandLine({children}: Props) {
   return <Wrapper>{children}</Wrapper>;
 }
-
-export default CommandLine;
 
 const Wrapper = styled('code')`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};

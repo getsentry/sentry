@@ -6,7 +6,7 @@ import type {FieldGroupProps} from './types';
 
 type FieldControlStateProps = Pick<FieldGroupProps, 'flexibleControlStateSize'>;
 
-const FieldControlState = styled('div')<FieldControlStateProps>`
+export const FieldControlState = styled('div')<FieldControlStateProps>`
   display: flex;
   position: relative;
   flex-shrink: 0;
@@ -18,5 +18,3 @@ const FieldControlState = styled('div')<FieldControlStateProps>`
       ? `&:not(:empty) { margin-left: ${space(1.5)} }`
       : `width: 24px; margin-left: ${space(0.5)};`};
 `;
-
-export default FieldControlState;

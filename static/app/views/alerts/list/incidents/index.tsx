@@ -11,10 +11,10 @@ import Feature from 'sentry/components/acl/feature';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -24,13 +24,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import FilterBar from 'sentry/views/alerts/filterBar';
-import AlertHeader from 'sentry/views/alerts/list/header';
-import Onboarding from 'sentry/views/alerts/list/onboarding';
+import {FilterBar} from 'sentry/views/alerts/filterBar';
+import {AlertHeader} from 'sentry/views/alerts/list/header';
+import {Onboarding} from 'sentry/views/alerts/list/onboarding';
 import type {Incident} from 'sentry/views/alerts/types';
 import {getQueryStatus, getTeamParams} from 'sentry/views/alerts/utils';
 
-import AlertListRow from './row';
+import {AlertListRow} from './row';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';

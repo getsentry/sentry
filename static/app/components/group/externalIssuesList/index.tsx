@@ -13,7 +13,7 @@ type Props = {
   project: Project;
 };
 
-export default function ExternalIssueList({group, event, project}: Props) {
+export function ExternalIssueList({group, event, project}: Props) {
   return (
     <SidebarSection.Wrap data-test-id="linked-issues">
       <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>

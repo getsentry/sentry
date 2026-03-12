@@ -9,14 +9,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
@@ -25,8 +25,8 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import Row from 'sentry/views/settings/account/apiApplications/row';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {Row} from 'sentry/views/settings/account/apiApplications/row';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 

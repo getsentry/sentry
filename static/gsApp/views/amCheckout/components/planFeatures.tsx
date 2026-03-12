@@ -486,7 +486,7 @@ function FeatureItem({
   );
 }
 
-function PlanFeatures({
+export function PlanFeatures({
   planOptions,
   activePlan,
 }: {
@@ -588,5 +588,3 @@ function PlanFeatures({
     </Flex>
   );
 }
-
-export default PlanFeatures;

@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {
   getDatetimeFromState,
   normalizeDateTimeString,

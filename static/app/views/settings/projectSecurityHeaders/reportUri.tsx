@@ -1,11 +1,11 @@
 import {Link} from '@sentry/scraps/link';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 

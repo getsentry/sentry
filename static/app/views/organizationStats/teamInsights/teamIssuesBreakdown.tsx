@@ -5,7 +5,7 @@ import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
   type DatePageFilterProps,

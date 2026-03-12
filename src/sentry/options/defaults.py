@@ -711,12 +711,6 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.seer.use_new_endpoints",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.code-review.excluded-pr-author-logins",
     type=Sequence,
     default=[],
@@ -755,11 +749,6 @@ register(
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.drop-unprocessed-events.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

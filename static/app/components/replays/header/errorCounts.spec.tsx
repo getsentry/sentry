@@ -5,7 +5,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ErrorCounts from 'sentry/components/replays/header/errorCounts';
+import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const replayRecord = ReplayRecordFixture();

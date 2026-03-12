@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -19,7 +19,7 @@ import useApi from 'sentry/utils/useApi';
 
 const DEMO_HEADER_HEIGHT_PX = 70;
 
-export default function DemoHeader() {
+export function DemoHeader() {
   const api = useApi();
 
   useEffect(() => {

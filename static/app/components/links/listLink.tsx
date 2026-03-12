@@ -24,7 +24,7 @@ interface ListLinkProps extends Omit<
   isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
 }
 
-function ListLink({
+export function ListLink({
   children,
   className,
   isActive,
@@ -50,8 +50,6 @@ function ListLink({
     </StyledLi>
   );
 }
-
-export default ListLink;
 
 const StyledLi = styled('li', {
   shouldForwardProp: prop => prop !== 'disabled',

@@ -9,7 +9,7 @@ interface SectionToggleButtonProps {
   onExpandChange: (state: boolean) => void;
 }
 
-function SectionToggleButton({
+export function SectionToggleButton({
   isExpanded,
   onExpandChange,
   ...props
@@ -29,5 +29,3 @@ const ToggleButton = styled(Button)`
   }
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
-
-export default SectionToggleButton;

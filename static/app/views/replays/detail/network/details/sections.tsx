@@ -4,7 +4,7 @@ import queryString from 'query-string';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -31,7 +31,7 @@ import {
 } from 'sentry/views/replays/detail/network/details/components';
 import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 export type SectionProps = {
   item: SpanFrame;

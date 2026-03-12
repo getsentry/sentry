@@ -202,7 +202,7 @@ const Smoke = styled('g')`
   )}
 `;
 
-function NoProjectEmptyState({className}: {className?: string}) {
+export function NoProjectEmptyState({className}: {className?: string}) {
   return (
     <svg
       width="683"
@@ -1431,5 +1431,3 @@ function NoProjectEmptyState({className}: {className?: string}) {
     </svg>
   );
 }
-
-export default NoProjectEmptyState;

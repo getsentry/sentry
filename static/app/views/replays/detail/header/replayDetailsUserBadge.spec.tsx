@@ -12,7 +12,7 @@ import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibra
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
+import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 const {organization, project} = initializeOrg({

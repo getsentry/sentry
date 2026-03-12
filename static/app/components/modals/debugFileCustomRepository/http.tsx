@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {
   DEBUG_SOURCE_CASINGS,
@@ -53,7 +53,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   initialData?: InitialData;
 };
 
-function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
+export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   const initialData: Data = {
     id: props.initialData?.id ?? uniqueId(),
     name: props.initialData?.name,
@@ -254,8 +254,6 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
     </Fragment>
   );
 }
-
-export default Http;
 
 const StyledSelectField = styled(SelectField)`
   padding-right: 0;

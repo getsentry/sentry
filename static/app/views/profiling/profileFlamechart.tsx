@@ -4,9 +4,9 @@ import * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';

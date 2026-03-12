@@ -7,12 +7,12 @@ import {Button} from '@sentry/scraps/button';
 import {Select} from '@sentry/scraps/select';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -41,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   organizations: Organization[];
 }
 
-function NotificationSettingsByEntity({
+export function NotificationSettingsByEntity({
   entityType,
   handleAddNotificationOption,
   handleEditNotificationOption,
@@ -306,8 +306,6 @@ function NotificationSettingsByEntity({
     </MinHeight>
   );
 }
-
-export default NotificationSettingsByEntity;
 
 const MinHeight = styled('div')`
   min-height: 400px;

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import BillingDetailsForm from './form';
+import {BillingDetailsForm} from './form';
 
 describe('BillingDetailsForm', () => {
   const organization = OrganizationFixture({access: ['org:billing']});

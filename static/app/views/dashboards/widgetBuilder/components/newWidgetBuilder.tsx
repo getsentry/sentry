@@ -35,16 +35,16 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -86,11 +86,11 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navParentRef} = useNavContext();
+  const {navigationParentRef} = useNavigationContext();
   // Check if we have a valid nav reference
-  const hasValidNav = Boolean(navParentRef?.current);
+  const hasValidNav = Boolean(navigationParentRef?.current);
 
-  const dimensions = useDimensions({elementRef: navParentRef});
+  const dimensions = useDimensions({elementRef: navigationParentRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));

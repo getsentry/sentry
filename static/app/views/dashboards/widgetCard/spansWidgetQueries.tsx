@@ -54,7 +54,7 @@ type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
   };
 };
 
-function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
+export function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       let seriesConfidence: Confidence | null;
@@ -174,5 +174,3 @@ function SpansWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default SpansWidgetQueries;

@@ -6,9 +6,9 @@ import {
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import FlagsDistributionDrawer from 'sentry/views/issueDetails/groupDistributions/flagsDistributionDrawer';
-import GroupDistributionCrumbs from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
-import TagsDistributionDrawer from 'sentry/views/issueDetails/groupDistributions/tagsDistributionDrawer';
+import {FlagsDistributionDrawer} from 'sentry/views/issueDetails/groupDistributions/flagsDistributionDrawer';
+import {GroupDistributionCrumbs} from 'sentry/views/issueDetails/groupDistributions/groupDistributionCrumbs';
+import {TagsDistributionDrawer} from 'sentry/views/issueDetails/groupDistributions/tagsDistributionDrawer';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import useDrawerTab from 'sentry/views/issueDetails/groupDistributions/useDrawerTab';
 

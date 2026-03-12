@@ -123,7 +123,7 @@ type Props = Omit<
   searchSource?: string;
 };
 
-function ReplaySearchBar(props: Props) {
+export function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
@@ -239,5 +239,3 @@ function ReplaySearchBar(props: Props) {
     />
   );
 }
-
-export default ReplaySearchBar;

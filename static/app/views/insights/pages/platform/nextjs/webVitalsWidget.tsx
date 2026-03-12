@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import type {ProjectData} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';

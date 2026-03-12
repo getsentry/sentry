@@ -8,7 +8,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function SettingsPageTabs() {
+export function SettingsPageTabs() {
   const organization = useOrganization();
   const {pathname} = useLocation();
 

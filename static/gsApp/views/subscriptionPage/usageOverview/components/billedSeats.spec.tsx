@@ -7,7 +7,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, type Subscription} from 'getsentry/types';
-import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
+import {BilledSeats} from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 
 describe('BilledSeats', () => {
   const organization = OrganizationFixture();

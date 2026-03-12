@@ -14,7 +14,7 @@ interface Props
   subscription?: Subscription;
 }
 
-function UpsellButton({
+export function UpsellButton({
   source,
   extraAnalyticsParams,
   subscription,
@@ -37,5 +37,3 @@ function UpsellButton({
     </UpsellProvider>
   );
 }
-
-export default UpsellButton;

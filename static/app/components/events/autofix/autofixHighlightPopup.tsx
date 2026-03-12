@@ -24,7 +24,7 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -551,7 +551,7 @@ function getOptimalPosition(
   return {left, top};
 }
 
-function AutofixHighlightPopup(props: Props) {
+export function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{
@@ -888,5 +888,3 @@ function getScrollParents(element: HTMLElement): Element[] {
 
   return scrollParents;
 }
-
-export default AutofixHighlightPopup;

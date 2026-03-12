@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {
   DropdownMenu,
@@ -29,11 +29,11 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {

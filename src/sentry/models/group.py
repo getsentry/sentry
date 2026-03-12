@@ -29,7 +29,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -622,7 +622,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_model
+@cell_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.

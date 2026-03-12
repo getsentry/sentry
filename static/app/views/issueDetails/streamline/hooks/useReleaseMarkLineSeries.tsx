@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';

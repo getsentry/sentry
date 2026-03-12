@@ -7,12 +7,12 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import EventAnnotation from 'sentry/components/events/eventAnnotation';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
-import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
+import {EventAnnotation} from 'sentry/components/events/eventAnnotation';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
+import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
+import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
+import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
@@ -54,7 +54,11 @@ function Lifetime({
   );
 }
 
-function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Props) {
+export function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  showLifetime = true,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -246,5 +250,3 @@ const Location = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default EventOrGroupExtraDetails;

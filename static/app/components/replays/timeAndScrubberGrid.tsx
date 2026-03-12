@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
-import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
+import {Duration} from 'sentry/components/duration/duration';
+import {ReplayTimeline} from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import {TimelineTooltip} from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
+import {ReplayCurrentTime} from 'sentry/components/replays/player/replayCurrentTime';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useTimelineMouseTracking from 'sentry/components/replays/player/useTimelineMouseTracking';
 import {IconAdd, IconSubtract} from 'sentry/icons';
@@ -77,7 +77,7 @@ function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   );
 }
 
-export default function TimeAndScrubberGrid({
+export function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
   isLoading,

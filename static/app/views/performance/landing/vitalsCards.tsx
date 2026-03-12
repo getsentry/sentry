@@ -14,12 +14,12 @@ import type {
   VitalData,
   VitalsData,
 } from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
+import {ColorBar} from 'sentry/views/performance/vitalDetail/colorBar';
 import {
   makeVitalStateColors,
   VitalState,
 } from 'sentry/views/performance/vitalDetail/utils';
-import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
+import {VitalPercents} from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 type VitalBarProps = {
   data: VitalsData | null;

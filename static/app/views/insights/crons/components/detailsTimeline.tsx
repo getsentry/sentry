@@ -12,7 +12,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

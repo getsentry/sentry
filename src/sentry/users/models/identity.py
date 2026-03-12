@@ -226,7 +226,7 @@ class Identity(Model):
                     shard_identifier=self.user_id,
                     object_identifier=self.id,
                     category=OutboxCategory.IDENTITY_UPDATE,
-                    region_name=region_name,
+                    cell_name=region_name,
                 ).save()
             return super().delete(*args, **kwargs)
 

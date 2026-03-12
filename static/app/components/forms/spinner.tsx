@@ -10,7 +10,7 @@ const spin = keyframes`
   }
 `;
 
-const Spinner = styled('div')`
+export const Spinner = styled('div')`
   animation: ${spin} 0.4s linear infinite;
   width: 18px;
   height: 18px;
@@ -19,5 +19,3 @@ const Spinner = styled('div')`
   border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
   margin-left: auto;
 `;
-
-export default Spinner;

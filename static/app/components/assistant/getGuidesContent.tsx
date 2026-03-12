@@ -5,7 +5,7 @@ import {t, tct} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
-export default function getGuidesContent(): GuidesContent {
+export function getGuidesContent(): GuidesContent {
   if (isDemoModeActive()) {
     return getDemoModeGuides();
   }

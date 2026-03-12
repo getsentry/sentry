@@ -5,11 +5,11 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import IdBadge from 'sentry/components/idBadge';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -17,7 +17,7 @@ import type {DataCategoryInfo} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 

@@ -25,7 +25,7 @@ import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compa
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';

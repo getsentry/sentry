@@ -11,9 +11,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
-import Panel from 'sentry/components/panels/panel';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
@@ -67,7 +67,7 @@ const MAX_DIMENSION = 1024;
 // makes a lot of assumptions otherwise about how avatar are stored. We should
 // refactor the interface and split this up more.
 
-function AvatarChooser({
+export function AvatarChooser({
   endpoint,
   model: propsModel,
   disabled,
@@ -378,5 +378,3 @@ const AvatarHelp = styled('p')`
   font-size: ${p => p.theme.font.size.md};
   width: 50%;
 `;
-
-export default AvatarChooser;

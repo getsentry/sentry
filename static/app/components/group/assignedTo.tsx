@@ -10,12 +10,12 @@ import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {
   useHandleAssigneeChange,
   type OnAssignCallback,
 } from 'sentry/components/group/assigneeSelector';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';

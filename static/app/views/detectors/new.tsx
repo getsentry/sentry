@@ -4,7 +4,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import EditLayout from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';

@@ -31,7 +31,7 @@ type Props = {
   modalParams?: Record<string, string>;
 };
 
-export default class AddIntegration extends Component<Props> {
+export class AddIntegration extends Component<Props> {
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }

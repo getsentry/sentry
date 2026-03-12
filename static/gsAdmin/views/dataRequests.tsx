@@ -3,26 +3,26 @@ import {Fragment, useMemo, useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 type ResultQuery = {
   email: string;
   orgSlug: string;
 };
 
-function DataRequests() {
+export function DataRequests() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -178,5 +178,3 @@ function DataRequests() {
     </Fragment>
   );
 }
-
-export default DataRequests;

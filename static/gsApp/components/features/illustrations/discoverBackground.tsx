@@ -135,7 +135,7 @@ const landBeforeTimeAnimation = {
   }),
 };
 
-function DiscoverBackground({anchorRef}: Props) {
+export function DiscoverBackground({anchorRef}: Props) {
   return (
     <motion.svg
       initial="init"
@@ -624,5 +624,3 @@ function DiscoverBackground({anchorRef}: Props) {
     </motion.svg>
   );
 }
-
-export default DiscoverBackground;

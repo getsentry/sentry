@@ -1,5 +1,5 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {KeyValueListData} from 'sentry/types/group';
 
 type Props = {
@@ -7,7 +7,7 @@ type Props = {
   raw?: boolean;
 };
 
-function ContextBlock({data, raw = false}: Props) {
+export function ContextBlock({data, raw = false}: Props) {
   if (data.length === 0) {
     return null;
   }
@@ -18,5 +18,3 @@ function ContextBlock({data, raw = false}: Props) {
     </ErrorBoundary>
   );
 }
-
-export default ContextBlock;

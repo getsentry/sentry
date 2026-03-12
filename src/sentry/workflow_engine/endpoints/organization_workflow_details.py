@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -33,7 +33,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 from sentry.workflow_engine.models import Workflow
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     publish_status = {

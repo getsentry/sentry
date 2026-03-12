@@ -18,7 +18,7 @@ type GroupDetailsPriorityProps = {
   onChange?: (priority: PriorityLevel) => void;
 };
 
-function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
@@ -73,5 +73,3 @@ function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
     />
   );
 }
-
-export default GroupPriority;

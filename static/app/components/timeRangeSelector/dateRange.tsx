@@ -21,9 +21,9 @@ import {
 } from 'sentry/utils/dates';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
-import TimePicker from './timePicker';
+import {TimePicker} from './timePicker';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
@@ -238,7 +238,7 @@ class BaseDateRange extends Component<Props, State> {
   }
 }
 
-const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
+export const DateRange = styled(withTheme(withSentryRouter(BaseDateRange)))`
   display: flex;
   flex-direction: column;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
@@ -273,5 +273,3 @@ const UtcPickerLabel = styled('label')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: inherit;
 `;
-
-export default DateRange;

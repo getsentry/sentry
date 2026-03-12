@@ -17,7 +17,7 @@ type Props = {
   container: HTMLElement;
 };
 
-export default function TimelineTooltip({container}: Props) {
+export function TimelineTooltip({container}: Props) {
   const replay = useReplayReader();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;

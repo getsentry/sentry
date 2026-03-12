@@ -23,7 +23,7 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   style?: React.CSSProperties;
 }
 
-function TextCopyInput({
+export function TextCopyInput({
   className,
   disabled,
   style,
@@ -84,8 +84,6 @@ function TextCopyInput({
     </InputGroup>
   );
 }
-
-export default TextCopyInput;
 
 const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};

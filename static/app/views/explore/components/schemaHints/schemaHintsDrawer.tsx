@@ -6,7 +6,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {IconSearch} from 'sentry/icons';
@@ -31,7 +31,11 @@ type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   searchBarDispatch: React.Dispatch<QueryBuilderActions>;
 };
 
-function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDrawerProps) {
+export function SchemaHintsDrawer({
+  hints,
+  searchBarDispatch,
+  queryRef,
+}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -211,8 +215,6 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
     </DrawerContainer>
   );
 }
-
-export default SchemaHintsDrawer;
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;

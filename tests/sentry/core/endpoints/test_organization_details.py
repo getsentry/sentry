@@ -1494,6 +1494,22 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_disabled_when_flag_enabled(self) -> None:
+        data = {"enableSeerCoding": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is not False
+
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_enabled_when_flag_enabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"enableSeerCoding": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is False
+
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()

@@ -11,7 +11,7 @@ interface Props {
   feedbackItem: FeedbackIssue;
 }
 
-export default function MessageSection({eventData, feedbackItem}: Props) {
+export function MessageSection({eventData, feedbackItem}: Props) {
   const organization = useOrganization();
   const {hasRole} = useRole({role: 'attachmentsRole'});
   const project = feedbackItem.project;

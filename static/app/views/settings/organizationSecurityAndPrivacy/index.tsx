@@ -14,7 +14,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
@@ -29,8 +29,8 @@ import {
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
-import DataSecrecy from 'sentry/views/settings/components/dataSecrecy/index';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const securitySchema = z.object({
   require2FA: z.boolean(),
@@ -238,7 +238,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
                     v => ({
-                      value: v,
+                      value: v!,
                       label: formatStoreCrashReports(v),
                     })
                   )}

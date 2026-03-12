@@ -2,7 +2,7 @@ import type {ComboBoxState} from '@react-stately/combobox';
 
 import {makeOrganizationSeerSetupQueryKey} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {setupCheckQueryKey} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {AskSeerOption} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {

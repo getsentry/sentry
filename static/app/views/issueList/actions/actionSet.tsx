@@ -18,8 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
-import ResolveActions from './resolveActions';
-import ReviewAction from './reviewAction';
+import {ResolveActionsContainer as ResolveActions} from './resolveActions';
+import {ReviewAction} from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -36,7 +36,7 @@ type Props = {
   selectedProjectSlug?: string;
 };
 
-function ActionSet({
+export function ActionSet({
   queryCount,
   query,
   allInQuerySelected,
@@ -275,5 +275,3 @@ function isActionSupported(
 
   return {enabled: true};
 }
-
-export default ActionSet;

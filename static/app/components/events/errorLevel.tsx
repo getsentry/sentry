@@ -12,7 +12,7 @@ type Props = {
   level?: Level;
 };
 
-function ErrorLevel({className, level = 'unknown'}: Props) {
+export function ErrorLevel({className, level = 'unknown'}: Props) {
   const levelLabel = t('Level: %s', capitalize(level));
   return (
     <Tooltip skipWrapper disabled={level === 'unknown'} title={levelLabel}>
@@ -49,5 +49,3 @@ const ColoredLine = styled('span')<Props>`
     }
   }};
 `;
-
-export default ErrorLevel;

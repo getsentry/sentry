@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-function ReprocessedBox({
+export function ReprocessedBox({
   orgSlug,
   reprocessActivity,
   groupCount,
@@ -85,8 +85,6 @@ function ReprocessedBox({
     </BannerContainer>
   );
 }
-
-export default ReprocessedBox;
 
 const StyledBannerSummary = styled(BannerSummary)`
   & > svg:last-child {

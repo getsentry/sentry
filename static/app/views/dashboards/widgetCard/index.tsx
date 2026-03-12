@@ -13,7 +13,7 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -35,10 +35,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {

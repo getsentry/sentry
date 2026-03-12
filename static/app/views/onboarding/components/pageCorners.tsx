@@ -9,7 +9,7 @@ type Props = {
   animateVariant: MotionNodeAnimationOptions['animate'];
 } & HTMLAttributes<HTMLDivElement>;
 
-function PageCorners({animateVariant, ...rest}: Props) {
+export function PageCorners({animateVariant, ...rest}: Props) {
   const baseTransition = testableTransition({type: 'spring', duration: 0.8});
   // Consistent enter delay for visible variants
   const delayedTransition = testableTransition({type: 'spring', duration: 0.8, delay: 1});
@@ -128,8 +128,6 @@ function PageCorners({animateVariant, ...rest}: Props) {
     </Container>
   );
 }
-
-export default PageCorners;
 
 const TopLeft = styled(motion.svg)`
   position: absolute;

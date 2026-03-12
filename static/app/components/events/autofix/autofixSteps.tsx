@@ -9,8 +9,8 @@ import {
   replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
-import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
-import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
+import {CodingAgentCard} from 'sentry/components/events/autofix/codingAgentCard';
+import {AutofixInsightCards} from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import {
   AutofixStepType,
   type AutofixData,

@@ -53,7 +53,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-function Version({
+export function Version({
   version,
   anchor = true,
   preservePageFilters,
@@ -169,5 +169,3 @@ const TooltipVersionWrapper = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default Version;
