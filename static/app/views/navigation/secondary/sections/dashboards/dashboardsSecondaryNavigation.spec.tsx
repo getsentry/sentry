@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;
@@ -35,7 +36,12 @@ describe('DashboardsSecondaryNavigation', () => {
   });
 
   it('should render dashboards in order of response', async () => {
-    render(<DashboardsSecondaryNavigation />, {organization});
+    render(
+      <SecondaryNavigationContextProvider>
+        <DashboardsSecondaryNavigation />
+      </SecondaryNavigationContextProvider>,
+      {organization}
+    );
 
     expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();
 

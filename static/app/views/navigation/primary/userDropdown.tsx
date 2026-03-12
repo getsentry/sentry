@@ -15,8 +15,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -27,8 +26,8 @@ export function UserDropdown() {
   const api = useApi();
   const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const isMobile = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
 
