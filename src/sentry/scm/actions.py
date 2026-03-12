@@ -388,28 +388,44 @@ class SourceCodeManager:
 
     def get_commits(
         self,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits.
+
+        `ref` is either a branch name, a tag name, or a commit SHA. Specifying a commit SHA
+        retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
         return self._exec(
             ActionMap.get_commits,  # type: ignore[type-abstract]
             lambda p: p.get_commits(
-                sha=sha, pagination=pagination, request_options=request_options
+                ref=ref, pagination=pagination, request_options=request_options
             ),
         )
 
     def get_commits_by_path(
         self,
         path: str,
-        sha: SHA | None = None,
+        ref: SHA | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits for a given filepath.
+
+        `ref` is either a branch name, a tag name, or a commit SHA. Specifying a commit SHA
+        retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
         return self._exec(
             ActionMap.get_commits_by_path,  # type: ignore[type-abstract]
             lambda p: p.get_commits_by_path(
-                path=path, sha=sha, pagination=pagination, request_options=request_options
+                path=path, ref=ref, pagination=pagination, request_options=request_options
             ),
         )
 

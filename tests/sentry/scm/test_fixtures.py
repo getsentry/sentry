@@ -788,7 +788,7 @@ class BaseTestProvider(Provider):
 
     def get_commits(
         self,
-        sha: str | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
@@ -803,7 +803,7 @@ class BaseTestProvider(Provider):
     def get_commits_by_path(
         self,
         path: str,
-        sha: str | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:

@@ -229,7 +229,7 @@ class GetCommitProtocol(Protocol):
 class GetCommitsProtocol(Protocol):
     def get_commits(
         self,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
@@ -240,7 +240,7 @@ class GetCommitsByPathProtocol(Protocol):
     def get_commits_by_path(
         self,
         path: str,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...

@@ -329,11 +329,11 @@ class GitLabProvider:
     @catch_provider_exception
     def get_commits(
         self,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        raw = self.client.get_last_commits(self._repo_id, sha)
+        raw = self.client.get_last_commits(self._repo_id, ref)
         return make_paginated_result(map_commit, raw)
 
     @catch_provider_exception

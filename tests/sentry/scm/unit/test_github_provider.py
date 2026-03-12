@@ -261,7 +261,7 @@ CLIENT_DELEGATION_TESTS: list[
     ),
     (
         "get_commits_by_path",
-        {"path": "src/main.py", "sha": "main"},
+        {"path": "src/main.py", "ref": "main"},
         ("get_commits", ("test-org/test-repo",), {"sha": "main", "path": "src/main.py"}),
     ),
     (

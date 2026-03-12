@@ -367,11 +367,11 @@ class GitHubProvider:
     @catch_provider_exception
     def get_commits(
         self,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        raw_commits = self.client.get_commits(self.repository["name"], sha=sha)
+        raw_commits = self.client.get_commits(self.repository["name"], sha=ref)
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
@@ -383,11 +383,11 @@ class GitHubProvider:
     def get_commits_by_path(
         self,
         path: str,
-        sha: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
+        raw_commits = self.client.get_commits(self.repository["name"], sha=ref, path=path)
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",

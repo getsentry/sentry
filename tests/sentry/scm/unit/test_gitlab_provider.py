@@ -1377,7 +1377,7 @@ class ForwardToClientTest(NamedTuple):
         ForwardToClientTest(
             provider_method=GitLabProvider.get_commits,
             provider_args={
-                "sha": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                "ref": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
                 "pagination": None,
                 "request_options": None,
             },
