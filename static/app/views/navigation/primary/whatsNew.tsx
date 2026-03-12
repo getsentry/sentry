@@ -29,7 +29,7 @@ import {
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
-export const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
+const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
   feature: t('New Feature'),
   blog: t('Blog Post'),

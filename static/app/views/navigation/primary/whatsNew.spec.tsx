@@ -3,10 +3,7 @@ import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  BROADCAST_CATEGORIES,
-  PrimaryNavigationWhatsNew,
-} from 'sentry/views/navigation/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 
 jest.mock('sentry/utils/analytics');
 
@@ -249,7 +246,7 @@ describe('WhatsNew', () => {
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
 
-    expect(await screen.findByText(BROADCAST_CATEGORIES.blog)).toBeInTheDocument();
+    expect(await screen.findByText('Blog Post')).toBeInTheDocument();
     const titleLink = screen.getByRole('link', {name: broadcast.title});
     expect(titleLink).toHaveAttribute('href', broadcast.link);
     expect(screen.getByText(broadcast.message)).toBeInTheDocument();
@@ -281,12 +278,10 @@ describe('WhatsNew', () => {
 
     await userEvent.click(screen.getByRole('button', {name: "What's New"}));
 
-    expect(
-      await screen.findByText(BROADCAST_CATEGORIES.announcement)
-    ).toBeInTheDocument();
-    expect(screen.getByText(BROADCAST_CATEGORIES.feature)).toBeInTheDocument();
-    expect(screen.getByText(BROADCAST_CATEGORIES.blog)).toBeInTheDocument();
-    expect(screen.getByText(BROADCAST_CATEGORIES.event)).toBeInTheDocument();
-    expect(screen.getByText(BROADCAST_CATEGORIES.video)).toBeInTheDocument();
+    expect(await screen.findByText('Announcement')).toBeInTheDocument();
+    expect(screen.getByText('New Feature')).toBeInTheDocument();
+    expect(screen.getByText('Blog Post')).toBeInTheDocument();
+    expect(screen.getByText('Event')).toBeInTheDocument();
+    expect(screen.getByText('Video')).toBeInTheDocument();
   });
 });
