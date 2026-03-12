@@ -62,7 +62,6 @@ interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps
   false
 > {
   onChange: (value: NonArray<TValue>) => void;
-  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   clearable?: false;
   multiple?: false;
@@ -75,7 +74,6 @@ interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
 > {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
-  options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
   multiple?: false;
 }
