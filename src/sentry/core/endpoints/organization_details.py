@@ -68,6 +68,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -244,6 +245,18 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        "defaultCodingAgent",
+        "sentry:seer_default_coding_agent",
+        str,
+        SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ),
+    (
+        "defaultCodingAgentIntegrationId",
+        "sentry:seer_default_coding_agent_integration_id",
+        int,
+        None,
     ),
     (
         # Informs UI default for automated_run_stopping_point in project preferences
