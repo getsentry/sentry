@@ -169,4 +169,22 @@ describe('convertWidgetToBuilderStateParams', () => {
       });
     });
   });
+
+  describe('text widget', () => {
+    it('does not include the description in the builder params', () => {
+      const widget = {
+        title: 'Text Widget',
+        displayType: DisplayType.TEXT,
+        interval: '',
+        queries: [],
+        description: 'Test Description',
+      };
+      const params = convertWidgetToBuilderStateParams(widget);
+      expect(params.description).toBeUndefined();
+      expect(params.title).toBe('Text Widget');
+      expect(params.displayType).toBe(DisplayType.TEXT);
+      expect(params.field).toEqual([]);
+      expect(params.sort).toEqual([]);
+    });
+  });
 });

@@ -2692,4 +2692,140 @@ describe('useWidgetBuilderState', () => {
       );
     });
   });
+  describe('text widget actions', () => {
+    it('clears fields, yAxis, query, sort, limit, and dataset when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            dataset: WidgetType.ERRORS,
+            field: ['event.type', 'count()'],
+            query: ['event.type:error'],
+            sort: ['-count()'],
+            limit: '5',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: FieldValueKind.FIELD},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: FieldValueKind.FUNCTION,
+        },
+      ]);
+      expect(result.current.state.query).toEqual(['event.type:error']);
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+      expect(result.current.state.limit).toBe(5);
+      expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TEXT);
+      expect(result.current.state.fields).toEqual([]);
+      expect(result.current.state.yAxis).toEqual([]);
+      expect(result.current.state.query).toEqual(['']);
+      expect(result.current.state.sort).toEqual([]);
+      expect(result.current.state.limit).toBeUndefined();
+      expect(result.current.state.dataset).toBeUndefined();
+    });
+
+    it('moves URL description into textContent when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            description: 'existing description',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBe('existing description');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      // The URL description is moved into local textContent state
+      expect(result.current.state.textContent as string).toBe('existing description');
+      // And cleared from the URL-backed description field
+      expect(result.current.state.description).toBeUndefined();
+    });
+
+    it('clears textContent when switching away from text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          playload: 'text widget content',
+        });
+      });
+
+      expect(result.current.state.textContent as string).toBe('text widget content');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.textContent).toBeUndefined();
+    });
+
+    it('SET_TEXT_CONTENT updates textContent without navigating', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          playload: 'new text content',
+        } as any);
+      });
+
+      jest.runAllTimers();
+
+      expect(result.current.state.textContent as string).toBe('new text content');
+      // Text content must not be written to the URL to avoid excessive URL length
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+  });
 });

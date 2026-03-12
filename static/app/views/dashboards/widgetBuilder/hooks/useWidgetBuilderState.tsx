@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
@@ -62,6 +62,8 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
+export const TEXT_WIDGET_CONTENT_SESSION_KEY = 'dashboard:edit-widget:text-content';
+
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
   dataset?: WidgetType;
@@ -93,6 +95,7 @@ export const BuilderStateAction = {
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
+  SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
   SET_TRACE_METRIC: 'SET_TRACE_METRIC',
   // Categorical bar chart specific actions
@@ -139,7 +142,8 @@ type WidgetAction =
   | {
       payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    };
+    }
+  | {playload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -163,6 +167,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
+  textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
   traceMetric?: TraceMetric;
@@ -351,11 +356,21 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: getAxisRange,
   });
+  const [textContent, setTextContent] = useState<string | undefined>(() => {
+    // when the widget builder state is initialized, this variable can't be pulled from the URL params
+    // so we are going to use session storage for hacks
+    const storedValue = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+    if (storedValue) {
+      sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
+    }
+    return storedValue ?? undefined;
+  });
 
   const state = useMemo(
     () => ({
       title,
       description,
+      textContent,
       displayType,
       dataset,
       fields,
@@ -389,8 +404,9 @@ function useWidgetBuilderState(): {
     }),
     [
       title,
-      description,
       displayType,
+      textContent,
+      description,
       dataset,
       fields,
       yAxis,
@@ -398,11 +414,11 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
-      selectedAggregate,
       thresholds,
       linkedDashboards,
       traceMetric,
       axisRange,
+      selectedAggregate,
     ]
   );
 
@@ -418,6 +434,10 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          // When leaving the text widget type, clear local text content
+          if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
+            setTextContent(undefined);
+          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
@@ -543,6 +563,24 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
             // Categorical bars show more categories than time-series groupings
             setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
+          } else if (action.payload === DisplayType.TEXT) {
+            // Text widgets don't need any data fields, just title and description.
+            // Move any existing URL description into local state and clear the URL param
+            // to prevent excessively long URLs when the user types content.
+            setTextContent(description ?? '');
+            setDescription(undefined, options);
+            setFields([], options);
+            setYAxis([], options);
+            setQuery([''], options);
+            setSort([], options);
+            setLimit(undefined, options);
+            setLegendAlias([], options);
+            setDataset(undefined, options);
+            setLinkedDashboards([], options);
+            setThresholds(undefined, options);
+            setTraceMetric(undefined, options);
+            setAxisRange(undefined, options);
+            setSelectedAggregate(undefined, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -901,8 +939,15 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
-          setDescription(action.payload.description, options);
           setDisplayType(action.payload.displayType, options);
+          if (action.payload.displayType === DisplayType.TEXT) {
+            setTextContent(action.payload.description);
+            setDescription(undefined, options);
+          } else {
+            setDescription(action.payload.description, options);
+            setTextContent(undefined);
+          }
+
           if (action.payload.field) {
             setFields(deserializeFields(action.payload.field), options);
           }
@@ -1174,35 +1219,40 @@ function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_TEXT_CONTENT: {
+          setTextContent(action.playload);
+          break;
+        }
         default:
           break;
       }
     },
     [
+      dataset,
       setTitle,
-      setDescription,
-      setDisplayType,
-      setDataset,
-      setFields,
-      setYAxis,
+      displayType,
       setQuery,
-      setSort,
       setLimit,
       setLegendAlias,
       setSelectedAggregate,
-      setThresholds,
-      setAxisRange,
-      setLinkedDashboards,
       fields,
+      setDataset,
+      setDescription,
+      setDisplayType,
+      setSort,
+      setAxisRange,
+      setThresholds,
       yAxis,
-      displayType,
-      linkedDashboards,
-      query,
+      setLinkedDashboards,
+      setYAxis,
+      setFields,
       sort,
-      dataset,
+      query,
+      description,
       limit,
-      selectedAggregate,
+      linkedDashboards,
       setTraceMetric,
+      selectedAggregate,
     ]
   );
 

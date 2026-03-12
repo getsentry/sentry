@@ -56,9 +56,12 @@ export function convertWidgetToBuilderStateParams(
     traceMetric = extractTraceMetricFromWidget(widget);
   }
 
+  const description =
+    widget.displayType === DisplayType.TEXT ? undefined : widget.description;
+
   return {
     title: widget.title,
-    description: widget.description ?? '',
+    description,
     dataset: widget.widgetType ?? WidgetType.ERRORS,
     displayType: widget.displayType ?? DisplayType.TABLE,
     limit: widget.limit,
