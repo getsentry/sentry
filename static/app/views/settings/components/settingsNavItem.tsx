@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
   label: React.ReactNode;

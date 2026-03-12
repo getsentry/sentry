@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 export default Storybook.story('SecondaryNavigation', story => {
   story('Basics (WIP)', () => {

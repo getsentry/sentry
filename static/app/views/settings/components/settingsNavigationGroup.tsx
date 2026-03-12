@@ -1,7 +1,7 @@
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SettingsNavItem} from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 

@@ -18,7 +18,7 @@ import {
   NavigationTourElement,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 

@@ -2,7 +2,7 @@ import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 

@@ -4,7 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 export function PreventSecondaryNavigation() {
   const organization = useOrganization();
