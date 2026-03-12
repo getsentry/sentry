@@ -24,7 +24,7 @@ import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetAct
 
 function UserAndOrganizationNavigation() {
   const theme = useTheme();
-  const {layout, navigationParentRef} = useNavigation();
+  const {layout} = useNavigation();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
@@ -60,7 +60,6 @@ function UserAndOrganizationNavigation() {
 
   return (
     <Flex
-      ref={navigationParentRef}
       top={0}
       position={tourIsActive ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
