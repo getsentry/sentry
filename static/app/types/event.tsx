@@ -204,7 +204,7 @@ export type ExceptionValue = {
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
-  value: string;
+  value: string | null;
   frames?: Frame[] | null;
   rawModule?: string | null;
   rawType?: string | null;

@@ -9,7 +9,7 @@ import {t, tn} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-export type HiddenExceptionsState = Record<number, boolean>;
+type HiddenExceptionsState = Record<number, boolean>;
 
 /**
  * Manages collapse/expand state for exception group hierarchies.
