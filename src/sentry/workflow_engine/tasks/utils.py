@@ -86,13 +86,12 @@ def build_workflow_event_data_from_event(
     group = Group.objects.get_from_cache(id=group_id)
     project_id = group.project_id
 
-    project = Project.objects.get_from_cache(id=project_id)
-    if project.status != ObjectStatus.ACTIVE:
-        raise ProjectNotActiveError(project_id)
-
     event = fetch_event(event_id, project_id)
     if event is None:
         raise EventNotFoundError(event_id, project_id)
+
+    if event.project.status != ObjectStatus.ACTIVE:
+        raise ProjectNotActiveError(project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
 
