@@ -94,7 +94,7 @@ def validate_region_ip_address(ip: str) -> bool:
     return result
 
 
-class RegionSiloClient(BaseApiClient):
+class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
     access_modes = [SiloMode.CONTROL]
@@ -230,3 +230,7 @@ class RegionSiloClient(BaseApiClient):
 
         if request_attempts > REQUEST_ATTEMPTS_LIMIT:
             raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
+
+
+# TODO(cells): Remove once getsentry is updated
+RegionSiloClient = CellSiloClient
