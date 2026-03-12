@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -67,38 +67,20 @@ function TextWidgetViewerModal(props: Props) {
   return (
     <Fragment>
       <Header closeButton>
-        <Stack gap="md">
-          <Flex align="center" gap="sm">
-            <Heading as="h3">{widget.title}</Heading>
-          </Flex>
-        </Stack>
+        <Heading as="h3">{widget.title}</Heading>
       </Header>
       <Body>
-        <Fragment>
-          <Flex
-            display="flex"
-            direction="column"
-            height={`${HALF_CONTAINER_HEIGHT}px`}
-            position="relative"
-            paddingBottom="2xl"
-          >
-            <WidgetCardChartContainer
-              selection={selection}
-              widget={widget}
-              noPadding
-              widgetLegendState={widgetLegendState}
-            />
-          </Flex>
-        </Fragment>
+        <Flex maxHeight={`${HALF_CONTAINER_HEIGHT}px`}>
+          <WidgetCardChartContainer
+            selection={selection}
+            widget={widget}
+            noPadding
+            widgetLegendState={widgetLegendState}
+          />
+        </Flex>
       </Body>
       <Footer>
-        <Flex
-          display="flex"
-          flexGrow={1}
-          direction={{sm: 'row', xs: 'column'}}
-          align="center"
-          justify="right"
-        >
+        <Flex flexGrow={1} align="center" justify={{sm: 'right', xs: 'center'}}>
           {onEdit && widget.id && (
             <Button
               onClick={() => {
