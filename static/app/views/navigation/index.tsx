@@ -20,7 +20,6 @@ import {
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
@@ -54,7 +53,7 @@ function UserAndOrganizationNavigation() {
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
   useEffect(() => {
-    if (tourIsActive && layout === NavigationLayout.MOBILE) {
+    if (tourIsActive && layout === 'mobile') {
       endTour();
     }
   }, [endTour, layout, tourIsActive]);
@@ -64,15 +63,15 @@ function UserAndOrganizationNavigation() {
       ref={navigationParentRef}
       top={0}
       position={tourIsActive ? undefined : 'sticky'}
-      bottom={layout === NavigationLayout.MOBILE ? undefined : 0}
-      height={layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
+      bottom={layout === 'mobile' ? undefined : 0}
+      height={layout === 'mobile' ? undefined : '100dvh'}
       style={{
         zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
       {...hoverProps}
     >
-      {layout === NavigationLayout.SIDEBAR ? <DesktopNavigation /> : <MobileNavigation />}
+      {layout === 'sidebar' ? <DesktopNavigation /> : <MobileNavigation />}
     </Flex>
   );
 }

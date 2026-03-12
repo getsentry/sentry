@@ -23,7 +23,6 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
@@ -538,10 +537,7 @@ export function PrimaryNavigationQuotaExceeded({
           icon: <IconWarning />,
         }}
       >
-        <SidebarItemUnreadIndicator
-          isMobile={layout === NavigationLayout.MOBILE}
-          variant="warning"
-        />
+        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="warning" />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>

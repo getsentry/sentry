@@ -26,7 +26,6 @@ import {
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/primaryButtonOverlay';
 import {WhatsNewItem} from 'sentry/views/navigation/primary/whatsNew/item';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const MARK_SEEN_DELAY = 1000;
 
@@ -144,7 +143,7 @@ export function PrimaryNavigationWhatsNew() {
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator
             data-test-id="whats-new-unread-indicator"
-            isMobile={layout === NavigationLayout.MOBILE}
+            isMobile={layout === 'mobile'}
           />
         )}
       </SidebarButton>

@@ -23,7 +23,6 @@ import {
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -35,20 +34,18 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
   const {layout} = useNavigationContext();
   return (
-    <IconDefaultsProvider
-      legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
-    >
+    <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
       <Flex
         as="li"
         ref={ref}
         justify="center"
         align="center"
-        width={layout === NavigationLayout.MOBILE ? '100%' : undefined}
+        width={layout === 'mobile' ? '100%' : undefined}
         {...props}
       >
         <Tooltip
           title={label}
-          disabled={layout === NavigationLayout.MOBILE || disableTooltip}
+          disabled={layout === 'mobile' || disableTooltip}
           position="right"
           skipWrapper
           delay={600}
@@ -90,7 +87,7 @@ export function SidebarMenu({
   const {layout} = useNavigationContext();
   const theme = useTheme();
 
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -103,7 +100,7 @@ export function SidebarMenu({
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
-      position={layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end'}
+      position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {
@@ -118,7 +115,7 @@ export function SidebarMenu({
             >
               <NavigationButton
                 {...triggerProps}
-                isMobile={layout === NavigationLayout.MOBILE}
+                isMobile={layout === 'mobile'}
                 aria-label={showLabel ? undefined : label}
                 size={size}
                 onClick={event => {
@@ -208,7 +205,7 @@ function SidebarNavigationLink({
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === NavigationLayout.MOBILE}
+      isMobile={layout === 'mobile'}
       onClick={() => {
         trackAnalytics('navigation.primary_item_clicked', {
           item: analyticsKey,
@@ -220,7 +217,7 @@ function SidebarNavigationLink({
         [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
     >
-      {layout === NavigationLayout.MOBILE ? (
+      {layout === 'mobile' ? (
         <Fragment>
           {children}
           {label}
@@ -256,13 +253,13 @@ export function SidebarButton({
 }: SidebarButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavigationContext();
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const showLabel = layout === 'mobile';
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavigationButton
         {...buttonProps}
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
@@ -426,8 +423,8 @@ const NavigationButton = styled(
     return (
       <Button
         {...props}
-        size={layout === NavigationLayout.MOBILE ? 'zero' : props.size}
-        priority={layout === NavigationLayout.MOBILE ? 'transparent' : props.priority}
+        size={layout === 'mobile' ? 'zero' : props.size}
+        priority={layout === 'mobile' ? 'transparent' : props.priority}
       />
     );
   }

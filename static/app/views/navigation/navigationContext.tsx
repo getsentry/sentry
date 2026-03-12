@@ -6,7 +6,6 @@ import useMedia from 'sentry/utils/useMedia';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 interface NavigationContext {
   activePrimaryNavigationGroup: PrimaryNavigationGroup | null;
@@ -14,7 +13,7 @@ interface NavigationContext {
   endInteraction: () => void;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
-  layout: NavigationLayout;
+  layout: 'mobile' | 'sidebar';
   navigationParentRef: React.RefObject<HTMLDivElement | null>;
   setActivePrimaryNavigationGroup: (
     activePrimaryNavigationGroup: PrimaryNavigationGroup | null
@@ -25,8 +24,8 @@ interface NavigationContext {
 }
 
 const NavigationContext = createContext<NavigationContext>({
+  layout: 'sidebar',
   navigationParentRef: {current: null},
-  layout: NavigationLayout.SIDEBAR,
   isCollapsed: false,
   setIsCollapsed: () => {},
   isInteractingRef: {current: false},
@@ -68,7 +67,7 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
   const value = useMemo(
     () => ({
       navigationParentRef,
-      layout: isMobile ? NavigationLayout.MOBILE : NavigationLayout.SIDEBAR,
+      layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
       isCollapsed,
       setIsCollapsed,
       isInteractingRef,

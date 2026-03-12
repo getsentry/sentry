@@ -10,7 +10,7 @@ import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -76,7 +76,7 @@ export function IssuesSecondaryNavigation() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const organization = useOrganization();
   const {layout} = useNavigationContext();
-  const isSticky = layout === NavigationLayout.SIDEBAR;
+  const isSticky = layout === 'sidebar';
 
   const hasRedirectOptOut = organization.features.includes(
     'workflow-engine-redirect-opt-out'

@@ -26,7 +26,6 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 function OnboardingItem({
@@ -44,7 +43,7 @@ function OnboardingItem({
 }) {
   const theme = useTheme();
   const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const isMobile = layout === 'mobile';
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;

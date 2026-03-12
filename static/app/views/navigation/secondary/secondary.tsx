@@ -23,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function Collapsible({
   children,
@@ -127,7 +126,7 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
 }) {
   const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
 
-  if (layout === NavigationLayout.MOBILE) {
+  if (layout === 'mobile') {
     return null;
   }
 
@@ -182,7 +181,7 @@ function SectionTitle({
       <SectionTitleCollapsible
         size="sm"
         priority="transparent"
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
         }}
@@ -213,7 +212,7 @@ function SectionTitle({
   }
 
   return (
-    <SectionTitleUnCollapsible isMobile={layout === NavigationLayout.MOBILE}>
+    <SectionTitleUnCollapsible isMobile={layout === 'mobile'}>
       {title}
       {trailingItems}
     </SectionTitleUnCollapsible>
@@ -240,7 +239,7 @@ SecondaryNavigation.Section = function SecondaryNavigationSection({
     `secondary-nav-section-${id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === NavigationLayout.SIDEBAR;
+  const canCollapse = collapsible && layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -444,20 +443,20 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const Body = styled('div')<{layout: NavigationLayout}>`
+const Body = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   overflow-y: auto;
   overscroll-behavior: contain;
 
   ${p =>
-    p.layout === NavigationLayout.MOBILE &&
+    p.layout === 'mobile' &&
     css`
       padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
-const Section = styled('div')<{layout: NavigationLayout}>`
+const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   ${p =>
-    p.layout === NavigationLayout.SIDEBAR &&
+    p.layout === 'sidebar' &&
     css`
       padding: 0 ${p.theme.space.md};
     `}
@@ -533,7 +532,7 @@ const Separator = styled('hr')`
 `;
 
 interface ItemProps extends LinkProps {
-  layout: NavigationLayout;
+  layout: 'mobile' | 'sidebar';
 }
 
 const Item = styled(Link)<ItemProps>`
@@ -544,11 +543,10 @@ const Item = styled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
-    p.layout === NavigationLayout.MOBILE
+    p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
       : `${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-radius: ${p =>
-    p.theme.radius[p.layout === NavigationLayout.MOBILE ? '0' : 'md']};
+  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -601,12 +599,12 @@ const ItemText = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const Footer = styled('div')<{layout: NavigationLayout}>`
+const Footer = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
-    p.layout === NavigationLayout.MOBILE &&
+    p.layout === 'mobile' &&
     css`
       padding: ${p.theme.space.md} 0;
     `}

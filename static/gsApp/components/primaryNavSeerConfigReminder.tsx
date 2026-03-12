@@ -22,7 +22,6 @@ import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
@@ -220,7 +219,7 @@ export function PrimaryNavSeerConfigReminder() {
       >
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavigationLayout.MOBILE}
+          isMobile={layout === 'mobile'}
         />
       </SidebarButton>
       {isOpen && (

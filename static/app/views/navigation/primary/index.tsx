@@ -36,7 +36,7 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew/whatsNew';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({
   children,
@@ -47,11 +47,7 @@ function SidebarBody({
 }) {
   const {layout} = useNavigationContext();
   return (
-    <SidebarList
-      isMobile={layout === NavigationLayout.MOBILE}
-      data-primary-list-container
-      ref={ref}
-    >
+    <SidebarList isMobile={layout === 'mobile'} data-primary-list-container ref={ref}>
       {children}
     </SidebarList>
   );
@@ -59,7 +55,7 @@ function SidebarBody({
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const isMobile = layout === 'mobile';
 
   if (!children) {
     return null;

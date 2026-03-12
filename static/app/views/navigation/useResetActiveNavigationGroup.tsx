@@ -8,7 +8,6 @@ import {
   NAVIGATION_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 /**
  * Resets the active nav group when the user moves their mouse away from the
@@ -70,7 +69,7 @@ export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement>
     };
   }, []);
 
-  if (layout !== NavigationLayout.SIDEBAR) {
+  if (layout !== 'sidebar') {
     return {};
   }
 

@@ -21,7 +21,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -77,7 +76,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === NavigationLayout.MOBILE ? 'xs' : 'md'}
+          size={layout === 'mobile' ? 'xs' : 'md'}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {
