@@ -4,7 +4,8 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 
-import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs';
+// @ts-expect-error node needs the literal .ts import
+import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs.ts';
 
 /**
  * Shared remark plugins for MDX processing.
