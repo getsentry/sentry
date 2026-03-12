@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDefaultExportComponents} from './no-default-export-components';
+import {noDefaultExports} from './no-default-exports';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -13,7 +13,7 @@ const ruleTester = new RuleTester({
   },
 });
 
-ruleTester.run('no-default-export-components', noDefaultExportComponents, {
+ruleTester.run('no-default-exports', noDefaultExports, {
   valid: [
     {
       code: `export function MyComponent() { return <div />; }`,
@@ -29,6 +29,12 @@ ruleTester.run('no-default-export-components', noDefaultExportComponents, {
     },
   ],
   invalid: [
+    {
+      code: 'function example() {}\nexport default example;',
+      output: 'export function example() {}\n',
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
     {
       code: 'function MyComponent() { return <div />; }\nexport default MyComponent;',
       output: 'export function MyComponent() { return <div />; }\n',
