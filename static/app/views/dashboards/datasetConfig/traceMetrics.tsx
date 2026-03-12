@@ -236,12 +236,16 @@ export const TraceMetricsConfig: DatasetConfig<
           name: value.timestamp,
           value: value.value ?? 0,
         })),
+
         label: formatMetricsTimeseriesLabel({
           widgetQuery,
           timeSeries,
         }),
 
-        seriesName: timeSeries.yAxis,
+        seriesName:
+          widgetQuery.columns.length > 0
+            ? `${timeSeries.meta.isOther ? 'Other' : timeSeries.groupBy?.map(groupBy => groupBy.value).join(',')} : ${timeSeries.yAxis}`
+            : timeSeries.yAxis,
       };
     });
   },
@@ -334,7 +338,7 @@ function filterSeriesSortOptions(columns: Set<string>) {
   };
 }
 
-function formatMetricsTimeseriesLabel({
+export function formatMetricsTimeseriesLabel({
   widgetQuery,
   timeSeries,
 }: {
