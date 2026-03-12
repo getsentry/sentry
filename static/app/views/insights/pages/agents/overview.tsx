@@ -33,6 +33,7 @@ import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/comp
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {IssuesWidget} from 'sentry/views/insights/pages/agents/components/issuesWidget';
 import {LLMCallsWidget as LLMGenerationsWidget} from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
@@ -51,7 +52,6 @@ import {
   TableUrlParams,
   useTraceDrawerQueryState,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {useHasPlatformizedAiAndMcp} from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -63,7 +63,7 @@ interface AgentsOverviewPageProps {
 function AgentsOverviewPage({datePageFilterProps}: AgentsOverviewPageProps) {
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  const hasPlatformized = useHasPlatformizedInsights();
 
   if (hasPlatformized) {
     return (
