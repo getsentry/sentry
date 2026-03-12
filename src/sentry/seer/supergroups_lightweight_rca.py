@@ -5,7 +5,6 @@ import logging
 from sentry import features
 from sentry.models.group import Group
 from sentry.seer.autofix.artifact_schemas import RootCauseArtifact
-from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.explorer.client import SeerExplorerClient
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ def trigger_lightweight_rca(group: Group) -> int | None:
             is_interactive=False,
             category_key="lightweight_rca",
             category_value=str(group.id),
-            on_completion_hook=AutofixOnCompletionHook,
+            on_completion_hook=None,
         )
 
         short_id = group.qualified_short_id or str(group.id)
