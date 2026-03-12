@@ -57,7 +57,7 @@ def process_mention_for_slack(
         SlackEntrypointInteractionType,
     )
     from sentry.seer.entrypoints.operator import SeerExplorerOperator
-    from sentry.seer.entrypoints.slack.entrypoint import SlackEntrypoint
+    from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerEntrypoint
     from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 
     with SlackEntrypointEventLifecycleMetric(
@@ -80,12 +80,12 @@ def process_mention_for_slack(
             lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.ORG_NOT_FOUND)
             return
 
-        if not SlackEntrypoint.has_explorer_access(organization):
+        if not SlackExplorerEntrypoint.has_access(organization):
             lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.NO_EXPLORER_ACCESS)
             return
 
         try:
-            entrypoint = SlackEntrypoint.from_explorer_mention(
+            entrypoint = SlackExplorerEntrypoint(
                 integration_id=integration_id,
                 organization_id=organization_id,
                 channel_id=channel_id,

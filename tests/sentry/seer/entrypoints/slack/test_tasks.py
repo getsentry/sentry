@@ -28,13 +28,12 @@ class ProcessMentionForSlackTest(TestCase):
         process_mention_for_slack(**kwargs)
 
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_happy_path(self, mock_has_access, mock_from_mention, mock_operator_cls):
-        mock_has_access.return_value = True
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_happy_path(self, mock_explorer_cls, mock_operator_cls):
+        mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
-        mock_from_mention.return_value = mock_entrypoint
+        mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
         mock_operator_cls.return_value = mock_operator
@@ -57,30 +56,24 @@ class ProcessMentionForSlackTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_org_not_found(
-        self, mock_has_access, mock_from_mention, mock_operator_cls, mock_record_halt
-    ):
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_org_not_found(self, mock_explorer_cls, mock_operator_cls, mock_record_halt):
         self._run_task(organization_id=999999999)
 
-        mock_has_access.assert_not_called()
-        mock_from_mention.assert_not_called()
+        mock_explorer_cls.has_access.assert_not_called()
+        mock_explorer_cls.assert_not_called()
         mock_operator_cls.assert_not_called()
         mock_record_halt.assert_called_once_with(halt_reason=ProcessMentionHaltReason.ORG_NOT_FOUND)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_no_explorer_access(
-        self, mock_has_access, mock_from_mention, mock_operator_cls, mock_record_halt
-    ):
-        mock_has_access.return_value = False
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_no_explorer_access(self, mock_explorer_cls, mock_operator_cls, mock_record_halt):
+        mock_explorer_cls.has_access.return_value = False
 
         self._run_task()
 
-        mock_from_mention.assert_not_called()
+        mock_explorer_cls.assert_not_called()
         mock_operator_cls.assert_not_called()
         mock_record_halt.assert_called_once_with(
             halt_reason=ProcessMentionHaltReason.NO_EXPLORER_ACCESS
@@ -88,13 +81,10 @@ class ProcessMentionForSlackTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_integration_not_found(
-        self, mock_has_access, mock_from_mention, mock_operator_cls, mock_record_halt
-    ):
-        mock_has_access.return_value = True
-        mock_from_mention.side_effect = EntrypointSetupError("not found")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_integration_not_found(self, mock_explorer_cls, mock_operator_cls, mock_record_halt):
+        mock_explorer_cls.has_access.return_value = True
+        mock_explorer_cls.side_effect = EntrypointSetupError("not found")
 
         self._run_task()
 
@@ -104,17 +94,16 @@ class ProcessMentionForSlackTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_with_thread_context(self, mock_has_access, mock_from_mention, mock_operator_cls):
-        mock_has_access.return_value = True
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_with_thread_context(self, mock_explorer_cls, mock_operator_cls):
+        mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.000001"
         mock_entrypoint.install.get_thread_history.return_value = [
             {"user": "U111", "text": "help me debug this"},
             {"user": "U222", "text": "sure, what's the error?"},
         ]
-        mock_from_mention.return_value = mock_entrypoint
+        mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
         mock_operator_cls.return_value = mock_operator
@@ -131,13 +120,12 @@ class ProcessMentionForSlackTest(TestCase):
         assert "<@U222>: sure, what's the error?" in call_kwargs["on_page_context"]
 
     @patch("sentry.seer.entrypoints.operator.SeerExplorerOperator")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.from_explorer_mention")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackEntrypoint.has_explorer_access")
-    def test_without_thread_context(self, mock_has_access, mock_from_mention, mock_operator_cls):
-        mock_has_access.return_value = True
+    @patch("sentry.seer.entrypoints.slack.entrypoint.SlackExplorerEntrypoint")
+    def test_without_thread_context(self, mock_explorer_cls, mock_operator_cls):
+        mock_explorer_cls.has_access.return_value = True
         mock_entrypoint = MagicMock()
         mock_entrypoint.thread_ts = "1234567890.123456"
-        mock_from_mention.return_value = mock_entrypoint
+        mock_explorer_cls.return_value = mock_entrypoint
 
         mock_operator = MagicMock()
         mock_operator_cls.return_value = mock_operator
