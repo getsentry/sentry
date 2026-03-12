@@ -236,11 +236,12 @@ export const TraceMetricsConfig: DatasetConfig<
           name: value.timestamp,
           value: value.value ?? 0,
         })),
-
-        seriesName: formatMetricsTimeseriesLabel({
+        label: formatMetricsTimeseriesLabel({
           widgetQuery,
           timeSeries,
         }),
+
+        seriesName: timeSeries.yAxis,
       };
     });
   },
