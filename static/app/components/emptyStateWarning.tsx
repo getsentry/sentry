@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
 
 type Props = {

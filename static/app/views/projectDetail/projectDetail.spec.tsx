@@ -13,7 +13,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as pageFilters from 'sentry/components/pageFilters/actions';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import ProjectDetail from './projectDetail';
+import {ProjectDetail} from './projectDetail';
 import ProjectDetailContainer from './';
 
 jest.mock('sentry/actionCreators/organization');
@@ -130,7 +130,7 @@ describe('ProjectDetail', () => {
     setupMockResponses();
     jest.spyOn(pageFilters, 'updateProjects');
 
-    render(<ProjectDetail />, {
+    const {router} = render(<ProjectDetail />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -144,12 +144,13 @@ describe('ProjectDetail', () => {
     await waitFor(() => {
       expect(pageFilters.updateProjects).toHaveBeenCalledWith(
         [Number(project.id)],
-        expect.objectContaining({
-          location: expect.objectContaining({
-            pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-            query: {project: 'different-slug'},
-          }),
-        })
+        undefined
+      );
+    });
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({project: project.id})
       );
     });
   });

@@ -61,7 +61,8 @@ export function useSaveMetricsMultiQuery() {
             return null;
           }
 
-          const yAxes = visualizes.map(v => v.yAxis); // There should only be one yAxis per metricQuery.
+          // There can be multiple yAxes per metricQuery, with multi-aggregate support.
+          const yAxes = visualizes.map(v => v.yAxis);
           const chartType = visualize.chartType;
 
           return {

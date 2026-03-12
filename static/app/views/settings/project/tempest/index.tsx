@@ -5,9 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -16,11 +16,11 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import DevKitSettings from './DevKitSettings';
-import PlayStationSettings from './PlayStationSettings';
+import {DevKitSettings} from './DevKitSettings';
+import {PlayStationSettings} from './PlayStationSettings';
 
 type Tab = 'retail' | 'devkit-crashes';
 
@@ -60,7 +60,6 @@ export default function TempestSettings() {
     // setupInstructions is only available on the retail tab
     delete newQuery.setupInstructions;
     navigate({
-      pathname: location.pathname,
       query: newQuery,
     });
   };

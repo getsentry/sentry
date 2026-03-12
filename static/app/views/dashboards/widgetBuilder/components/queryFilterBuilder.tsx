@@ -38,7 +38,7 @@ interface WidgetBuilderQueryFilterBuilderProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
-function WidgetBuilderQueryFilterBuilder({
+export function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
   validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
@@ -286,8 +286,6 @@ function WidgetBuilderQueryFilterBuilder({
     </Fragment>
   );
 }
-
-export default WidgetBuilderQueryFilterBuilder;
 
 function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (

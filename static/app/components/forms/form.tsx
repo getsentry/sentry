@@ -10,9 +10,8 @@ import FormContext from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
 import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type RenderProps = {
   model: FormModel;
@@ -309,7 +308,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     css`
       ${Panel} & {
         margin-top: 0;
-        padding-right: ${space(2)};
+        padding-right: ${p.theme.space.xl};
       }
 
       /* Better padding with form inside of a modal */

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import Loading from 'sentry/components/loadingIndicator';
+import {LoadingIndicator as Loading} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,8 +19,8 @@ import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetai
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
-import EmptyState from 'sentry/views/replays/detail/emptyState';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/replays/detail/emptyState';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {useReplayTraces} from './useReplayTraces';

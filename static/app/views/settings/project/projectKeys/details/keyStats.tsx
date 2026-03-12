@@ -2,12 +2,12 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';

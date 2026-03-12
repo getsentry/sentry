@@ -18,7 +18,7 @@ type Props = {
   withPreviewButton?: boolean;
 };
 
-function EventAttachmentActions({
+export function EventAttachmentActions({
   attachment,
   projectSlug,
   withPreviewButton,
@@ -85,5 +85,3 @@ function EventAttachmentActions({
     </Grid>
   );
 }
-
-export default EventAttachmentActions;

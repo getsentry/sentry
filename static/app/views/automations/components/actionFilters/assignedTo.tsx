@@ -43,7 +43,7 @@ function AssignedToTeam({teamId}: {teamId: string}) {
 
 function AssignedToMember({memberId}: {memberId: number}) {
   const {data: user} = useUserFromId({id: memberId});
-  return t('Issue is assigned to member %s', `${user?.email ?? 'unknown'}`);
+  return t('Issue is assigned to member %s', user?.email ?? 'unknown');
 }
 
 export function AssignedToNode() {

@@ -213,7 +213,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("monitors", "0007_monitors_json_field"),
-        ("sentry", "0964_add_commitcomparison_table"),
+        ("sentry", "1040_drop_fk_projecttemplate"),
     ]
 
     operations = [

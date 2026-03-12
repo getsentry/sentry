@@ -6,8 +6,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import DiscoverButton from 'sentry/components/discoverButton';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {DiscoverButton} from 'sentry/components/discoverButton';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -34,7 +34,7 @@ import type {TransactionFilterOptions} from 'sentry/views/performance/transactio
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 
-import TransactionsTable from './transactionsTable';
+import {TransactionsTable} from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 

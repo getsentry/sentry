@@ -10,7 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {
   DropdownMenu,
@@ -29,11 +29,11 @@ import {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
@@ -45,7 +45,6 @@ import {
   IconProfiling,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -93,7 +92,7 @@ const DetailContainer = styled('div')`
   ${traceGridCssVariables}
   height: 100%;
   overflow: hidden;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const FlexBox = styled('div')`
@@ -102,13 +101,13 @@ const FlexBox = styled('div')`
 `;
 
 const Actions = styled(FlexBox)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: end;
   width: 100%;
 `;
 
 const Title = styled(FlexBox)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   overflow: hidden;
   > span {
@@ -215,7 +214,7 @@ const Table = styled('table')`
 `;
 
 const IconTitleWrapper = styled(FlexBox)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   min-width: 30px;
 `;
 
@@ -238,9 +237,9 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
 `;
 
 const LegacyHeaderContainer = styled(FlexBox)`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   container-type: inline-size;
 
   @container (max-width: 780px) {
@@ -262,8 +261,8 @@ const LegacyHeaderContainer = styled(FlexBox)`
 const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
-  gap: ${space(3)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 function makeDurationComparisonStatusColors(theme: Theme): {
@@ -642,20 +641,20 @@ const HighlightsOpPct = styled('div')`
 `;
 
 const HighlightsSpanCount = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const HighlightsOpRow = styled(FlexBox)`
   font-size: 13px;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   cursor: pointer;
 `;
 
 const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
   align-items: flex-start;
   flex-direction: column;
-  gap: ${space(0.25)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space['2xs']};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const HiglightsDurationComparison = styled('div')<
@@ -667,14 +666,14 @@ const HiglightsDurationComparison = styled('div')<
   background-color: ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   border: solid 1px ${p => makeDurationComparisonStatusColors(p.theme)[p.status].light};
   font-size: ${p => p.theme.font.size.xs};
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
 `;
 
 const HighlightsDurationWrapper = styled(FlexBox)`
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const HighlightDuration = styled('div')`
@@ -691,11 +690,11 @@ const HighlightOp = styled('div')`
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  column-gap: ${space(1.5)};
-  row-gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.lg};
+  row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
   &:not(:last-child) {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
 `;
 
@@ -717,7 +716,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const VerticalLine = styled('div')`
@@ -725,15 +724,15 @@ const VerticalLine = styled('div')`
   height: 100%;
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const HighlightsWrapper = styled('div')`
   display: flex;
   align-items: stretch;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
@@ -770,7 +769,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 
 const DurationContainer = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
@@ -785,7 +784,7 @@ const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
 const TableValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   border-radius: 4px;
   background-color: ${p => p.theme.tokens.background.tertiary};
@@ -793,7 +792,7 @@ const TableValueRow = styled('div')`
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const StyledPre = styled('pre')`
@@ -880,8 +879,8 @@ const KeyValueActionDropdown = styled(DropdownMenu)`
   .trigger-button {
     height: 20px;
     min-height: 20px;
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 1;
   }
 `;
@@ -1188,7 +1187,7 @@ const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
 
 const CardValueContainer = styled(FlexBox)`
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-wrap: wrap;
 `;
 
@@ -1296,7 +1295,7 @@ const MultilineTextWrapper = styled('div')`
   white-space: pre-wrap;
   background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   word-break: break-word;
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space.md};
@@ -1379,7 +1378,7 @@ const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
 
 const MultilineTextLabel = styled('div')`
   font-weight: bold;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 function SectionTitleWithQuestionTooltip({

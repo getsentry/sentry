@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -70,15 +70,13 @@ class UseCase(enum.Enum):
     USER = "user"
     """An internal project key for submitting aggregate function metrics."""
     PROFILING = "profiling"
-    """ An internal project key for submitting escalating issues metrics."""
-    ESCALATING_ISSUES = "escalating_issues"
     """ An internal project key for submitting events from tempest."""
     TEMPEST = "tempest"
     """ An internal project key for demo mode."""
     DEMO = "demo"
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectKey(Model):
     __relocation_scope__ = RelocationScope.Organization
 

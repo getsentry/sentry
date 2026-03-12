@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -10,19 +10,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,8 +34,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
@@ -252,6 +251,7 @@ export function SourceMapsList({project}: Props) {
 }
 
 function ReactNativeCallOut() {
+  const theme = useTheme();
   const [selectedTab, setSelectedTab] = useState('expo');
 
   return (
@@ -259,7 +259,7 @@ function ReactNativeCallOut() {
       css={css`
         text-align: left;
         display: grid;
-        gap: ${space(1)};
+        gap: ${theme.space.md};
       `}
     >
       <div>

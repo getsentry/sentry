@@ -31,7 +31,7 @@ interface CreditCardPanelProps {
 /**
  * Panel displaying existing credit card details.
  */
-function CreditCardPanel({
+export function CreditCardPanel({
   organization,
   subscription,
   location,
@@ -138,5 +138,3 @@ function CreditCardPanel({
     </Flex>
   );
 }
-
-export default CreditCardPanel;

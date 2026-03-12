@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';

@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import IncidentType
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
+@cell_silo_model
 class IncidentGroupOpenPeriod(DefaultFieldsModel):
     """
     A lookup model for incidents and group open periods.

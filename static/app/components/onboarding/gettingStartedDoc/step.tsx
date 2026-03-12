@@ -13,7 +13,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const StepTitles: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install'),
@@ -89,10 +88,8 @@ export function Step({
 // NOTE: We intentionally avoid using flex or grid here
 // as it leads to weird text selection behavior in Safari
 // see https://github.com/getsentry/sentry/issues/79958
-const CONTENT_SPACING = space(2);
-
 const ContentWrapper = styled('div')`
-  margin-top: ${CONTENT_SPACING};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StepTitle = styled('h4')`
@@ -104,7 +101,7 @@ const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   flex-wrap: wrap;
   align-items: center;
   gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => (p.expanded ? space(2) : 0)};
+  margin-bottom: ${p => (p.expanded ? p.theme.space.xl : 0)};
   cursor: pointer;
 `;
 

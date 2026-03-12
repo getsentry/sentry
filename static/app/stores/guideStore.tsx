@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
+import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';

@@ -20,7 +20,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
+export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 

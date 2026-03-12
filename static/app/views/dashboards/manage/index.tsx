@@ -14,17 +14,20 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
+import {
+  openGenerateDashboardFromSeerModal,
+  openImportDashboardFromFileModal,
+} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconGrid, IconList} from 'sentry/icons';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd, IconGrid, IconList, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,9 +67,10 @@ import {
   DASHBOARD_TABLE_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
-import TemplateCard from './templateCard';
+import {TemplateCard} from './templateCard';
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+const SHOW_PREBUILT_KEY = 'dashboards-show-prebuilt';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
@@ -74,6 +78,11 @@ const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
+  return shouldShow === 'true' || shouldShow === null;
+}
+
+function shouldShowPrebuilt(): boolean {
+  const shouldShow = localStorage.getItem(SHOW_PREBUILT_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
@@ -138,10 +147,17 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
+  const hasPrebuiltDashboards = organization.features.includes(
+    'dashboards-prebuilt-insights-dashboards'
+  );
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
+  );
+  const [showPrebuilt, setShowPrebuiltLocal] = useLocalStorageState(
+    SHOW_PREBUILT_KEY,
+    shouldShowPrebuilt()
   );
   const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
     LAYOUT_KEY,
@@ -176,6 +192,7 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
+          ...(hasPrebuiltDashboards && !showPrebuilt ? {filter: 'excludePrebuilt'} : {}),
         },
       },
     ],
@@ -352,8 +369,15 @@ function ManageDashboards() {
       organization,
       show_templates: !showTemplates,
     });
-
     setShowTemplatesLocal(!showTemplates);
+  };
+
+  const togglePrebuilt = () => {
+    setShowPrebuiltLocal(!showPrebuilt);
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, cursor: undefined, [OWNED_CURSOR_KEY]: undefined},
+    });
   };
 
   function getQuery() {
@@ -577,14 +601,26 @@ function ManageDashboards() {
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <Grid flow="column" align="center" gap="lg">
-                      <TemplateSwitch>
-                        {t('Show Templates')}
-                        <Switch
-                          checked={showTemplates}
-                          size="lg"
-                          onChange={toggleTemplates}
-                        />
-                      </TemplateSwitch>
+                      {hasPrebuiltDashboards ? (
+                        <TemplateSwitch>
+                          {t('Show Sentry Built Dashboards')}
+                          <Switch
+                            checked={showPrebuilt}
+                            size="lg"
+                            onChange={togglePrebuilt}
+                          />
+                        </TemplateSwitch>
+                      ) : (
+                        <TemplateSwitch>
+                          {t('Show Templates')}
+                          <Switch
+                            checked={showTemplates}
+                            size="lg"
+                            onChange={toggleTemplates}
+                          />
+                        </TemplateSwitch>
+                      )}
+
                       <FeedbackButton />
                       <DashboardCreateLimitWrapper>
                         {({
@@ -613,6 +649,23 @@ function ManageDashboards() {
                           </Button>
                         )}
                       </DashboardCreateLimitWrapper>
+                      <Feature features="dashboards-ai-generate">
+                        <Button
+                          data-test-id="dashboard-generate-seer"
+                          onClick={() => {
+                            openGenerateDashboardFromSeerModal({
+                              organization,
+                              location,
+                              navigate,
+                            });
+                          }}
+                          size="sm"
+                          priority="primary"
+                          icon={<IconSeer />}
+                        >
+                          {t('Create Dashboard with Seer')}
+                        </Button>
+                      </Feature>
                       <Feature features="dashboards-import">
                         <Button
                           onClick={() => {
@@ -634,7 +687,7 @@ function ManageDashboards() {
                 </Layout.Header>
                 <Layout.Body>
                   <Layout.Main width="full">
-                    {showTemplates && renderTemplates()}
+                    {!hasPrebuiltDashboards && showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}

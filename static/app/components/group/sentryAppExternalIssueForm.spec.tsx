@@ -11,7 +11,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('SentryAppExternalIssueForm', () => {
@@ -107,7 +107,7 @@ describe('SentryAppExternalIssueForm', () => {
           action="create"
         />
       );
-      expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(`${group.title}`);
+      expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(group.title);
 
       const url = addQueryParamsToExistingUrl(group.permalink, {
         referrer: sentryApp.name,

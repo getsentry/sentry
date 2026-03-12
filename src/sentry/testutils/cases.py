@@ -81,11 +81,10 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.db.models import NodeData
 from sentry.event_manager import EventManager
 from sentry.eventstream.item_helpers import (
-    _build_occurrence_attributes,
-    serialize_event_data_as_item,
+    _encode_attribute_data,
+    _gather_attribute_data_from_event_data,
 )
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -1240,17 +1239,6 @@ class SnubaTestCase(BaseTestCase):
                 events.append(event)
         return events
 
-    def store_trace_metrics(self, trace_metrics):
-        files = {
-            f"trace_metric_{i}": trace_metric.SerializeToString()
-            for i, trace_metric in enumerate(trace_metrics)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
@@ -1487,39 +1475,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload)
-
-
-class BaseOccurrenceTestCase(SnubaTestCase):
-    def create_occurrence(self, data, project: Project | None = None):
-        if project is None:
-            project = self.project
-        if "event_id" in data:
-            event_id = data["event_id"]
-        else:
-            event_id = uuid.uuid4().hex
-            data["event_id"] = event_id
-        if "timestamp" not in data:
-            data["timestamp"] = self.ten_mins_ago.timestamp()
-        if "received" not in data:
-            data["received"] = data["timestamp"]
-
-        if "contexts" not in data:
-            data["contexts"] = {"trace": {}}
-        if "trace" not in data["contexts"]:
-            data["contexts"]["trace"] = {}
-        if "trace_id" not in data["contexts"]["trace"]:
-            data["contexts"]["trace"]["trace_id"] = uuid.uuid4().hex
-
-        group = self.create_group(project=project)
-        node_id = Event.generate_node_id(project.id, event_id)
-        node_data = NodeData(node_id, data=data)
-        group_event = GroupEvent(
-            project_id=project.id,
-            event_id=event_id,
-            group=group,
-            data=node_data,
-        )
-        return serialize_event_data_as_item(group_event, data, project), group_event
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -3627,16 +3582,20 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             "title": title,
             "type": occurrence_type,
         }
+        preprocessed: dict[str, Any] = {}
         if group_id is not None:
-            data["group_id"] = group_id
+            preprocessed["group_id"] = group_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
             data["transaction"] = transaction
         if attributes:
             data.update(attributes)
+        if tags is not None:
+            data["tags"] = tags.items()
 
-        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+        attr_data = _gather_attribute_data_from_event_data(data, preprocessed=preprocessed)
+        attributes_proto = _encode_attribute_data(attr_data)
 
         return TraceItem(
             organization_id=organization.id,

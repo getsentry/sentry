@@ -5,7 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

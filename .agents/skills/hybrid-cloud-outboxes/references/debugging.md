@@ -50,7 +50,7 @@ When debugging stuck outboxes, you'll often need to generate SQL for a developer
 
 **How to determine direction**: Look at the model that changed.
 
-- If the source model is decorated `@region_silo_model` (or inherits `ReplicatedRegionModel`), it writes to `sentry_regionoutbox`
+- If the source model is decorated `@cell_silo_model` (or inherits `ReplicatedRegionModel`), it writes to `sentry_regionoutbox`
 - If the source model is decorated `@control_silo_model` (or inherits `ReplicatedControlModel`), it writes to `sentry_controloutbox`
 
 ### Column Reference

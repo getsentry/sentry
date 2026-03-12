@@ -9,12 +9,12 @@ import {
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
 import Confirm from 'sentry/components/confirm';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import List from 'sentry/components/list';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,8 +23,8 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';

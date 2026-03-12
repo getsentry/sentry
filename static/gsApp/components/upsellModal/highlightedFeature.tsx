@@ -19,7 +19,7 @@ type Props = {
 
 const IMAGE_SIZE = {height: 'auto', width: '540px'};
 
-function HighlightedFeature({feature, organization, subscription}: Props) {
+export function HighlightedFeature({feature, organization, subscription}: Props) {
   return (
     <Stack data-test-id="highlighted-feature">
       <div>{feature.desc}</div>
@@ -59,5 +59,3 @@ const PlanContext = styled('div')`
   font-size: ${p => p.theme.font.size.xs};
   line-height: 1.5;
 `;
-
-export default HighlightedFeature;

@@ -16,7 +16,7 @@ interface Props {
   title?: ReactNode;
 }
 
-export default function FeedbackItemSection({
+export function FeedbackItemSection({
   children,
   sectionKey,
   collapsible,

@@ -17,7 +17,7 @@ import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hook
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
-function WidgetBuilderDatasetSelector() {
+export function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
@@ -132,8 +132,6 @@ function WidgetBuilderDatasetSelector() {
     </Fragment>
   );
 }
-
-export default WidgetBuilderDatasetSelector;
 
 const StyledSectionHeader = styled(SectionHeader)`
   margin-bottom: ${p => p.theme.space.md};

@@ -9,10 +9,9 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -40,10 +39,10 @@ import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
 import {BuiltIn} from './sections/builtIn';
 import {Entries} from './sections/entries';
-import GeneralInfo from './sections/generalInfo';
+import {GeneralInfo} from './sections/generalInfo';
 import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
-import ReplayPreview from './sections/replayPreview';
+import {ReplayPreview} from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext} from './sections/sdk';
 
@@ -276,5 +275,5 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

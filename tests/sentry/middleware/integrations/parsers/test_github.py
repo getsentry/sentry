@@ -163,7 +163,11 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options(
-        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": ["us"]}
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": ["us"],
+            "codecov.forward-webhooks.disabled": False,
+        }
     )
     @override_regions(region_config)
     def test_webhook_for_codecov(self):
@@ -195,10 +199,55 @@ class GithubRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
     @override_options(
-        {"codecov.forward-webhooks.rollout": 1.0, "codecov.forward-webhooks.regions": []}
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": [],
+            "codecov.forward-webhooks.disabled": False,
+        }
     )
     @override_regions(region_config)
     def test_webhook_for_codecov_no_regions(self):
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.content == b""
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"github:{integration.id}",
+            region_names=[region.name],
+            destination_types={DestinationType.SENTRY_REGION: 1},
+        )
+        with pytest.raises(
+            Exception,
+            match="Missing 1 WebhookPayloads for codecov",
+        ):
+            assert_webhook_payloads_for_mailbox(
+                request=request,
+                mailbox_name="github:codecov:1",
+                region_names=[],
+                destination_types={DestinationType.CODECOV: 1},
+            )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL, CODECOV_API_BASE_URL="https://api.codecov.io")
+    @override_options(
+        {
+            "codecov.forward-webhooks.rollout": 1.0,
+            "codecov.forward-webhooks.regions": ["us"],
+            "codecov.forward-webhooks.disabled": True,
+        }
+    )
+    @override_regions(region_config)
+    def test_webhook_no_codecov_payload_when_forwarding_disabled(self):
+        """When codecov.forward-webhooks.disabled is True, only region payload is created."""
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -489,18 +538,17 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_regions(region_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_drops_unprocessed_event_when_flag_enabled(self, mock_metrics: Mock) -> None:
-        """With flag on, status event is dropped and metric is incremented."""
+    def test_drops_unprocessed_event(self, mock_metrics: Mock) -> None:
+        """Unprocessed event types (e.g. status) are dropped and metric is incremented."""
         self.get_integration()
-        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
-            request = self.factory.post(
-                self.path,
-                data={"installation": {"id": "1"}, "repository": {"id": 123}},
-                content_type="application/json",
-                headers={"X-GITHUB-EVENT": "status"},
-            )
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "status"},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -512,16 +560,15 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    @override_options({"github.webhook.drop-unprocessed-events.enabled": False})
     @responses.activate
-    def test_does_not_drop_when_flag_off_creates_payloads(self) -> None:
-        """With flag off, unprocessed event still creates WebhookPayloads."""
+    def test_supported_event_never_dropped(self) -> None:
+        """Supported event (push) is never dropped."""
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
             data={"installation": {"id": "1"}, "repository": {"id": 123}},
             content_type="application/json",
-            headers={"X-GITHUB-EVENT": "status"},
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
@@ -537,42 +584,17 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_supported_event_never_dropped_when_flag_enabled(self) -> None:
-        """Supported event (push) is never dropped even when flag is on."""
+    def test_missing_x_github_event_forwards_to_region(self) -> None:
+        """Missing X-GitHub-Event is forwarded to region so it can return 400."""
         integration = self.get_integration()
-        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
-            request = self.factory.post(
-                self.path,
-                data={"installation": {"id": "1"}, "repository": {"id": 123}},
-                content_type="application/json",
-                headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
-            )
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            mailbox_name=f"github:{integration.id}",
-            region_names=[region.name],
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            # No X-GitHub-Event header
         )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
-    @responses.activate
-    def test_missing_x_github_event_not_dropped_forwards_to_region(self) -> None:
-        """Missing X-GitHub-Event is not dropped; request is forwarded so region returns 400."""
-        integration = self.get_integration()
-        with override_options({"github.webhook.drop-unprocessed-events.enabled": True}):
-            request = self.factory.post(
-                self.path,
-                data={"installation": {"id": "1"}, "repository": {"id": 123}},
-                content_type="application/json",
-                # No X-GitHub-Event header
-            )
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED

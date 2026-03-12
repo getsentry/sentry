@@ -9,18 +9,17 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -92,6 +91,7 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {Thresholds as ThresholdsPlottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
@@ -267,6 +267,15 @@ function WidgetCardChart(props: WidgetCardChartProps) {
           frameless
         />
       </TableWrapper>
+    );
+  }
+
+  if (widget.displayType === DisplayType.TEXT) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+        <TextComponent {...props} />
+      </TransitionChart>
     );
   }
 
@@ -848,6 +857,16 @@ function WheelComponent(props: TableComponentProps): React.ReactNode {
   );
 }
 
+function TextComponent(props: TableComponentProps): React.ReactNode {
+  const hasTextWidgets = useOrganization().features.includes('dashboards-text-widgets');
+
+  if (!hasTextWidgets) {
+    return null;
+  }
+
+  return <TextWidgetVisualization text={props.widget.description} />;
+}
+
 function getChartComponent(chartProps: any, widget: Widget): React.ReactNode {
   const stacked = widget.queries[0]?.columns.length! > 0;
 
@@ -940,7 +959,9 @@ const BigNumberResizeWrapper = styled('div')<{noPadding?: boolean}>`
   overflow: hidden;
   position: relative;
   padding: ${p =>
-    p.noPadding ? `0` : `0${space(1)} ${space(3)} ${space(3)} ${space(3)}`};
+    p.noPadding
+      ? `0`
+      : `${p.theme.space.md} ${p.theme.space['2xl']} ${p.theme.space['2xl']} ${p.theme.space['2xl']}`};
 `;
 
 const BigNumber = styled('div')`
@@ -960,7 +981,7 @@ const BigNumber = styled('div')`
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
   width: 100%;
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+  padding: ${p => (p.noPadding ? `0` : `0 ${p.theme.space.xl} ${p.theme.space.xl}`)};
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

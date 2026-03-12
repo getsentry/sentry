@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -161,7 +161,7 @@ class SCIMListTeamsResponse(SCIMListBaseResponse):
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -298,7 +298,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
 
 @extend_schema(tags=["SCIM"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

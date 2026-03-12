@@ -6,7 +6,7 @@ import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -31,7 +31,7 @@ import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils
 import type {ViewProps} from 'sentry/views/performance/types';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
-import Content from './content';
+import {Content} from './content';
 
 type Props = ViewProps & {
   eventView: EventView;
@@ -43,7 +43,7 @@ type Props = ViewProps & {
   withBreakpoint?: boolean;
 };
 
-function TrendChart({
+export function TrendChart({
   project,
   environment,
   organization,
@@ -285,5 +285,3 @@ function TrendChart({
     </Fragment>
   );
 }
-
-export default TrendChart;

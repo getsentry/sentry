@@ -1,8 +1,8 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import errorHandler from 'sentry/utils/errorHandler';
+import {errorHandler} from 'sentry/utils/errorHandler';
 
-import SubscriptionContext from 'getsentry/views/subscriptionContext';
+import {SubscriptionContext} from 'getsentry/views/subscriptionContext';
 
 const settingsRoutes = (): SentryRouteObject => ({
   children: [

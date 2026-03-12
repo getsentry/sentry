@@ -8,7 +8,11 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDataset}) {
+export function ExploreBreadcrumb({
+  traceItemDataset,
+}: {
+  traceItemDataset: TraceItemDataset;
+}) {
   const organization = useOrganization();
   const crumbs: Crumb[] = [];
   if (traceItemDataset === TraceItemDataset.SPANS) {
@@ -41,5 +45,3 @@ function ExploreBreadcrumb({traceItemDataset}: {traceItemDataset: TraceItemDatas
 
   return <Breadcrumbs crumbs={crumbs} />;
 }
-
-export default ExploreBreadcrumb;

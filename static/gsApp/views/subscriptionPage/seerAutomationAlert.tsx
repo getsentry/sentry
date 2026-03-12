@@ -15,7 +15,7 @@ interface SeerAutomationAlertProps {
   organization: Organization;
 }
 
-export default function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
+export function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
   const location = useLocation();
   const isRedirectedFromCheckout = !!location.query.showSeerAutomationAlert;
 

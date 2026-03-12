@@ -225,6 +225,26 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   code {
     background-color: transparent;
   }
+
+  /* Reset heading styles inside TanStack Devtools to prevent global style leaking */
+  #tanstack_devtools {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: revert;
+      line-height: revert;
+      font-weight: revert;
+      font-size: revert;
+    }
+  }
+
+  /* TanStack Query has a fixed height but inside TanStack Devtools we want it to grow */
+  .tsqd-parent-container {
+    height: unset !important;
+  }
   .tsqd-queries-container code {
     /* Don't override colors inside @tanstack/react-query-devtools */
     background-color: unset;
@@ -399,10 +419,8 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
 /**
  * Renders an emotion global styles injection component
  */
-function GlobalStyles({theme}: {theme: Theme}) {
+export function GlobalStyles({theme}: {theme: Theme}) {
   const invertedTheme = useInvertedTheme();
   const darkTheme = theme.type === 'dark' ? theme : invertedTheme;
   return <Global styles={styles(theme, darkTheme)} />;
 }
-
-export default GlobalStyles;

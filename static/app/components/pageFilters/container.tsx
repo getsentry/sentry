@@ -2,7 +2,7 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import isEqual from 'lodash/isEqual';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
   initializeUrlState,
@@ -22,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/nav/constants';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 
@@ -53,7 +53,7 @@ interface Props extends InitializeUrlStateProps {
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function PageFiltersContainer({
+export function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   maxPickableDays,
@@ -260,5 +260,3 @@ function PageFiltersContainer({
 
   return <Fragment>{children}</Fragment>;
 }
-
-export default PageFiltersContainer;

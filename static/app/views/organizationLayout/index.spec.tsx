@@ -9,7 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import OrganizationLayout from 'sentry/views/organizationLayout';
+import {OrganizationLayout} from 'sentry/views/organizationLayout';
 
 describe('OrganizationLayout', () => {
   beforeEach(() => {

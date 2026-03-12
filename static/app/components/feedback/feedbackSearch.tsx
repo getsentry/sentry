@@ -21,7 +21,7 @@ import {
   getFieldDefinition,
   IsFieldValues,
 } from 'sentry/utils/fields';
-import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -198,7 +198,7 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   ];
 };
 
-export default function FeedbackSearch() {
+export function FeedbackSearch() {
   const {selection: pageFilters} = usePageFilters();
   const projectIds = pageFilters.projects;
   const {pathname, query: locationQuery} = useLocation();

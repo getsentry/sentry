@@ -1,16 +1,16 @@
 import {useEffect} from 'react';
 
-import type {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {type OrderBy} from 'sentry/components/events/featureFlags/utils';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
-import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
+import {FlagDetailsLink} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
+import {FlagDrawerCTA} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
@@ -23,16 +23,9 @@ interface Props {
   group: Group;
   orderBy: OrderBy;
   search: string;
-  sortBy: SortBy;
 }
 
-export default function FlagDrawerContent({
-  environments,
-  group,
-  orderBy,
-  search,
-  sortBy,
-}: Props) {
+export function FlagDrawerContent({environments, group, orderBy, search}: Props) {
   const organization = useOrganization();
 
   const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
@@ -41,7 +34,6 @@ export default function FlagDrawerContent({
       group,
       orderBy,
       search,
-      sortBy,
     });
 
   // CTA logic

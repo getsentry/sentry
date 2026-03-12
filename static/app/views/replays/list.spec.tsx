@@ -196,7 +196,7 @@ describe('ReplayList', () => {
 
   it('should show access denied when user does not have granular replay permissions', async () => {
     const mockOrg = OrganizationFixture({
-      features: [...AM2_FEATURES, 'granular-replay-permissions'],
+      features: [...AM2_FEATURES],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });

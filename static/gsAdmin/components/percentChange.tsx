@@ -5,7 +5,7 @@ type Props = {
   prev: number;
 };
 
-function PercentChange({current, prev}: Props) {
+export function PercentChange({current, prev}: Props) {
   if (!current || !prev) {
     return null;
   }
@@ -27,5 +27,3 @@ function PercentChange({current, prev}: Props) {
 const Indicator = styled('span')<{value: number}>`
   color: ${p => (p.value < 0 ? p.theme.colors.red400 : p.theme.colors.green400)};
 `;
-
-export default PercentChange;

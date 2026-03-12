@@ -6,7 +6,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {Content} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -28,7 +27,7 @@ type GeneralInfoProps = {
   organization: Organization;
 };
 
-function GeneralInfo(props: GeneralInfoProps) {
+export function GeneralInfo(props: GeneralInfoProps) {
   const {node, onParentClick} = props;
 
   const startTimestamp = node.space[0];
@@ -114,9 +113,7 @@ function GeneralInfo(props: GeneralInfoProps) {
 
 const ContentWrapper = styled('div')`
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default GeneralInfo;

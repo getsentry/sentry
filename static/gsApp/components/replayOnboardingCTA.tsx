@@ -19,7 +19,7 @@ import {
 } from 'getsentry/actionCreators/modal';
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';

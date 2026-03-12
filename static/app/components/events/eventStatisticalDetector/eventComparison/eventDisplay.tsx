@@ -20,8 +20,8 @@ import {
 } from 'sentry/components/events/interfaces/spans/minimap';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';

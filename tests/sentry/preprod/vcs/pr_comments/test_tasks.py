@@ -17,6 +17,8 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
 
+_sentinel = object()
+
 
 @region_silo_test
 class CreatePreprodPrCommentTaskTest(TestCase):
@@ -30,6 +32,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         self.build_config = PreprodBuildConfiguration.objects.create(
             project=self.project, name="Release"
         )
+        self._pr_comment_feature = "organizations:preprod-build-distribution-pr-comments"
 
     def _create_artifact(
         self,
@@ -40,9 +43,14 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         app_id="com.example.app",
         artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
         build_number=456,
-        extras=None,
+        extras=_sentinel,
         commit_comparison=None,
     ) -> PreprodArtifact:
+        if extras is _sentinel:
+            if artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
+                extras = {"is_code_signature_valid": True}
+            else:
+                extras = None
         artifact = PreprodArtifact.objects.create(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,
@@ -102,7 +110,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
         mock_client.create_comment.assert_called_once_with(
@@ -155,7 +163,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             artifact_type=PreprodArtifact.ArtifactType.AAB,
         )
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(second.id)
 
         mock_client.update_comment.assert_called_once_with(
@@ -166,48 +174,82 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         )
         mock_client.create_comment.assert_not_called()
 
-    def test_skips_when_no_commit_comparison(self):
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_no_commit_comparison(self, mock_get_client):
         artifact = self._create_artifact(with_commit_comparison=False)
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
-        # No error — just returns early
+        mock_get_client.assert_not_called()
 
-    def test_skips_when_no_pr_number(self):
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_no_pr_number(self, mock_get_client):
         artifact = self._create_artifact(pr_number=None)
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
-    def test_skips_when_not_github(self):
+        mock_get_client.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_not_github(self, mock_get_client):
+        mock_get_client.return_value = None
         artifact = self._create_artifact(provider="gitlab")
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
-    def test_skips_when_not_installable(self):
+        mock_get_client.assert_called_once()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_not_installable(self, mock_get_client):
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
         artifact = self._create_artifact(installable_app_file_id=None, build_number=None)
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
-    def test_skips_when_feature_flag_disabled(self):
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_project_option_disabled(self, mock_get_client):
+        self.project.update_option(
+            "sentry:preprod_distribution_pr_comments_enabled_by_customer", False
+        )
         artifact = self._create_artifact()
 
-        # Feature flag not enabled — should skip
+        with self.feature(self._pr_comment_feature):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_get_client.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_when_feature_flag_disabled(self, mock_get_client):
+        artifact = self._create_artifact()
+
         create_preprod_pr_comment_task(artifact.id)
 
-    def test_skips_nonexistent_artifact(self):
+        mock_get_client.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_nonexistent_artifact(self, mock_get_client):
         create_preprod_pr_comment_task(99999)
+
+        mock_get_client.assert_not_called()
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     def test_skips_when_no_github_client(self, mock_get_client):
         mock_get_client.return_value = None
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
+
+        # Verify that we don't crash when we don't have a GitHub client.
+        mock_get_client.assert_called_once()
 
     @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
@@ -219,7 +261,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
 
         artifact = self._create_artifact()
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
@@ -258,7 +300,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         # First call: update_comment fails
         mock_client.update_comment.side_effect = ApiError("server error", code=500)
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
@@ -272,7 +314,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         mock_client.reset_mock()
         mock_client.update_comment.side_effect = None
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
         mock_client.update_comment.assert_called_once_with(
@@ -297,7 +339,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         # First call: create_comment fails
         mock_client.create_comment.side_effect = ApiError("server error", code=500)
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             with pytest.raises(ApiError):
                 create_preprod_pr_comment_task(artifact.id)
 
@@ -313,7 +355,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
         mock_client.create_comment.side_effect = None
         mock_client.create_comment.return_value = {"id": 77777}
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
         mock_client.create_comment.assert_called_once_with(
@@ -362,7 +404,7 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             }
         )
 
-        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+        with self.feature(self._pr_comment_feature):
             create_preprod_pr_comment_task(artifact.id)
 
         mock_client.update_comment.assert_called_once_with(
@@ -372,3 +414,139 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             data={"body": "updated body"},
         )
         mock_client.create_comment.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_updates_comment_from_previous_commit(self, mock_format, mock_get_client):
+        """When a previous commit on the same PR already has a comment_id,
+        a new commit should update that comment instead of creating a new one."""
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "updated body"
+
+        # Commit A already posted a comment
+        cc_a = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+            extras={
+                "pr_comments": {
+                    "build_distribution": {"success": True, "comment_id": "prev_commit_123"}
+                }
+            },
+        )
+
+        # Commit B on the same PR — no comment_id yet
+        cc_b = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        artifact = self._create_artifact(commit_comparison=cc_b)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="prev_commit_123",
+            data={"body": "updated body"},
+        )
+        mock_client.create_comment.assert_not_called()
+
+        # comment_id stored on cc_b as well
+        cc_b.refresh_from_db()
+        build_dist = cc_b.extras["pr_comments"]["build_distribution"]
+        assert build_dist["comment_id"] == "prev_commit_123"
+
+        # cc_a unchanged
+        cc_a.refresh_from_db()
+        assert cc_a.extras["pr_comments"]["build_distribution"]["comment_id"] == "prev_commit_123"
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    @patch("sentry.preprod.vcs.pr_comments.tasks.format_pr_comment")
+    def test_creates_comment_when_no_sibling_has_comment_id(self, mock_format, mock_get_client):
+        """When multiple commits exist on the same PR but none has a
+        comment_id, a new comment should be created."""
+        mock_client = Mock()
+        mock_client.create_comment.return_value = {"id": 55555}
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "new body"
+
+        # Two commits on the same PR, neither with a comment_id
+        CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="a" * 40,
+            base_sha="b" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        cc_b = CommitComparison.objects.create(
+            organization_id=self.organization.id,
+            head_sha="c" * 40,
+            base_sha="d" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/test",
+            base_ref="main",
+            pr_number=42,
+        )
+
+        artifact = self._create_artifact(commit_comparison=cc_b)
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            data={"body": "new body"},
+        )
+        mock_client.update_comment.assert_not_called()
+
+        cc_b.refresh_from_db()
+        build_dist = cc_b.extras["pr_comments"]["build_distribution"]
+        assert build_dist["success"] is True
+        assert build_dist["comment_id"] == "55555"
+
+    def test_skips_xcarchive_without_valid_code_signature(self):
+        artifact = self._create_artifact(extras={"is_code_signature_valid": False})
+
+        with self.feature("organizations:preprod-build-distribution-pr-comments"):
+            create_preprod_pr_comment_task(artifact.id)
+
+        # No comment posted — task returns early because artifact is not installable
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_xcarchive_with_app_store_codesigning(self, mock_get_client):
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        artifact = self._create_artifact(
+            extras={"is_code_signature_valid": True, "codesigning_type": "app-store"}
+        )
+
+        with self.feature(self._pr_comment_feature):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()

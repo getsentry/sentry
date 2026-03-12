@@ -16,7 +16,7 @@ interface Props {
   startTimestampMs: number;
 }
 
-export default function MutationOption({
+export function MutationOption({
   frame,
   startTimestampMs,
   isChecked,

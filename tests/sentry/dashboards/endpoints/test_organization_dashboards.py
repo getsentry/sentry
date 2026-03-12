@@ -2269,6 +2269,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
 
+    def test_get_with_only_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "onlyPrebuilt"})
+
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                assert prebuilt_dashboards_count == 3
+
+                assert response.status_code == 200
+                assert len(response.data) == prebuilt_dashboards_count
+                assert all(d.get("prebuiltId") is not None for d in response.data)
+
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {

@@ -1,10 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import type {FunctionRegressionPercentileData} from 'sentry/chartcuterie/performance';
 import {ChartType} from 'sentry/chartcuterie/types';
-import VisualMap from 'sentry/components/charts/components/visualMap';
-import type {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import type {EventsStatsData} from 'sentry/types/organization';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import {VisualMap} from 'sentry/components/charts/components/visualMap';
+import type {EventsStatsData, EventsStatsSeries} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -20,43 +19,60 @@ import transformEventStats from 'sentry/views/performance/trends/utils/transform
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {
-  evidenceData: NormalizedTrendsTransaction;
-  percentileData: EventsStatsData | FunctionRegressionPercentileData;
+  evidenceData: BreakpointEvidenceData;
+  percentileData: EventsStatsData | EventsStatsSeries<'p95()'>;
 };
+
+export type BreakpointEvidenceData = Pick<
+  NormalizedTrendsTransaction,
+  'aggregate_range_1' | 'aggregate_range_2' | 'breakpoint'
+>;
+
+function transformFunctionStatsToEventsStatsData(
+  stats?: EventsStatsSeries<'p95()'>
+): EventsStatsData {
+  const rawData = stats?.data.find(({axis}) => axis === 'p95()');
+  const timestamps = stats?.timestamps;
+  if (!timestamps || !rawData) {
+    return [];
+  }
+  return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i] ?? 0}]]);
+}
+
+function isEventsStatsData(
+  percentileData: EventBreakpointChartData['percentileData']
+): percentileData is EventsStatsData {
+  return Array.isArray(percentileData);
+}
+
+function toEventsStatsData(
+  chartType: ChartType,
+  percentileData: EventBreakpointChartData['percentileData']
+): EventsStatsData {
+  if (chartType === ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION) {
+    return transformFunctionStatsToEventsStatsData(
+      isEventsStatsData(percentileData) ? undefined : percentileData
+    );
+  }
+
+  return isEventsStatsData(percentileData) ? percentileData : [];
+}
 
 function getBreakpointChartOptionsFromData(
   {percentileData, evidenceData}: EventBreakpointChartData,
   chartType: ChartType,
   theme: Theme
 ) {
-  const trendFunctionName: Partial<Record<ChartType, string>> = {
-    [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: 'transaction.duration',
-    [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
-  };
-
-  const defaultTransform = (stats: any) => stats;
-
-  const transformFunctionStats = (stats: any) => {
-    const rawData = stats?.data?.data?.find(({axis}: any) => axis === 'p95()');
-    const timestamps = stats?.data?.timestamps;
-    if (!timestamps) {
-      return [];
-    }
-    return timestamps.map((timestamp: any, i: any) => [
-      timestamp,
-      [{count: rawData.values[i]}],
-    ]);
-  };
-
-  // Mapping from BreakpointType to transformation functions
-  const transformFunction: Partial<Record<ChartType, (arg: any) => EventsStatsData>> = {
-    [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
-    [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
-  };
+  const transformedPercentileData = toEventsStatsData(chartType, percentileData);
+  const trendFunction =
+    chartType === ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION
+      ? 'function.duration'
+      : 'transaction.duration';
+  const breakpointMs = evidenceData.breakpoint ? evidenceData.breakpoint * 1000 : 0;
 
   const transformedSeries = transformEventStats(
-    transformFunction[chartType]!(percentileData),
-    generateTrendFunctionAsString(TrendFunctionField.P95, trendFunctionName[chartType]!)
+    transformedPercentileData,
+    generateTrendFunctionAsString(TrendFunctionField.P95, trendFunction)
   );
 
   const intervalSeries = getIntervalLine(
@@ -74,11 +90,12 @@ function getBreakpointChartOptionsFromData(
     right: 16,
     top: 12,
     data: transformedSeries.map(s => s.seriesName),
-  };
+    selectedMode: false,
+  } satisfies BaseChartProps['legend'];
 
   const durationUnit = getDurationUnit(series);
 
-  const chartOptions: Omit<React.ComponentProps<typeof EChartsLineChart>, 'series'> = {
+  const chartOptions = {
     axisPointer: {
       link: [
         {
@@ -87,7 +104,7 @@ function getBreakpointChartOptionsFromData(
         },
       ],
     },
-    colors: [theme.colors.gray200, theme.colors.gray800],
+    colors: [theme.colors.gray800, theme.colors.gray800],
     grid: {
       top: '40px',
       bottom: '0px',
@@ -117,17 +134,17 @@ function getBreakpointChartOptionsFromData(
         pieces: [
           {
             gte: 0,
-            lt: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+            lt: breakpointMs,
             color: theme.colors.gray800,
           },
           {
-            gte: evidenceData?.breakpoint ? evidenceData.breakpoint * 1000 : 0,
+            gte: breakpointMs,
             color: theme.colors.red400,
           },
         ],
       }),
     },
-  };
+  } satisfies BaseChartProps;
   return {
     series,
     chartOptions,

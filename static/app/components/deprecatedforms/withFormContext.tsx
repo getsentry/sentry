@@ -12,7 +12,7 @@ type InjectedFormContextProps = {
  * Wrap deprecated form components with form context
  * @deprecated Do not use this
  */
-export default function withFormContext<P extends InjectedFormContextProps>(
+export function withFormContext<P extends InjectedFormContextProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedFormContextProps> &

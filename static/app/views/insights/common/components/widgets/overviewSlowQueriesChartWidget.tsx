@@ -121,7 +121,7 @@ export default function OverviewSlowQueriesChartWidget(props: LoadableChartWidge
             <SpanDescriptionCell
               projectId={Number(item['project.id'])}
               group={item['span.group']}
-              description={item['sentry.normalized_description']}
+              description={item['sentry.normalized_description'] ?? ''}
               moduleName={ModuleName.DB}
             />
             <ControllerText>{item.transaction}</ControllerText>

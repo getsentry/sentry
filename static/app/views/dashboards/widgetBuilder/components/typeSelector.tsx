@@ -5,7 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,24 +36,15 @@ interface WidgetBuilderTypeSelectorProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorProps) {
+export function WidgetBuilderTypeSelector({
+  error,
+  setError,
+}: WidgetBuilderTypeSelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const config = getDatasetConfig(state.dataset);
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
-
-  const allowIssueWidgetSeriesDisplayType = organization.features.includes(
-    'dashboards-issue-widget-series-display-type'
-  );
-
-  const shouldDisabledIssueDisplayType = (value: DisplayType) => {
-    return (
-      state.dataset === WidgetType.ISSUE &&
-      !allowIssueWidgetSeriesDisplayType &&
-      usesTimeSeriesData(value)
-    );
-  };
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
   // Use an array to define display type order explicitly.
@@ -117,9 +108,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
             leadingItems: typeIcons[type],
             label,
             value: type,
-            disabled:
-              !config.supportedDisplayTypes.includes(type) ||
-              shouldDisabledIssueDisplayType(type),
+            disabled: !config.supportedDisplayTypes.includes(type),
           }))}
           clearable={false}
           onChange={(newValue: any) => {
@@ -173,8 +162,6 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     </Fragment>
   );
 }
-
-export default WidgetBuilderTypeSelector;
 
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;

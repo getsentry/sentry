@@ -16,7 +16,7 @@ type Options = {
   componentType?: SentryAppComponent['type'];
 };
 
-function withSentryAppComponents<P extends InjectedAppComponentsProps>(
+export function withSentryAppComponents<P extends InjectedAppComponentsProps>(
   WrappedComponent: React.ComponentType<P>,
   {componentType}: Options = {}
 ) {
@@ -52,5 +52,3 @@ function withSentryAppComponents<P extends InjectedAppComponentsProps>(
   }
   return WithSentryAppComponents;
 }
-
-export default withSentryAppComponents;

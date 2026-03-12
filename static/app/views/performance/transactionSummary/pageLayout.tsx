@@ -11,13 +11,12 @@ import {Tabs} from '@sentry/scraps/tabs';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -47,7 +46,7 @@ import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
-import TransactionHeader from './header';
+import {TransactionHeader} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
@@ -360,12 +359,12 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
     css`
       display: flex;
       flex-direction: column;
-      gap: ${space(3)};
+      gap: ${p.theme.space['2xl']};
 
       @media (min-width: ${p.theme.breakpoints.lg}) {
         display: flex;
         flex-direction: column;
-        gap: ${space(3)};
+        gap: ${p.theme.space['2xl']};
       }
     `}
 `;

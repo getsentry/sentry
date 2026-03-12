@@ -9,7 +9,7 @@ interface Props {
   openInNewTab?: boolean;
 }
 
-export default function AutomationTitleCell({automation, openInNewTab}: Props) {
+export function AutomationTitleCell({automation, openInNewTab}: Props) {
   const organization = useOrganization();
 
   const warning = getAutomationActionsWarning(automation);

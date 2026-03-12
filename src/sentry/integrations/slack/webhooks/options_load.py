@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.messaging.message_builder import format_actor_options_slack
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
@@ -26,7 +26,7 @@ class OptionGroup(TypedDict):
     options: Sequence[Mapping[str, Any]]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SlackOptionsLoadEndpoint(Endpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

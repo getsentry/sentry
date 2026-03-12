@@ -642,6 +642,7 @@ export function useInfiniteLogsQuery({
     return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
+  const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
@@ -655,7 +656,8 @@ export function useInfiniteLogsQuery({
         {fields: {}, units: {}}
       ) ?? {fields: {}, units: {}}
     );
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount]);
 
   const _fetchPreviousPage = useCallback(() => {
     if (autoRefresh || hasPreviousPage) {

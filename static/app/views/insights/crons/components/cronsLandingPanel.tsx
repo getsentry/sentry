@@ -5,19 +5,19 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {
   CopyMarkdownButton,
   CopySetupInstructionsGate,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import MonitorCreateForm from 'sentry/views/insights/crons/components/monitorCreateForm';
+import {MonitorCreateForm} from 'sentry/views/insights/crons/components/monitorCreateForm';
 
 import {PlatformPickerPanel} from './platformPickerPanel';
 import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';

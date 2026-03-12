@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 

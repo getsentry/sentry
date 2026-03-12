@@ -59,8 +59,8 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
-// React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
-const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+// TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
+const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
 // Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
 const ENABLE_SENTRY_TOOLBAR =
   env.ENABLE_SENTRY_TOOLBAR === undefined
@@ -289,11 +289,19 @@ const appConfig: Configuration = {
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
-  // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
-    imports: SHOULD_LAZY_COMPILATION,
+    imports: true,
     entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes('type-loader')) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
   },
   module: {
     /**
@@ -460,7 +468,7 @@ const appConfig: Configuration = {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
-      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
       'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
     }),
 

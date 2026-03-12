@@ -3,7 +3,7 @@ import {motion} from 'framer-motion';
 
 import testableTransition from 'sentry/utils/testableTransition';
 
-const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
+export const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
   <motion.h2
     variants={{
       initial: {clipPath: 'inset(0% 100% 0% 0%)', opacity: 1},
@@ -36,5 +36,3 @@ const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
     font-size: 1rem;
   }
 `;
-
-export default StepHeading;

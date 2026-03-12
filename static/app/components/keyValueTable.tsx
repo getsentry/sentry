@@ -2,8 +2,6 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
@@ -27,7 +25,7 @@ export function KeyValueTableRow({keyName, value, type}: Props) {
 
 const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => css`
   font-size: ${theme.font.size.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${theme.space.xs} ${theme.space.md};
   font-weight: ${theme.font.weight.sans.regular};
   line-height: inherit;
   display: block;

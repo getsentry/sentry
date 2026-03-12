@@ -15,7 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
-import QueryCount from 'sentry/components/queryCount';
+import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -44,13 +44,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import IssueListTable from 'sentry/views/issueList/issueListTable';
+import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
-import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
+import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
-import IssueListFilters from './filters';
+import {IssueListFilters} from './filters';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,

@@ -12,10 +12,11 @@ import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
   CodingAgentStatus,
+  getResultButtonLabel,
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -33,7 +34,7 @@ interface CodingAgentCardProps {
   repo?: SeerRepoDefinition;
 }
 
-function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -72,6 +73,8 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
         return t('Cursor Cloud Agent');
       case CodingAgentProvider.GITHUB_COPILOT_AGENT:
         return t('GitHub Copilot');
+      case CodingAgentProvider.CLAUDE_CODE_AGENT:
+        return t('Claude Agent');
       default:
         return t('Coding Agent');
     }
@@ -127,12 +130,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                                 }}
                               />
                             </Text>
-                            {result.branch_name && (
-                              <DetailRow>
-                                <Label>{t('Branch')}:</Label>
-                                <Value>{result.branch_name}</Value>
-                              </DetailRow>
-                            )}
                           </ResultItem>
                         ))}
                       </ResultsSection>
@@ -169,7 +166,10 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                               {codingAgentState.provider ===
                               CodingAgentProvider.CURSOR_BACKGROUND_AGENT
                                 ? t('Open in Cursor')
-                                : t('View Agent')}
+                                : codingAgentState.provider ===
+                                    CodingAgentProvider.CLAUDE_CODE_AGENT
+                                  ? t('Open in Claude')
+                                  : t('View Agent')}
                             </Button>
                           </ExternalLink>
                         )}
@@ -184,7 +184,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                                 analyticsEventKey="autofix.coding_agent.open_pr"
                                 priority="primary"
                               >
-                                {t('View Pull Request')}
+                                {getResultButtonLabel(pr_url)}
                               </Button>
                             </ExternalLink>
                           ))}
@@ -200,8 +200,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     </React.Fragment>
   );
 }
-
-export default CodingAgentCard;
 
 const VerticalLine = styled('div')`
   width: 0;

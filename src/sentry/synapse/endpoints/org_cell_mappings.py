@@ -57,7 +57,7 @@ class OrgCellMappingsEndpoint(Endpoint):
         )
 
         mappings = [
-            {"id": str(item.organization_id), "slug": item.slug, "cell": item.region_name}
+            {"id": str(item.organization_id), "slug": item.slug, "cell": item.cell_name}
             for item in pagination_result.results
         ]
 

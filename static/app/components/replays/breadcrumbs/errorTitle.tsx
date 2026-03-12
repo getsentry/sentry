@@ -8,7 +8,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
+export function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
   const organization = useOrganization();
   const {eventId} = useReplayGroupContext();
   const handleClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {

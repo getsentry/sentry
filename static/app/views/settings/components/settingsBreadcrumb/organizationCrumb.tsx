@@ -2,7 +2,7 @@ import sortBy from 'lodash/sortBy';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -14,7 +14,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
+import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';

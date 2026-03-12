@@ -13,7 +13,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';

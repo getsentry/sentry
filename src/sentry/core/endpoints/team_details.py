@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -50,7 +50,7 @@ class TeamDetailsSerializer(CamelSnakeModelSerializer):
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

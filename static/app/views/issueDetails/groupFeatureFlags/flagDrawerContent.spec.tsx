@@ -4,9 +4,9 @@ import {FeatureFlagTagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
 describe('GroupFeatureFlagsDrawerContent', () => {
   function getEmptyState() {
@@ -17,11 +17,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     jest.resetAllMocks();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/1/suspect/flags/`,
       body: [],
     });
 
@@ -43,7 +38,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -77,7 +71,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -98,7 +91,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search="zxf"
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -123,7 +115,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -143,7 +134,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -166,7 +156,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 
@@ -186,7 +175,6 @@ describe('GroupFeatureFlagsDrawerContent', () => {
         group={GroupFixture()}
         search=""
         orderBy={OrderBy.NEWEST}
-        sortBy={SortBy.EVAL_ORDER}
       />
     );
 

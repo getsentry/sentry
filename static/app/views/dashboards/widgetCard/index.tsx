@@ -2,13 +2,18 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
+import {
+  isWidgetViewerPath,
+  WidgetViewerQueryField,
+} from 'sentry/components/modals/widgetViewerModal/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -30,10 +35,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -234,7 +239,10 @@ function WidgetCard(props: Props) {
   }, [timeoutRef]);
 
   const onFullScreenViewClick = () => {
-    if (!isWidgetViewerPath(location.pathname)) {
+    if (isWidgetViewerPath(location.pathname)) {
+      return;
+    }
+    if (currentDashboardId) {
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/dashboard/${currentDashboardId}/widget/${props.index}/`,
@@ -248,6 +256,22 @@ function WidgetCard(props: Props) {
         }),
         {preventScrollReset: true}
       );
+    } else {
+      openWidgetViewerModal({
+        organization,
+        widget,
+        widgetLegendState,
+        dashboardFilters,
+        widgetInterval,
+        onClose: () => {
+          // Filter out Widget Viewer Modal query params when exiting the Modal
+          const query = omit(location.query, Object.values(WidgetViewerQueryField));
+          navigate(
+            {pathname: location.pathname, query},
+            {preventScrollReset: true, replace: true}
+          );
+        },
+      });
     }
   };
 
@@ -288,7 +312,8 @@ function WidgetCard(props: Props) {
         location,
         props.onDelete,
         props.onDuplicate,
-        props.onEdit
+        props.onEdit,
+        data?.timeseriesResults
       )
     : [];
 
@@ -319,13 +344,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             noVisualizationPadding={canUseTimeseriesVisualization}
-            onFullScreenViewClick={
-              disableFullscreen
-                ? undefined
-                : currentDashboardId
-                  ? onFullScreenViewClick
-                  : undefined
-            }
+            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           >
@@ -368,13 +387,7 @@ function WidgetCard(props: Props) {
           error={widgetQueryError}
           actionsMessage={actionsMessage}
           actions={actions}
-          onFullScreenViewClick={
-            disableFullscreen
-              ? undefined
-              : currentDashboardId
-                ? onFullScreenViewClick
-                : undefined
-          }
+          onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding

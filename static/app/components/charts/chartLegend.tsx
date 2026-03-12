@@ -57,9 +57,9 @@ function renderLeadingCheckbox(item: LegendItem) {
  *
  * All items are always rendered in the DOM, but items that don't fit are
  * hidden with `visibility: hidden` so they still contribute to width
- * measurement. A `ResizeObserver` on the container (and on the overflow
- * trigger) re-measures whenever the available space changes, and items that
- * overflow are shown in a dropdown instead.
+ * measurement. A `ResizeObserver` on the wrapper re-measures whenever the
+ * available space changes, and items that overflow are shown in a dropdown
+ * instead.
  */
 export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
   const theme = useTheme();
@@ -70,10 +70,9 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
   const outerGap = parseInt(theme.space[OUTER_GAP], 10);
   const innerGap = parseInt(theme.space[INNER_GAP], 10);
 
-  // useDimensions handles ResizeObserver internally — when the wrapper or
-  // trigger resize, these values update and the useMemo below recomputes.
+  // useDimensions handles ResizeObserver internally — when the wrapper
+  // resizes, this value updates and the useLayoutEffect below recomputes.
   const {width: wrapperWidth} = useDimensions({elementRef: wrapperRef});
-  const {width: triggerWidth} = useDimensions({elementRef: triggerRef});
 
   // Measured after DOM commit so we read the actual (not stale) children.
   const [firstOverflowIndex, setFirstOverflowIndex] = useState<number | null>(null);
@@ -84,6 +83,19 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       setFirstOverflowIndex(null);
       return;
     }
+
+    // Read trigger width directly from the DOM ref instead of from React state.
+    //
+    // Reading from state (via useDimensions) introduced a 1-render lag: the
+    // useDimensions layout effect and this effect run in the same commit, but
+    // React queues state updates from layout effects rather than applying them
+    // immediately. This effect would therefore read the triggerWidth from the
+    // *previous* render — one step behind — causing the trigger to oscillate
+    // between shown and hidden when items are near the overflow boundary.
+    //
+    // React guarantees that refs are attached before layout effects run, so
+    // reading from the ref here always reflects the current DOM state.
+    const triggerWidth = triggerRef.current?.getBoundingClientRect().width ?? 0;
 
     const children = Array.from(container.children);
     let usedWidth = 0;
@@ -107,7 +119,10 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     }
 
     setFirstOverflowIndex(index);
-  }, [wrapperWidth, triggerWidth, items, innerGap, outerGap]);
+    // `firstOverflowIndex` is included as a dep so this effect re-runs whenever
+    // the trigger appears or disappears (changing what triggerRef.current points
+    // to), allowing the effect to verify and stabilize the new state.
+  }, [wrapperWidth, firstOverflowIndex, items, innerGap, outerGap]);
 
   const overflowItems =
     firstOverflowIndex === null ? [] : items.slice(firstOverflowIndex);

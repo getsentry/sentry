@@ -13,7 +13,7 @@ import {DataCategory} from 'sentry/types/core';
 import {GIGABYTE} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
-import UsageAlert from 'getsentry/views/subscriptionPage/usageAlert';
+import {UsageAlert} from 'getsentry/views/subscriptionPage/usageAlert';
 
 describe('Subscription > UsageAlert', () => {
   const emptyUsage = CustomerUsageFixture();
@@ -212,7 +212,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am1 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am1_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {
@@ -255,7 +255,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am2 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am2_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {
@@ -298,7 +298,7 @@ describe('Subscription > UsageAlert', () => {
   it('renders am3 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am3_f';
-    const planDetails = PlanDetailsLookupFixture(plan_id)!;
+    const planDetails = PlanDetailsLookupFixture(plan_id);
     const subCategories = {};
 
     planDetails.categories.forEach(category => {

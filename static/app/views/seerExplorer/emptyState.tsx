@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -11,7 +11,7 @@ interface EmptyStateProps {
   runId?: number | null;
 }
 
-function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps) {
+export function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps) {
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
@@ -36,8 +36,6 @@ function EmptyState({isLoading = false, isError = false, runId}: EmptyStateProps
     </Container>
   );
 }
-
-export default EmptyState;
 
 const Container = styled('div')`
   flex: 1;

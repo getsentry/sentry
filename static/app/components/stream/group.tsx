@@ -10,24 +10,23 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
+import {Count} from 'sentry/components/count';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import ProgressBar from 'sentry/components/progressBar';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
@@ -49,7 +48,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
@@ -815,7 +814,7 @@ const Wrapper = styled(PanelItem)<{
 
 export const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
-  margin-left: ${p => space(p.canSelect ? 1 : 2)};
+  margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};
   flex: 1;
   display: flex;

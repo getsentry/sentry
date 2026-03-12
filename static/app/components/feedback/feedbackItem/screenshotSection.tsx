@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
+import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
 import ScreenshotsModal, {
   modalCss,
 } from 'sentry/components/feedback/feedbackItem/screenshotsModal';

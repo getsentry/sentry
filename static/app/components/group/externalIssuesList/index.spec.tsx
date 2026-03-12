@@ -13,7 +13,7 @@ import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStor
 import type {Group} from 'sentry/types/group';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 
-import ExternalIssuesList from '.';
+import {ExternalIssueList as ExternalIssuesList} from '.';
 
 jest.mock('sentry/utils/useSentryAppComponentsStore');
 const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);

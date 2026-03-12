@@ -14,7 +14,7 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
+import {IntegrationCodeMappings} from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
 
 describe('IntegrationCodeMappings', () => {
   const projects = [

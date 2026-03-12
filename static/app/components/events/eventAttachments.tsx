@@ -8,9 +8,9 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import FileSize from 'sentry/components/fileSize';
-import LoadingError from 'sentry/components/loadingError';
+import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -25,7 +25,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
+import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
 
 type EventAttachmentsProps = {
   event: Event;

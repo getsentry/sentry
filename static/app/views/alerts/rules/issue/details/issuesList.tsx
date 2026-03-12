@@ -6,13 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -36,7 +35,15 @@ type Props = DateTimeObject & {
   cursor?: string;
 };
 
-function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: Props) {
+export function AlertRuleIssuesList({
+  project,
+  rule,
+  period,
+  start,
+  end,
+  utc,
+  cursor,
+}: Props) {
   const organization = useOrganization();
   const {
     data: groupHistory,
@@ -139,8 +146,6 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   );
 }
 
-export default AlertRuleIssuesList;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.font.size.md};
@@ -150,7 +155,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p.theme.space.md} ${p.theme.space.xl};
       }
     `}
 `;
