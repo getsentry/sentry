@@ -1,6 +1,5 @@
 from sentry.constants import ObjectStatus
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class PreprodArtifactEndpointTest(APITestCase):
@@ -12,7 +11,6 @@ class PreprodArtifactEndpointTest(APITestCase):
     def _get_url(self, org_slug, artifact_id):
         return f"/api/0/organizations/{org_slug}/preprodartifacts/{artifact_id}/build-details/"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_extracts_project_from_artifact(self):
         url = self._get_url(self.organization.slug, self.artifact.id)
         response = self.client.get(url)

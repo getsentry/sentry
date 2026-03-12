@@ -112,7 +112,6 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
         "organizations:tracemetrics-enabled",
-        "organizations:preprod-frontend-routes",
     ]
 
     def has_feature(self, organization: Organization, request: Request) -> bool:

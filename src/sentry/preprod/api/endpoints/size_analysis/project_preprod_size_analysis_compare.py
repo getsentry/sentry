@@ -7,7 +7,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -112,11 +112,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 base_artifact_id=str(base_artifact_id),
             )
         )
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
@@ -278,11 +273,6 @@ class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint)
                 base_artifact_id=str(base_artifact_id),
             )
         )
-
-        if not features.has(
-            "organizations:preprod-frontend-routes", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
 
         cutoff = get_size_retention_cutoff(project.organization)
         if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:

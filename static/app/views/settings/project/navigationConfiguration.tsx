@@ -132,7 +132,6 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/mobile-builds/`,
           title: t('Mobile Builds'),
-          show: () => !!organization?.features?.includes('preprod-frontend-routes'),
           badge: () => 'new',
           description: t('Size analysis and build distribution configuration.'),
         },

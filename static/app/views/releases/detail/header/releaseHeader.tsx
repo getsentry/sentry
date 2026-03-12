@@ -100,10 +100,7 @@ export function ReleaseHeader({
     to: `builds/`,
   };
 
-  if (
-    organization.features?.includes('preprod-frontend-routes') &&
-    (numberOfMobileBuilds || isMobileRelease(project.platform, false))
-  ) {
+  if (numberOfMobileBuilds || isMobileRelease(project.platform, false)) {
     tabs.push(buildsTab);
   }
 
