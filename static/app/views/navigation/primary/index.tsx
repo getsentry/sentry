@@ -70,7 +70,7 @@ export function PrimaryNavigationItems() {
       <PrimaryNavigation.List ref={ref}>
         <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
           {tourProps => (
-            <PrimaryNavigation.Item>
+            <PrimaryNavigation.ListItem>
               <PrimaryNavigation.Link
                 to={`/${prefix}/issues/`}
                 analyticsKey="issues"
@@ -82,7 +82,7 @@ export function PrimaryNavigationItems() {
               >
                 <IconIssues />
               </PrimaryNavigation.Link>
-            </PrimaryNavigation.Item>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
 
@@ -92,7 +92,7 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <PrimaryNavigation.Item>
+            <PrimaryNavigation.ListItem>
               <PrimaryNavigation.Link
                 to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
                 activeTo={`/${prefix}/explore`}
@@ -105,7 +105,7 @@ export function PrimaryNavigationItems() {
               >
                 <IconCompass />
               </PrimaryNavigation.Link>
-            </PrimaryNavigation.Item>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
 
@@ -120,7 +120,7 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <PrimaryNavigation.Item>
+              <PrimaryNavigation.ListItem>
                 <PrimaryNavigation.Link
                   to={`/${prefix}/dashboards/`}
                   activeTo={`/${prefix}/dashboard`}
@@ -133,7 +133,7 @@ export function PrimaryNavigationItems() {
                 >
                   <IconDashboard />
                 </PrimaryNavigation.Link>
-              </PrimaryNavigation.Item>
+              </PrimaryNavigation.ListItem>
             )}
           </NavigationTourElement>
         </Feature>
@@ -145,7 +145,7 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <PrimaryNavigation.Item>
+              <PrimaryNavigation.ListItem>
                 <PrimaryNavigation.Link
                   to={`/${prefix}/insights/`}
                   activeTo={`/${prefix}/insights`}
@@ -158,17 +158,17 @@ export function PrimaryNavigationItems() {
                 >
                   <IconGraph type="area" />
                 </PrimaryNavigation.Link>
-              </PrimaryNavigation.Item>
+              </PrimaryNavigation.ListItem>
             )}
           </NavigationTourElement>
         </Feature>
 
-        <PrimaryNavigation.Item>
+        <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Separator />
-        </PrimaryNavigation.Item>
+        </PrimaryNavigation.ListItem>
 
         <Feature features={['workflow-engine-ui']}>
-          <PrimaryNavigation.Item>
+          <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
@@ -178,7 +178,7 @@ export function PrimaryNavigationItems() {
               <IconSiren />
               <BetaBadge type="alpha" />
             </PrimaryNavigation.Link>
-          </PrimaryNavigation.Item>
+          </PrimaryNavigation.ListItem>
         </Feature>
 
         <NavigationTourElement
@@ -187,7 +187,7 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <PrimaryNavigation.Item>
+            <PrimaryNavigation.ListItem>
               <PrimaryNavigation.Link
                 to={`/settings/${organization.slug}/`}
                 activeTo="/settings/"
@@ -200,7 +200,7 @@ export function PrimaryNavigationItems() {
               >
                 <IconSettings />
               </PrimaryNavigation.Link>
-            </PrimaryNavigation.Item>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
       </PrimaryNavigation.List>

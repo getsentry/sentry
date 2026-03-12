@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
@@ -18,7 +20,6 @@ import {
   NavigationTourElement,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
@@ -71,9 +72,14 @@ export function SecondarySidebar() {
               exit={{x: 6, opacity: 0}}
               transition={{duration: 0.06}}
             >
-              <SecondarySidebarInner>
+              <Grid
+                rows="auto 1fr auto"
+                role="navigation"
+                aria-label="Secondary Navigation"
+                height="100%"
+              >
                 <SecondaryNavigationContent group={activeNavigationGroup} />
-              </SecondarySidebarInner>
+              </Grid>
               <ResizeHandle
                 ref={resizeHandleRef}
                 onMouseDown={handleStartResize}
@@ -103,10 +109,6 @@ const ResizeWrapper = styled('div')`
   right: 0;
   height: 100%;
   width: ${SECONDARY_SIDEBAR_WIDTH}px;
-`;
-
-const SecondarySidebarInner = styled(SecondaryNavigation)`
-  height: 100%;
 `;
 
 const MotionDiv = styled(motion.div)`

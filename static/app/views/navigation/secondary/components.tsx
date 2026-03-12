@@ -8,10 +8,9 @@ import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -42,7 +41,7 @@ function Collapsible({
   return (
     <AnimatePresence mode="wait" initial={false}>
       {!collapsed && (
-        <CollapsableWrapper
+        <CollapsibleWrapper
           key="collapsible-content"
           variants={{
             collapsed: {
@@ -70,13 +69,13 @@ function Collapsible({
             from applying to the children, which may cause the children's order to be reversed
           */}
           <div>{children}</div>
-        </CollapsableWrapper>
+        </CollapsibleWrapper>
       )}
     </AnimatePresence>
   );
 }
 
-const CollapsableWrapper = styled(motion.div)`
+const CollapsibleWrapper = styled(motion.div)`
   display: flex;
   /*
     This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
@@ -85,11 +84,6 @@ const CollapsableWrapper = styled(motion.div)`
   flex-direction: column-reverse;
   margin: 0;
 `;
-
-type SecondaryNavigationProps = {
-  children: ReactNode;
-  className?: string;
-};
 
 interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
@@ -110,21 +104,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNavigation({children, className}: SecondaryNavigationProps) {
-  return (
-    <ErrorBoundary mini>
-      <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
-        {children}
-      </Wrapper>
-    </ErrorBoundary>
-  );
-}
-
-SecondaryNavigation.Header = function SecondaryNavigationHeader({
-  children,
-}: {
-  children?: ReactNode;
-}) {
+function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
 
   if (layout === NavigationLayout.MOBILE) {
@@ -150,17 +130,21 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
       </div>
     </Header>
   );
-};
+}
 
-SecondaryNavigation.Body = function SecondaryNavigationBody({
-  children,
-}: {
-  children: ReactNode;
-}) {
+function SecondaryNavigationBody({children}: {children: ReactNode}) {
   const {layout} = useNavigationContext();
 
-  return <Body layout={layout}>{children}</Body>;
-};
+  return (
+    <Container
+      overflow="auto"
+      overscrollBehavior="contain"
+      padding={layout === NavigationLayout.MOBILE ? '0 0 md 0' : undefined}
+    >
+      {children}
+    </Container>
+  );
+}
 
 function SectionTitle({
   title,
@@ -191,13 +175,7 @@ function SectionTitle({
         <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
         <Flex align="center" flexShrink={0}>
           {trailingItems ? (
-            <div
-              onClick={e => {
-                e.stopPropagation();
-              }}
-            >
-              {trailingItems}
-            </div>
+            <div onClick={e => e.stopPropagation()}>{trailingItems}</div>
           ) : (
             canCollapse && (
               <IconChevron
@@ -220,7 +198,7 @@ function SectionTitle({
   );
 }
 
-SecondaryNavigation.Section = function SecondaryNavigationSection({
+function SecondaryNavigationSection({
   id,
   title,
   children,
@@ -260,9 +238,9 @@ SecondaryNavigation.Section = function SecondaryNavigationSection({
       </Collapsible>
     </Section>
   );
-};
+}
 
-SecondaryNavigation.Item = function SecondaryNavigationItem({
+function SecondaryNavigationItem({
   analyticsItemName,
   children,
   to,
@@ -314,17 +292,13 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
       {trailingItems}
     </Item>
   );
-};
+}
 
-SecondaryNavigation.Footer = function SecondaryNavigationFooter({
-  children,
-}: {
-  children: ReactNode;
-}) {
+function SecondaryNavigationFooter({children}: {children: ReactNode}) {
   const {layout} = useNavigationContext();
 
   return <Footer layout={layout}>{children}</Footer>;
-};
+}
 
 function SectionSeparator() {
   return (
@@ -334,17 +308,17 @@ function SectionSeparator() {
   );
 }
 
-interface SidebarProjectIconProps {
+interface SecondaryNavigationProjectIconProps {
   projectPlatforms: string[];
   allProjects?: boolean;
   className?: string;
 }
 
-SecondaryNavigation.ProjectIcon = function SidebarProjectIcon({
+function SecondaryNavigationProjectIcon({
   projectPlatforms,
   allProjects,
   className,
-}: SidebarProjectIconProps) {
+}: SecondaryNavigationProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
@@ -387,7 +361,7 @@ SecondaryNavigation.ProjectIcon = function SidebarProjectIcon({
       {renderedIcons}
     </Stack>
   );
-};
+}
 
 const IconContainer = styled('div')`
   position: relative;
@@ -426,11 +400,6 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
     `}
 `;
 
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-`;
-
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
@@ -442,17 +411,6 @@ const Header = styled('div')`
   /* This is used in detail pages to match the height of sidebar header. */
   height: 44px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Body = styled('div')<{layout: NavigationLayout}>`
-  overflow-y: auto;
-  overscroll-behavior: contain;
-
-  ${p =>
-    p.layout === NavigationLayout.MOBILE &&
-    css`
-      padding: 0 0 ${p.theme.space.md} 0;
-    `}
 `;
 
 const Section = styled('div')<{layout: NavigationLayout}>`
@@ -611,3 +569,12 @@ const Footer = styled('div')<{layout: NavigationLayout}>`
       padding: ${p.theme.space.md} 0;
     `}
 `;
+
+export const SecondaryNavigation = {
+  Header: SecondaryNavigationHeader,
+  Body: SecondaryNavigationBody,
+  Section: SecondaryNavigationSection,
+  Item: SecondaryNavigationItem,
+  Footer: SecondaryNavigationFooter,
+  ProjectIcon: SecondaryNavigationProjectIcon,
+};

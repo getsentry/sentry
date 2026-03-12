@@ -56,8 +56,7 @@ interface PrimaryNavigationItemBaseProps {
   analyticsParams?: Record<string, unknown>;
 }
 
-interface PrimaryNavigationItemProps extends FlexProps<'li'> {}
-function PrimaryNavigationListItem({children, ...props}: PrimaryNavigationItemProps) {
+function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
   const {layout} = useNavigationContext();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
@@ -383,7 +382,7 @@ const NavigationButton = styled((props: ButtonProps) => {
     overflow: visible;
   }
 
-  /* The indicator (PrimaryNavigationItemUnreadIndicator) is passed as children, which causes
+  /* The indicator (PrimaryNavigationUnreadIndicator) is passed as children, which causes
    * Button's internal logic to set hasChildren=true and add margin-right to the icon
    * wrapper. On desktop buttons are icon-only so we override to zero; on mobile the
    * margin-right provides the gap between the icon and label text. */
@@ -396,7 +395,7 @@ const NavigationButton = styled((props: ButtonProps) => {
     `}
 `;
 
-const PrimaryNavigationItemUnreadIndicator = styled('span')<{
+const PrimaryNavigationUnreadIndicator = styled('span')<{
   isMobile: boolean;
   variant?: 'accent' | 'danger' | 'warning';
 }>`
@@ -497,11 +496,11 @@ function PassthroughWrapper({children}: {children: React.ReactNode}) {
 
 export const PrimaryNavigation = {
   List: PrimaryNavigationList,
-  Item: PrimaryNavigationListItem,
+  ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
   Menu: PrimaryNavigationMenu,
   Separator: PrimaryNavigationSeparator,
-  UnreadIndicator: PrimaryNavigationItemUnreadIndicator,
+  UnreadIndicator: PrimaryNavigationUnreadIndicator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
 };
