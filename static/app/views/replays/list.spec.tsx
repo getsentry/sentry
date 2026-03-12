@@ -11,6 +11,7 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list';
 
@@ -101,6 +102,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -122,6 +124,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -143,6 +146,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByText('Get to the root cause faster');
@@ -164,6 +168,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await screen.findByTestId('replay-table');
@@ -187,6 +192,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
@@ -213,6 +219,7 @@ describe('ReplayList', () => {
 
     render(<ListPage />, {
       organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
     });
 
     expect(

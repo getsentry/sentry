@@ -8,6 +8,8 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId, PlanTier} from 'getsentry/types';
@@ -80,7 +82,10 @@ describe('Subscription > Overview', () => {
 
     it('renders pending changes', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -99,7 +104,10 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(textWithMarkupMatcher("We're updating our Team Plan"))
@@ -126,7 +134,10 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -146,7 +157,10 @@ describe('Subscription > Overview', () => {
 
     it('renders empty', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(await screen.findByText('Subscription')).toBeInTheDocument();
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -160,7 +174,10 @@ describe('Subscription > Overview', () => {
         body: [RecurringCreditFixture()],
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(await screen.findByTestId('recurring-credits-panel')).toBeInTheDocument();
 
@@ -184,7 +201,10 @@ describe('Subscription > Overview', () => {
       body: [RecurringCreditFixture()],
     });
 
-    render(<Overview />, {organization: billingOrg});
+    render(<Overview />, {
+      organization: billingOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
 
     expect(await screen.findByText(/Usage:/)).toBeInTheDocument(); // title of usage overview table
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -203,7 +223,10 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview />, {organization: billingOrg});
+    render(<Overview />, {
+      organization: billingOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
 
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
