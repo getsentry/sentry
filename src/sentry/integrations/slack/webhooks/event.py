@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import (
+    AppMentionHaltReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -327,7 +328,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 limit=1,
             )
             if not ois:
-                lifecycle.record_halt("no-organization")
+                lifecycle.record_halt(AppMentionHaltReason.NO_ORGANIZATION)
                 return self.respond()
 
             organization_id = ois[0].organization_id
@@ -340,18 +341,18 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 include_teams=False,
             )
             if not organization_context:
-                lifecycle.record_halt("organization-not-found")
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
                 return self.respond()
 
             if organization_context.organization.status != OrganizationStatus.ACTIVE:
                 lifecycle.add_extra("status", organization_context.organization.status)
-                lifecycle.record_halt("organization-not-active")
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_ACTIVE)
                 return self.respond()
 
             if not features.has(
                 "organizations:seer-slack-explorer", organization_context.organization
             ):
-                lifecycle.record_halt("feature-not-enabled")
+                lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
                 return self.respond()
 
             channel_id = slack_request.channel_id
@@ -360,7 +361,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             message_ts = data.get("ts", "")
 
             if not channel_id or not text:
-                lifecycle.record_halt("missing-channel-or-text")
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
                 return self.respond()
 
             from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack

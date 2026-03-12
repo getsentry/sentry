@@ -109,3 +109,13 @@ class MessageInteractionFailureReason(StrEnum):
     """Common reasons why a messaging interaction may fail."""
 
     MISSING_ACTION = "missing_action"
+
+
+class AppMentionHaltReason(StrEnum):
+    """Reasons why an app mention event may halt without processing."""
+
+    NO_ORGANIZATION = "no-organization"
+    ORGANIZATION_NOT_FOUND = "organization-not-found"
+    ORGANIZATION_NOT_ACTIVE = "organization-not-active"
+    FEATURE_NOT_ENABLED = "feature-not-enabled"
+    MISSING_CHANNEL_OR_TEXT = "missing-channel-or-text"
