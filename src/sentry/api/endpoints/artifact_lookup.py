@@ -13,7 +13,7 @@ from symbolic.exceptions import SymbolicError
 from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
@@ -49,7 +49,7 @@ class _Artifact(TypedDict):
     headers: NotRequired[dict[str, object]]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {

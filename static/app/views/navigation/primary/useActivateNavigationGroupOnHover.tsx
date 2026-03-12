@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useWindowHeight} from 'sentry/views/navigation/primary/useWindowHeight';
 import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';

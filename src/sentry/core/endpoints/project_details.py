@@ -13,7 +13,7 @@ from rest_framework.serializers import ListField
 
 from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import is_considered_sudo
 from sentry.api.exceptions import SudoRequired
@@ -493,7 +493,7 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
 
 
 @extend_schema(tags=["Projects"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

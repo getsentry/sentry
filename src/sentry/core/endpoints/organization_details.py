@@ -18,7 +18,7 @@ from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ONE_DAY, region_silo_endpoint
+from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -599,6 +599,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in data:
                 continue
+            if key == "enableSeerCoding" and features.has(
+                "organizations:seer-disable-coding-setting", org
+            ):
+                continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
                 update_tracked_data(option_inst)
@@ -1065,7 +1069,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,

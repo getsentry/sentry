@@ -439,6 +439,44 @@ const userSchema = z.object({
 });
 ```
 
+### Nullable Fields with Refine
+
+When a field starts as `null` (e.g., a required select with no initial selection), use `.nullable().refine()` in the schema. This creates a difference between the schema's _input_ type (which accepts `null`) and its _output_ type (which does not). To handle this correctly:
+
+1. Type `defaultValues` explicitly as `z.input<typeof schema>` — this allows `null` as an initial value.
+2. Call `schema.parse(value)` inside `onSubmit` to narrow from `z.input` to `z.output`, stripping the `null` before passing to your mutation.
+
+```tsx
+const schema = z.object({
+  provider: z
+    .enum(['GitHub', 'LaunchDarkly'])
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
+  name: z.string().min(1, 'Name is required'),
+});
+
+// z.input allows null for the provider field
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+  name: '',
+};
+
+// z.output<typeof schema> has provider as non-null after refine
+type FormOutput = z.output<typeof schema>;
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    // schema.parse narrows null away — mutation receives z.output
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
+> **Important**: Do NOT use non-null assertions (`value.provider!`) or type casts to work around nullable fields. The `schema.parse()` approach is both type-safe and validates at runtime.
+
 ### Conditional Validation
 
 Use `.refine()` for cross-field validation:
@@ -741,6 +779,33 @@ const form = useScrapsForm({
 });
 ```
 
+### Nullable Default Values
+
+```tsx
+// ❌ Don't use non-null assertions or type casts
+onSubmit: ({value}) => {
+  return mutation.mutateAsync({...value, provider: value.provider!});
+};
+
+// ❌ Don't skip typing defaultValues when the schema has refine
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues: {provider: null, name: ''}, // type is inferred but imprecise
+});
+
+// ✅ Use z.input for defaultValues and schema.parse in onSubmit
+const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
+
+const form = useScrapsForm({
+  ...defaultFormOptions,
+  defaultValues,
+  validators: {onDynamic: schema},
+  onSubmit: ({value}) => {
+    return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+  },
+});
+```
+
 ### Form Submissions
 
 ```tsx
@@ -869,7 +934,7 @@ When creating a new form:
 - [ ] Import from `@sentry/scraps/form` and `zod`
 - [ ] Define Zod schema with helpful error messages
 - [ ] Use `useScrapsForm` with `...defaultFormOptions`
-- [ ] Set `defaultValues` matching schema shape
+- [ ] Set `defaultValues` matching schema shape (use `z.input<typeof schema>` if schema has `.refine()`)
 - [ ] Set `validators: {onDynamic: schema}`
 - [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field

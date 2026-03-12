@@ -5,10 +5,10 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.region import Cell, Locality, RegionDirectory, get_global_directory
+from sentry.types.region import Cell, CellDirectory, Locality, get_global_directory
 
 
-class TestEnvRegionDirectory(RegionDirectory):
+class TestEnvRegionDirectory(CellDirectory):
     __test__ = False
 
     def __init__(self, regions: Collection[Cell]) -> None:

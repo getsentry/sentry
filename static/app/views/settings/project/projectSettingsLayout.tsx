@@ -12,8 +12,8 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
@@ -46,10 +46,10 @@ function InnerProjectSettingsLayout({project}: {project: Project}) {
 export default function ProjectSettingsLayout() {
   const params = useParams<{projectId: string}>();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const onMissingProject = useEffectEvent(() => {
-    navigateTo(location.pathname, router);
+    navigateTo(location.pathname, navigate, location);
   });
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function ProjectSettingsLayout() {
             action={
               <Button
                 priority="primary"
-                onClick={() => navigateTo(location.pathname, router)}
+                onClick={() => navigateTo(location.pathname, navigate, location)}
               >
                 {t('Choose Project')}
               </Button>

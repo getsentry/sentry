@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models import SeerApiError
@@ -41,7 +41,7 @@ class SeerModelsResponse(TypedDict):
 
 
 @extend_schema(tags=["Seer"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class SeerModelsEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

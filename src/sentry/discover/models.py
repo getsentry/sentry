@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -65,7 +65,7 @@ class DatasetSourcesTypes(Enum):
         return tuple((source.value, source.name.lower()) for source in cls)
 
 
-@region_silo_model
+@cell_silo_model
 class DiscoverSavedQueryProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -78,7 +78,7 @@ class DiscoverSavedQueryProject(Model):
         unique_together = (("project", "discover_saved_query"),)
 
 
-@region_silo_model
+@cell_silo_model
 class DiscoverSavedQuery(Model):
     """
     A saved Discover query
@@ -194,7 +194,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class TeamKeyTransaction(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

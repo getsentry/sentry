@@ -15,7 +15,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`

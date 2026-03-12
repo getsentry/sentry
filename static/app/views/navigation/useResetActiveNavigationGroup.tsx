@@ -7,7 +7,7 @@ import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_RESET_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 /**

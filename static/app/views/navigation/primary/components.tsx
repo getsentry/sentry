@@ -20,7 +20,7 @@ import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {NavigationLayout} from 'sentry/views/navigation/types';
