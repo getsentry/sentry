@@ -93,7 +93,6 @@ export function Navigation() {
         </Flex>
         <PrimaryNavigationItems />
       </Flex>
-      {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
           data-visible={collapsedNavigation.isOpen}
@@ -107,7 +106,9 @@ export function Navigation() {
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
-      ) : null}
+      ) : (
+        <SecondarySidebar />
+      )}
     </Fragment>
   );
 }
