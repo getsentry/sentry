@@ -10,7 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
+import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 
 interface Props {

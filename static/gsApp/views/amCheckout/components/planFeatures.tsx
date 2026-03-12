@@ -15,7 +15,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';

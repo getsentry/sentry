@@ -9,7 +9,7 @@ import {NoAccess} from 'sentry/components/noAccess';
 import Placeholder from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 

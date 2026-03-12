@@ -112,7 +112,7 @@ def _create_pixel_batches(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_tasks,
     retry=Retry(times=3),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     processing_deadline_duration=300,
 )
 def compare_snapshots(

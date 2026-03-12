@@ -30,10 +30,10 @@ import {
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {

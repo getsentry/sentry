@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import getTransformedData from './getTransformedData';
+import {getTransformedData} from './getTransformedData';
 
 type Props = {
   data: EntryRequest['data']['data'];

@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';

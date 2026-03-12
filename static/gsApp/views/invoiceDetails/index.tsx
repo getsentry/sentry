@@ -12,7 +12,7 @@ import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 

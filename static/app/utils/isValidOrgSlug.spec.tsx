@@ -1,4 +1,4 @@
-import isValidOrgSlug from './isValidOrgSlug';
+import {isValidOrgSlug} from './isValidOrgSlug';
 
 describe('isValidOrgSlug', () => {
   it('validates org slugs', () => {

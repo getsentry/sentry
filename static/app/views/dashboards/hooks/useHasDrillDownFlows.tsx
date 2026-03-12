@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useHasDrillDownFlows() {
   const organization = useOrganization();

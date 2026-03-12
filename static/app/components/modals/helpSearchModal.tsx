@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {HelpSearch} from 'sentry/components/helpSearch';
 import Hook from 'sentry/components/hook';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = ModalRenderProps & {
   placeholder?: string;

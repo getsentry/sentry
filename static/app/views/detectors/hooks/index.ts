@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 import {
   type BaseDetectorUpdatePayload,
   type Detector,
@@ -7,8 +7,8 @@ import {
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseDetectorsQueryKeyOptions {
   cursor?: string;

@@ -66,19 +66,13 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
                 self.organization.slug, self.repo.id, status_code=200
             )
 
+        # Only the top language by bytes is returned
         assert response.data == {
             "platforms": [
                 {
                     "platform": "python",
                     "language": "Python",
                     "bytes": 50000,
-                    "confidence": "medium",
-                    "priority": 1,
-                },
-                {
-                    "platform": "javascript",
-                    "language": "JavaScript",
-                    "bytes": 30000,
                     "confidence": "medium",
                     "priority": 1,
                 },

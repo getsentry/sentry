@@ -77,7 +77,7 @@ import {
   isNativePlatform,
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,

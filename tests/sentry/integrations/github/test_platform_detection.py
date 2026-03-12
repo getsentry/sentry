@@ -14,10 +14,12 @@ from sentry.integrations.github.platform_detection import (
     _apply_supersession,
     _framework_matches,
     _get_repo_file_content,
-    _get_root_file_names,
+    _get_root_entries,
     _package_in_manifest,
     _PackageManifest,
+    _parse_gemfile,
     _parse_package_manifest,
+    _parse_pubspec_yaml,
     _rule_matches,
     detect_platforms,
 )
@@ -40,6 +42,9 @@ class TestGithubLanguageMapping:
 
     def test_objectivec_maps_to_apple_ios(self) -> None:
         assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM["Objective-C"] == "apple-ios"
+
+    def test_powershell_maps_to_powershell(self) -> None:
+        assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM["PowerShell"] == "powershell"
 
     def test_unmapped_language_returns_none(self) -> None:
         assert GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.get("Haskell") is None
@@ -84,6 +89,72 @@ class TestParsePackageManifest:
         assert result["dependencies"] == set()
         assert result["dev_dependencies"] == set()
 
+    def test_delegates_to_pubspec_yaml(self) -> None:
+        content = "dependencies:\n  flutter:\n    sdk: flutter\n  http: ^0.13.5\n"
+        result = _parse_package_manifest(content, "pubspec.yaml")
+        assert result is not None
+        assert "flutter" in result["dependencies"]
+        assert "http" in result["dependencies"]
+
+    def test_delegates_to_gemfile(self) -> None:
+        content = 'gem "rails", "~> 7.0"\ngem "puma"\n'
+        result = _parse_package_manifest(content, "Gemfile")
+        assert result is not None
+        assert "rails" in result["dependencies"]
+        assert "puma" in result["dependencies"]
+
+
+class TestParsePubspecYaml:
+    def test_extracts_dependencies(self) -> None:
+        content = (
+            "name: my_app\n"
+            "dependencies:\n"
+            "  flutter:\n"
+            "    sdk: flutter\n"
+            "  http: ^0.13.5\n"
+            "  cupertino_icons: ^1.0.2\n"
+            "dev_dependencies:\n"
+            "  flutter_test:\n"
+            "    sdk: flutter\n"
+            "  flutter_lints: ^2.0.0\n"
+        )
+        result = _parse_pubspec_yaml(content)
+        assert result["dependencies"] == {"flutter", "http", "cupertino_icons"}
+        assert result["dev_dependencies"] == {"flutter_test", "flutter_lints"}
+
+    def test_empty_sections(self) -> None:
+        content = "name: my_app\ndependencies:\ndev_dependencies:\n"
+        result = _parse_pubspec_yaml(content)
+        assert result["dependencies"] == set()
+        assert result["dev_dependencies"] == set()
+
+    def test_no_dev_dependencies(self) -> None:
+        content = "name: my_app\ndependencies:\n  http: ^0.13.5\n"
+        result = _parse_pubspec_yaml(content)
+        assert result["dependencies"] == {"http"}
+        assert result["dev_dependencies"] == set()
+
+
+class TestParseGemfile:
+    def test_extracts_gem_names(self) -> None:
+        content = (
+            'source "https://rubygems.org"\n'
+            'gem "rails", "~> 7.0"\n'
+            "gem 'puma', '~> 6.0'\n"
+            'gem "rack"\n'
+        )
+        result = _parse_gemfile(content)
+        assert result["dependencies"] == {"rails", "puma", "rack"}
+
+    def test_ignores_comments(self) -> None:
+        content = '# gem "not-this"\ngem "real-gem"\n'
+        result = _parse_gemfile(content)
+        assert result["dependencies"] == {"real-gem"}
+
+    def test_empty_gemfile(self) -> None:
+        result = _parse_gemfile("")
+        assert result["dependencies"] == set()
+
 
 class TestPackageInManifest:
     def test_exact_match_in_dependencies(self) -> None:
@@ -107,6 +178,11 @@ class TestPackageInManifest:
     def test_prefix_no_match(self) -> None:
         manifest = _PackageManifest(dependencies={"laravel/framework"}, dev_dependencies=set())
         assert _package_in_manifest("symfony/", manifest) is False
+
+    def test_npm_scoped_package_match(self) -> None:
+        manifest = _PackageManifest(dependencies={"@nestjs/core"}, dev_dependencies=set())
+        assert _package_in_manifest("@nestjs/core", manifest) is True
+        assert _package_in_manifest("@nestjs/missing", manifest) is False
 
 
 class TestRuleMatches:
@@ -166,6 +242,53 @@ class TestRuleMatches:
     def test_rule_without_path_or_package_returns_false(self) -> None:
         rule: DetectorRule = {}
         assert _rule_matches(rule, {"file.txt"}, {}, None) is False
+
+    def test_match_dir_matches_when_dir_exists(self) -> None:
+        rule: DetectorRule = {"match_dir": "Assets"}
+        assert _rule_matches(rule, set(), {}, None, root_dirs={"Assets", "src"}) is True
+
+    def test_match_dir_no_match_when_dir_missing(self) -> None:
+        rule: DetectorRule = {"match_dir": "Assets"}
+        assert _rule_matches(rule, set(), {}, None, root_dirs={"src", "lib"}) is False
+
+    def test_match_dir_no_match_when_root_dirs_none(self) -> None:
+        rule: DetectorRule = {"match_dir": "Assets"}
+        assert _rule_matches(rule, set(), {}, None, root_dirs=None) is False
+
+    def test_match_ext_matches_when_extension_exists(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj"}
+        assert _rule_matches(rule, {"MyApp.csproj", "README.md"}, {}, None) is True
+
+    def test_match_ext_no_match_when_extension_missing(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj"}
+        assert _rule_matches(rule, {"README.md", "package.json"}, {}, None) is False
+
+    def test_match_ext_uproject(self) -> None:
+        rule: DetectorRule = {"match_ext": ".uproject"}
+        assert _rule_matches(rule, {"MyGame.uproject"}, {}, None) is True
+
+    def test_match_ext_with_match_content_matches(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
+        files = {"MyApp.csproj", "README.md"}
+        contents = {"MyApp.csproj": '<PackageReference Include="Microsoft.Maui" />'}
+        assert _rule_matches(rule, files, contents, None) is True
+
+    def test_match_ext_with_match_content_no_content_match(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
+        files = {"MyApp.csproj", "README.md"}
+        contents = {"MyApp.csproj": '<PackageReference Include="Newtonsoft.Json" />'}
+        assert _rule_matches(rule, files, contents, None) is False
+
+    def test_match_ext_with_match_content_no_ext_match(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
+        files = {"README.md", "package.json"}
+        assert _rule_matches(rule, files, {}, None) is False
+
+    def test_match_ext_with_match_content_no_fetched_content(self) -> None:
+        rule: DetectorRule = {"match_ext": ".csproj", "match_content": r"Microsoft\.Maui"}
+        files = {"MyApp.csproj"}
+        # File exists but content wasn't fetched
+        assert _rule_matches(rule, files, {}, None) is False
 
 
 class TestFrameworkMatches:
@@ -234,28 +357,45 @@ class TestFrameworkMatches:
         fw: FrameworkDef = {"platform": "test", "sort": 1, "base_platform": "test"}
         assert _framework_matches(fw, set(), {}, None) is False
 
-    def test_nextjs_matches_from_package(self) -> None:
-        from sentry.integrations.github.platform_detection import FRAMEWORKS
+    def test_match_dir_in_every(self) -> None:
+        fw: FrameworkDef = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "every": [{"match_dir": "Assets"}, {"match_dir": "ProjectSettings"}],
+        }
+        assert (
+            _framework_matches(
+                fw, set(), {}, None, root_dirs={"Assets", "ProjectSettings", "Packages"}
+            )
+            is True
+        )
+        assert _framework_matches(fw, set(), {}, None, root_dirs={"Assets"}) is False
 
+    def test_match_ext_in_some(self) -> None:
+        fw: FrameworkDef = {
+            "platform": "test",
+            "sort": 1,
+            "base_platform": "test",
+            "some": [{"match_ext": ".csproj"}],
+        }
+        assert _framework_matches(fw, {"MyApp.csproj"}, {}, None) is True
+        assert _framework_matches(fw, {"README.md"}, {}, None) is False
+
+    def test_nextjs_matches_from_package(self) -> None:
         nextjs = next(fw for fw in FRAMEWORKS if fw["platform"] == "javascript-nextjs")
         manifest = _PackageManifest(dependencies={"next", "react"}, dev_dependencies=set())
         assert _framework_matches(nextjs, set(), {}, manifest) is True
 
     def test_nextjs_matches_from_config_file(self) -> None:
-        from sentry.integrations.github.platform_detection import FRAMEWORKS
-
         nextjs = next(fw for fw in FRAMEWORKS if fw["platform"] == "javascript-nextjs")
         assert _framework_matches(nextjs, {"next.config.js"}, {}, None) is True
 
     def test_django_matches_from_manage_py(self) -> None:
-        from sentry.integrations.github.platform_detection import FRAMEWORKS
-
         django = next(fw for fw in FRAMEWORKS if fw["platform"] == "python-django")
         assert _framework_matches(django, {"manage.py"}, {}, None) is True
 
     def test_django_matches_from_requirements_content(self) -> None:
-        from sentry.integrations.github.platform_detection import FRAMEWORKS
-
         django = next(fw for fw in FRAMEWORKS if fw["platform"] == "python-django")
         assert (
             _framework_matches(
@@ -264,9 +404,36 @@ class TestFrameworkMatches:
             is True
         )
 
+    def test_unity_matches_from_directories(self) -> None:
+        unity = next(fw for fw in FRAMEWORKS if fw["platform"] == "unity")
+        assert (
+            _framework_matches(
+                unity, set(), {}, None, root_dirs={"Assets", "ProjectSettings", "Packages"}
+            )
+            is True
+        )
+        assert _framework_matches(unity, set(), {}, None, root_dirs={"Assets"}) is False
 
-class TestGetRootFileNames:
-    def test_returns_file_names(self) -> None:
+    def test_flutter_matches_from_pubspec(self) -> None:
+        flutter = next(fw for fw in FRAMEWORKS if fw["platform"] == "flutter")
+        manifest = _PackageManifest(dependencies={"flutter", "http"}, dev_dependencies=set())
+        assert _framework_matches(flutter, set(), {}, manifest) is True
+
+    def test_dotnet_aspnetcore_matches_with_csproj_and_appsettings(self) -> None:
+        aspnet = next(fw for fw in FRAMEWORKS if fw["platform"] == "dotnet-aspnetcore")
+        assert _framework_matches(aspnet, {"MyApp.csproj", "appsettings.json"}, {}, None) is True
+
+    def test_dotnet_aspnetcore_no_match_csproj_only(self) -> None:
+        aspnet = next(fw for fw in FRAMEWORKS if fw["platform"] == "dotnet-aspnetcore")
+        assert _framework_matches(aspnet, {"MyApp.csproj"}, {}, None) is False
+
+    def test_dotnet_aspnetcore_no_match_appsettings_only(self) -> None:
+        aspnet = next(fw for fw in FRAMEWORKS if fw["platform"] == "dotnet-aspnetcore")
+        assert _framework_matches(aspnet, {"appsettings.json"}, {}, None) is False
+
+
+class TestGetRootEntries:
+    def test_returns_files_and_dirs(self) -> None:
         client = mock.MagicMock()
         client.get.return_value = [
             {"name": "package.json", "type": "file"},
@@ -275,34 +442,37 @@ class TestGetRootFileNames:
             {"name": "README.md", "type": "file"},
         ]
 
-        result = _get_root_file_names(client, "owner/repo")
+        files, dirs = _get_root_entries(client, "owner/repo")
 
-        assert result == {"package.json", "next.config.js", "README.md"}
+        assert files == {"package.json", "next.config.js", "README.md"}
+        assert dirs == {"src"}
 
-    def test_excludes_directories(self) -> None:
+    def test_excludes_directories_from_files(self) -> None:
         client = mock.MagicMock()
         client.get.return_value = [
             {"name": "src", "type": "dir"},
             {"name": "lib", "type": "dir"},
         ]
 
-        result = _get_root_file_names(client, "owner/repo")
+        files, dirs = _get_root_entries(client, "owner/repo")
 
-        assert result == set()
+        assert files == set()
+        assert dirs == {"src", "lib"}
 
     def test_returns_none_on_api_error(self) -> None:
         client = mock.MagicMock()
         client.get.side_effect = ApiError("Not Found", code=404)
 
-        result = _get_root_file_names(client, "owner/repo")
+        files, dirs = _get_root_entries(client, "owner/repo")
 
-        assert result is None
+        assert files is None
+        assert dirs is None
 
     def test_passes_ref_param(self) -> None:
         client = mock.MagicMock()
         client.get.return_value = []
 
-        _get_root_file_names(client, "owner/repo", ref="main")
+        _get_root_entries(client, "owner/repo", ref="main")
 
         client.get.assert_called_once_with("/repos/owner/repo/contents", params={"ref": "main"})
 
@@ -313,13 +483,15 @@ class TestGetRootFileNames:
             {"name": "README.md", "type": "file"},  # valid — kept
         ]
 
-        assert _get_root_file_names(client, "owner/repo") == {"README.md"}
+        files, dirs = _get_root_entries(client, "owner/repo")
+        assert files == {"README.md"}
+        assert dirs == set()
 
     def test_returns_none_on_non_list_response(self) -> None:
         client = mock.MagicMock()
         client.get.return_value = {"message": "Not Found"}  # dict instead of list
 
-        assert _get_root_file_names(client, "owner/repo") is None
+        assert _get_root_entries(client, "owner/repo") == (None, None)
 
 
 class TestApplySupersession:
@@ -388,6 +560,94 @@ class TestApplySupersession:
         platforms = [r["platform"] for r in filtered]
         assert "javascript-remix" in platforms
         assert "javascript-react" not in platforms
+
+    def test_sveltekit_supersedes_svelte(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-sveltekit",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=99,
+            ),
+            DetectedPlatform(
+                platform="javascript-svelte",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-sveltekit" in platforms
+        assert "javascript-svelte" not in platforms
+
+    def test_gatsby_supersedes_react(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="javascript-gatsby",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=99,
+            ),
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "javascript-gatsby" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_react_native_supersedes_react(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="react-native",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=99,
+            ),
+            DetectedPlatform(
+                platform="javascript-react",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=70,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "react-native" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_cloudflare_pages_supersedes_workers(self) -> None:
+        results = [
+            DetectedPlatform(
+                platform="node-cloudflare-pages",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=50,
+            ),
+            DetectedPlatform(
+                platform="node-cloudflare-workers",
+                language="JavaScript",
+                bytes=50000,
+                confidence="high",
+                priority=50,
+            ),
+        ]
+        filtered = _apply_supersession(results)
+        platforms = [r["platform"] for r in filtered]
+        assert "node-cloudflare-pages" in platforms
+        assert "node-cloudflare-workers" not in platforms
 
     def test_no_supersession_keeps_all(self) -> None:
         results = [
@@ -502,7 +762,8 @@ class TestDetectPlatforms:
         assert result[0]["confidence"] == "medium"
         assert result[0]["priority"] == 1
 
-    def test_detects_multi_language_repo(self) -> None:
+    def test_only_top_language_platform_detected(self) -> None:
+        """Only the top language's base platform is processed."""
         client = mock.MagicMock()
         client.get_languages.return_value = {"Python": 50000, "JavaScript": 30000}
         client.get.side_effect = ApiError("Not Found", code=404)
@@ -511,7 +772,7 @@ class TestDetectPlatforms:
 
         platforms = [r["platform"] for r in result]
         assert "python" in platforms
-        assert "javascript" in platforms
+        assert "javascript" not in platforms
 
     def test_filters_ignored_languages(self) -> None:
         client = mock.MagicMock()
@@ -530,6 +791,16 @@ class TestDetectPlatforms:
         assert "Shell" not in languages
         assert "Makefile" not in languages
         assert "Dockerfile" not in languages
+
+    def test_powershell_detected_as_base_platform(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"PowerShell": 20000}
+        client.get.side_effect = ApiError("Not Found", code=404)
+
+        result = detect_platforms(client, "owner/repo")
+
+        assert len(result) == 1
+        assert result[0]["platform"] == "powershell"
 
     def test_framework_detection_gives_high_confidence(self) -> None:
         client = mock.MagicMock()
@@ -553,32 +824,29 @@ class TestDetectPlatforms:
         assert python_result["confidence"] == "medium"
 
     def test_results_sorted_by_bytes_then_priority(self) -> None:
+        """Frameworks for the top language are sorted by (bytes, priority)."""
         client = mock.MagicMock()
-        client.get_languages.return_value = {"Python": 80000, "JavaScript": 30000}
+        client.get_languages.return_value = {"Python": 80000}
 
         def get_side_effect(path, params=None):
             if path.endswith("/contents"):
                 return [
                     {"name": "requirements.txt", "type": "file"},
-                    {"name": "package.json", "type": "file"},
+                    {"name": "manage.py", "type": "file"},
                 ]
             if "requirements.txt" in path:
-                return _make_b64_response("flask==3.0\n")
-            if "package.json" in path:
-                return _make_b64_response(
-                    json.dumps({"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}})
-                )
+                return _make_b64_response("flask==3.0\ncelery>=5.0\n")
             raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
 
-        # Python (80k bytes) > JavaScript (30k bytes); language majority wins
         platforms = [r["platform"] for r in result]
+        # Flask (sort=10, priority=90) should rank above Celery (sort=50, priority=50)
         flask_idx = platforms.index("python-flask")
-        nextjs_idx = platforms.index("javascript-nextjs")
-        assert flask_idx < nextjs_idx
+        celery_idx = platforms.index("python-celery")
+        assert flask_idx < celery_idx
 
     def test_nextjs_supersedes_react_in_full_flow(self) -> None:
         client = mock.MagicMock()
@@ -629,9 +897,9 @@ class TestDetectPlatforms:
 
         svelte = next(r for r in result if r["platform"] == "javascript-svelte")
         express = next(r for r in result if r["platform"] == "node-express")
-        # svelte sort=30 → priority=70, express sort=40 → priority=60
-        assert svelte["priority"] == 70
-        assert express["priority"] == 60
+        # svelte sort=10 → priority=90, express sort=20 → priority=80
+        assert svelte["priority"] == 90
+        assert express["priority"] == 80
 
     def test_typescript_and_javascript_deduplicated(self) -> None:
         client = mock.MagicMock()
@@ -678,7 +946,6 @@ class TestDetectPlatforms:
             ("TypeScript", "javascript"),
             ("Java", "java"),
             ("Kotlin", "kotlin"),
-            ("Swift", "swift"),
             ("Go", "go"),
             ("Ruby", "ruby"),
             ("PHP", "php"),
@@ -686,6 +953,7 @@ class TestDetectPlatforms:
             ("C#", "dotnet"),
             ("Dart", "dart"),
             ("Elixir", "elixir"),
+            ("PowerShell", "powershell"),
         ],
     )
     def test_all_mapped_languages_detected(self, language: str, expected_platform: str) -> None:
@@ -835,13 +1103,9 @@ class TestDetectPlatforms:
         result = detect_platforms(client, "owner/repo")
 
         platforms = [r["platform"] for r in result]
-        assert platforms == ["python", "javascript"] or set(platforms) == {
-            "python",
-            "javascript",
-        }
-        for r in result:
-            assert r["confidence"] == "medium"
-            assert r["priority"] == 1
+        assert platforms == ["python"]
+        assert result[0]["confidence"] == "medium"
+        assert result[0]["priority"] == 1
 
     def test_root_listing_failure_still_detects_frameworks_via_manifest(self) -> None:
         """When the root contents API fails, framework detection should fall
@@ -923,6 +1187,1012 @@ class TestDetectPlatforms:
         platforms = [r["platform"] for r in result]
         assert "go-gin" in platforms
 
+    def test_react_native_detected_and_supersedes_react(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps({"dependencies": {"react-native": "^0.72.0", "react": "^18.0.0"}})
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "react-native" in platforms
+        assert "javascript-react" not in platforms
+
+    def test_electron_detected(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps({"dependencies": {"electron": "^28.0.0"}})
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "electron" in platforms
+
+    def test_flutter_detected_from_pubspec(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Dart": 50000}
+
+        pubspec_content = (
+            "name: my_app\ndependencies:\n  flutter:\n    sdk: flutter\n  http: ^0.13.5\n"
+        )
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "pubspec.yaml", "type": "file"}]
+            if "pubspec.yaml" in path:
+                return _make_b64_response(pubspec_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "flutter" in platforms
+
+    def test_unity_detected_from_directories(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "Assets", "type": "dir"},
+                    {"name": "ProjectSettings", "type": "dir"},
+                    {"name": "Packages", "type": "dir"},
+                    {"name": "README.md", "type": "file"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "unity" in platforms
+
+    def test_android_detected_from_build_gradle_and_app_dir(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Java": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "app", "type": "dir"},
+                    {"name": "build.gradle", "type": "file"},
+                    {"name": "settings.gradle", "type": "file"},
+                ]
+            if "build.gradle" in path:
+                return _make_b64_response(
+                    "buildscript {\n}\n\nallprojects {\n}\n\nandroid {\n    compileSdk 34\n}\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "android" in platforms
+
+    def test_dotnet_aspnetcore_detected_with_csproj_and_appsettings(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyApp.csproj", "type": "file"},
+                    {"name": "Program.cs", "type": "file"},
+                    {"name": "appsettings.json", "type": "file"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-aspnetcore" in platforms
+
+    def test_dotnet_csproj_without_appsettings_falls_back_to_base(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyApp.csproj", "type": "file"},
+                    {"name": "Program.cs", "type": "file"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-aspnetcore" not in platforms
+        assert "dotnet" in platforms
+
+    def test_unreal_detected_from_uproject(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C++": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyGame.uproject", "type": "file"},
+                    {"name": "Source", "type": "dir"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "unreal" in platforms
+
+    def test_godot_detected_from_project_file(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"GDScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "project.godot", "type": "file"},
+                    {"name": "scenes", "type": "dir"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "godot" in platforms
+
+    def test_wordpress_filtered_as_non_selectable(self) -> None:
+        """WordPress is detected internally but filtered from results as non-selectable."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"PHP": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "wp-config.php", "type": "file"}]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "php-wordpress" not in platforms
+        assert "php" in platforms
+
+    def test_wordpress_does_not_supersede_symfony(self) -> None:
+        """Non-selectable platforms should not supersede selectable ones."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"PHP": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "wp-config.php", "type": "file"},
+                    {"name": "composer.json", "type": "file"},
+                ]
+            if "composer.json" in path:
+                return _make_b64_response(
+                    json.dumps({"require": {"symfony/framework-bundle": "^6.0"}})
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "php-wordpress" not in platforms
+        assert "php-symfony" in platforms
+
+    def test_ruby_rack_detected_from_gemfile(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Ruby": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Gemfile", "type": "file"}]
+            if "Gemfile" in path:
+                return _make_b64_response('gem "rack"\ngem "puma"\n')
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "ruby-rack" in platforms
+
+    def test_python_aiohttp_detected(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "requirements.txt", "type": "file"}]
+            if "requirements.txt" in path:
+                return _make_b64_response("aiohttp==3.9.0\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "python-aiohttp" in platforms
+
+    def test_java_log4j2_detected(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Java": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "build.gradle", "type": "file"}]
+            if "build.gradle" in path:
+                return _make_b64_response(
+                    "dependencies {\n    implementation 'org.apache.logging.log4j:log4j-core:2.20'\n}\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "java-log4j2" in platforms
+
+    def test_astro_detected(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps({"dependencies": {"astro": "^4.0.0"}})
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "javascript-astro" in platforms
+
+    def test_sveltekit_supersedes_svelte_in_full_flow(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        content = json.dumps(
+            {
+                "dependencies": {},
+                "devDependencies": {"@sveltejs/kit": "^2.0.0", "svelte": "^4.0.0"},
+            }
+        )
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "javascript-sveltekit" in platforms
+        assert "javascript-svelte" not in platforms
+
+    def test_nestjs_detected(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"TypeScript": 50000}
+
+        content = json.dumps({"dependencies": {"@nestjs/core": "^10.0.0"}})
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "node-nestjs" in platforms
+
+    def test_cloudflare_workers_detected_from_wrangler(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "wrangler.toml", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "node-cloudflare-workers" in platforms
+
+    def test_cloudflare_pages_supersedes_workers(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "wrangler.toml", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "wrangler.toml" in path:
+                return _make_b64_response(
+                    'name = "my-pages-app"\npages_build_output_dir = "./dist"\n'
+                )
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "node-cloudflare-pages" in platforms
+        assert "node-cloudflare-workers" not in platforms
+
+    def test_azurefunctions_detected_from_host_json(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        host_json = '{"version": "2.0", "extensionBundle": {"id": "Microsoft.Azure.Functions.ExtensionBundle"}}'
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "host.json", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "host.json" in path:
+                return _make_b64_response(host_json)
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "node-azurefunctions" in platforms
+
+    def test_azurefunctions_not_detected_without_extension_bundle(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 50000}
+
+        host_json = '{"version": "2.0"}'
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "host.json", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "host.json" in path:
+                return _make_b64_response(host_json)
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "node-azurefunctions" not in platforms
+
+    def test_serverless_yml_detects_awslambda(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 50000}
+
+        serverless_content = b64encode(
+            b"service: my-service\nprovider:\n  runtime: python3.11\n"
+        ).decode()
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "serverless.yml", "type": "file"},
+                    {"name": "requirements.txt", "type": "file"},
+                ]
+            if path.endswith("/contents/serverless.yml"):
+                return {"content": serverless_content}
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+
+        platforms = [r["platform"] for r in result]
+        assert "python-awslambda" in platforms
+
+    def test_bun_detected_from_bunfig(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"TypeScript": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "bunfig.toml", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "bun" in platforms
+
+    def test_bun_detected_from_lockfile(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "bun.lockb", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "bun" in platforms
+
+    def test_deno_detected_from_config(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"TypeScript": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "deno.json", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "deno" in platforms
+
+    def test_dotnet_maui_detected_from_csproj_content(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 60000}
+
+        csproj_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-android;net8.0-ios</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.0" />
+  </ItemGroup>
+</Project>"""
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyApp.csproj", "type": "file"},
+                    {"name": "MauiProgram.cs", "type": "file"},
+                ]
+            if "MyApp.csproj" in path:
+                return _make_b64_response(csproj_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-maui" in platforms
+
+    def test_dotnet_wpf_detected_from_csproj_content(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 50000}
+
+        csproj_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+</Project>"""
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "WpfApp.csproj", "type": "file"},
+                ]
+            if "WpfApp.csproj" in path:
+                return _make_b64_response(csproj_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-wpf" in platforms
+
+    def test_dotnet_awslambda_detected_from_csproj_content(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 30000}
+
+        csproj_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" />
+  </ItemGroup>
+</Project>"""
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "LambdaFunc.csproj", "type": "file"},
+                ]
+            if "LambdaFunc.csproj" in path:
+                return _make_b64_response(csproj_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-awslambda" in platforms
+
+    def test_dotnet_aspnet_legacy_detected_not_core(self) -> None:
+        """dotnet-aspnet detects legacy ASP.NET but not ASP.NET Core."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 40000}
+
+        csproj_content = """<Project>
+  <ItemGroup>
+    <Reference Include="Microsoft.AspNet.Mvc" />
+  </ItemGroup>
+</Project>"""
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "WebApp.csproj", "type": "file"},
+                ]
+            if "WebApp.csproj" in path:
+                return _make_b64_response(csproj_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "dotnet-aspnet" in platforms
+
+    def test_dotnet_aspnetcore_not_detected_as_legacy_aspnet(self) -> None:
+        """ASP.NET Core references should NOT match the legacy dotnet-aspnet pattern."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C#": 40000}
+
+        csproj_content = """<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>"""
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "WebApp.csproj", "type": "file"},
+                    {"name": "appsettings.json", "type": "file"},
+                ]
+            if "WebApp.csproj" in path:
+                return _make_b64_response(csproj_content)
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        # Should detect aspnetcore (via existing rule), not legacy aspnet
+        assert "dotnet-aspnetcore" in platforms
+        assert "dotnet-aspnet" not in platforms
+
+    def test_apple_ios_detected_from_package_swift(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Package.swift", "type": "file"}]
+            if "Package.swift" in path:
+                return _make_b64_response("let package = Package(\n  platforms: [.iOS(.v14)],\n)")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "apple-ios" in platforms
+
+    def test_apple_ios_detected_from_podfile(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Podfile", "type": "file"}]
+            if "Podfile" in path:
+                return _make_b64_response("platform :ios, '14.0'\npod 'Alamofire'\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "apple-ios" in platforms
+
+    def test_objc_dominant_repo_returns_apple_ios_base(self) -> None:
+        """When Objective-C dominates, apple-ios is returned as the base
+        platform (medium confidence) since framework detection for apple-ios
+        runs under the swift base platform which isn't processed."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {
+            "Objective-C": 80000,
+            "Swift": 20000,
+        }
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "MyApp.xcodeproj", "type": "dir"},
+                ]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        ios_entry = next(r for r in result if r["platform"] == "apple-ios")
+        assert ios_entry["confidence"] == "medium"
+        assert ios_entry["bytes"] == 80000
+
+    def test_apple_ios_higher_priority_than_macos(self) -> None:
+        """When both iOS and macOS are in Package.swift, iOS should rank higher."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Package.swift", "type": "file"}]
+            if "Package.swift" in path:
+                return _make_b64_response(
+                    "let package = Package(\n  platforms: [.iOS(.v14), .macOS(.v11)],\n)"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "apple-ios" in platforms
+        assert "apple-macos" in platforms
+        # iOS (sort=3, priority=97) should come before macOS (sort=5, priority=95)
+        assert platforms.index("apple-ios") < platforms.index("apple-macos")
+
+    def test_swift_without_ios_signals_returns_empty(self) -> None:
+        """Plain Swift repo with no framework signals returns empty results.
+
+        Swift is a non-selectable platform (the picker uses apple-ios / apple-macos),
+        so it gets filtered out when no framework-specific signals are found.
+        """
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "README.md", "type": "file"}]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        assert result == []
+
+    def test_apple_macos_detected_from_package_swift(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Package.swift", "type": "file"}]
+            if "Package.swift" in path:
+                return _make_b64_response(
+                    'let package = Package(\n  platforms: [.macOS("12.0")],\n)'
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "apple-macos" in platforms
+
+    def test_apple_macos_detected_from_podfile(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Swift": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "Podfile", "type": "file"}]
+            if "Podfile" in path:
+                return _make_b64_response("platform :osx, '12.0'\npod 'Alamofire'\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "apple-macos" in platforms
+
+    def test_native_qt_detected_from_qrc(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C++": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "resources.qrc", "type": "file"}]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "native-qt" in platforms
+
+    def test_native_qt_detected_from_cmake(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"C++": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "CMakeLists.txt", "type": "file"}]
+            if "CMakeLists.txt" in path:
+                return _make_b64_response(
+                    "cmake_minimum_required(VERSION 3.16)\nfind_package(Qt6 REQUIRED)\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "native-qt" in platforms
+
+    def test_cordova_detected_from_config_xml(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 20000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "config.xml", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "config.xml" in path:
+                return _make_b64_response(
+                    '<widget xmlns="http://cordova.apache.org/ns/1.0">\n'
+                    "  <name>MyApp</name>\n"
+                    "</widget>\n"
+                )
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "cordova" in platforms
+
+    def test_cordova_detected_from_package_json(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 20000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(
+                    json.dumps({"dependencies": {"cordova-android": "^12.0.0"}})
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "cordova" in platforms
+
+    def test_node_detected_from_nvmrc(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": ".nvmrc", "type": "file"},
+                    {"name": "package.json", "type": "file"},
+                ]
+            if "package.json" in path:
+                return _make_b64_response(json.dumps({"dependencies": {}}))
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "node" in platforms
+
+    def test_engines_node_alone_does_not_trigger_node(self) -> None:
+        """engines.node is too common in JS ecosystem (even browser libs set it)
+        so it should not by itself trigger Node detection."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"JavaScript": 30000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "package.json", "type": "file"}]
+            if "package.json" in path:
+                return _make_b64_response(
+                    json.dumps(
+                        {
+                            "engines": {"node": ">=18.0.0"},
+                            "dependencies": {},
+                        }
+                    )
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "node" not in platforms
+        assert "javascript" in platforms
+
+    def test_go_base_platform_when_no_framework(self) -> None:
+        """Go with no framework should emit plain 'go'."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Go": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "main.go", "type": "file"}]
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "go" in platforms
+
+    def test_go_with_framework_emits_framework_and_base(self) -> None:
+        """Go with a framework should emit both the framework and base 'go' platform."""
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Go": 50000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "go.mod", "type": "file"}]
+            if "go.mod" in path:
+                return _make_b64_response(
+                    "module example.com/app\n\nrequire github.com/gin-gonic/gin v1.9.1\n"
+                )
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "go-gin" in platforms
+        assert "go" in platforms
+
+    def test_python_asgi_detected_from_uvicorn(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [{"name": "requirements.txt", "type": "file"}]
+            if "requirements.txt" in path:
+                return _make_b64_response("fastapi\nuvicorn\npydantic\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "python-asgi" in platforms
+        assert "python-fastapi" in platforms
+
+    def test_python_wsgi_detected_from_gunicorn(self) -> None:
+        client = mock.MagicMock()
+        client.get_languages.return_value = {"Python": 40000}
+
+        def get_side_effect(path, params=None):
+            if path.endswith("/contents"):
+                return [
+                    {"name": "requirements.txt", "type": "file"},
+                    {"name": "manage.py", "type": "file"},
+                ]
+            if "requirements.txt" in path:
+                return _make_b64_response("Django==4.2\ngunicorn\npsycopg2\n")
+            raise ApiError("Not Found", code=404)
+
+        client.get.side_effect = get_side_effect
+
+        result = detect_platforms(client, "owner/repo")
+        platforms = [r["platform"] for r in result]
+        assert "python-wsgi" in platforms
+        assert "python-django" in platforms
+
 
 class TestFrameworksIntegrity:
     """Validate the FRAMEWORKS list is internally consistent.
@@ -931,10 +2201,16 @@ class TestFrameworksIntegrity:
     framework definitions to never match at runtime.
     """
 
-    def test_no_duplicate_platform_ids(self) -> None:
-        platform_ids = [fw["platform"] for fw in FRAMEWORKS]
-        duplicates = [p for p in platform_ids if platform_ids.count(p) > 1]
-        assert duplicates == [], f"Duplicate platform IDs: {set(duplicates)}"
+    def test_no_unintentional_duplicate_platform_ids(self) -> None:
+        # Some platforms intentionally have multiple entries with different
+        # base_platforms (e.g. android has both java and kotlin entries).
+        # Duplicates are only valid when each entry has a distinct base_platform.
+        from collections import Counter
+
+        entries = [(fw["platform"], fw["base_platform"]) for fw in FRAMEWORKS]
+        entry_counts = Counter(entries)
+        exact_dupes = [e for e, count in entry_counts.items() if count > 1]
+        assert exact_dupes == [], f"Duplicate (platform, base_platform) pairs: {exact_dupes}"
 
     def test_all_base_platforms_are_valid(self) -> None:
         valid_base_platforms = set(GITHUB_LANGUAGE_TO_SENTRY_PLATFORM.values())
@@ -970,13 +2246,13 @@ class TestFrameworksIntegrity:
                 f"{fw['platform']} sort={fw['sort']} is outside valid range 1-99"
             )
 
-    def test_no_rule_has_match_content_without_path(self) -> None:
+    def test_no_rule_has_match_content_without_file_source(self) -> None:
         for fw in FRAMEWORKS:
             for rule in [*fw.get("every", []), *fw.get("some", [])]:
                 if "match_content" in rule:
-                    assert "path" in rule, (
-                        f"{fw['platform']} has match_content without path — "
-                        f"content matching requires a file to read"
+                    assert "path" in rule or "match_ext" in rule, (
+                        f"{fw['platform']} has match_content without path or match_ext — "
+                        f"content matching requires a file source to read"
                     )
 
 
@@ -990,7 +2266,9 @@ class TestDetectPlatformsMultiStack:
     - Plus build/infra languages that should be ignored
     """
 
-    def test_full_stack_repo(self) -> None:
+    def test_full_stack_repo_only_detects_top_language(self) -> None:
+        """In a multi-language repo, only the top language's platform is
+        processed. Only one suggestion is shown to the user."""
         client = mock.MagicMock()
         client.get_languages.return_value = {
             "Python": 120000,
@@ -1022,72 +2300,35 @@ class TestDetectPlatformsMultiStack:
                 return _make_b64_response(
                     "Django==4.2\ncelery>=5.3\ngunicorn\npsycopg2-binary\nredis\n"
                 )
-            if "package.json" in path:
-                return _make_b64_response(
-                    json.dumps(
-                        {
-                            "dependencies": {
-                                "next": "^14.0.0",
-                                "react": "^18.2.0",
-                                "react-dom": "^18.2.0",
-                            },
-                            "devDependencies": {
-                                "typescript": "^5.0.0",
-                                "eslint": "^8.0.0",
-                            },
-                        }
-                    )
-                )
-            if "go.mod" in path:
-                return _make_b64_response(
-                    "module github.com/myorg/myapp\n\n"
-                    "go 1.21\n\n"
-                    "require (\n"
-                    "\tgithub.com/gin-gonic/gin v1.9.1\n"
-                    "\tgithub.com/lib/pq v1.10.9\n"
-                    ")\n"
-                )
             raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
 
         result = detect_platforms(client, "owner/repo")
-        platforms = [r["platform"] for r in result]
-        platform_set = set(platforms)
+        platform_set = {r["platform"] for r in result}
 
-        # Frameworks detected with high confidence
+        # Only Python frameworks detected (top language)
         assert "python-django" in platform_set
         assert "python-celery" in platform_set
-        assert "javascript-nextjs" in platform_set
-        assert "go-gin" in platform_set
-
-        # Supersession: React removed because Next.js is present
-        assert "javascript-react" not in platform_set
-
-        # Base platforms as fallback
+        assert "python-wsgi" in platform_set
         assert "python" in platform_set
-        assert "javascript" in platform_set
-        assert "go" in platform_set
 
-        # Ignored languages excluded entirely
-        for r in result:
-            assert r["language"] not in ("HTML", "CSS", "Shell", "Makefile", "Dockerfile")
+        # Other languages not processed
+        assert "javascript-nextjs" not in platform_set
+        assert "go-gin" not in platform_set
+        assert "javascript" not in platform_set
+        assert "go" not in platform_set
 
-        # TypeScript deduplicates into javascript base platform
-        ts_results = [r for r in result if r["language"] == "TypeScript"]
-        assert ts_results == []
-
-        # Priority ordering within a language: meta-frameworks > primary > utilities > base
-        nextjs = next(r for r in result if r["platform"] == "javascript-nextjs")
+        # Priority ordering within Python: frameworks > utilities > base
         django = next(r for r in result if r["platform"] == "python-django")
         celery = next(r for r in result if r["platform"] == "python-celery")
         python_base = next(r for r in result if r["platform"] == "python")
 
-        assert nextjs["priority"] > django["priority"] > celery["priority"]
+        assert django["priority"] > celery["priority"]
         assert celery["priority"] > python_base["priority"]
         assert python_base["priority"] == 1
 
-        # Results are sorted by (bytes, priority) descending — language majority first
+        # Results are sorted by (bytes, priority) descending
         for i in range(len(result) - 1):
             a, b = result[i], result[i + 1]
             assert (a["bytes"], a["priority"]) >= (b["bytes"], b["priority"])

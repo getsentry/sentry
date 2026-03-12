@@ -138,7 +138,7 @@ def encode_payload(message: dict[str, Any]) -> str:
     processing_deadline_duration=60,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_profile_task(
     profile: Profile | None = None,

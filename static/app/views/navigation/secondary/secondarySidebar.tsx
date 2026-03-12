@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import useResizable from 'sentry/utils/useResizable';
+import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
@@ -11,7 +11,7 @@ import {
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NAVIGATION_TOUR_CONTENT,
   NavigationTour,
@@ -43,7 +43,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavigationGroup} = useNavigationContext();
+  const {activePrimaryNavigationGroup} = useNavigation();
   const defaultActiveNavigationGroup = useActiveNavigationGroup();
 
   const activeNavigationGroup =

@@ -1,4 +1,4 @@
-import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
+import {parseHtmlMarks} from 'sentry/utils/parseHtmlMarks';
 
 const MARK_TAGS = {
   highlightPreTag: '<mark>',

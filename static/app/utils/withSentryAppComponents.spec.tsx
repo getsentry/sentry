@@ -1,6 +1,6 @@
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
+import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 
 describe('withSentryAppComponents HoC', () => {

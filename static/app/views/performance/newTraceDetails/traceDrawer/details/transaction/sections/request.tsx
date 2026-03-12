@@ -7,7 +7,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';
+import {getTransformedData} from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import {

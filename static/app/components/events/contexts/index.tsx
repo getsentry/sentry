@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {ContextDataSection} from 'sentry/components/events/contexts/contextDataSection';
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;

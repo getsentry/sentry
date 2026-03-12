@@ -5,12 +5,12 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useLogsFrozenTraceIds} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';

@@ -20,7 +20,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';

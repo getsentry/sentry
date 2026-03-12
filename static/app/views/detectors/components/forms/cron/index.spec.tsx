@@ -3,8 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 
 import {NewCronDetectorForm} from './index';

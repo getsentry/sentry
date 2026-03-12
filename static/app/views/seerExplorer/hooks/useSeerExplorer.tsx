@@ -10,12 +10,12 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {

@@ -463,7 +463,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
                         region = None
-                        if mode is SiloMode.REGION:
+                        if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
@@ -694,7 +694,7 @@ class APITestCaseMixin:
             }
             if params:
                 url += "?" + urlencode(params)
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 resp = getattr(client, method.lower())(
                     url, b"".join(data), headers["Content-Type"], **extra
                 )
@@ -732,7 +732,7 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization.flags.require_2fa = True
             organization.save()
 
@@ -998,7 +998,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1246,6 +1246,11 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+        # Reverse the ids since these are stored in little endian in
+        # ClickHouse and end up reversed. This helps if we want to compare
+        # these inserted items to results returned from EAP.
+        for item in items:
+            item.item_id = item.item_id[::-1]
 
     def store_issues(self, issues):
         assert (
@@ -2481,7 +2486,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repository(
         self,
         repository_config,

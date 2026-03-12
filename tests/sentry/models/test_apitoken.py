@@ -66,13 +66,13 @@ class ApiTokenTest(TestCase):
             token = install.api_token
             org_id = token.organization_id
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id == org_id
 
         with outbox_runner():
             install.delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
 
         assert token.organization_id is None
@@ -189,7 +189,7 @@ class ApiTokenTest(TestCase):
         with outbox_runner():
             token = ApiToken.objects.create(user_id=user.id)
 
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
                 assert (
                     f"{replica} is swug"
@@ -204,14 +204,14 @@ class ApiTokenTest(TestCase):
             token.save()
 
         # Verify replica exists
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
         # Delete token and verify replica is removed
         with outbox_runner():
             token.delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     @mock.patch(
@@ -246,7 +246,7 @@ class ApiTokenTest(TestCase):
         assert outboxes.exists()
         assert outboxes.count() > 0
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     @override_options({"api-token-async-flush": True})
@@ -268,7 +268,7 @@ class ApiTokenTest(TestCase):
         assert outboxes.exists()
         assert outboxes.count() > 0
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert replica.expires_at != updated_expires_at
 
@@ -288,7 +288,7 @@ class ApiTokenTest(TestCase):
         )
         assert not remaining_outboxes.exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert replica.hashed_token == token.hashed_token
             assert replica.user_id == user.id
@@ -302,7 +302,7 @@ class ApiTokenTest(TestCase):
         with self.tasks():
             token = ApiToken.objects.create(user_id=user.id, expires_at=initial_expires_at)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert replica.expires_at is not None
             assert abs((replica.expires_at - initial_expires_at).total_seconds()) < 1
@@ -310,7 +310,7 @@ class ApiTokenTest(TestCase):
         with self.tasks():
             token.update(expires_at=updated_expires_at)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert replica.expires_at is not None
             assert abs((replica.expires_at - updated_expires_at).total_seconds()) < 1
@@ -350,7 +350,7 @@ class ApiTokenTest(TestCase):
 
         assert ControlOutbox.objects.filter().count() == 0
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             token_replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert token_replica is not None
             assert token_replica.apitoken_id == token.id
@@ -365,7 +365,7 @@ class ApiTokenTest(TestCase):
                 token.delete()
                 self.convert_token_outboxes_to_user_scope(token_id, user)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     def test_replication_with_old_and_new_outbox_shards(self) -> None:
@@ -388,7 +388,7 @@ class ApiTokenTest(TestCase):
                 )
                 assert new_outbox.count() == 2
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).expires_at is not None
             assert ApiTokenReplica.objects.get(
                 apitoken_id=token.id
@@ -418,7 +418,7 @@ class ApiTokenInternalIntegrationTest(TestCase):
         assert token_1.organization_id == self.org.id
         assert token_2.organization_id == self.org.id
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert (
                 ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id == self.org.id
             )
@@ -430,7 +430,7 @@ class ApiTokenInternalIntegrationTest(TestCase):
             for install_token in SentryAppInstallationToken.objects.all():
                 install_token.delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert ApiTokenReplica.objects.get(apitoken_id=token_1.id).organization_id is None
             assert ApiTokenReplica.objects.get(apitoken_id=token_2.id).organization_id is None
 

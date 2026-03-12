@@ -13,7 +13,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = Omit<

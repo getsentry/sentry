@@ -22,9 +22,9 @@ import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {

@@ -12,9 +12,9 @@ import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {
   OnDemandBudgetMode,
   OnDemandBudgets,

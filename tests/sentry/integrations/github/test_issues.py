@@ -224,7 +224,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -278,7 +278,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_create_issue_with_invalid_field(self, mock_record: MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -320,7 +320,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue_with_bad_github_repo(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -355,7 +355,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue_with_bad_github_repo_permissions(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -387,7 +387,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue_raises_integration_error(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -418,7 +418,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert e.value.args[0] == "Error Communicating with GitHub (HTTP 500): dang snap!"
 
     def test_create_issue_with_repo_not_belonging_to_integration(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -442,7 +442,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_create_issue_with_valid_repo_ownership(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -478,7 +478,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         }
 
     def test_get_issue_with_repo_not_belonging_to_integration(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -497,7 +497,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_get_issue_with_valid_repo_ownership(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",
@@ -577,7 +577,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_link_issue(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github",

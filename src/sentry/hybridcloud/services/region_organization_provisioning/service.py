@@ -18,7 +18,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
     """
 
     key = "region_organization_provisioning"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
@@ -29,12 +29,25 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         provision_payload: OrganizationProvisioningOptions,
     ) -> bool:
         """
+        TODO(cells): Deprecated, remove method when all callers are updated to use create_organization_in_cell
+        """
+
+    @regional_rpc_method(resolve=ByCellName())
+    @abstractmethod
+    def create_organization_in_cell(
+        self,
+        *,
+        cell_name: str,
+        organization_id: int,
+        provision_payload: OrganizationProvisioningOptions,
+    ) -> bool:
+        """
         CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
         DO NOT USE FOR LOCAL ORGANIZATION PROVISIONING.
 
-        An RPC method for creating an organization in the desired region.
+        An RPC method for creating an organization in the desired cell.
 
-        :param region_name: The region to create an organization in.
+        :param cell_name: The cell to create an organization in.
         :param organization_id: The desired organization's ID, which must be a snowflake ID.
         :param provision_payload: The provisioning options for the organization.
         """
@@ -43,7 +56,9 @@ class RegionOrganizationProvisioningRpcService(RpcService):
     @abstractmethod
     def update_organization_slug_from_reservation(
         self,
-        region_name: str,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
     ) -> bool:
         """
@@ -53,7 +68,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         An RPC method for processing a slug change on the region, after it has been reserved
         as a temporary alias in the control silo.
 
-        :param region_name: The region name where the organization resides.
+        :param cell_name: The cell where the organization resides.
         :param org_slug_temporary_alias_res: OrganizationSlugReservation for the new temporary alias.
         :return: True if provisioning succeeded, False if a conflict occurred
         """

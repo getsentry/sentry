@@ -42,8 +42,8 @@ import type {EChartClickHandler} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 

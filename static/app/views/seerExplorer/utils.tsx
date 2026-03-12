@@ -6,7 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {

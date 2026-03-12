@@ -16,7 +16,7 @@ import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
  *
  * This function simply disables the animation `type`.
  */
-const testableTransition =
+export const testableTransition =
   !IS_ACCEPTANCE_TEST && NODE_ENV !== 'test'
     ? (t?: Transition) => t
     : function (): Transition {
@@ -26,5 +26,3 @@ const testableTransition =
           type: false,
         };
       };
-
-export default testableTransition;

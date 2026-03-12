@@ -7,7 +7,7 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';

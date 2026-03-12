@@ -21,10 +21,10 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   makeDetectorDetailsQueryKey,

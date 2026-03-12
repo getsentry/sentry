@@ -14,7 +14,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';

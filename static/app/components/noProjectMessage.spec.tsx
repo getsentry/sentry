@@ -5,9 +5,9 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('NoProjectMessage', () => {
   beforeEach(() => {

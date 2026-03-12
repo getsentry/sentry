@@ -1,6 +1,6 @@
 import type * as Sentry from '@sentry/react';
 
-import type ConfigStore from 'sentry/stores/configStore';
+import type {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 
 declare global {

@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import GroupUserFeedback from './groupUserFeedback';
 

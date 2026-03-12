@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 

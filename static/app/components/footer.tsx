@@ -10,10 +10,10 @@ import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import useOrganization from 'sentry/utils/useOrganization';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SentryLogoProps = SVGIconProps & {
   /**
