@@ -757,8 +757,8 @@ def format_request_data(
             translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
         except KeyError:
             raise ValidationError("Ensure all required fields are filled in.")
-        except ValueError as e:
-            raise ValidationError(str(e))
+        except ValueError:
+            raise ValidationError("Invalid condition data")
 
         translated_conditions.pop("condition_group")
         triggers["conditions"].append(translated_conditions)
@@ -770,8 +770,8 @@ def format_request_data(
             translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
         except KeyError:
             raise ValidationError("Ensure all required fields are filled in.")
-        except ValueError as e:
-            raise ValidationError(str(e))
+        except ValueError:
+            raise ValidationError("Invalid filter data")
 
         translated_filters.pop("condition_group")
         translated_filter_list.append(translated_filters)
