@@ -25,27 +25,35 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import RequestError from 'sentry/utils/requestError/requestError';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeFetchSecretQueryKey,
   type Secret,
 } from 'sentry/views/settings/featureFlags/changeTracking';
 
 const schema = z.object({
-  provider: z.string().min(1, t('Provider is required')),
+  provider: z
+    .enum(WebhookProviderEnum)
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
   secret: z.string().min(1, t('Secret is required')).max(100),
 });
 
-type CreateSecretData = z.infer<typeof schema>;
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+  secret: '',
+};
+
+type CreateSecretData = z.output<typeof schema>;
 
 interface Props {
   canSaveSecret: boolean;
   onCreatedSecret: (secret: string) => void;
   setError: (error: string | null) => void;
-  setSelectedProvider: (provider: string) => void;
+  setSelectedProvider: (provider: WebhookProviderEnum) => void;
   existingSecret?: Secret;
 }
 
@@ -66,8 +74,8 @@ export function NewProviderForm({
     );
   }, [organization.slug, navigate]);
 
-  const mutation = useMutation<string, RequestError, CreateSecretData>({
-    mutationFn: ({provider, secret}) => {
+  const mutation = useMutation({
+    mutationFn: ({provider, secret}: CreateSecretData) => {
       addLoadingMessage();
       return fetchMutation({
         url: `/organizations/${organization.slug}/flags/signing-secrets/`,
@@ -88,26 +96,28 @@ export function NewProviderForm({
     },
     onError: error => {
       clearIndicators();
-      const responseJSON = error.responseJSON;
-      const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
+      if (error instanceof RequestError) {
+        const responseJSON = error.responseJSON;
+        const hasFieldSpecificErrors = responseJSON?.secret || responseJSON?.provider;
 
-      if (!hasFieldSpecificErrors) {
-        const message =
-          typeof responseJSON === 'string'
-            ? responseJSON
-            : t('Failed to add provider or secret.');
-        handleXhrErrorResponse(message, error);
-        setError(message);
+        if (!hasFieldSpecificErrors) {
+          const message =
+            typeof responseJSON === 'string'
+              ? responseJSON
+              : t('Failed to add provider or secret.');
+          handleXhrErrorResponse(message, error);
+          setError(message);
+        }
       }
     },
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {provider: '', secret: ''},
+    defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      return mutation.mutateAsync(value).catch((error: RequestError) => {
+      return mutation.mutateAsync(schema.parse(value)).catch((error: RequestError) => {
         const responseJSON = error.responseJSON;
         if (responseJSON?.secret || responseJSON?.provider) {
           const extractMessage = (val: unknown): string => {
@@ -157,7 +167,7 @@ export function NewProviderForm({
                 />
               </field.Layout.Row>
               <WebhookUrlField
-                provider={field.state.value}
+                provider={field.state.value ?? ''}
                 organizationSlug={organization.slug}
               />
             </div>

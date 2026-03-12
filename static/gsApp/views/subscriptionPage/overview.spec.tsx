@@ -9,7 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {CohortId, PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 

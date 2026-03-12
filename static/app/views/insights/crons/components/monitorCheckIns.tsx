@@ -4,7 +4,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getNextCheckInEnv} from 'sentry/views/alerts/rules/crons/utils';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {useMonitorCheckIns} from 'sentry/views/insights/crons/utils/useMonitorCheckIns';

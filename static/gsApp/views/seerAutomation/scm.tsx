@@ -3,8 +3,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
-import ScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
-import useScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
+import {ScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
+import {useScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

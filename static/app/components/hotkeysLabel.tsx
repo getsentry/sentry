@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 
 const macModifiers = {

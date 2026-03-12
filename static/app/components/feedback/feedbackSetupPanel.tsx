@@ -9,7 +9,7 @@ import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useF
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function FeedbackSetupPanel() {
   const organization = useOrganization();

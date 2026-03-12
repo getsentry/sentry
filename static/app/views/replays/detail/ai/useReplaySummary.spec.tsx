@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,

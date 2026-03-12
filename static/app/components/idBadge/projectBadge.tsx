@@ -6,8 +6,8 @@ import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
-import getPlatformName from 'sentry/utils/getPlatformName';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getPlatformName} from 'sentry/utils/getPlatformName';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {BadgeDisplayName} from './badgeDisplayName';

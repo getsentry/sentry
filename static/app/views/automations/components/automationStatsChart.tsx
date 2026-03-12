@@ -17,7 +17,7 @@ import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/auto
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
   automationId: Automation['id'];

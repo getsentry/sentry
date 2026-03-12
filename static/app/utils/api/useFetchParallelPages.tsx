@@ -88,7 +88,7 @@ interface State<Data> {
  * - Responses will return out of order (in this case items 50 to 100 return
  *   before items 0 to 50) which could cause layout shift.
  */
-export default function useFetchParallelPages<Data>({
+export function useFetchParallelPages<Data>({
   enabled,
   hits,
   getQueryKey,

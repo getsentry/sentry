@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -254,7 +254,7 @@ def compare_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def manual_size_analysis_comparison(
     project_id: int,

@@ -9,7 +9,7 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useNodeDetailsLink} from 'sentry/views/insights/pages/agents/hooks/useNodeDetailsLink';

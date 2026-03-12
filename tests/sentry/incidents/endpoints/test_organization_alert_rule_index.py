@@ -266,6 +266,31 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
             "LIST should return count() to user, hiding internal upsampled_count() storage"
         )
 
+    def test_workflow_engine_serializer_snoozed_detector(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.detector.update(enabled=False)
+        self.login_as(self.user)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data[0]["snooze"] is True
+
+    def test_workflow_engine_serializer_enabled_detector_no_snooze(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+        self.login_as(self.user)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert "snooze" not in resp.data[0]
+
 
 @freeze_time("2024-12-11 03:21:34")
 class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
@@ -1544,7 +1569,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     def test_no_perms(self) -> None:
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")

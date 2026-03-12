@@ -10,8 +10,8 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import useOrganization from 'sentry/utils/useOrganization';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 import OldProjectDetails from 'sentry/views/settings/projectSeer/index';

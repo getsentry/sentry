@@ -16,7 +16,7 @@ import {Count} from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
@@ -32,8 +32,8 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 import {MAX_FUNCTIONS} from './constants';

@@ -27,7 +27,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SLOWEST_FUNCTIONS_LIMIT = 15;
 const SLOWEST_FUNCTIONS_CURSOR = 'functionsCursor';

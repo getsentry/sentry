@@ -4,7 +4,7 @@ import {useRole} from 'sentry/components/acl/useRole';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
 import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;

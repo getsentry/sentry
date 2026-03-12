@@ -32,7 +32,7 @@ class ControlTombstoneService(RpcService):
 
 class RegionTombstoneService(RpcService):
     key = "region_tombstone"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

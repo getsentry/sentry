@@ -23,8 +23,8 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
   EditableRule,
   Rule,
@@ -102,8 +102,8 @@ export function DataScrubFormModal({
 
   // Compute initial dataset from initialState
   const initialValues = {
-    type: initialState?.type ?? RuleType.CREDITCARD,
-    method: initialState?.method ?? MethodType.MASK,
+    type: (initialState?.type as RuleType) ?? RuleType.CREDITCARD,
+    method: (initialState?.method as MethodType) ?? MethodType.MASK,
     source: initialState?.source ?? '',
     placeholder: initialState?.placeholder ?? '',
     pattern: initialState?.pattern ?? '',
@@ -296,7 +296,6 @@ export function DataScrubFormModal({
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
                         isSearchable={false}
-                        openOnFocus
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -352,7 +351,6 @@ export function DataScrubFormModal({
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
                     isSearchable={false}
-                    openOnFocus
                   />
                 </typeField.Layout.Stack>
               )}

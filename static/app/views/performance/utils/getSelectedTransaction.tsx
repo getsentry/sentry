@@ -5,7 +5,7 @@ import type {
   NormalizedTrendsTransaction,
   TrendChangeType,
 } from 'sentry/views/performance/trends/types';
-import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
+import {getSelectedQueryKey} from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 
 export function getSelectedTransaction(
   location: Location,

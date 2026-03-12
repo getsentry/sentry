@@ -23,7 +23,7 @@ delete_logger = logging.getLogger("sentry.deletions.async")
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_tasks,
     retry=Retry(delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
 def merge_groups(

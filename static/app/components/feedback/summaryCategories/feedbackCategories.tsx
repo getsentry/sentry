@@ -5,7 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
+import {useFeedbackCategories} from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -13,7 +13,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function getSearchTermForLabel(label: string) {
   /**

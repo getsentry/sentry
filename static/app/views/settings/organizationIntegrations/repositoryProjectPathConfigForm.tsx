@@ -45,7 +45,7 @@ const integrationReposOptions = (
     }
   );
 
-export default function RepositoryProjectPathConfigModal({
+export function RepositoryProjectPathConfigModal({
   Body,
   Footer,
   Header,

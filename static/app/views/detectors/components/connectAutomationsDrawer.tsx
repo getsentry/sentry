@@ -6,7 +6,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
 import {makeAutomationsQueryKey} from 'sentry/views/automations/hooks';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';

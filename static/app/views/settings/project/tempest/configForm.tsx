@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';

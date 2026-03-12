@@ -47,12 +47,7 @@ interface Props {
     | undefined;
 }
 
-export default function useMutateActivity({
-  organization,
-  group,
-  onMutate,
-  onSettled,
-}: Props) {
+export function useMutateActivity({organization, group, onMutate, onSettled}: Props) {
   const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {

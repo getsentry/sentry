@@ -11,7 +11,7 @@ import {
   type ColumnType,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {
   RawVisualize,
   SavedQuery,

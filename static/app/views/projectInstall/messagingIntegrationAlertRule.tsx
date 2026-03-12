@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IssueAlertNotificationProps,

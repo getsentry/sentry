@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';

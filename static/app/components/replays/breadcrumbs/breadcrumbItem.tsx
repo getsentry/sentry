@@ -13,7 +13,7 @@ import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcru
 import {Timeline} from 'sentry/components/timeline';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';

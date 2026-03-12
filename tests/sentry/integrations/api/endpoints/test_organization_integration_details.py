@@ -38,7 +38,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             self.organization, self.user, default_auth_id=self.identity.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = Repository.objects.create(
                 provider="gitlab",
                 name="getsentry/sentry",

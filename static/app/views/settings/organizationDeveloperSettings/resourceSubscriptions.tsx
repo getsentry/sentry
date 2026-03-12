@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
 import {
   EVENT_CHOICES,
@@ -21,7 +21,7 @@ type Props = DefaultProps & {
   permissions: Permissions;
 };
 
-export default class Subscriptions extends Component<Props> {
+export class Subscriptions extends Component<Props> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };

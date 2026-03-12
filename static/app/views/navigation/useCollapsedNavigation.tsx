@@ -25,7 +25,6 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {
-    navigationParentRef,
     isCollapsed,
     isInteractingRef,
     endInteraction,
@@ -42,6 +41,18 @@ export function useCollapsedNavigation() {
     setCollapsedNavigationIsOpen(false);
     setActivePrimaryNavigationGroup(null);
   }, [endInteraction, setActivePrimaryNavigationGroup, setCollapsedNavigationIsOpen]);
+
+  const navigationParentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (navigationParentRef.current) return;
+    const navigationParentEl = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationParentEl) {
+      navigationParentRef.current = navigationParentEl as HTMLDivElement;
+    }
+  }, []);
 
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
