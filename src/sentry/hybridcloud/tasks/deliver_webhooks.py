@@ -401,7 +401,7 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
 def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
     """Extract GitHub event and action from payload for delivery_time_ms metric tags.
 
-    Returns a single tag github_event_and_action as "<event>:<action>", using "unknown"
+    Returns a single tag github_event_and_action as "<event>.<action>", using "unknown"
     when the request body has no action (e.g. push, ping).
     """
     if payload.provider != "github":
@@ -428,7 +428,7 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
             body_action = body.get("action")
             if isinstance(body_action, str) and body_action:
                 action = body_action
-    return {"github_event_and_action": f"{event_type}:{action}"}
+    return {"github_event_and_action": f"{event_type}.{action}"}
 
 
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
