@@ -3293,6 +3293,26 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Phase 1: Write payload sets to per-span distributed keys AND colocated keys.
+# Flusher reads colocated keys as before.
+register(
+    "spans.buffer.distribute-payload-keys",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Phase 2: Switch flusher to read from distributed keys instead of colocated.
+register(
+    "spans.buffer.distribute-payload-keys-read",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Phase 3: Stop colocated writes and merges. Enable after distribute-payload-keys-read
+# is stable.
+register(
+    "spans.buffer.distribute-payload-keys-stop-colocated",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(

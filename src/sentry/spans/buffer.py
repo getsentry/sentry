@@ -91,7 +91,12 @@ from sentry.spans.buffer_logger import (
 )
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.debug_trace_logger import DebugTraceLogger
-from sentry.spans.segment_key import SegmentKey, parse_segment_key, segment_key_to_span_id
+from sentry.spans.segment_key import (
+    DistributedPayloadKey,
+    SegmentKey,
+    parse_segment_key,
+    segment_key_to_span_id,
+)
 from sentry.utils import metrics, redis
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -137,6 +142,7 @@ class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
+    distributed_sub_keys: list[DistributedPayloadKey] = []  # For cleanup
 
 
 class SpansBuffer:
@@ -152,6 +158,7 @@ class SpansBuffer:
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
+        self._distributed_sub_keys_map: dict[SegmentKey, list[bytes]] = {}
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -163,6 +170,15 @@ class SpansBuffer:
 
     def _get_span_key(self, project_and_trace: str, span_id: str) -> bytes:
         return f"span-buf:s:{{{project_and_trace}}}:{span_id}".encode("ascii")
+
+    def _get_distributed_payload_key(
+        self, project_and_trace: str, span_id: str
+    ) -> DistributedPayloadKey:
+        return f"span-buf:s:{{{project_and_trace}:{span_id}}}:{span_id}".encode("ascii")
+
+    def _get_payload_key_index(self, segment_key: SegmentKey) -> bytes:
+        project_id, trace_id, span_id = parse_segment_key(segment_key)
+        return b"span-buf:mk:{%s:%s}:%s" % (project_id, trace_id, span_id)
 
     @metrics.wraps("spans.buffer.process_spans")
     def process_spans(self, spans: Sequence[Span], now: int):
@@ -186,6 +202,8 @@ class SpansBuffer:
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
+        distribute_write = options.get("spans.buffer.distribute-payload-keys")
+        stop_colocated = options.get("spans.buffer.distribute-payload-keys-stop-colocated")
 
         result_meta = []
         is_root_span_count = 0
@@ -214,8 +232,20 @@ class SpansBuffer:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
-                        set_key = self._get_span_key(project_and_trace, parent_span_id)
-                        p.sadd(set_key, *set_members.keys())
+                        if distribute_write:
+                            # Write to distributed key.
+                            dist_key = self._get_distributed_payload_key(
+                                project_and_trace, parent_span_id
+                            )
+                            p.sadd(dist_key, *set_members.keys())
+                            p.expire(dist_key, redis_ttl)
+
+                        if not stop_colocated:
+                            # Write to colocated key. Runs in phases 1-2
+                            # (dual-write) so distribute_read can be safely
+                            # rolled back. Stopped in phase 3.
+                            coloc_key = self._get_span_key(project_and_trace, parent_span_id)
+                            p.sadd(coloc_key, *set_members.keys())
 
                     p.execute()
 
@@ -257,6 +287,8 @@ class SpansBuffer:
                             max_segment_bytes,
                             byte_count,
                             zero_copy_threshold,
+                            "true" if distribute_write else "false",
+                            "true" if stop_colocated else "false",
                             *span_ids,
                         )
 
@@ -565,6 +597,7 @@ class SpansBuffer:
                 queue_key=queue_key,
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
+                distributed_sub_keys=self._distributed_sub_keys_map.get(segment_key, []),
             )
             num_has_root_spans += int(has_root_span)
 
@@ -659,12 +692,52 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
+        distribute_read = options.get("spans.buffer.distribute-payload-keys-read")
+        distribute_write = options.get("spans.buffer.distribute-payload-keys")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
-        cursors = {key: 0 for key in segment_keys}
         sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
+
+        # Maps each scan key back to the segment it belongs to. For colocated
+        # keys these are the same; for distributed keys many map to one segment.
+        scan_key_to_segment: dict[SegmentKey | DistributedPayloadKey, SegmentKey] = {}
+
+        # When distribute_read is off, scan colocated segment keys directly.
+        # When on, skip them — all data lives in distributed keys.
+        cursors: dict[bytes, int] = {}
+        if not distribute_read:
+            for key in segment_keys:
+                scan_key_to_segment[key] = key
+                cursors[key] = 0
+
+        # Distributed sub-keys per segment, for cleanup in done_flush_segments.
+        # Always fetch when distribute_write is on so keys are cleaned up even
+        # when distribute_read is still off (phase 1).
+        self._distributed_sub_keys_map: dict[SegmentKey, list[bytes]] = {}
+
+        if distribute_write or distribute_read:
+            with self.client.pipeline(transaction=False) as p:
+                for key in segment_keys:
+                    p.smembers(self._get_payload_key_index(key))
+                mk_results = p.execute()
+
+            for key, sub_span_ids in zip(segment_keys, mk_results):
+                project_id, trace_id, _ = parse_segment_key(key)
+                pat = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                distributed_keys: list[bytes] = []
+                for sub_span_id in sub_span_ids:
+                    distributed_key = self._get_distributed_payload_key(
+                        pat, sub_span_id.decode("ascii")
+                    )
+                    distributed_keys.append(distributed_key)
+                    if distribute_read:
+                        scan_key_to_segment[distributed_key] = key
+                        cursors[distributed_key] = 0
+                self._distributed_sub_keys_map[key] = distributed_keys
+
+        dropped_segments: set[SegmentKey] = set()
 
         def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
             """
@@ -683,6 +756,7 @@ class SpansBuffer:
                 logger.warning("Skipping too large segment, byte size %s", sizes[key])
                 payloads.pop(key, None)
                 sizes.pop(key, None)
+                dropped_segments.add(key)
                 return False
 
             payloads[key].extend(decompressed)
@@ -698,10 +772,15 @@ class SpansBuffer:
                 scan_results = p.execute()
 
             for key, (cursor, scan_values) in zip(current_keys, scan_results):
+                segment_key = scan_key_to_segment[key]
+                if segment_key in dropped_segments:
+                    cursors.pop(key, None)
+                    continue
+
                 size_exceeded = False
                 for scan_value in scan_values:
-                    if key in payloads:
-                        if not _add_spans(key, scan_value):
+                    if segment_key in payloads:
+                        if not _add_spans(segment_key, scan_value):
                             size_exceeded = True
 
                 if size_exceeded:
@@ -710,6 +789,20 @@ class SpansBuffer:
                     del cursors[key]
                 else:
                     cursors[key] = cursor
+
+        # Clean up distributed keys for segments that were dropped due to size.
+        if dropped_segments and (distribute_write or distribute_read):
+            with self.client.pipeline(transaction=False) as p:
+                for dropped_key in dropped_segments:
+                    sub_keys = self._distributed_sub_keys_map.get(dropped_key, [])
+                    if sub_keys:
+                        mk_key = self._get_payload_key_index(dropped_key)
+                        p.delete(mk_key)
+                        for batch in itertools.batched(sub_keys, 100):
+                            p.unlink(*batch)
+                    # Remove from map so done_flush_segments doesn't try again.
+                    self._distributed_sub_keys_map.pop(dropped_key, None)
+                p.execute()
 
         # Fetch ingested counts for all segments to calculate dropped spans
         with self.client.pipeline(transaction=False) as p:
@@ -799,6 +892,15 @@ class SpansBuffer:
                     for span_batch in itertools.batched(flushed_segment.spans, 100):
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
                         p.hdel(redirect_map_key, *span_ids)
+
+                    # Clean up distributed mode keys.
+                    if flushed_segment.distributed_sub_keys:
+                        mk_key = self._get_payload_key_index(segment_key)
+                        p.delete(mk_key)
+                        for distributed_key_batch in itertools.batched(
+                            flushed_segment.distributed_sub_keys, 100
+                        ):
+                            p.unlink(*distributed_key_batch)
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):
