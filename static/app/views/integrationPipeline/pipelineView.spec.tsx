@@ -13,10 +13,9 @@ function MockAwsLambdaProjectSelect() {
   return <div>mock_AwsLambdaProjectSelect</div>;
 }
 
-jest.mock(
-  'sentry/views/integrationPipeline/awsLambdaProjectSelect',
-  () => MockAwsLambdaProjectSelect
-);
+jest.mock('sentry/views/integrationPipeline/awsLambdaProjectSelect', () => ({
+  AwsLambdaProjectSelect: MockAwsLambdaProjectSelect,
+}));
 
 describe('PipelineView', () => {
   beforeEach(() => {

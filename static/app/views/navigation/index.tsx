@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -13,19 +12,20 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import {MobileTopbar} from 'sentry/views/navigation/mobileTopbar';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
+import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {Sidebar} from 'sentry/views/navigation/sidebar';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
-  const {layout, navigationParentRef} = useNavigationContext();
+  const theme = useTheme();
+  const {layout} = useNavigationContext();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
@@ -60,24 +60,40 @@ function UserAndOrganizationNavigation() {
   }, [endTour, layout, tourIsActive]);
 
   return (
-    <NavigationContainer
-      ref={navigationParentRef}
-      tourIsActive={tourIsActive}
-      isMobile={layout === NavigationLayout.MOBILE}
+    <Flex
+      top={0}
+      position={tourIsActive ? undefined : 'sticky'}
+      bottom={layout === NavigationLayout.MOBILE ? undefined : 0}
+      height={layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
+      style={{
+        zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
+        userSelect: 'none',
+      }}
       {...hoverProps}
     >
-      {layout === NavigationLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-    </NavigationContainer>
+      {layout === NavigationLayout.SIDEBAR ? <DesktopNavigation /> : <MobileNavigation />}
+    </Flex>
   );
 }
 
 function UserOnlyNavigation() {
+  const theme = useTheme();
   return (
-    <NoOrganizationSidebar data-test-id="no-organization-sidebar">
+    <Flex
+      data-test-id="no-organization-sidebar"
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      padding="lg 0 md 0"
+      borderRight="primary"
+      background="primary"
+      direction="column"
+      align="center"
+      justify="between"
+      style={{zIndex: theme.zIndex.sidebarPanel}}
+    >
       <Flex direction="column" gap="md" justify="between">
         <UserDropdown />
       </Flex>
-    </NoOrganizationSidebar>
+    </Flex>
   );
 }
 
@@ -94,35 +110,3 @@ export function Navigation() {
     </NavigationTourProvider>
   );
 }
-
-const NavigationContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
-  display: flex;
-  user-select: none;
-
-  ${p =>
-    !p.tourIsActive &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${p.theme.zIndex.sidebarPanel};
-    `}
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      bottom: 0;
-      height: 100vh;
-      height: 100dvh;
-    `}
-`;
-
-const NoOrganizationSidebar = styled('div')`
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
-  width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${p => p.theme.space.lg} 0 ${p => p.theme.space.md} 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-`;

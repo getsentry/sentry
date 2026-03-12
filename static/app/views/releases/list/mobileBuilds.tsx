@@ -46,6 +46,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     const query: Record<string, any> = {
       per_page: 25,
       ...normalizeDateTimeParams(location.query),
+      display: activeDisplay,
     };
 
     if (cursor) {

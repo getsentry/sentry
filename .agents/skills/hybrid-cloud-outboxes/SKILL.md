@@ -78,7 +78,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -91,7 +91,7 @@ class MyModelManager(RegionOutboxProducingManager["MyModel"]):
     pass
 
 
-@region_silo_model
+@cell_silo_model
 class MyModel(ReplicatedRegionModel):
     __relocation_scope__ = RelocationScope.Organization
 

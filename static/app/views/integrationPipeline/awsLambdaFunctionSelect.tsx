@@ -37,7 +37,7 @@ type State = {
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
-export default class AwsLambdaFunctionSelect extends Component<Props, State> {
+export class AwsLambdaFunctionSelect extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     makeObservable(this, {allStatesToggled: computed});

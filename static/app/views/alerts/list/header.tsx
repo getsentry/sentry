@@ -11,8 +11,9 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {
@@ -20,7 +21,8 @@ type Props = {
 };
 
 export function AlertHeader({activeTab}: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
@@ -29,7 +31,11 @@ export function AlertHeader({activeTab}: Props) {
    */
   const handleNavigateToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`, router);
+    navigateTo(
+      `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      navigate,
+      location
+    );
   };
 
   const alertRulesLink = (

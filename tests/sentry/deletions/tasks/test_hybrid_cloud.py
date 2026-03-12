@@ -11,7 +11,7 @@ from django.db import connections, router, transaction
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.tasks.hybrid_cloud import (
     WatermarkBatch,
@@ -45,11 +45,11 @@ from sentry.testutils.silo import (
     control_silo_test,
     region_silo_test,
 )
-from sentry.types.region import find_regions_for_user
+from sentry.types.region import find_cells_for_user
 from sentry.users.models.user import User
 
 
-@region_silo_model
+@cell_silo_model
 class DoNothingIntegrationModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
@@ -149,7 +149,7 @@ def setup_deletable_objects(
     for i in range(count):
         Factories.create_saved_search(f"s-{i}", owner_id=u_id)
 
-    for region_name in find_regions_for_user(u_id):
+    for region_name in find_cells_for_user(u_id):
         shard = ControlOutbox(
             shard_scope=OutboxScope.USER_SCOPE, shard_identifier=u_id, cell_name=region_name
         )

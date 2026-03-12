@@ -14,7 +14,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -108,7 +108,7 @@ class TeamStatus:
 
 
 @snowflake_id_model
-@region_silo_model
+@cell_silo_model
 class Team(ReplicatedRegionModel):
     """
     A team represents a group of individuals which maintain ownership of projects.

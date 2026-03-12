@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
+import {createPortal} from 'react-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -11,16 +13,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {NavigationLayout} from 'sentry/views/navigation/types';
@@ -533,3 +537,57 @@ export function isSidebarLinkActive(
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
 }
+
+type PrimaryButtonOverlayProps = {
+  children: React.ReactNode;
+  overlayProps: React.HTMLAttributes<HTMLDivElement>;
+};
+
+export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
+  const {layout} = useNavigationContext();
+
+  return useOverlay({
+    offset: 8,
+    position: layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end',
+    isDismissable: true,
+    shouldApplyMinWidth: false,
+    ...props,
+  });
+}
+
+/**
+ * Overlay to be used for primary navigation buttons in footer, such as
+ * "what's new" and "onboarding". This will appear as a normal overlay
+ * on desktop and a modified overlay in mobile to match the design of
+ * the mobile topbar.
+ */
+export function PrimaryButtonOverlay({
+  children,
+  overlayProps,
+}: PrimaryButtonOverlayProps) {
+  const theme = useTheme();
+  const {layout} = useNavigationContext();
+
+  return createPortal(
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
+        <ScrollableOverlay isMobile={layout === NavigationLayout.MOBILE}>
+          {children}
+        </ScrollableOverlay>
+      </PositionWrapper>
+    </FocusScope>,
+    document.body
+  );
+}
+
+const ScrollableOverlay = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{
+  isMobile: boolean;
+}>`
+  overscroll-behavior: none;
+  min-height: 150px;
+  max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
+  overflow-y: auto;
+  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
+`;

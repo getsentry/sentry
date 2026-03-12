@@ -71,6 +71,10 @@ describe('SettingsSearch', () => {
     await userEvent.type(screen.getByPlaceholderText('Search'), 'test');
     await userEvent.click(await screen.findByText(textWithMarkupMatcher('test-1')));
 
-    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything());
+    expect(navigateTo).toHaveBeenCalledWith(
+      '/test-1/',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

@@ -39,11 +39,11 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -110,8 +110,13 @@ function StepRenderer({
 }) {
   const theme = useTheme();
   const {type, title} = step;
-  const api = useApi();
   const organization = useOrganization();
+  const firstIssue = useEventWaiter({
+    eventType: 'profile',
+    organization,
+    project,
+    disabled: !isLastStep,
+  });
 
   return (
     <GuidedSteps.Step
@@ -125,18 +130,7 @@ function StepRenderer({
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
-        {isLastStep && (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={project}
-            eventType="profile"
-          >
-            {({firstIssue}) => (
-              <WaitingIndicator project={project} hasProfile={!!firstIssue} />
-            )}
-          </EventWaiter>
-        )}
+        {isLastStep && <WaitingIndicator project={project} hasProfile={!!firstIssue} />}
       </GuidedSteps.ButtonWrapper>
       {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
       {isLastStep && <PulseSpacer />}

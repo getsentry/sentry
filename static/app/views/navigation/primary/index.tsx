@@ -20,7 +20,7 @@ import {
 } from 'sentry/icons';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -35,7 +35,7 @@ import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboa
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({

@@ -5,7 +5,7 @@ import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close
@@ -25,7 +25,6 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {
-    navigationParentRef,
     isCollapsed,
     isInteractingRef,
     endInteraction,
@@ -42,6 +41,18 @@ export function useCollapsedNavigation() {
     setCollapsedNavigationIsOpen(false);
     setActivePrimaryNavigationGroup(null);
   }, [endInteraction, setActivePrimaryNavigationGroup, setCollapsedNavigationIsOpen]);
+
+  const navigationParentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (navigationParentRef.current) return;
+    const navigationParentEl = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationParentEl) {
+      navigationParentRef.current = navigationParentEl as HTMLDivElement;
+    }
+  }, []);
 
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');

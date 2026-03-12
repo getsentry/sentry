@@ -7,7 +7,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.locks import locks
 from sentry.models.environment import Environment
@@ -15,7 +15,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@region_silo_model
+@cell_silo_model
 class Deploy(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
