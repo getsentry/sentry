@@ -626,7 +626,7 @@ class WorkflowRuleSerializerTest(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
         action_data = {
-            "workspace": self.integration.id,
+            "workspace": str(self.integration.id),
             "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
             "channel_id": "C0123456789",
             "tags": "hellboy, meow",

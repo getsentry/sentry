@@ -111,6 +111,11 @@ def assert_serializer_results_match(
     rule_actions = sorted(rule_response.get("actions", []), key=lambda t: t.get("id", ""))
     workflow_actions = sorted(workflow_response.get("actions", []), key=lambda t: t.get("id", ""))
 
+    # this is not read by the front end
+    for rule_action in rule_actions:
+        if rule_action.get("hasSchemaFormConfig"):
+            del rule_action["hasSchemaFormConfig"]
+
     for rule_action_data, workflow_action_data in zip(rule_actions, workflow_actions):
         del rule_action_data["uuid"]
         if rule_action_data.get("legacy_rule_id"):
@@ -1411,6 +1416,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     def test_invalid_rule_node(self) -> None:
         payload = {
@@ -1423,6 +1436,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     def test_rule_form_not_valid(self) -> None:
         payload = {
@@ -1440,7 +1461,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 self.organization.slug,
                 self.project.slug,
                 self.fake_dual_written_workflow_id,
-                status_code=500,
+                status_code=400,
                 **payload,
             )
 
@@ -1530,11 +1551,21 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "conditions": [],
             "filters": [],
         }
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert_rule_from_payload(self.rule, payload)
         assert len(responses.calls) == 1
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     @responses.activate
     def test_update_sentry_app_action_failure(self) -> None:
@@ -1566,6 +1597,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_with_public_context(self, result: MagicMock) -> None:
@@ -1599,6 +1639,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert error_message in response.json().get("actions")[0]
         assert response.json().get("context") == {"bruh": "bruhhhh"}
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_sentry_error(self, result: MagicMock) -> None:
@@ -1639,6 +1688,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.json().get("context") == {"bruh": "bro!"}
         assert list(response.json().keys()) == ["context", "actions"]
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
+
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_missing_error_type(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
@@ -1675,6 +1733,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert list(response.json().keys()) == ["actions"]
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
+
     def test_edit_condition_metric(self) -> None:
         payload = {
             "name": "name",
@@ -1684,9 +1751,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
             "conditions": self.first_seen_condition,
         }
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_edit_non_condition_metric(self) -> None:
         payload = {

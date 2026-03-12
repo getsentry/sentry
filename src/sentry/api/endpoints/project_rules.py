@@ -8,6 +8,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -752,14 +753,26 @@ def format_request_data(
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
-        translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        try:
+            translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError as e:
+            raise ValidationError(str(e))
+
         translated_conditions.pop("condition_group")
         triggers["conditions"].append(translated_conditions)
 
     workflow_payload["triggers"] = triggers
 
     for filter_data in data.get("filters", []):
-        translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
+        try:
+            translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError as e:
+            raise ValidationError(str(e))
+
         translated_filters.pop("condition_group")
         translated_filter_list.append(translated_filters)
 

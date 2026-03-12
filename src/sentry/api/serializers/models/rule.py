@@ -647,7 +647,10 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
             for f in filters:
                 if f.get("value"):
-                    f["value"] = int(f["value"])
+                    try:
+                        f["value"] = int(f["value"])
+                    except (ValueError, AttributeError):
+                        continue
 
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters

@@ -139,12 +139,13 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         if isinstance(rule, Workflow):
+            workflow = rule
             workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
                 expand=request.GET.getlist("expand", []),
                 prepare_component_fields=True,
                 project_slug=project.slug,
             )
-            serialized_rule = serialize(rule, request.user, workflow_engine_rule_serializer)
+            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
         else:
             # Serialize Rule object
             rule_serializer = RuleSerializer(
