@@ -136,8 +136,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.warning("Group %s not found while serializing trace", issue_id)
                 return None
             group_cache[issue_id] = issue
         return SerializedIssue(
@@ -167,8 +167,8 @@ def _serialize_rpc_issue(
         else:
             try:
                 issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
-            except Group.DoesNotExist as e:
-                logger.error(e)
+            except Group.DoesNotExist:
+                logger.warning("Group %s not found while serializing trace", issue_id)
                 return None
             group_cache[issue_id] = issue
 
