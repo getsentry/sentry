@@ -129,7 +129,7 @@ export class SelectField extends FormField<SelectFieldProps> {
       <StyledSelectControl
         creatable={creatable}
         inputId={this.getId()}
-        choices={choices}
+        choices={choices as any}
         options={options}
         placeholder={placeholder}
         disabled={disabled}

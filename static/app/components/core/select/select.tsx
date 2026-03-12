@@ -404,12 +404,12 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
 
 type MultipleProps<OptionType extends OptionTypeBase> = {
   multiple: true;
-  onChange: (option: OptionType[]) => void;
+  onChange?: (option: OptionType[]) => void;
 };
 
 type SingleProps<OptionType extends OptionTypeBase> = {
-  onChange: (option: OptionType) => void;
   multiple?: false;
+  onChange?: (option: OptionType) => void;
 };
 
 type SelectProps<OptionType extends OptionTypeBase> =

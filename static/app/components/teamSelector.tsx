@@ -363,9 +363,7 @@ export function TeamSelector(props: Props) {
 
     // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
     if (options.length === 1 && useTeamDefaultIfOnlyOne) {
-      const castedValue = multiple
-        ? (options as TeamOption[])
-        : (options[0] as TeamOption);
+      const castedValue = multiple ? options : (options[0] as TeamOption);
       handleChange(castedValue);
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
@@ -379,9 +377,9 @@ export function TeamSelector(props: Props) {
       onInputChange={handleInputChange}
       getOptionValue={option => option.value}
       filterOption={filterOption}
-      styles={styles}
+      styles={styles as never}
       isLoading={fetching}
-      onChange={handleChange}
+      onChange={handleChange as never}
       {...extraProps}
     />
   );
