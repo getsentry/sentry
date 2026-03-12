@@ -4,8 +4,12 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ExistsFilter,
+    NotFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -20,14 +24,14 @@ logger = logging.getLogger(__name__)
 
 class OccurrenceCategory(Enum):
     """
-    Category of occurrence events in EAP.
+    Category of occurrence trace items in EAP.
 
-    In EAP, both error events and issue platform (generic) events are stored as
+    In EAP, both error events and issue platform events are stored as
     TRACE_ITEM_TYPE_OCCURRENCE.
     """
 
     ERROR = "error"
-    GENERIC = "generic"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 class Occurrences(rpc_dataset_common.RPCBase):
@@ -243,21 +247,22 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
     @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
+        occurrence_id_key = AttributeKey(name="occurrence_id", type=AttributeKey.TYPE_STRING)
         if category == OccurrenceCategory.ERROR:
+            # Error events: no occurrence attached, so occurrence_id does NOT exist
             return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
-                    op=ComparisonFilter.OP_NOT_EQUALS,
-                    value=AttributeValue(val_str="generic"),
+                not_filter=NotFilter(
+                    filters=[
+                        TraceItemFilter(
+                            exists_filter=ExistsFilter(key=occurrence_id_key),
+                        )
+                    ]
                 )
             )
-        elif category == OccurrenceCategory.GENERIC:
+        elif category == OccurrenceCategory.ISSUE_PLATFORM:
+            # Issue platform events: occurrence attached, so occurrence_id EXISTS
             return TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(name="type", type=AttributeKey.TYPE_STRING),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(val_str="generic"),
-                )
+                exists_filter=ExistsFilter(key=occurrence_id_key),
             )
 
         return None
