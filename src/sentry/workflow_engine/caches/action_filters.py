@@ -9,6 +9,7 @@ from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
+CACHE_TTL = 300  # 5 minutes
 ACTION_FILTER_CACHE_NAME = "action_filters_by_workflow"
 METRIC_PREFIX = f"workflow_engine.cache.processing_workflow.{ACTION_FILTER_CACHE_NAME}"
 ActionFiltersByWorkflow = dict[int, list[DataConditionGroup]]
@@ -71,7 +72,7 @@ def _populate_cache(action_filters_by_workflow: ActionFiltersByWorkflow) -> None
         for workflow_id, action_filters in action_filters_by_workflow.items()
     }
 
-    _action_filters_cache.set_many(cache_items)
+    _action_filters_cache.set_many(cache_items, CACHE_TTL)
 
 
 @scopedstats.timer()
