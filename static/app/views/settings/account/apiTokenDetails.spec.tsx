@@ -5,8 +5,49 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
-describe('ApiNewToken', () => {
-  MockApiClient.clearMockResponses();
+const ROUTER_CONFIG = {
+  initialRouterConfig: {
+    route: `/api/auth-tokens/:tokenId/`,
+    location: {
+      pathname: `/api/auth-tokens/1/`,
+    },
+  },
+};
+
+describe('ApiTokenDetails', () => {
+  it('renders token name, preview, and scopes', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/api-tokens/1/`,
+      body: ApiTokenFixture({
+        id: '1',
+        name: 'My Token',
+        scopes: ['project:read', 'project:write'],
+        tokenLastCharacters: 'n123',
+      }),
+    });
+
+    render(<ApiTokenDetails />, ROUTER_CONFIG);
+
+    const nameInput = await screen.findByRole('textbox', {name: /name/i});
+    expect(nameInput).toHaveValue('My Token');
+    expect(screen.getByText('************n123')).toBeInTheDocument();
+    expect(screen.getByText('project:read, project:write')).toBeInTheDocument();
+  });
+
+  it('shows error state when token fails to load', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/api-tokens/1/`,
+      statusCode: 500,
+    });
+
+    render(<ApiTokenDetails />, ROUTER_CONFIG);
+
+    expect(await screen.findByText('Failed to load personal token.')).toBeInTheDocument();
+  });
 
   it('renames token to new name', async () => {
     MockApiClient.clearMockResponses();
@@ -18,14 +59,7 @@ describe('ApiNewToken', () => {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails />, {
-      initialRouterConfig: {
-        route: `/api/auth-tokens/:tokenId/`,
-        location: {
-          pathname: `/api/auth-tokens/1/`,
-        },
-      },
-    });
+    render(<ApiTokenDetails />, ROUTER_CONFIG);
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 
@@ -63,14 +97,7 @@ describe('ApiNewToken', () => {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails />, {
-      initialRouterConfig: {
-        route: `/api/auth-tokens/:tokenId/`,
-        location: {
-          pathname: `/api/auth-tokens/1/`,
-        },
-      },
-    });
+    render(<ApiTokenDetails />, ROUTER_CONFIG);
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 
@@ -108,14 +135,7 @@ describe('ApiNewToken', () => {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails />, {
-      initialRouterConfig: {
-        route: `/api/auth-tokens/:tokenId/`,
-        location: {
-          pathname: `/api/auth-tokens/1/`,
-        },
-      },
-    });
+    render(<ApiTokenDetails />, ROUTER_CONFIG);
 
     await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 

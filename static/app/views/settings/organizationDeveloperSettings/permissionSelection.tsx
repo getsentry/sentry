@@ -107,7 +107,7 @@ function findResource(r: PermissionResource) {
  *    ['org:read', 'org:write', ...]
  *
  */
-function permissionStateToList(permissions: Permissions) {
+export function permissionStateToList(permissions: Permissions) {
   return Object.entries(permissions).flatMap(
     ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
   );
@@ -130,7 +130,10 @@ export default class PermissionSelection extends Component<Props, State> {
   save = (permissions: Permissions) => {
     this.setState({permissions});
     this.props.onChange(permissions);
-    this.context.form.setValue(
+    // When used inside a legacy FormModel-based form, sync the scopes field.
+    // When used outside that context (e.g. with useScrapsForm), the parent
+    // derives scopes from the onChange callback instead.
+    this.context.form?.setValue(
       'scopes',
       permissionStateToList(this.state.permissions) as string[]
     );
