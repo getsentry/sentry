@@ -4,6 +4,8 @@ from django.db.models import Value
 
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -13,6 +15,7 @@ from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.utils import (
+    ProjectNotActiveError,
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
@@ -74,7 +77,12 @@ def build_trigger_action_task_params(
     retry=Retry(times=3, delay=5),
     silo_mode=SiloMode.REGION,
 )
-@retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
+@retry(
+    timeouts=True,
+    raise_on_no_retries=False,
+    ignore_and_capture=Action.DoesNotExist,
+    ignore=(Group.DoesNotExist, Project.DoesNotExist, ProjectNotActiveError),
+)
 def trigger_action(
     action_id: int,
     workflow_id: int,
