@@ -134,18 +134,6 @@ function useTraceItemAttributeConfig({
     const attributes: TagCollection = {};
     const secondaryAliases: TagCollection = {};
 
-    for (const measurement of getDefaultNumberAttributes(traceItemType)) {
-      if (shouldRemove && shouldRemoveAttributeKey(measurement, booleanBaseKeys)) {
-        continue;
-      }
-
-      attributes[measurement] = {
-        key: measurement,
-        name: measurement,
-        kind: FieldKind.MEASUREMENT,
-      };
-    }
-
     for (const [key, value] of Object.entries(numberAttributes ?? {})) {
       if (!shouldRemove || !shouldRemoveAttributeKey(key, booleanBaseKeys)) {
         attributes[key] = value;
@@ -162,6 +150,18 @@ function useTraceItemAttributeConfig({
           kind: FieldKind.MEASUREMENT,
         };
       }
+    }
+
+    for (const measurement of getDefaultNumberAttributes(traceItemType)) {
+      if (shouldRemove && shouldRemoveAttributeKey(measurement, booleanBaseKeys)) {
+        continue;
+      }
+
+      attributes[measurement] = {
+        key: measurement,
+        name: measurement,
+        kind: FieldKind.MEASUREMENT,
+      };
     }
 
     return {attributes, secondaryAliases};
