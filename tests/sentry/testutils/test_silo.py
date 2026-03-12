@@ -105,5 +105,5 @@ def test_strip_silo_mode_test_suffix() -> None:
     assert strip_silo_mode_test_suffix("SomeTest") == "SomeTest"
     assert strip_silo_mode_test_suffix("SomeTest__InMonolithMode") == "SomeTest"
     assert strip_silo_mode_test_suffix("SomeTest__InControlMode") == "SomeTest"
-    assert strip_silo_mode_test_suffix("SomeTest__InSiloMode") == "SomeTest"
+    assert strip_silo_mode_test_suffix("SomeTest__InCellMode") == "SomeTest"
     assert strip_silo_mode_test_suffix("SomeTest__InAnotherMode") == "SomeTest__InAnotherMode"
