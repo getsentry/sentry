@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';

@@ -8,14 +8,14 @@ import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/memb
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import GroupListHeader from 'sentry/components/issues/groupListHeader';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import LoadingError from 'sentry/components/loadingError';
+import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,

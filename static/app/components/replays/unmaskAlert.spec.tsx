@@ -6,7 +6,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
 import localStorage from 'sentry/utils/localStorage';
 
-import UnmaskAlert from './unmaskAlert';
+import {UnmaskAlert} from './unmaskAlert';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/components/replays/useUserViewedReplays.tsx');

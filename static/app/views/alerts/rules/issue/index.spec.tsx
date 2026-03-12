@@ -581,7 +581,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },
@@ -606,7 +606,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },

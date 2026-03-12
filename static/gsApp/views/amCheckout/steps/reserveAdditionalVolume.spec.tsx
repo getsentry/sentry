@@ -10,7 +10,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {MONTHLY} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
+import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 
 type SliderInfo = {
   billingInterval: string;

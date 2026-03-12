@@ -10,7 +10,7 @@ type Props = {
   onMouseDown: MouseEventHandler<HTMLElement>;
 };
 
-const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
+export const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   <div {...props}>
     <IconGrabbable size="sm" />
   </div>
@@ -45,5 +45,3 @@ const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
     }
   }
 `;
-
-export default SplitDivider;

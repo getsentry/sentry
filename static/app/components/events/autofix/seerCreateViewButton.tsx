@@ -38,7 +38,10 @@ const TARGET_VIEW_PROPERTIES = {
   },
 };
 
-function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButtonProps) {
+export function StarFixabilityViewButton({
+  isCompleted,
+  project,
+}: StarFixabilityViewButtonProps) {
   const organization = useOrganization();
 
   const {mutate: createIssueView} = useCreateGroupSearchView({
@@ -143,5 +146,3 @@ function StarFixabilityViewButton({isCompleted, project}: StarFixabilityViewButt
     </Button>
   );
 }
-
-export default StarFixabilityViewButton;

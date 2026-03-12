@@ -38,7 +38,11 @@ function makeValidFilePatch(): FilePatch {
 describe('isExplorerFilePatch', () => {
   it('returns true for a valid ExplorerFilePatch', () => {
     expect(
-      isExplorerFilePatch({patch: makeValidFilePatch(), repo_name: 'getsentry/sentry'})
+      isExplorerFilePatch({
+        diff: '',
+        patch: makeValidFilePatch(),
+        repo_name: 'getsentry/sentry',
+      })
     ).toBe(true);
   });
 
@@ -49,14 +53,14 @@ describe('isExplorerFilePatch', () => {
   });
 
   it('returns false when patch is invalid', () => {
-    expect(isExplorerFilePatch({patch: {}, repo_name: 'repo'})).toBe(false);
+    expect(isExplorerFilePatch({diff: '', patch: {}, repo_name: 'repo'})).toBe(false);
   });
 
   it('returns false when repo_name is missing or wrong type', () => {
-    expect(isExplorerFilePatch({patch: makeValidFilePatch()})).toBe(false);
-    expect(isExplorerFilePatch({patch: makeValidFilePatch(), repo_name: 123})).toBe(
-      false
-    );
+    expect(isExplorerFilePatch({diff: '', patch: makeValidFilePatch()})).toBe(false);
+    expect(
+      isExplorerFilePatch({diff: '', patch: makeValidFilePatch(), repo_name: 123})
+    ).toBe(false);
   });
 });
 

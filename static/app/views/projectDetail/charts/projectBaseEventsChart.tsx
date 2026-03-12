@@ -7,14 +7,14 @@ import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = Omit<
   EventsChartProps,

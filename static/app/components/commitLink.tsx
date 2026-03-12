@@ -52,7 +52,7 @@ type Props = {
   showIcon?: boolean;
 };
 
-function CommitLink({
+export function CommitLink({
   inline,
   commitId,
   repository,
@@ -110,5 +110,3 @@ function CommitLink({
     </LinkButton>
   );
 }
-
-export default CommitLink;

@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 import * as qs from 'query-string';
 
-import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import ToolBox from 'sentry/components/charts/components/toolBox';
+import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {
@@ -126,7 +126,7 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span['gen_ai.request.model']}`,
+      model: span['gen_ai.request.model'],
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,

@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/utils';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';

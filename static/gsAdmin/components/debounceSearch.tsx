@@ -3,7 +3,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
 import useApi from 'sentry/utils/useApi';
 import useKeyPress from 'sentry/utils/useKeyPress';
@@ -19,7 +19,7 @@ type Props = {
   queryParam?: string;
 };
 
-function DebounceSearch({
+export function DebounceSearch({
   createSuggestionPath,
   onSearch,
   onSelectResult,
@@ -178,5 +178,3 @@ const SuggestionCard = styled(Card)`
     cursor: pointer;
   }
 `;
-
-export default DebounceSearch;

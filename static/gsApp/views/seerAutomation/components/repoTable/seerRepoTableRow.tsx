@@ -39,7 +39,7 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-export default function SeerRepoTableRow({
+export function SeerRepoTableRow({
   gridColumns,
   mutateRepositorySettings,
   mutationData,

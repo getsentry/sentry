@@ -113,7 +113,7 @@ function permissionStateToList(permissions: Permissions) {
   );
 }
 
-export default class PermissionSelection extends Component<Props, State> {
+export class PermissionSelection extends Component<Props, State> {
   state: State = {
     permissions: this.props.permissions,
   };

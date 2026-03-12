@@ -19,7 +19,7 @@ type Props = {
   organization: Organization;
 };
 
-function CreateTeamForm({organization, onSubmit}: Props) {
+export function CreateTeamForm({organization, onSubmit}: Props) {
   return (
     <Fragment>
       <p>
@@ -51,5 +51,3 @@ function CreateTeamForm({organization, onSubmit}: Props) {
     </Fragment>
   );
 }
-
-export default CreateTeamForm;

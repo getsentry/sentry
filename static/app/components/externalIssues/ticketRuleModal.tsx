@@ -21,13 +21,14 @@ import {
 import type {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -70,7 +71,7 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
   ];
 }
 
-export default function TicketRuleModal({
+export function TicketRuleModal({
   instance,
   link,
   onSubmitAction,
@@ -107,10 +108,12 @@ export default function TicketRuleModal({
   const {cache, updateCache} = useAsyncOptionsCache(initialOptionsCache);
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
-  const endpointString = makeIntegrationIssueConfigTicketRuleQueryKey({
-    orgSlug: organization.slug,
-    integrationId: instance.integration,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigTicketRuleQueryKey({
+      orgSlug: organization.slug,
+      integrationId: instance.integration,
+    })
+  );
 
   const initialConfigQuery = useMemo(() => {
     return (instance.dynamic_form_fields || [])

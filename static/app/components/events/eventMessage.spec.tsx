@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import {EventOrGroupType} from 'sentry/types/event';
 
-import EventMessage from './eventMessage';
+import {EventMessage} from './eventMessage';
 
 describe('EventMessage', () => {
   const group = GroupFixture();

@@ -112,7 +112,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
   );
 }
 
-function Sidebar({rule, teams, projectSlug}: Props) {
+export function Sidebar({rule, teams, projectSlug}: Props) {
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
@@ -158,8 +158,6 @@ function Sidebar({rule, teams, projectSlug}: Props) {
     </Fragment>
   );
 }
-
-export default Sidebar;
 
 const Status = styled('div')`
   position: relative;

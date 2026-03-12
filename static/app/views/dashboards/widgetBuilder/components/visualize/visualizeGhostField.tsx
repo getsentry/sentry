@@ -34,7 +34,7 @@ type VisualizeGhostFieldProps = {
   stringFields: string[];
 };
 
-function VisualizeGhostField({
+export function VisualizeGhostField({
   isTimeSeriesWidget,
   isBigNumberWidget,
   fields,
@@ -216,8 +216,6 @@ function VisualizeGhostField({
     </Ghost>
   );
 }
-
-export default VisualizeGhostField;
 
 const Ghost = styled('div')`
   position: absolute;

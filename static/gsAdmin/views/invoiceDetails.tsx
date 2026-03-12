@@ -5,8 +5,8 @@ import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -19,18 +19,18 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import openChangeEffectiveAtModal from 'admin/components/changeEffectiveAtAction';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import DetailsPage from 'admin/components/detailsPage';
-import ResultTable from 'admin/components/resultTable';
+import {ResultTable} from 'admin/components/resultTable';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
 import type {Invoice, InvoiceItem} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
 
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
-export default function InvoiceDetails() {
+export function InvoiceDetails() {
   const {invoiceId, orgId, region} = useParams<{
     invoiceId: string;
     orgId: string;

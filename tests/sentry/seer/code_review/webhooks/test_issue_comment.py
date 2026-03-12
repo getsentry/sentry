@@ -141,8 +141,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert response.status_code == 204
             self.mock_seer.assert_not_called()
 
-    def test_success_case_uses_legacy_endpoint_by_default(self) -> None:
-        """Test that with option disabled, issue comment uses overwatch-request."""
+    def test_success_case_uses_review_request_endpoint(self) -> None:
+        """Test that issue comment uses review-request endpoint."""
         with self.code_review_setup(), self.tasks():
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
@@ -155,26 +155,6 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_reaction.assert_called_once_with(
                 "sentry-ecosystem/repo", "123456789", GitHubReaction.EYES
             )
-            self.mock_seer.assert_called_once()
-
-            call_args = self.mock_seer.call_args
-            assert call_args[1]["path"] == "/v1/automation/overwatch-request"
-
-    def test_success_case_uses_new_endpoint_when_option_enabled(self) -> None:
-        """Test that with use_new_endpoints option, issue comment uses review-request."""
-        with (
-            self.code_review_setup(),
-            self.tasks(),
-            self.options({"coding_workflows.code_review.seer.use_new_endpoints": True}),
-        ):
-            event_dict = orjson.loads(
-                self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
-            )
-            event_dict["comment"]["user"] = {"login": "test-user"}
-            event = orjson.dumps(event_dict)
-
-            response = self._send_issue_comment_event(event)
-            assert response.status_code == 204
             self.mock_seer.assert_called_once()
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/code_review/review-request"

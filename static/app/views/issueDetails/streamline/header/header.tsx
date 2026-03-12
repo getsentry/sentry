@@ -10,13 +10,13 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventMessage from 'sentry/components/events/eventMessage';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {IconInfo} from 'sentry/icons';
@@ -35,7 +35,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -44,7 +44,7 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
-import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
+import {SeerBadge} from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -59,11 +59,7 @@ interface GroupHeaderProps {
   project: Project;
 }
 
-export default function StreamlinedGroupHeader({
-  event,
-  group,
-  project,
-}: GroupHeaderProps) {
+export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();

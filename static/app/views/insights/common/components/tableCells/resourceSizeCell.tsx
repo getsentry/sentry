@@ -1,11 +1,11 @@
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 
 type Props = {
   bytes?: number;
 };
 
-function ResourceSizeCell(props: Props) {
+export function ResourceSizeCell(props: Props) {
   const {bytes} = props;
   return (
     <NumberContainer>
@@ -13,5 +13,3 @@ function ResourceSizeCell(props: Props) {
     </NumberContainer>
   );
 }
-
-export default ResourceSizeCell;

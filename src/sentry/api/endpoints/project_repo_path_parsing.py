@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
@@ -100,7 +100,7 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,

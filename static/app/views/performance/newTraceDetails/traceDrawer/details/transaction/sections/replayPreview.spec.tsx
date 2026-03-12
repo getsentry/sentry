@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import type {EventTransaction} from 'sentry/types/event';
 
-import ReplayPreview from './replayPreview';
+import {ReplayPreview} from './replayPreview';
 
 jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
   return function MockReplayClipPreview() {

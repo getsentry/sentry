@@ -9,8 +9,8 @@ import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
-import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {MessageFormatter} from 'sentry/views/replays/detail/console/messageFormatter';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
@@ -28,7 +28,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-function ConsoleLogRow({
+export function ConsoleLogRow({
   currentHoverTime,
   currentTime,
   dataIndex,
@@ -87,8 +87,6 @@ function ConsoleLogRow({
     </ConsoleLog>
   );
 }
-
-export default ConsoleLogRow;
 
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;

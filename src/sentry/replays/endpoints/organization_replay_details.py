@@ -19,7 +19,7 @@ from snuba_sdk import (
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
@@ -215,7 +215,7 @@ def query_replay_instance_eap(
     return result
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
     """

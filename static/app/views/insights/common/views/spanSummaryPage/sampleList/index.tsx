@@ -26,9 +26,9 @@ import type {
   NonDefaultSpanSampleFields,
   SpanSample,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {DurationChart} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import {SampleInfo} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
+import {SampleTable} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';

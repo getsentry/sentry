@@ -10,7 +10,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Group} from 'sentry/types/group';
 
-import FeedbackAssignedTo from './feedbackAssignedTo';
+import {FeedbackAssignedTo} from './feedbackAssignedTo';
 
 describe('FeedbackAssignedTo', () => {
   const user = UserFixture();

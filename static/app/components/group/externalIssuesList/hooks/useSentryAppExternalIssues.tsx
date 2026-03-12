@@ -3,7 +3,7 @@ import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues'
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
-import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';

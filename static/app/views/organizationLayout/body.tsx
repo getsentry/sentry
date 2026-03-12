@@ -103,7 +103,7 @@ function DeletionPending({organization}: OrganizationProps) {
   );
 }
 
-function OrganizationDetailsBody({children}: BodyProps) {
+export function OrganizationDetailsBody({children}: BodyProps) {
   // Organization may be null in account settings
   const organization = useOrganization({allowNull: true});
 
@@ -119,5 +119,3 @@ function OrganizationDetailsBody({children}: BodyProps) {
 
   return <ErrorBoundary>{children}</ErrorBoundary>;
 }
-
-export default OrganizationDetailsBody;

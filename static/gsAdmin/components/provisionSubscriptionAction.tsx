@@ -14,8 +14,8 @@ import NumberField, {
   NumberField as NumberFieldNoContext,
 } from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -337,10 +337,17 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   // Same as above, but for Seer budgets
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
+      .filter(
+        ([key, _]) =>
+          key.startsWith('reservedCpeSeerAutofix') ||
+          key.startsWith('reservedCpeSeerScanner')
+      )
       .every(([_, value]) => value !== null && value !== undefined) &&
-    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
-      .length >= 2;
+    Object.keys(this.state.data).filter(
+      key =>
+        key.startsWith('reservedCpeSeerAutofix') ||
+        key.startsWith('reservedCpeSeerScanner')
+    ).length >= 2;
 
   isSettingReservedBudget = (category: DataCategory) => {
     if (category === DataCategory.SPANS || category === DataCategory.SPANS_INDEXED) {

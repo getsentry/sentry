@@ -14,16 +14,14 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavContext} from 'sentry/views/nav/context';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/components';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
@@ -361,7 +359,11 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+export function PrimaryNavigationQuotaExceeded({
+  organization,
+}: {
+  organization: Organization;
+}) {
   const subscription = useSubscription();
   const exceededCategories = (
     sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
@@ -435,7 +437,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayProps,
     state: overlayState,
   } = usePrimaryButtonOverlay({});
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -535,7 +537,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         }}
       >
         <SidebarItemUnreadIndicator
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
           variant="warning"
         />
       </SidebarButton>
@@ -553,8 +555,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     </Fragment>
   );
 }
-
-export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

@@ -25,8 +25,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from snuba_sdk import Column as SnubaColumn
 from snuba_sdk import Function
 
+from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.eap.types import SearchResolverConfig
@@ -323,12 +325,23 @@ def _run_errors_query(errors_query: DiscoverQueryBuilder):
     return error_data
 
 
-def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
+def _perf_issues_query(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    organization: Organization | None = None,
+) -> DiscoverQueryBuilder:
+    query = f"trace:{trace_id}"
+
+    if organization:
+        visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
+        if visible_type_ids:
+            query = f"trace:{trace_id} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
+
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params={},
         snuba_params=snuba_params,
-        query=f"trace:{trace_id}",
+        query=query,
         selected_columns=["event_id", "occurrence_id", "project_id"],
         config=QueryBuilderConfig(
             functions_acl=["groupArray"],
@@ -524,6 +537,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
+    organization: Organization | None = None,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -535,7 +549,7 @@ def query_trace_data(
     # up. Because of that, tests can fail during tear down as there are active connections
     # to the database preventing a DROP.
     errors_query = _errors_query(snuba_params, trace_id, error_id)
-    occurrence_query = _perf_issues_query(snuba_params, trace_id)
+    occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime

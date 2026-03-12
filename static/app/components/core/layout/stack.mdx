@@ -11,9 +11,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/layout/stack';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/layout/stack');
 
 export function CustomComponent(props) {
   return <div {...props} />;

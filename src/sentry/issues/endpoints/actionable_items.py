@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.actionable_items_helper import (
     ActionPriority,
@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.services import eventstore
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
     """
     This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint

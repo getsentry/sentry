@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import Confirm from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -25,7 +25,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -55,7 +55,7 @@ type LocationQuery = {
   cursor?: string;
 };
 
-function IntegrationExternalMappings(props: Props) {
+export function IntegrationExternalMappings(props: Props) {
   const {
     integration,
     type,
@@ -222,8 +222,6 @@ function IntegrationExternalMappings(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationExternalMappings;
 
 const MappingTable = styled(PanelTable)`
   overflow: visible;

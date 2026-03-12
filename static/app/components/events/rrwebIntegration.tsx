@@ -1,8 +1,8 @@
 import {lazy} from 'react';
 import styled from '@emotion/styled';
 
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingError from 'sentry/components/loadingError';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import AutoSelectText from 'sentry/components/autoSelectText';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
+import {Duration} from 'sentry/components/duration/duration';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

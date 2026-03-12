@@ -8,8 +8,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
@@ -77,7 +77,7 @@ interface MissingProjectMembershipProps {
   project: Project | undefined | null;
 }
 
-export default function MissingProjectMembership({
+export function MissingProjectMembership({
   organization,
   project,
 }: MissingProjectMembershipProps) {

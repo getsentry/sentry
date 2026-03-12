@@ -31,7 +31,7 @@ interface QuestionProps extends Partial<
   icon?: 'question' | 'info';
 }
 
-function QuestionTooltip({
+export function QuestionTooltip({
   title,
   size,
   className,
@@ -65,5 +65,3 @@ const QuestionIconContainer = styled('span')<Pick<QuestionProps, 'size' | 'class
     }
   }
 `;
-
-export default QuestionTooltip;

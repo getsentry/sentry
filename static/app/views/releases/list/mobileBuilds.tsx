@@ -3,8 +3,8 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
@@ -31,7 +31,7 @@ type Props = {
   selectedProjectIds: string[];
 };
 
-export default function MobileBuilds({organization, selectedProjectIds}: Props) {
+export function MobileBuilds({organization, selectedProjectIds}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -46,6 +46,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     const query: Record<string, any> = {
       per_page: 25,
       ...normalizeDateTimeParams(location.query),
+      display: activeDisplay,
     };
 
     if (cursor) {

@@ -6,8 +6,8 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
+import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
+import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';

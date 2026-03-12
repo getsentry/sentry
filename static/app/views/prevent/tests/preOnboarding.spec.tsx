@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
-import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {TestsPreOnboardingPage} from 'sentry/views/prevent/tests/preOnboarding';
 
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),

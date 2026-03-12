@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {useGuidedStepsContext} from 'sentry/components/guidedSteps/guidedSteps';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 

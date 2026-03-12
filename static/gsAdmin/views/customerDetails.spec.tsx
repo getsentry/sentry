@@ -37,7 +37,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
-import CustomerDetails from 'admin/views/customerDetails';
+import {CustomerDetails} from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
 

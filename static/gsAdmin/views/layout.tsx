@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 
 import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
-import ListLink from 'sentry/components/links/listLink';
+import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import localStorage from 'sentry/utils/localStorage';
@@ -16,7 +16,7 @@ import localStorage from 'sentry/utils/localStorage';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
 
-import GlobalStyles from 'admin/globalStyles';
+import {GlobalStyles} from 'admin/globalStyles';
 
 const themes = {
   darkTheme,
@@ -38,7 +38,7 @@ const useToggleTheme = () => {
   return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;
 };
 
-export default function Layout() {
+export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
 
   return (

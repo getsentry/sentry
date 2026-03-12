@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import classNames from 'classnames';
 
-import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
+import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
@@ -27,7 +27,7 @@ interface Props {
   updateDimensions?: () => void;
 }
 
-function BreadcrumbRow({
+export function BreadcrumbRow({
   className,
   expandPaths,
   frame,
@@ -83,5 +83,3 @@ function BreadcrumbRow({
     />
   );
 }
-
-export default BreadcrumbRow;

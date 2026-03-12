@@ -3,7 +3,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 
-import ProjectDetail from './projectDetail';
+import {ProjectDetail} from './projectDetail';
 
 export default function ProjectDetailContainer() {
   const params = useParams<{projectId: string}>();

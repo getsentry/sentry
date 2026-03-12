@@ -11,7 +11,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanFields;
 
-function RenderBlockingSelector({value}: {value?: string}) {
+export function RenderBlockingSelector({value}: {value?: string}) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -46,5 +46,3 @@ function RenderBlockingSelector({value}: {value?: string}) {
     />
   );
 }
-
-export default RenderBlockingSelector;

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {IconLightning} from 'sentry/icons/iconLightning';
 import {IconStats} from 'sentry/icons/iconStats';

@@ -5,7 +5,7 @@ import throttle from 'lodash/throttle';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';

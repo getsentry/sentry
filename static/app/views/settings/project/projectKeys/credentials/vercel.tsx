@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface VercelTabProps {

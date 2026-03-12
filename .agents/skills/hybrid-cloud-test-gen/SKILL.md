@@ -40,7 +40,7 @@ If the signal is ambiguous, ask the user to clarify which category.
 
 Before generating any test:
 
-1. **Read the source module** being tested. Determine its silo mode by checking for `@region_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@region_silo_model`/`@control_silo_model` decorators.
+1. **Read the source module** being tested. Determine its silo mode by checking for `@region_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@cell_silo_model`/`@control_silo_model` decorators.
 
 2. **Find the existing test file** using the mirror path convention:
    - `src/sentry/foo/bar.py` → `tests/sentry/foo/test_bar.py`

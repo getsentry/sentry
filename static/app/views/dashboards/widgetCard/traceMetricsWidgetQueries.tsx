@@ -46,7 +46,7 @@ type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   };
 };
 
-function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
+export function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       const series = result.timeSeries ?? [];
@@ -141,5 +141,3 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default TraceMetricsWidgetQueries;

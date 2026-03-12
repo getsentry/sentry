@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -35,16 +42,15 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {useNavContext} from 'sentry/views/nav/context';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -86,11 +92,20 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navParentRef} = useNavContext();
-  // Check if we have a valid nav reference
-  const hasValidNav = Boolean(navParentRef?.current);
+  const navigationElementRef = useRef<HTMLDivElement>(null);
 
-  const dimensions = useDimensions({elementRef: navParentRef});
+  useEffect(() => {
+    if (navigationElementRef.current) return;
+
+    const navigationElement = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationElement) {
+      navigationElementRef.current = navigationElement as HTMLDivElement;
+    }
+  }, []);
+
+  const dimensions = useDimensions({elementRef: navigationElementRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -150,7 +165,7 @@ function WidgetBuilderV2({
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar
                 style={
-                  hasValidNav
+                  navigationElementRef.current
                     ? isMediumScreen
                       ? {
                           left: 0,

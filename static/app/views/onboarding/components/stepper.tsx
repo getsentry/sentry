@@ -32,7 +32,7 @@ type Props = Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> & {
   onClick: (stepIndex: number) => void;
 };
 
-function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
+export function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
   return (
     <StepperContainer {...props}>
       {new Array(numSteps).fill(0).map((_, i) => (
@@ -58,5 +58,3 @@ function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
     </StepperContainer>
   );
 }
-
-export default Stepper;

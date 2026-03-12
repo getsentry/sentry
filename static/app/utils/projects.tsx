@@ -11,7 +11,7 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 
 type ProjectPlaceholder = AvatarProject;
 

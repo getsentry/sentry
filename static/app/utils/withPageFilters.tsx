@@ -11,7 +11,7 @@ type InjectedPageFiltersProps = {
  * Higher order component that uses PageFiltersStore and provides the active
  * project
  */
-function withPageFilters<P extends InjectedPageFiltersProps>(
+export function withPageFilters<P extends InjectedPageFiltersProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedPageFiltersProps> & InjectedPageFiltersProps;
@@ -33,5 +33,3 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
 
   return WithPageFilters;
 }
-
-export default withPageFilters;

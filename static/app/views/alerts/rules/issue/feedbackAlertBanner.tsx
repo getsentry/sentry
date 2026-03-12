@@ -7,7 +7,7 @@ import {tct} from 'sentry/locale';
 import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function FeedbackAlertBanner({
+export function FeedbackAlertBanner({
   filters,
   projectSlug,
 }: {

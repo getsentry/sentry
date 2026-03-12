@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -36,7 +36,7 @@ const hideDropdown = css`
   }
 `;
 
-export default function FeedbackShortId({className, feedbackItem, style}: Props) {
+export function FeedbackShortId({className, feedbackItem, style}: Props) {
   const organization = useOrganization();
   const projectSlug = useCurrentFeedbackProject();
 

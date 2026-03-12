@@ -27,7 +27,7 @@ from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
 from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
-from sentry.types.region import RegionResolutionError, get_locality_name_for_cell
+from sentry.types.region import CellResolutionError, get_locality_name_for_cell
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -271,7 +271,7 @@ def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | Anonymous
         token_str = generate_token(
             mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.cell_name))
         )
-    except (SystemUrlPrefixMissingException, RegionResolutionError):
+    except (SystemUrlPrefixMissingException, CellResolutionError):
         return None
 
     token_hashed = hash_token(token_str)

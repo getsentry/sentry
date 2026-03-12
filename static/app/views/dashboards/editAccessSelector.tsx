@@ -41,7 +41,7 @@ interface EditAccessSelectorProps {
  * Dropdown multiselect button to enable selective Dashboard editing access to
  * specific users and teams
  */
-function EditAccessSelector({
+export function EditAccessSelector({
   dashboard,
   onChangeEditAccess,
   listOnly = false,
@@ -389,8 +389,6 @@ function EditAccessSelector({
     </Tooltip>
   );
 }
-
-export default EditAccessSelector;
 
 const StyledCompactSelect = styled(CompactSelect)`
   ${InnerWrap} {

@@ -8,9 +8,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import ShortId from 'sentry/components/shortId';
 import {
   StatusIndicator,

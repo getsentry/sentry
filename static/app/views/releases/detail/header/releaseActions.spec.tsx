@@ -15,7 +15,7 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
-import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
+import {ReleaseActions} from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', () => {
   const organization = OrganizationFixture();

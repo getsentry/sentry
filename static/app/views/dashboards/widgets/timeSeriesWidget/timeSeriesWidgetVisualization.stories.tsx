@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -34,6 +33,9 @@ import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
 import {Thresholds} from './plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
+
+export const documentation =
+  import('!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization');
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
@@ -72,9 +74,7 @@ const releases = [
   },
 ].filter(hasTimestamp);
 
-export default Storybook.story('TimeSeriesWidgetVisualization', (story, APIReference) => {
-  APIReference(documentation.props?.TimeSeriesWidgetVisualization);
-
+export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

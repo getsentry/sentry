@@ -20,7 +20,7 @@ import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
-import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
+import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
@@ -34,8 +34,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import Status from './debugImage/status';
-import DebugImage from './debugImage';
+import {Status} from './debugImage/status';
+import {DebugImage} from './debugImage';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 45;

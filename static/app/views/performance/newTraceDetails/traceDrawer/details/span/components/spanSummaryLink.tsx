@@ -23,7 +23,7 @@ interface Props {
   project_id: string | undefined;
 }
 
-function SpanSummaryLink(props: Props) {
+export function SpanSummaryLink(props: Props) {
   const location = useLocation();
   const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
   const queryBaseUrl = useModuleURL(ModuleName.DB);
@@ -94,5 +94,3 @@ const StyledIconGraph = styled(IconGraph)`
 
 const resourceSummaryAvailable = (op = '') =>
   ['resource.script', 'resource.css'].includes(op);
-
-export default SpanSummaryLink;
