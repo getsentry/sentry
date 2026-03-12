@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 

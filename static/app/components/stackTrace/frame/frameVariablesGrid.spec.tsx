@@ -6,7 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('FrameVariablesGrid', () => {
   it('renders variables sorted alphabetically', () => {

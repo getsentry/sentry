@@ -16,7 +16,7 @@ import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,

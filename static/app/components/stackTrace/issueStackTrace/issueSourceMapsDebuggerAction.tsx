@@ -17,7 +17,7 @@ import {
 import {IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function IssueSourceMapsDebuggerAction() {
   const {frame, event, frameIndex} = useStackTraceFrameContext();

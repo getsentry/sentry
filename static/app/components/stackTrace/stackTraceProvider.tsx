@@ -8,8 +8,8 @@ import type {
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import useProjects from 'sentry/utils/useProjects';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 import {
   createInitialHiddenFrameToggleMap,
@@ -45,7 +45,9 @@ export function StackTraceProvider({
   const storeStacktraceLinkComponents = useMemo(
     () =>
       storeComponents.filter(
-        (component): component is SentryAppComponent<SentryAppSchemaStacktraceLink> =>
+        (
+          component: SentryAppComponent
+        ): component is SentryAppComponent<SentryAppSchemaStacktraceLink> =>
           component.type === 'stacktrace-link' &&
           component.schema.type === 'stacktrace-link'
       ),

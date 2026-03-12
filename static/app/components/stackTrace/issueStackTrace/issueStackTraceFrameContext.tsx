@@ -13,7 +13,7 @@ import {
   type LineCoverage,
 } from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function getLineCoverage(
   lines: Array<[number, string | null]>,
