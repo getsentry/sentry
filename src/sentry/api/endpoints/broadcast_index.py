@@ -117,14 +117,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
-            if request.GET.get("show") == "latest":
-                if limit is not None:
-                    data = data[:limit]
+            if limit is not None:
+                data = data[:limit]
             return self.respond(self._serialize_objects(data, request))
 
-        if request.GET.get("show") == "latest":
-            if limit is not None:
-                data = list(queryset[:limit])
+        if limit is not None:
             return self.respond(self._serialize_objects(list(queryset[:limit]), request))
 
         sort_by = request.GET.get("sortBy")
