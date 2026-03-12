@@ -541,11 +541,11 @@ type PrimaryButtonOverlayProps = {
 };
 
 export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return useOverlay({
     offset: 8,
-    position: layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end',
+    position: layout === 'mobile' ? 'bottom' : 'right-end',
     isDismissable: true,
     shouldApplyMinWidth: false,
     ...props,
@@ -563,14 +563,12 @@ export function PrimaryButtonOverlay({
   overlayProps,
 }: PrimaryButtonOverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
-        <ScrollableOverlay isMobile={layout === NavigationLayout.MOBILE}>
-          {children}
-        </ScrollableOverlay>
+        <ScrollableOverlay isMobile={layout === 'mobile'}>{children}</ScrollableOverlay>
       </PositionWrapper>
     </FocusScope>,
     document.body
