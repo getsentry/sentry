@@ -7,6 +7,7 @@ from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.silo.base import SiloMode
@@ -36,6 +37,16 @@ class ControlReplicaService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
         pass
 
     @classmethod

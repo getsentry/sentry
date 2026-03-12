@@ -20,6 +20,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
 from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
@@ -34,6 +35,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
@@ -368,3 +370,26 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         )
 
         handle_replication(Team, destination)
+
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
+        # We lookup on (project_key_id, cell_name) rather than public_key because
+        # public_key can be reassigned (e.g. during relocation). This ensures the
+        # old mapping does not get orphaned in the control silo.
+
+        # TODO(cells): handle conflicting public_key unique constraint here
+        with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
+            rows_updated = ProjectKeyMapping.objects.filter(
+                project_key_id=project_key.id, cell_name=project_key.cell_name
+            ).update(public_key=project_key.public_key)
+
+            if not rows_updated:
+                ProjectKeyMapping.objects.create(
+                    project_key_id=project_key.id,
+                    public_key=project_key.public_key,
+                    cell_name=project_key.cell_name,
+                )
+
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        ProjectKeyMapping.objects.filter(
+            project_key_id=project_key_id, cell_name=cell_name
+        ).delete()
