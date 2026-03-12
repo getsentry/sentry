@@ -44,25 +44,31 @@ export function DashboardsSecondaryNavigation() {
       <SecondaryNavigation.Header>{t('Dashboards')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
-          <SecondaryNavigation.Item
-            to={`${baseUrl}/`}
-            end
-            isActive={
-              hasPrebuiltDashboards ? isOnDashboardsList && !isOnlyPrebuilt : undefined
-            }
-            analyticsItemName="dashboards_all"
-          >
-            {t('All Dashboards')}
-          </SecondaryNavigation.Item>
-          {hasPrebuiltDashboards ? (
-            <SecondaryNavigation.Item
-              to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-              isActive={isOnDashboardsList && isOnlyPrebuilt}
-              analyticsItemName="dashboards_sentry_built"
-            >
-              {t('Sentry Built')}
-            </SecondaryNavigation.Item>
-          ) : null}
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/`}
+                end
+                isActive={
+                  hasPrebuiltDashboards ? isOnDashboardsList && !isOnlyPrebuilt : undefined
+                }
+                analyticsItemName="dashboards_all"
+              >
+                {t('All Dashboards')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+                  isActive={isOnDashboardsList && isOnlyPrebuilt}
+                  analyticsItemName="dashboards_sentry_built"
+                >
+                  {t('Sentry Built')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
+          </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {starredDashboards.length > 0 ? (
           <SecondaryNavigation.Section
@@ -117,19 +123,20 @@ function StarredDashboardItems({
       .map(p => p.platform)
       .filter(defined);
     return (
-      <SecondaryNavigation.Item
-        key={dashboard.id}
-        to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
-        analyticsItemName="dashboard_starred_item"
-        leadingItems={
-          <SecondaryNavigation.ProjectIcon
-            projectPlatforms={dashboardProjectPlatforms}
-            allProjects={dashboard.projects?.length === 1 && dashboard.projects[0] === -1}
-          />
-        }
-      >
-        {dashboard.title}
-      </SecondaryNavigation.Item>
+      <SecondaryNavigation.ListItem key={dashboard.id}>
+        <SecondaryNavigation.Link
+          to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
+          analyticsItemName="dashboard_starred_item"
+          leadingItems={
+            <SecondaryNavigation.ProjectIcon
+              projectPlatforms={dashboardProjectPlatforms}
+              allProjects={dashboard.projects?.length === 1 && dashboard.projects[0] === -1}
+            />
+          }
+        >
+          {dashboard.title}
+        </SecondaryNavigation.Link>
+      </SecondaryNavigation.ListItem>
     );
   });
 }

@@ -240,7 +240,19 @@ function SecondaryNavigationSection({
   );
 }
 
-function SecondaryNavigationItem({
+function SecondaryNavigationList({children}: {children: ReactNode}) {
+  return (
+    <Stack as="ul" margin="0" padding="0" width="100%">
+      {children}
+    </Stack>
+  );
+}
+
+function SecondaryNavigationListItem({children}: {children: ReactNode}) {
+  return <li>{children}</li>;
+}
+
+function SecondaryNavigationLink({
   analyticsItemName,
   children,
   to,
@@ -574,7 +586,9 @@ export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
-  Item: SecondaryNavigationItem,
+  List: SecondaryNavigationList,
+  ListItem: SecondaryNavigationListItem,
+  Link: SecondaryNavigationLink,
   Footer: SecondaryNavigationFooter,
   ProjectIcon: SecondaryNavigationProjectIcon,
 };

@@ -126,7 +126,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
   );
 }
 
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
   align-items: center;
   padding-right: ${p => p.theme.space.xs};
   position: relative;

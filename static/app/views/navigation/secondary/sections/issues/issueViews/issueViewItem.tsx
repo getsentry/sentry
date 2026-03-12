@@ -221,7 +221,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
 `;
 
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
   position: relative;
   padding-right: ${p => p.theme.space.xs};
 

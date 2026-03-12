@@ -50,7 +50,7 @@ export function SettingsNavigationGroup(props: NavigationGroupProps) {
 
   return (
     <SecondaryNavigation.Section id={props.id} title={name}>
-      {navLinks}
+      <SecondaryNavigation.List>{navLinks}</SecondaryNavigation.List>
     </SecondaryNavigation.Section>
   );
 }
