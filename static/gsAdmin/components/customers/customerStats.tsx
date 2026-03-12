@@ -17,7 +17,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DataCategoryExact} from 'sentry/types/core';
-import type {DataPoint, ReactEchartsRef} from 'sentry/types/echarts';
+import type {DataPoint, ECharts, ReactEchartsRef} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -556,7 +556,7 @@ export const CustomerStats = memo(
     const highlightedRegionRef = useRef<number | null>(null);
 
     const setRegionHighlight = useCallback(
-      (instance: any, regionIndex: number | null) => {
+      (instance: ECharts, regionIndex: number | null) => {
         const {regions} = abuseDataRef.current;
         if (regions.length === 0) {
           return;
@@ -580,7 +580,7 @@ export const CustomerStats = memo(
     );
 
     const hideAbuseTooltip = useCallback(
-      (instance?: any) => {
+      (instance?: ECharts) => {
         const el = abuseTooltipRef.current;
         if (el) {
           el.style.display = 'none';
@@ -594,7 +594,7 @@ export const CustomerStats = memo(
     );
 
     const onHighlight = useCallback(
-      (params: any, instance: any) => {
+      (params: {batch?: Array<{dataIndex: number}>}, instance: ECharts) => {
         const el = abuseTooltipRef.current;
         if (!el || !instance) {
           return;
