@@ -1,8 +1,11 @@
+import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+
+logger = logging.getLogger(__name__)
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
@@ -21,7 +24,11 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
-from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
+from sentry.hybridcloud.services.replica.service import (
+    ControlReplicaService,
+    RegionReplicaService,
+    region_replica_service,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
@@ -318,6 +325,11 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
+    def delete_project_key(self, *, project_key_id: int, cell_name: str | None = None) -> None:
+        from sentry.models.projectkey import ProjectKey
+
+        ProjectKey.objects.filter(id=project_key_id).delete()
+
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
@@ -372,21 +384,25 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         handle_replication(Team, destination)
 
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
-        # We lookup on (project_key_id, cell_name) rather than public_key because
-        # public_key can be reassigned (e.g. during relocation). This ensures the
-        # old mapping does not get orphaned in the control silo.
-
-        # TODO(cells): handle conflicting public_key unique constraint here
         with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
-            rows_updated = ProjectKeyMapping.objects.filter(
-                project_key_id=project_key.id, cell_name=project_key.cell_name
-            ).update(public_key=project_key.public_key)
+            try:
+                rows_updated = ProjectKeyMapping.objects.filter(
+                    project_key_id=project_key.id, cell_name=project_key.cell_name
+                ).update(public_key=project_key.public_key)
 
-            if not rows_updated:
-                ProjectKeyMapping.objects.create(
-                    project_key_id=project_key.id,
-                    public_key=project_key.public_key,
-                    cell_name=project_key.cell_name,
+                if not rows_updated:
+                    ProjectKeyMapping.objects.create(
+                        project_key_id=project_key.id,
+                        public_key=project_key.public_key,
+                        cell_name=project_key.cell_name,
+                    )
+            except IntegrityError:
+                logger.error(
+                    "project_key_mapping.conflict",
+                    extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
+                )
+                region_replica_service.delete_project_key(
+                    project_key_id=project_key.id, cell_name=project_key.cell_name
                 )
 
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
