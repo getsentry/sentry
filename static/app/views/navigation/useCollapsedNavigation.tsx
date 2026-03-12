@@ -25,13 +25,9 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {
-    navigationParentRef,
-    isInteractingRef,
-    endInteraction,
-    setActivePrimaryNavigationGroup,
-  } = useNavigation();
-  const {isCollapsed, isOpen, setIsOpen} = useSecondaryNavigation();
+  const {navigationParentRef, setActivePrimaryNavigationGroup} = useNavigation();
+  const {isCollapsed, isOpen, setIsOpen, isInteractingRef, endInteraction} =
+    useSecondaryNavigation();
 
   const isHoveredRef = useRef(false);
 
