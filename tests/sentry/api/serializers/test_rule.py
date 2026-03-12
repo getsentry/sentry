@@ -403,7 +403,7 @@ class WorkflowRuleSerializerTest(TestCase):
             },
             {
                 "id": IssueOccurrencesFilter.id,
-                "value": "10",
+                "value": 10,
             },
             {
                 "id": IssueTypeFilter.id,

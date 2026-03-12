@@ -646,7 +646,11 @@ class WorkflowEngineRuleSerializer(Serializer):
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
             for f in filters:
-                if f.get("value"):
+                # IssueCategoryFilter stores numeric string choices and must stay as str
+                if (
+                    f.get("value")
+                    and f.get("id") != "sentry.rules.filters.issue_category.IssueCategoryFilter"
+                ):
                     try:
                         f["value"] = int(f["value"])
                     except (ValueError, AttributeError):
