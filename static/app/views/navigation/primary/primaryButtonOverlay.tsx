@@ -5,7 +5,7 @@ import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 type PrimaryButtonOverlayProps = {

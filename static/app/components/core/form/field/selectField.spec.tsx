@@ -5,6 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
+import type {SelectValue} from 'sentry/types/core';
+
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},
   {value: 'banana', label: 'Banana'},
@@ -259,6 +261,68 @@ describe('SelectField', () => {
         );
       }
       void TypeTestNotClearable;
+    });
+
+    it('should allow number values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: 0},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<number>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 1, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<number>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
+    });
+
+    it('should allow objects as values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: {id: 0}},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<{id: number}>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: {id: 1}, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<{id: number}>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
     });
   });
 

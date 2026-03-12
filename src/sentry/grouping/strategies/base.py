@@ -28,12 +28,6 @@ if TYPE_CHECKING:
 STRATEGIES: dict[str, Strategy[Any]] = {}
 
 
-# XXX: Want to make ContextDict typeddict but also want to type/overload dict
-# API on GroupingContext
-ContextValue = Any
-ContextDict = dict[str, ContextValue]
-
-
 # TODO: Hack to make `ComponentsByVariant` covariant. At some point we should probably turn
 # `ComponentsByVariant` into a Mapping (immutable), since in practice it's read-only.
 GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent[Any])
@@ -198,7 +192,7 @@ class StrategyConfiguration:
     base: type[StrategyConfiguration] | None = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
-    initial_context: ContextDict = {}
+    initial_context: dict[str, Any] = {}
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
@@ -242,7 +236,7 @@ def create_strategy_configuration_class(
     strategies: Sequence[str] | None = None,
     delegates: Sequence[str] | None = None,
     base: type[StrategyConfiguration] | None = None,
-    initial_context: ContextDict | None = None,
+    initial_context: dict[str, Any] | None = None,
     enhancements_base: str | None = None,
     fingerprinting_bases: Sequence[str] | None = None,
 ) -> type[StrategyConfiguration]:

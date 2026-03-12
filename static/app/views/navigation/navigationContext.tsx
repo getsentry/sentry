@@ -44,6 +44,7 @@ export function useNavigationContext(): NavigationContext {
 
 export function NavigationContextProvider({children}: {children: React.ReactNode}) {
   const navigationParentRef = useRef<HTMLDivElement>(null);
+
   const isInteractingRef = useRef(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
