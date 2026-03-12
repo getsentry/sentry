@@ -33,7 +33,6 @@ export function MobileNavigation() {
   const [view, setView] = useState<ActiveView>('closed');
   const {layout} = useNavigation();
   const {currentStepId, endTour} = useNavigationTour();
-  const tourIsActive = currentStepId !== null;
 
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
@@ -46,10 +45,10 @@ export function MobileNavigation() {
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
   useEffect(() => {
-    if (tourIsActive && layout === 'mobile') {
+    if (currentStepId !== null && layout === 'mobile') {
       endTour();
     }
-  }, [endTour, layout, tourIsActive]);
+  }, [endTour, layout, currentStepId]);
 
   const handleClick = useCallback(
     () =>
