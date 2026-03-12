@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 
 import {useMedia} from 'sentry/utils/useMedia';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 interface NavigationContext {
   activePrimaryNavigationGroup: PrimaryNavigationGroup | null;

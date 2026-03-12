@@ -1,4 +1,4 @@
-enum PrimaryNavigationGroup {
+export enum PrimaryNavigationGroup {
   ISSUES = 'issues',
   DASHBOARDS = 'dashboards',
   EXPLORE = 'explore',

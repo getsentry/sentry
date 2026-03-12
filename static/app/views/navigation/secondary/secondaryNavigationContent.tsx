@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 import {ExploreSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/explore/exploreSecondaryNavigation';
@@ -8,7 +9,6 @@ import {InsightsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {MonitorsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/monitors/monitorsSecondaryNavigation';
 import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/settings/settingsSecondaryNavigation';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function SecondaryNavigationContent({
   group,

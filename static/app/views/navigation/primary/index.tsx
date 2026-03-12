@@ -18,6 +18,7 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
@@ -30,13 +31,13 @@ import {
   SidebarLink,
   SidebarList,
 } from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({
   children,
@@ -100,6 +101,7 @@ export function PrimaryNavigationItems() {
             <SidebarLink
               to={`/${prefix}/issues/`}
               analyticsKey="issues"
+              label={t('Issues')}
               group={PrimaryNavigationGroup.ISSUES}
               {...mergeProps(
                 makeNavigationItemProps(PrimaryNavigationGroup.ISSUES),
@@ -121,6 +123,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
               activeTo={`/${prefix}/explore`}
               analyticsKey="explore"
+              label={t('Explore')}
               group={PrimaryNavigationGroup.EXPLORE}
               {...mergeProps(
                 makeNavigationItemProps(PrimaryNavigationGroup.EXPLORE),
@@ -147,6 +150,7 @@ export function PrimaryNavigationItems() {
                 to={`/${prefix}/dashboards/`}
                 activeTo={`/${prefix}/dashboard`}
                 analyticsKey="dashboards"
+                label={t('Dashboards')}
                 group={PrimaryNavigationGroup.DASHBOARDS}
                 {...mergeProps(
                   makeNavigationItemProps(PrimaryNavigationGroup.DASHBOARDS),
@@ -170,6 +174,7 @@ export function PrimaryNavigationItems() {
                 to={`/${prefix}/insights/`}
                 activeTo={`/${prefix}/insights`}
                 analyticsKey="insights"
+                label={t('Insights')}
                 group={PrimaryNavigationGroup.INSIGHTS}
                 {...mergeProps(
                   makeNavigationItemProps(PrimaryNavigationGroup.INSIGHTS),
@@ -188,6 +193,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/prevent/tests/`}
               activeTo={`/${prefix}/prevent/`}
               analyticsKey="prevent"
+              label={t('Prevent')}
               group={PrimaryNavigationGroup.PREVENT}
               {...makeNavigationItemProps(PrimaryNavigationGroup.PREVENT)}
             >
@@ -204,6 +210,7 @@ export function PrimaryNavigationItems() {
             <SidebarLink
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
+              label={t('Monitors')}
               group={PrimaryNavigationGroup.MONITORS}
               {...makeNavigationItemProps(PrimaryNavigationGroup.MONITORS)}
             >
@@ -223,6 +230,7 @@ export function PrimaryNavigationItems() {
               to={`/settings/${organization.slug}/`}
               activeTo="/settings/"
               analyticsKey="settings"
+              label={t('Settings')}
               group={PrimaryNavigationGroup.SETTINGS}
               {...mergeProps(
                 makeNavigationItemProps(PrimaryNavigationGroup.SETTINGS),

@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
 import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
@@ -27,7 +26,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
           priority="transparent"
         />
         <HeaderLabel>
-          {activeGroup ? PRIMARY_NAVIGATION_GROUP_CONFIG[activeGroup].label : ''}
+          {activeGroup ? activeGroup.charAt(0).toUpperCase() + activeGroup.slice(1) : ''}
         </HeaderLabel>
       </GroupHeader>
       <Stack justify="between" align="stretch" overflowY="auto" area="content">

@@ -25,8 +25,7 @@ import {
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import type {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -150,6 +149,7 @@ export function SidebarMenu({
 interface SidebarItemLinkProps {
   analyticsKey: string;
   group: PrimaryNavigationGroup;
+  label: string;
   to: string;
   activeTo?: string;
   analyticsParams?: Record<string, unknown>;
@@ -162,11 +162,10 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   analyticsParams,
+  label,
   group,
   ...props
 }: SidebarItemLinkProps) {
-  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
-
   return (
     <SidebarItem label={label} {...props}>
       <SidebarNavigationLink
@@ -174,6 +173,7 @@ export function SidebarLink({
         activeTo={activeTo}
         analyticsKey={analyticsKey}
         analyticsParams={analyticsParams}
+        label={label}
         group={group}
       >
         {children}
@@ -188,6 +188,7 @@ function SidebarNavigationLink({
   activeTo = to,
   analyticsKey,
   analyticsParams,
+  label,
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
@@ -197,7 +198,6 @@ function SidebarNavigationLink({
     normalizeUrl(activeTo, location),
     location.pathname
   );
-  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
 
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();

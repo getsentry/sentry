@@ -1,7 +1,9 @@
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {
+  PRIMARY_NAVIGATION_GROUP_CONFIG,
+  PrimaryNavigationGroup,
+} from 'sentry/views/navigation/primary/config';
 
 const CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/([^/]+)/;
 const NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/organizations\/[^/]+\/([^/]+)/;
@@ -29,7 +31,7 @@ export function useActiveNavigationGroup(): PrimaryNavigationGroup {
   for (const [navigationGroup, config] of Object.entries(
     PRIMARY_NAVIGATION_GROUP_CONFIG
   )) {
-    if (config.basePaths.includes(primaryPath)) {
+    if (config.includes(primaryPath)) {
       return navigationGroup as PrimaryNavigationGroup;
     }
   }
