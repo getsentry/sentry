@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import cast
+
 import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
@@ -47,6 +48,7 @@ from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -201,6 +203,13 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         if isinstance(rule, Workflow):
             workflow = rule
             organization = project.organization
+
+            if not request.data.get("filterMatch"):
+                # if filterMatch is not passed, don't overwrite it with default value, use the saved dcg type
+                wdcg = WorkflowDataConditionGroup.objects.filter(workflow=workflow).first()
+                if wdcg:
+                    request.data["filterMatch"] = wdcg.condition_group.logic_type
+
             request_data = format_request_data(cast(ProjectRulePostData, request.data))
             if not request_data.get("config", {}).get("frequency"):
                 request_data["config"] = workflow.config

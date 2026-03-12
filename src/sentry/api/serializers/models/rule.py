@@ -635,6 +635,10 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if action.data.get("notes") == "":
                     action_data.pop("notes", None)
 
+                # XXX: workspace needs to be returned as a string
+                if action_data.get("workspace"):
+                    action_data["workspace"] = str(action_data["workspace"])
+
                 serialized_actions.append(action_data)
 
             # Generate conditions and filters
