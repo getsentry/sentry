@@ -60,17 +60,17 @@ function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
   }
 }
 
-interface LegacyJsonFormAdapterProps {
+interface LegacyJsonFormAdapterProps<TData, TContext> {
   field: JsonFormAdapterFieldConfig;
-  mutationOptions: UseMutationOptions<any, Error, any, any>;
+  mutationOptions: UseMutationOptions<TData, Error, unknown, TContext>;
   initialValue?: unknown;
 }
 
-export function LegacyJsonFormAdapter({
+export function LegacyJsonFormAdapter<TData, TContext>({
   field,
   initialValue,
   mutationOptions,
-}: LegacyJsonFormAdapterProps) {
+}: LegacyJsonFormAdapterProps<TData, TContext>) {
   const fieldName = field.name;
 
   const schema = useMemo(
@@ -100,12 +100,12 @@ export function LegacyJsonFormAdapter({
 
   return (
     <AutoSaveField
-      name={fieldName as any}
-      schema={schema as any}
+      name={fieldName}
+      schema={schema}
       initialValue={value}
-      mutationOptions={mutationOptions as any}
+      mutationOptions={mutationOptions}
     >
-      {(fieldApi: any) => {
+      {fieldApi => {
         switch (field.type) {
           case 'boolean':
             return (
