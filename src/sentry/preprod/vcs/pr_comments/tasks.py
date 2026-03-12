@@ -13,7 +13,11 @@ from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
-from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    IntegrationConfigurationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -27,7 +31,7 @@ logger = logging.getLogger(__name__)
     namespace=preprod_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.REGION,
-    retry=Retry(times=5, delay=60 * 5),
+    retry=Retry(times=5, delay=60 * 5, on=(ApiError,), ignore=(ApiRateLimitedError,)),
 )
 def create_preprod_pr_comment_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
