@@ -68,7 +68,7 @@ const StyledClippedBox = styled(ClippedBox)`
 
 const VariablesGrid = styled('div')`
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: 150px minmax(0, 1fr);
   align-items: baseline;
 `;
 
@@ -78,7 +78,6 @@ const VariableRow = styled('div')`
   grid-column: 1 / -1;
   align-items: baseline;
   column-gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
@@ -86,12 +85,15 @@ const VariableRow = styled('div')`
 `;
 
 const VariableKey = styled('div')`
-  max-width: 180px;
   overflow-wrap: anywhere;
+  padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.md} ${p => p.theme.space.md};
 `;
 
 const VariablesValue = styled('div')`
   min-width: 0;
+  align-self: stretch;
+  background: ${p => p.theme.tokens.background.secondary};
+  padding: ${p => p.theme.space.md};
 
   > pre {
     margin: 0;
