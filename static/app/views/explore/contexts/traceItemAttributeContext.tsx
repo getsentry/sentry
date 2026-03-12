@@ -349,7 +349,8 @@ export function usePreprodItemAttributes(
   );
 }
 
-const TAGS_REGEX = /^tags\[(?<tagKey>\w+),(?<attributeType>boolean|number|string)\]$/;
+const TAGS_REGEX =
+  /^tags\[(?<tagKey>[a-zA-Z0-9_.:-]+),(?<attributeType>boolean|number|string)\]$/;
 
 /**
  * Extracts the base key from a tag key, handling both plain keys and
@@ -361,7 +362,7 @@ export function extractBaseKey(key: string): string {
     return key;
   }
 
-  return match.groups.tagKey;
+  return match.groups.tagKey ?? key;
 }
 
 /**

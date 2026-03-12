@@ -11,48 +11,41 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 describe('extractBaseKey', () => {
-  it('returns plain key as-is', () => {
-    expect(extractBaseKey('is_transaction')).toBe('is_transaction');
-  });
+  const testCases = [
+    {input: 'is_transaction', expected: 'is_transaction'},
+    {input: 'tags[is_transaction,boolean]', expected: 'is_transaction'},
+    {input: 'tags[is_transaction,number]', expected: 'is_transaction'},
+    {input: 'tags[my_tag,string]', expected: 'my_tag'},
+    {input: 'span.duration', expected: 'span.duration'},
+    {input: 'tags[my.tag.name,boolean]', expected: 'my.tag.name'},
+    {input: 'tags[my-tag,number]', expected: 'my-tag'},
+    {input: 'tags[my:tag,string]', expected: 'my:tag'},
+  ];
 
-  it('extracts base key from tags[key,boolean] format', () => {
-    expect(extractBaseKey('tags[is_transaction,boolean]')).toBe('is_transaction');
-  });
-
-  it('extracts base key from tags[key,number] format', () => {
-    expect(extractBaseKey('tags[is_transaction,number]')).toBe('is_transaction');
-  });
-
-  it('extracts base key from tags[key,string] format', () => {
-    expect(extractBaseKey('tags[my_tag,string]')).toBe('my_tag');
-  });
-
-  it('returns key with dots as-is', () => {
-    expect(extractBaseKey('span.duration')).toBe('span.duration');
+  testCases.forEach(({input, expected}) => {
+    it(`returns ${expected} for ${input}`, () => {
+      expect(extractBaseKey(input)).toBe(expected);
+    });
   });
 });
 
 describe('shouldRemoveNumberKey', () => {
-  it('returns true when plain number key has a boolean counterpart', () => {
-    const booleanBaseKeys = new Set(['is_transaction']);
-    expect(shouldRemoveAttributeKey('is_transaction', booleanBaseKeys)).toBe(true);
-  });
+  const testCases = [
+    {input: 'is_transaction', booleanBaseKeys: ['is_transaction'], expected: true},
+    {
+      input: 'tags[is_transaction,number]',
+      booleanBaseKeys: ['is_transaction'],
+      expected: true,
+    },
+    {input: 'span.duration', booleanBaseKeys: ['is_transaction'], expected: false},
+    {input: 'tags[my-tag,number]', booleanBaseKeys: ['is_transaction'], expected: false},
+    {input: 'tags[my:tag,string]', booleanBaseKeys: ['is_transaction'], expected: false},
+  ];
 
-  it('returns true when tags[key,number] has a boolean counterpart', () => {
-    const booleanBaseKeys = new Set(['is_transaction']);
-    expect(shouldRemoveAttributeKey('tags[is_transaction,number]', booleanBaseKeys)).toBe(
-      true
-    );
-  });
-
-  it('returns false when number key has no boolean counterpart', () => {
-    const booleanBaseKeys = new Set(['is_transaction']);
-    expect(shouldRemoveAttributeKey('span.duration', booleanBaseKeys)).toBe(false);
-  });
-
-  it('returns false for empty boolean set', () => {
-    const booleanBaseKeys = new Set<string>();
-    expect(shouldRemoveAttributeKey('is_transaction', booleanBaseKeys)).toBe(false);
+  testCases.forEach(({input, booleanBaseKeys, expected}) => {
+    it(`returns ${expected} for ${input}`, () => {
+      expect(shouldRemoveAttributeKey(input, new Set(booleanBaseKeys))).toBe(expected);
+    });
   });
 });
 
