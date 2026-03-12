@@ -1,9 +1,8 @@
 import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
+import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
@@ -28,26 +27,19 @@ type Props = DefaultProps &
      * The configuration for this navigation panel
      */
     navigationObjects: NavigationSection[];
-    /**
-     * The primary navigation group for this settings page
-     */
-    primaryNavGroup: PrimaryNavigationGroup;
   };
 
 function SettingsSecondaryNavigation({
   navigationObjects,
   hookConfigs,
   hooks,
-  primaryNavGroup,
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[primaryNavGroup].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
@@ -83,13 +75,11 @@ class SettingsNavigation extends Component<Props> {
       hookConfigs,
       stickyTop,
       organization,
-      primaryNavGroup,
       ...otherProps
     } = this.props;
 
     return (
       <SettingsSecondaryNavigation
-        primaryNavGroup={primaryNavGroup}
         navigationObjects={navigationObjects}
         hooks={hooks}
         hookConfigs={hookConfigs}
