@@ -64,7 +64,7 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,

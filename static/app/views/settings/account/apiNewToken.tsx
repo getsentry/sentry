@@ -21,7 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 

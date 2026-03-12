@@ -10,7 +10,7 @@ type State = {
   showRawJson: boolean;
 };
 
-export default class RRWebJsonViewer extends Component<ViewerProps, State> {
+export class RRWebJsonViewer extends Component<ViewerProps, State> {
   state: State = {
     showRawJson: false,
   };

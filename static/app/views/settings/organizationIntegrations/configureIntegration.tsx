@@ -43,7 +43,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import AddIntegration from './addIntegration';
+import {AddIntegration} from './addIntegration';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';

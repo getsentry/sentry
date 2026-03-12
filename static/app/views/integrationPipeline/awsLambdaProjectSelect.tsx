@@ -20,7 +20,7 @@ import {HeaderWithHelp} from './components/headerWithHelp';
 
 type Props = {projects: Project[]};
 
-export default class AwsLambdaProjectSelect extends Component<Props> {
+export class AwsLambdaProjectSelect extends Component<Props> {
   model = new FormModel();
 
   handleSubmit = (e: React.MouseEvent) => {
