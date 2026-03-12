@@ -1,9 +1,14 @@
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {useDismissable} from 'sentry/components/banner';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {
@@ -14,7 +19,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
-import {PREBUILT_DASHBOARDS, type PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {PREBUILT_DASHBOARDS, PrebuiltDashboardId} from './utils/prebuiltConfigs';
 
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;
@@ -75,6 +80,16 @@ export function PrebuiltDashboardRenderer({
 
   const dashboardId = populatedPrebuiltDashboard?.id;
 
+  const pageFilters = usePageFilters();
+  const isSentryEmployee = useIsSentryEmployee();
+  const [dismissed, dismiss] = useDismissable('agents-overview-seer-data-banner');
+  const isAiAgentsOverview = prebuiltId === PrebuiltDashboardId.AI_AGENTS_OVERVIEW;
+  const showSeerDataBanner =
+    isSentryEmployee &&
+    !dismissed &&
+    pageFilters.selection.projects.includes(6178942) &&
+    isAiAgentsOverview;
+
   return (
     <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
       {dashboardId && (
@@ -90,6 +105,25 @@ export function PrebuiltDashboardRenderer({
                 ),
               }
             )}
+          </Alert>
+        </Container>
+      )}
+
+      {showSeerDataBanner && (
+        <Container padding="xl 3xl 0">
+          <Alert
+            variant="warning"
+            trailingItems={
+              <Button
+                aria-label="Dismiss"
+                icon={<IconClose />}
+                size="xs"
+                onClick={dismiss}
+              />
+            }
+          >
+            SENTRY EMPLOYEES: Transaction size limits make seer instrumentation
+            incomplete. Data shown here does not reflect actual state.
           </Alert>
         </Container>
       )}
