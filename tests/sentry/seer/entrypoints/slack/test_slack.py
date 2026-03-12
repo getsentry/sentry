@@ -8,8 +8,8 @@ from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
-    SlackEntrypoint,
-    SlackEntrypointCachePayload,
+    SlackAutofixCachePayload,
+    SlackAutofixEntrypoint,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
@@ -22,7 +22,7 @@ from sentry.seer.entrypoints.slack.messaging import (
 from sentry.testutils.cases import TestCase
 
 
-class SlackEntrypointTest(TestCase):
+class SlackAutofixEntrypointTest(TestCase):
     def setUp(self):
         self.slack_user_id = "UXXXXXXXXX1"
         self.channel_id = "CXXXXXXXXX1"
@@ -58,8 +58,8 @@ class SlackEntrypointTest(TestCase):
             group_link=self.group.get_absolute_url(),
         )
 
-    def _get_entrypoint(self) -> SlackEntrypoint:
-        return SlackEntrypoint(
+    def _get_entrypoint(self) -> SlackAutofixEntrypoint:
+        return SlackAutofixEntrypoint(
             slack_request=self.slack_request,
             group=self.group,
             organization_id=self.organization.id,
@@ -68,13 +68,13 @@ class SlackEntrypointTest(TestCase):
 
     def test_has_access(self):
         with self.feature({"organizations:seer-slack-workflows": False}):
-            assert not SlackEntrypoint.has_access(self.organization)
+            assert not SlackAutofixEntrypoint.has_access(self.organization)
         with self.feature("organizations:seer-slack-workflows"):
-            assert SlackEntrypoint.has_access(self.organization)
+            assert SlackAutofixEntrypoint.has_access(self.organization)
             self.organization.update_option("sentry:enable_seer_enhanced_alerts", False)
-            assert not SlackEntrypoint.has_access(self.organization)
+            assert not SlackAutofixEntrypoint.has_access(self.organization)
             self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
-            assert SlackEntrypoint.has_access(self.organization)
+            assert SlackAutofixEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     def test_on_trigger_autofix_error(self, mock_send_threaded_ephemeral_message):
@@ -103,8 +103,8 @@ class SlackEntrypointTest(TestCase):
     def test_create_autofix_cache_payload(self):
         ep = self._get_entrypoint()
         cache_payload = ep.create_autofix_cache_payload()
-        SlackEntrypointCachePayload(**cache_payload)
-        assert cache_payload["group_link"] == SlackEntrypoint.get_group_link(self.group)
+        SlackAutofixCachePayload(**cache_payload)
+        assert cache_payload["group_link"] == SlackAutofixEntrypoint.get_group_link(self.group)
         assert cache_payload["organization_id"] == self.organization.id
         assert cache_payload["integration_id"] == self.integration.id
         assert cache_payload["project_id"] == self.group.project.id
@@ -237,7 +237,7 @@ class SlackEntrypointTest(TestCase):
         mock_update_message.assert_called_once()
 
     def test_get_autofix_lock_key(self):
-        lock_key = SlackEntrypoint.get_autofix_lock_key(
+        lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
             group_id=self.group.id,
             stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
         )
@@ -443,7 +443,7 @@ class SlackEntrypointTest(TestCase):
             action_id=SlackAction.SEER_AUTOFIX_START.value,
             value=value,
         )
-        result = SlackEntrypoint.get_autofix_stopping_point_from_action(
+        result = SlackAutofixEntrypoint.get_autofix_stopping_point_from_action(
             action=action, group_id=self.group.id
         )
         assert result == expected
@@ -459,7 +459,7 @@ class SlackEntrypointTest(TestCase):
         )
 
     def test_get_group_link_includes_seer_drawer(self):
-        link = SlackEntrypoint.get_group_link(self.group)
+        link = SlackAutofixEntrypoint.get_group_link(self.group)
         assert "seerDrawer=true" in link
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")

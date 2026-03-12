@@ -48,7 +48,7 @@ class SlackThreadDetails(TypedDict):
     channel_id: str
 
 
-class SlackEntrypointCachePayload(TypedDict):
+class SlackAutofixCachePayload(TypedDict):
     organization_id: int
     project_id: int
     group_id: int
@@ -64,9 +64,8 @@ class SlackExplorerCachePayload(TypedDict):
     message_ts: str
 
 
-class SlackEntrypoint(
-    SeerAutofixEntrypoint[SlackEntrypointCachePayload],
-    SeerExplorerEntrypoint[SlackExplorerCachePayload],
+class SlackAutofixEntrypoint(
+    SeerAutofixEntrypoint[SlackAutofixCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
     autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
@@ -145,61 +144,6 @@ class SlackEntrypoint(
             f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}"
         )
 
-    @staticmethod
-    def has_explorer_access(organization: Organization) -> bool:
-        has_seer_slack_feature_flag = features.has(
-            "organizations:seer-slack-workflows", organization
-        )
-        has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
-        return has_seer_slack_feature_flag and has_explorer_access
-
-    @classmethod
-    def from_explorer_mention(
-        cls,
-        *,
-        integration_id: int,
-        organization_id: int,
-        channel_id: str,
-        message_ts: str,
-        thread_ts: str | None,
-        slack_user_id: str,
-    ) -> SlackEntrypoint:
-        """Construct a SlackEntrypoint from an app_mention event for Explorer."""
-        from sentry.integrations.services.integration import integration_service
-        from sentry.integrations.slack.integration import SlackIntegration
-        from sentry.integrations.types import IntegrationProviderSlug
-
-        integration = integration_service.get_integration(
-            integration_id=integration_id,
-            organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
-        )
-        if not integration:
-            raise ValueError(f"Slack integration {integration_id} not found")
-
-        from sentry.constants import ObjectStatus
-
-        ois = integration_service.get_organization_integrations(
-            integration_id=integration_id,
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-            limit=1,
-        )
-        if not ois:
-            raise ValueError(
-                f"Slack integration {integration_id} is not active for org {organization_id}"
-            )
-
-        instance = cls.__new__(cls)
-        instance.channel_id = channel_id
-        instance.message_ts = message_ts
-        instance.thread_ts = thread_ts or message_ts
-        instance.thread = SlackThreadDetails(thread_ts=instance.thread_ts, channel_id=channel_id)
-        instance.organization_id = organization_id
-        instance.install = SlackIntegration(model=integration, organization_id=organization_id)
-        instance.slack_user_id = slack_user_id
-        return instance
-
     def _update_existing_message(
         self, *, run_id: int, has_complete_stage: bool, include_user: bool
     ) -> None:
@@ -224,79 +168,6 @@ class SlackEntrypoint(
             slack_user_id=self.slack_request.user_id if include_user else None,
         )
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
-        self.install.clear_thread_status(
-            channel_id=self.thread["channel_id"],
-            thread_ts=self.thread["thread_ts"],
-        )
-        send_thread_update(
-            install=self.install,
-            thread=self.thread,
-            data=SeerExplorerError(error_message=error),
-            ephemeral_user_id=self.slack_user_id,
-        )
-
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
-        pass
-
-    def create_explorer_cache_payload(self) -> SlackExplorerCachePayload:
-        return SlackExplorerCachePayload(
-            thread=self.thread,
-            organization_id=self.organization_id,
-            integration_id=self.install.model.id,
-            message_ts=self.message_ts,
-        )
-
-    @staticmethod
-    def on_explorer_update(
-        cache_payload: SlackExplorerCachePayload,
-        summary: str | None,
-        run_id: int,
-    ) -> None:
-        from sentry.integrations.services.integration import integration_service
-        from sentry.integrations.slack.integration import SlackIntegration
-        from sentry.integrations.types import IntegrationProviderSlug
-
-        organization_id = cache_payload["organization_id"]
-        try:
-            organization = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            logger.warning(
-                "seer.entrypoint.slack.on_explorer_update.org_not_found",
-                extra={"organization_id": organization_id},
-            )
-            return
-        explorer_link = organization.absolute_url(
-            path="", query=urlencode({"explorerRunId": run_id})
-        )
-
-        # Clear the "Thinking..." status now that we have the actual response.
-        # This is defensive — the status also auto-clears when the bot posts a reply.
-        integration = integration_service.get_integration(
-            integration_id=cache_payload["integration_id"],
-            organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
-        )
-        if integration:
-            install = SlackIntegration(model=integration, organization_id=organization_id)
-            install.clear_thread_status(
-                channel_id=cache_payload["thread"]["channel_id"],
-                thread_ts=cache_payload["thread"]["thread_ts"],
-            )
-
-        data = SeerExplorerResponse(
-            run_id=run_id,
-            organization_id=organization_id,
-            explorer_link=explorer_link,
-            summary=summary,
-        )
-        schedule_all_thread_updates(
-            threads=[cache_payload["thread"]],
-            integration_id=cache_payload["integration_id"],
-            organization_id=organization_id,
-            data=data,
-        )
-
     def on_trigger_autofix_error(self, *, error: str) -> None:
         send_thread_update(
             install=self.install,
@@ -314,8 +185,8 @@ class SlackEntrypoint(
             run_id=run_id, has_complete_stage=has_complete_stage, include_user=False
         )
 
-    def create_autofix_cache_payload(self) -> SlackEntrypointCachePayload:
-        return SlackEntrypointCachePayload(
+    def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:
+        return SlackAutofixCachePayload(
             threads=[self.thread],
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
@@ -328,7 +199,7 @@ class SlackEntrypoint(
     def on_autofix_update(
         event_type: SentryAppEventType,
         event_payload: dict[str, Any],
-        cache_payload: SlackEntrypointCachePayload,
+        cache_payload: SlackAutofixCachePayload,
     ) -> None:
         logging_ctx = {
             "event_type": event_type,
@@ -458,6 +329,136 @@ class SlackEntrypoint(
         )
 
 
+class SlackExplorerEntrypoint(
+    SeerExplorerEntrypoint[SlackExplorerCachePayload],
+):
+    key = SeerEntrypointKey.SLACK
+
+    def __init__(
+        self,
+        *,
+        integration_id: int,
+        organization_id: int,
+        channel_id: str,
+        message_ts: str,
+        thread_ts: str | None,
+        slack_user_id: str,
+    ):
+        from sentry.integrations.services.integration import integration_service
+        from sentry.integrations.slack.integration import SlackIntegration
+        from sentry.integrations.types import IntegrationProviderSlug
+
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            provider=IntegrationProviderSlug.SLACK.value,
+        )
+        if not integration:
+            raise ValueError(f"Slack integration {integration_id} not found")
+
+        from sentry.constants import ObjectStatus
+
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            limit=1,
+        )
+        if not ois:
+            raise ValueError(
+                f"Slack integration {integration_id} is not active for org {organization_id}"
+            )
+
+        self.channel_id = channel_id
+        self.message_ts = message_ts
+        self.thread_ts = thread_ts or message_ts
+        self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=channel_id)
+        self.organization_id = organization_id
+        self.install = SlackIntegration(model=integration, organization_id=organization_id)
+        self.slack_user_id = slack_user_id
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        has_seer_slack_feature_flag = features.has(
+            "organizations:seer-slack-workflows", organization
+        )
+        has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
+        return has_seer_slack_feature_flag and has_explorer_access
+
+    def on_trigger_explorer_error(self, *, error: str) -> None:
+        self.install.clear_thread_status(
+            channel_id=self.thread["channel_id"],
+            thread_ts=self.thread["thread_ts"],
+        )
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerExplorerError(error_message=error),
+            ephemeral_user_id=self.slack_user_id,
+        )
+
+    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+        pass
+
+    def create_explorer_cache_payload(self) -> SlackExplorerCachePayload:
+        return SlackExplorerCachePayload(
+            thread=self.thread,
+            organization_id=self.organization_id,
+            integration_id=self.install.model.id,
+            message_ts=self.message_ts,
+        )
+
+    @staticmethod
+    def on_explorer_update(
+        cache_payload: SlackExplorerCachePayload,
+        summary: str | None,
+        run_id: int,
+    ) -> None:
+        from sentry.integrations.services.integration import integration_service
+        from sentry.integrations.slack.integration import SlackIntegration
+        from sentry.integrations.types import IntegrationProviderSlug
+
+        organization_id = cache_payload["organization_id"]
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except Organization.DoesNotExist:
+            logger.warning(
+                "seer.entrypoint.slack.on_explorer_update.org_not_found",
+                extra={"organization_id": organization_id},
+            )
+            return
+        explorer_link = organization.absolute_url(
+            path="", query=urlencode({"explorerRunId": run_id})
+        )
+
+        # Clear the "Thinking..." status now that we have the actual response.
+        # This is defensive — the status also auto-clears when the bot posts a reply.
+        integration = integration_service.get_integration(
+            integration_id=cache_payload["integration_id"],
+            organization_id=organization_id,
+            provider=IntegrationProviderSlug.SLACK.value,
+        )
+        if integration:
+            install = SlackIntegration(model=integration, organization_id=organization_id)
+            install.clear_thread_status(
+                channel_id=cache_payload["thread"]["channel_id"],
+                thread_ts=cache_payload["thread"]["thread_ts"],
+            )
+
+        data = SeerExplorerResponse(
+            run_id=run_id,
+            organization_id=organization_id,
+            explorer_link=explorer_link,
+            summary=summary,
+        )
+        schedule_all_thread_updates(
+            threads=[cache_payload["thread"]],
+            integration_id=cache_payload["integration_id"],
+            organization_id=organization_id,
+            data=data,
+        )
+
+
 def prepare_slack_thread_for_autofix_updates(
     *,
     thread_ts: str,
@@ -472,7 +473,7 @@ def prepare_slack_thread_for_autofix_updates(
     Merges threads if an existing cache entry exists for this group.
     """
     logging_ctx = {
-        "entrypoint_key": SlackEntrypoint.key,
+        "entrypoint_key": SlackAutofixEntrypoint.key,
         "group_id": group.id,
         "organization_id": organization_id,
         "integration_id": integration_id,
@@ -481,7 +482,7 @@ def prepare_slack_thread_for_autofix_updates(
     }
     threads: list[SlackThreadDetails] = []
     incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
-    lock_key = SlackEntrypoint.get_autofix_lock_key(
+    lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
         group_id=group.id,
         stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
     )
@@ -489,8 +490,8 @@ def prepare_slack_thread_for_autofix_updates(
     lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
     try:
         with lock.blocking_acquire(initial_delay=0.1, timeout=3):
-            existing_cache = SeerOperatorAutofixCache[SlackEntrypointCachePayload].get(
-                entrypoint_key=str(SlackEntrypoint.key),
+            existing_cache = SeerOperatorAutofixCache[SlackAutofixCachePayload].get(
+                entrypoint_key=str(SlackAutofixEntrypoint.key),
                 group_id=group.id,
             )
             if existing_cache:
@@ -499,17 +500,17 @@ def prepare_slack_thread_for_autofix_updates(
                 threads.append(incoming_thread)
 
             cache_result = SeerOperatorAutofixCache[
-                SlackEntrypointCachePayload
+                SlackAutofixCachePayload
             ].populate_pre_autofix_cache(
-                entrypoint_key=str(SlackEntrypoint.key),
+                entrypoint_key=str(SlackAutofixEntrypoint.key),
                 group_id=group.id,
-                cache_payload=SlackEntrypointCachePayload(
+                cache_payload=SlackAutofixCachePayload(
                     threads=threads,
                     organization_id=organization_id,
                     integration_id=integration_id,
                     project_id=group.project_id,
                     group_id=group.id,
-                    group_link=SlackEntrypoint.get_group_link(group),
+                    group_link=SlackAutofixEntrypoint.get_group_link(group),
                 ),
             )
     except UnableToAcquireLock:
@@ -531,5 +532,5 @@ def prepare_slack_thread_for_autofix_updates(
 
 
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
-autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackEntrypoint)
-explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackEntrypoint)
+autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
+explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackExplorerEntrypoint)
