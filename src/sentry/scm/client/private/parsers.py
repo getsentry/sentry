@@ -44,18 +44,17 @@ class ReactionResult(pydantic.BaseModel):
 
 
 class PullRequestBranch(pydantic.BaseModel):
-    sha: SHA
+    sha: SHA | None
     ref: BranchName
 
 
 class PullRequest(pydantic.BaseModel):
     id: ResourceId
-    number: int
+    number: str
     title: str
     body: str | None
     state: PullRequestState
     merged: bool
-    url: str
     html_url: str
     head: PullRequestBranch
     base: PullRequestBranch
@@ -94,7 +93,7 @@ class Commit(pydantic.BaseModel):
     id: SHA
     message: str
     author: CommitAuthor | None
-    files: list[CommitFile]
+    files: list[CommitFile] | None
 
 
 class TreeEntry(pydantic.BaseModel):
@@ -154,7 +153,7 @@ class ReviewCommentInput(pydantic.BaseModel):
 
 class ReviewComment(pydantic.BaseModel):
     id: ResourceId
-    html_url: str
+    html_url: str | None
     path: str
     body: str
 
