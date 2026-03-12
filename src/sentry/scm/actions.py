@@ -501,11 +501,22 @@ class SourceCodeManager:
         body: str,
         head: BranchName,
         base: BranchName,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         return self._exec(
             ActionMap.create_pull_request,  # type: ignore[type-abstract]
-            lambda p: p.create_pull_request(title, body, head, base, draft=draft),
+            lambda p: p.create_pull_request(title, body, head, base),
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: BranchName,
+        base: BranchName,
+    ) -> ActionResult[PullRequest]:
+        return self._exec(
+            ActionMap.create_pull_request_draft,  # type: ignore[type-abstract]
+            lambda p: p.create_pull_request_draft(title, body, head, base),
         )
 
     def update_pull_request(

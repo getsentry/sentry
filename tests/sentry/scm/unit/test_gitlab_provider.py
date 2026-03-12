@@ -440,7 +440,6 @@ class ForwardToClientTest(NamedTuple):
                 "body": "Another PR, made through the API.",
                 "head": "topics/blih",
                 "base": "main",
-                "draft": False,
             },
             client_calls=[
                 ClientForwardedCall(

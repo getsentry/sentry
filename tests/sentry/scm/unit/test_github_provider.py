@@ -92,6 +92,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_diff", {"pull_request_id": "42"}),
     ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    ("create_pull_request_draft", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
     (
@@ -335,7 +336,19 @@ CLIENT_DELEGATION_TESTS: list[
             "create_pull_request",
             (
                 "test-org/test-repo",
-                {"title": "T", "body": "B", "head": "h", "base": "b", "draft": False},
+                {"title": "T", "body": "B", "head": "h", "base": "b"},
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_pull_request_draft",
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        (
+            "create_pull_request",
+            (
+                "test-org/test-repo",
+                {"title": "T", "body": "B", "head": "h", "base": "b", "draft": True},
             ),
             {},
         ),
@@ -866,6 +879,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         _check_create_pull_request,
     ),
     (
+        "create_pull_request_draft",
+        {"title": "New PR", "body": "PR body", "head": "feature", "base": "main"},
+        {"created_pr_data": make_github_pull_request(title="New PR", body="PR body")},
+        _check_create_pull_request,
+    ),
+    (
         "update_pull_request",
         {"pull_request_id": "42", "title": "Updated"},
         {"updated_pr_data": make_github_pull_request(title="Updated")},
@@ -1097,24 +1116,6 @@ class TestListPullRequestsEdgeCases:
         result = provider.get_pull_requests()
 
         assert result["data"] == []
-
-
-class TestCreatePullRequestEdgeCases:
-    def test_passes_draft_flag(self):
-        repository = make_repository()
-        client = _make_client()
-        provider = GitHubProvider(client, repository["organization_id"], repository)
-
-        provider.create_pull_request("T", "B", "feature", "main", draft=True)
-
-        assert (
-            "create_pull_request",
-            (
-                "test-org/test-repo",
-                {"title": "T", "body": "B", "head": "feature", "base": "main", "draft": True},
-            ),
-            {},
-        ) in client.calls
 
 
 class TestUpdatePullRequestEdgeCases:

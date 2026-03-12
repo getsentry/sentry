@@ -307,7 +307,17 @@ class CreatePullRequestProtocol(Protocol):
         body: str,
         head: BranchName,
         base: BranchName,
-        draft: bool = False,
+    ) -> ActionResult[PullRequest]: ...
+
+
+@runtime_checkable
+class CreatePullRequestDraftProtocol(Protocol):
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: BranchName,
+        base: BranchName,
     ) -> ActionResult[PullRequest]: ...
 
 
@@ -528,6 +538,7 @@ class ActionMap:
     get_pull_request_commits = GetPullRequestCommitsProtocol
     get_pull_request_diff = GetPullRequestDiffProtocol
     create_pull_request = CreatePullRequestProtocol
+    create_pull_request_draft = CreatePullRequestDraftProtocol
     update_pull_request = UpdatePullRequestProtocol
     request_review = RequestReviewProtocol
     get_tree = GetTreeProtocol

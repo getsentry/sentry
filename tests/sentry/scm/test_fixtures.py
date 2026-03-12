@@ -984,7 +984,31 @@ class BaseTestProvider(Provider):
         body: str,
         head: str,
         base: str,
-        draft: bool = False,
+    ) -> ActionResult[PullRequest]:
+        raw = make_github_pull_request(title=title, body=body)
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
     ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(title=title, body=body)
         return ActionResult(

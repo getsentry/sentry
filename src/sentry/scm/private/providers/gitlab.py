@@ -7,6 +7,7 @@ Unsupported actions:
     * create_git_blob
     * create_git_commit
     * create_git_tree
+    * create_pull_request_draft
     * create_review
     * get_check_run
     * get_git_commit
@@ -389,8 +390,6 @@ class GitLabProvider:
         body: str,
         head: str,
         base: str,
-        # GitLab doesn't have a concept of draft PRs, so the 'draft' parameter is ignored
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         data = {
             "title": title,

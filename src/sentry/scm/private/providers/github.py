@@ -510,14 +510,30 @@ class GitHubProvider:
         body: str,
         head: str,
         base: str,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         data: dict[str, Any] = {
             "title": title,
             "body": body,
             "head": head,
             "base": base,
-            "draft": draft,
+        }
+        raw = self.client.create_pull_request(self.repository["name"], data)
+        return map_action(raw, map_pull_request)
+
+    @catch_provider_exception
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+    ) -> ActionResult[PullRequest]:
+        data: dict[str, Any] = {
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base,
+            "draft": True,
         }
         raw = self.client.create_pull_request(self.repository["name"], data)
         return map_action(raw, map_pull_request)
