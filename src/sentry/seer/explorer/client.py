@@ -239,7 +239,7 @@ class SeerExplorerClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
-        override_ce_enable: bool | None = True,
+        override_ce_enable: bool = True,
     ) -> int:
         """
         Start a new Seer Explorer session.
