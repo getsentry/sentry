@@ -603,6 +603,11 @@ function WidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.TABLE &&
     widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
 
+  // At the moment, issue tables do not support aggregates, so we should never render the table in full screen for timeseries widgets
+  const shouldRenderTable = !(
+    widget.widgetType === WidgetType.ISSUE && shouldRenderChartVisualization
+  );
+
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -736,7 +741,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </QueryContainer>
         )}
-        {renderWidgetViewerTable()}
+        {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
     );
   }
