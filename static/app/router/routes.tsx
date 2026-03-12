@@ -1364,6 +1364,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: '/dashboards/new/seer/',
+      component: make(() => import('sentry/views/dashboards/createWithSeer')),
+      withOrgPath: true,
+    },
+    {
       path: '/dashboards/new/',
       component: make(() => import('sentry/views/dashboards/create')),
       withOrgPath: true,

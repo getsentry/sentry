@@ -54,6 +54,7 @@ import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import DashboardGrid from './dashboardGrid';
 import {
@@ -586,6 +587,24 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackButton />
+                      {isSeerExplorerEnabled(organization) && (
+                        <Button
+                          data-test-id="dashboard-create-with-seer"
+                          onClick={event => {
+                            event.preventDefault();
+                            navigate(
+                              normalizeUrl({
+                                pathname: `/organizations/${organization.slug}/dashboards/new/seer/`,
+                                query: location.query,
+                              })
+                            );
+                          }}
+                          size="sm"
+                          icon={<IconAdd />}
+                        >
+                          {t('Create with Seer')}
+                        </Button>
+                      )}
                       <DashboardCreateLimitWrapper>
                         {({
                           hasReachedDashboardLimit,

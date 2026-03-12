@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.dashboards.dashboard_validation_tool import DashboardValidationTool
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.seer.models import SeerPermissionError
@@ -128,6 +129,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 request.user,
                 is_interactive=True,
                 enable_coding=enable_coding,
+                custom_tools=[DashboardValidationTool],
             )
             if run_id:
                 # Continue existing conversation
