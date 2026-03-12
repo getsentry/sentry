@@ -22,7 +22,7 @@ from sentry.users.services.user import RpcUser
 
 class ProjectService(RpcService):
     key = "project"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

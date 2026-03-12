@@ -34,7 +34,7 @@ const booleanOptions = [
   {value: 'false', label: t('False')},
 ];
 
-function MembersFilter({roles, query, onChange}: Props) {
+export function MembersFilter({roles, query, onChange}: Props) {
   const search = new MutableSearch(query);
 
   const filters = {
@@ -102,5 +102,3 @@ function MembersFilter({roles, query, onChange}: Props) {
     </CompositeSelect>
   );
 }
-
-export default MembersFilter;

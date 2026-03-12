@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,11 +17,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function CrashReportSection({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function CrashReportSection({crashReportId, organization, projectSlug}: Props) {
   const {isFetching, groupData} = useFetchCrashReport({
     crashReportId,
     organization,

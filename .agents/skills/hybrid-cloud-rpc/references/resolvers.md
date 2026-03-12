@@ -1,6 +1,6 @@
 # Region Resolution Strategies
 
-Region-silo services (`local_mode = SiloMode.REGION`) require every RPC method to declare how to resolve the target region from the method's arguments. This is done via the `resolve` parameter on `@regional_rpc_method`.
+Region-silo services (`local_mode = SiloMode.CELL`) require every RPC method to declare how to resolve the target region from the method's arguments. This is done via the `resolve` parameter on `@regional_rpc_method`.
 
 All resolvers are defined in `src/sentry/hybridcloud/rpc/resolvers.py`.
 

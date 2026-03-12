@@ -133,7 +133,7 @@ def _import(
     from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        errText = "Imports must be run in REGION or MONOLITH instances only"
+        errText = "Imports must be run in CELL or MONOLITH instances only"
         printer.echo(errText, err=True)
         raise RuntimeError(errText)
 

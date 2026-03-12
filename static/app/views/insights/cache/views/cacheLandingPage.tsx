@@ -25,7 +25,7 @@ import CacheMissRateChartWidget from 'sentry/views/insights/common/components/wi
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';

@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/prevent/context/preventContext';
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreventQueryParamsProviderProps = {
   children?: NonNullable<React.ReactNode>;
@@ -26,9 +26,7 @@ type LocalStorageState = Record<string, Org> & {
 
 const VALUES_TO_RESET_URL_PARAMS = ['repository', 'branch', 'testSuites'];
 
-export default function PreventQueryParamsProvider({
-  children,
-}: PreventQueryParamsProviderProps) {
+export function PreventQueryParamsProvider({children}: PreventQueryParamsProviderProps) {
   const organization = useOrganization();
   const initialLocalStorageState: LocalStorageState = {};
   const [localStorageState, setLocalStorageState] = useLocalStorageState(

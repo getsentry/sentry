@@ -5,14 +5,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
     """
     Endpoint for querying Next.js Insights data to display a tree view of files and components.

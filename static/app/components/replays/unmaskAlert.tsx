@@ -4,14 +4,14 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
+import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 
-function UnmaskAlert() {
+export function UnmaskAlert() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {data, isError, isPending} = useUserViewedReplays();
 
@@ -45,8 +45,6 @@ function UnmaskAlert() {
     </UnmaskAlertContainer>
   );
 }
-
-export default UnmaskAlert;
 
 const UnmaskAlertContainer = styled('div')`
   position: absolute;

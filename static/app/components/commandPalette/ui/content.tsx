@@ -13,7 +13,7 @@ import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/useCom
 import {useDsnLookupActions} from 'sentry/components/commandPalette/useDsnLookupActions';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {unreachable} from 'sentry/utils/unreachable';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type CommandPaletteActionMenuItem = MenuListItemProps & {

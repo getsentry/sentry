@@ -18,10 +18,10 @@ import {
   type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -29,12 +29,12 @@ import {
   stripActionFields,
   validateActions,
 } from 'sentry/views/automations/components/automationFormData';
-import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
+import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
-export default function AutomationBuilder() {
+export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
   const {mutationErrors} = useAutomationBuilderErrorContext();
   const organization = useOrganization();

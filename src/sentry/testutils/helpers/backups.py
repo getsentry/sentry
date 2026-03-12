@@ -291,7 +291,7 @@ def clear_model(model, *, reset_pks: bool):
                 cursor.execute("SELECT setval(%s, 1, false)", [seq])
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def clear_database(*, reset_pks: bool = False):
     """
     Deletes all models we care about from the database, in a sequence that ensures we get no
@@ -428,7 +428,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return user
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_organization(
         self,
         slug: str,
@@ -905,7 +905,7 @@ class ExhaustiveFixtures(Fixtures):
 
         return app
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
         project = Project.objects.filter(organization=org).first()
         self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
@@ -916,7 +916,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_exhaustive_global_configs_regional(self):
         _, public_key = generate_key_pair()
         relay = str(uuid4())

@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import DetailedError from 'sentry/components/errors/detailedError';
+import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

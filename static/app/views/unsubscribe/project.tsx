@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NarrowLayout from 'sentry/components/narrowLayout';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

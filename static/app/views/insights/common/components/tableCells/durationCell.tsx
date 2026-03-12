@@ -1,4 +1,4 @@
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {t} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 

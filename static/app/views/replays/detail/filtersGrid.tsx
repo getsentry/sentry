@@ -1,7 +1,7 @@
 import {Children} from 'react';
 import styled from '@emotion/styled';
 
-const FiltersGrid = styled('div')`
+export const FiltersGrid = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.md};
   grid-template-columns:
@@ -12,5 +12,3 @@ const FiltersGrid = styled('div')`
     margin-top: ${p => p.theme.space.md};
   }
 `;
-
-export default FiltersGrid;

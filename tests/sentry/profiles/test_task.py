@@ -587,9 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
-    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -631,7 +629,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "()",
-                "source_file": "Something.java",
+                "source_file": "Util.java",
                 "source_line": 67,
             },
             {
@@ -639,14 +637,12 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getExtraClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "(): boolean",
-                "source_file": "Else.java",
+                "source_file": "Util.java",
                 "source_line": 69,
             },
         ]
 
-    @pytest.mark.skip(reason="Temporarily skipped due to symbolicator regression")
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_inline_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -690,7 +686,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 },
                 "name": "onClick",
                 "signature": "()",
-                "source_file": None,
+                "source_file": "-.java",
                 "source_line": 2,
             },
             {
@@ -738,7 +734,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_error_on_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -774,7 +769,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert android_profile["profile"]["methods"] == obfuscated_frames
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_js_symbolication_set_symbolicated_field(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"

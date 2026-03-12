@@ -5,7 +5,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {openModal} from 'sentry/actionCreators/modal';
 import * as OnboardingContext from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
 import {useConfigureSdk} from './useConfigureSdk';

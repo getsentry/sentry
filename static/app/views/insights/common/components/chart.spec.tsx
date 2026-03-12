@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 

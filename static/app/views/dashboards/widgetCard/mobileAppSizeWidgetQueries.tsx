@@ -1,7 +1,7 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import getDynamicText from 'sentry/utils/getDynamicText';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
@@ -15,7 +15,7 @@ type MobileAppSizeWidgetQueriesProps = {
   widgetInterval?: string;
 };
 
-function MobileAppSizeWidgetQueries({
+export function MobileAppSizeWidgetQueries({
   children,
   widget,
   dashboardFilters,
@@ -40,5 +40,3 @@ function MobileAppSizeWidgetQueries({
     fixed: <div />,
   });
 }
-
-export default MobileAppSizeWidgetQueries;

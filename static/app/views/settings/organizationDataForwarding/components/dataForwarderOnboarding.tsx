@@ -10,7 +10,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import Access from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getCreateTooltip} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 
 export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {

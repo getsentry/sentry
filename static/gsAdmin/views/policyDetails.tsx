@@ -4,24 +4,24 @@ import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
-import PolicyRevisionModal from 'admin/components/policies/policyRevisionModal';
-import PolicyRevisions from 'admin/components/policies/policyRevisions';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {PolicyRevisionModal} from 'admin/components/policies/policyRevisionModal';
+import {PolicyRevisions} from 'admin/components/policies/policyRevisions';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-export default function PolicyDetails() {
+export function PolicyDetails() {
   const api = useApi();
   const {policySlug} = useParams<{policySlug: string}>();
 

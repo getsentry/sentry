@@ -28,7 +28,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Cell, RegionCategory, get_local_region
+from sentry.types.region import Cell, RegionCategory, get_local_cell
 from sentry.users.models.user import User
 
 
@@ -69,14 +69,14 @@ class ControlOutboxTest(TestCase):
         ).should_skip_shard()
 
     def test_control_sharding_keys(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = Factories.create_organization()
 
         user1 = Factories.create_user()
         user2 = Factories.create_user()
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            expected_region_name = get_local_region().name
+        with assume_test_silo_mode(SiloMode.CELL):
+            expected_region_name = get_local_cell().name
             om = OrganizationMember.objects.create(
                 organization_id=org.id,
                 user_id=user1.id,
@@ -98,7 +98,7 @@ class ControlOutboxTest(TestCase):
                 inst.save()
 
         shards = {
-            (row["shard_scope"], row["shard_identifier"], row["region_name"])
+            (row["shard_scope"], row["shard_identifier"], row["cell_name"])
             for row in ControlOutbox.find_scheduled_shards()
         }
 
@@ -606,7 +606,7 @@ class OutboxAggregationTest(TestCase):
         for shard_id, (shard_count, region_name) in shard_counts.items():
             for i in range(shard_count):
                 ControlOutbox(
-                    region_name=region_name,
+                    cell_name=region_name,
                     shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
                     shard_identifier=shard_id,
                     category=OutboxCategory.AUDIT_LOG_EVENT,
@@ -620,19 +620,19 @@ class OutboxAggregationTest(TestCase):
         assert shard_depths == [
             dict(
                 shard_identifier=2,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             ),
             dict(
                 shard_identifier=1,
-                region_name="eu",
+                cell_name="eu",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=4,
             ),
             dict(
                 shard_identifier=3,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=1,
             ),
@@ -643,7 +643,7 @@ class OutboxAggregationTest(TestCase):
         assert shard_depths == [
             dict(
                 shard_identifier=2,
-                region_name="us",
+                cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
                 depth=7,
             )

@@ -8,7 +8,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
-import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
+import {RulesPanel} from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 interface ViewCodeOwnerModalProps extends ModalRenderProps {
   codeowner: CodeOwner;

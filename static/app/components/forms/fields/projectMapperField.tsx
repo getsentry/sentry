@@ -10,11 +10,11 @@ import {Select} from '@sentry/scraps/select';
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {ProjectMapperType} from 'sentry/components/forms/types';
-import IdBadge from 'sentry/components/idBadge';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {
   IconAdd,
   IconArrow,
@@ -24,7 +24,7 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import {removeAtArrayIndex} from 'sentry/utils/array/removeAtArrayIndex';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props

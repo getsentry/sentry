@@ -7,14 +7,14 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
-import SettingsHeader from './settingsHeader';
-import SettingsSearch from './settingsSearch';
+import {SettingsHeader} from './settingsHeader';
+import {SettingsSearch} from './settingsSearch';
 
 interface Props {
   children: React.ReactNode;
 }
 
-export default function SettingsLayout({children}: Props) {
+export function SettingsLayout({children}: Props) {
   const params = useParams();
   const routes = useRoutes();
 

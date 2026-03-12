@@ -2,8 +2,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'sentry/stores/teamStore';
-import Teams from 'sentry/utils/teams';
+import {TeamStore} from 'sentry/stores/teamStore';
+import {Teams} from 'sentry/utils/teams';
 
 describe('utils.teams', () => {
   const renderer = jest.fn(() => null);

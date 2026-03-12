@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
@@ -261,7 +261,7 @@ function AttributesHighlights({
   ];
 
   return (
-    <ScrollCarousel gap={2} aria-label={t('Attributes Highlights')}>
+    <ScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
       {highlights.map(highlight => {
         const summary = highlight.getSummary();
 
@@ -312,7 +312,7 @@ type HighlightsProps = {
   rootEventResults: TraceRootEventQueryResults;
 };
 
-function Highlights({rootEventResults, organization, project}: HighlightsProps) {
+export function Highlights({rootEventResults, organization, project}: HighlightsProps) {
   if (!rootEventResults.data) {
     return null;
   }
@@ -341,5 +341,3 @@ const TransactionEventHighlightsWrapper = styled('span')`
     padding: 0;
   }
 `;
-
-export default Highlights;

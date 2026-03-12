@@ -6,19 +6,19 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {t} from 'sentry/locale';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {PriorityLevel, type Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupDetailsPriorityProps = {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
 };
 
-function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
 
@@ -73,5 +73,3 @@ function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
     />
   );
 }
-
-export default GroupPriority;

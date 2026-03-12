@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 import string
 from typing import Any
 
 import sentry_sdk
 from django.conf import settings as django_settings
-from requests import HTTPError, RequestException
+from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
@@ -15,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
+from sentry.integrations.claude_code.utils import ClaudeSessionEvent, ClaudeSessionEventStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -641,43 +643,50 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
     if not client:
         return
 
-    claude_status, new_status = get_claude_session_status(client, agent_id)
-    if new_status is None:
+    # Fetch all events — the API returns events in chronological order,
+    # so the last element is the most recent event.
+    raw_events = client.list_session_events(agent_id)
+    if not raw_events:
         return
 
-    # If session went idle, check if the last tool call received a result.
-    # A missing tool result means the agent stalled (e.g., permission blocked).
-    if new_status == CodingAgentStatus.COMPLETED:
-        new_status = check_for_tool_failure(client, agent_id)
+    all_events = [ClaudeSessionEvent.parse_obj(e) for e in raw_events]
+    last_event_type = all_events[-1].type
 
-    result = None
-    if new_status in (CodingAgentStatus.COMPLETED, CodingAgentStatus.FAILED):
-        result, new_status = build_result_from_session(
-            client, agent_id, agent_state.name, new_status
+    if (
+        last_event_type == ClaudeSessionEventStatus.IDLE
+        or last_event_type == ClaudeSessionEventStatus.CLOSED
+    ):
+        new_status = CodingAgentStatus.COMPLETED
+
+        result, new_status = build_result_from_events(
+            all_events, client, agent_id, agent_state.name, new_status
         )
 
-    if new_status != agent_state.status:
-        try:
+        if new_status != agent_state.status:
             update_coding_agent_state(
                 agent_id=agent_id,
                 status=new_status,
                 result=result,
             )
-        except Exception:
-            logger.exception(
-                "coding_agent.claude_code.state_update_error",
-                extra={"agent_id": agent_id},
-            )
 
-    logger.info(
-        "coding_agent.claude_code.poll_update",
-        extra={
-            "agent_id": agent_id,
-            "claude_status": claude_status,
-            "new_status": new_status.value,
-            "pr_url": result.pr_url if result else None,
-        },
-    )
+        logger.info(
+            "coding_agent.claude_code.poll_update",
+            extra={
+                "agent_id": agent_id,
+                "last_event_type": last_event_type,
+                "new_status": new_status.value,
+                "pr_url": result.pr_url if result else None,
+            },
+        )
+
+    elif last_event_type == ClaudeSessionEventStatus.PENDING:
+        if agent_state.status != CodingAgentStatus.PENDING:
+            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
+
+    else:
+        # Any other event (status_running, agent, tool_result, etc.) means active.
+        if agent_state.status != CodingAgentStatus.RUNNING:
+            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
@@ -724,65 +733,38 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def check_for_tool_failure(client, agent_id) -> CodingAgentStatus:
-    events = client.list_session_events(agent_id)
-    last_tool_use = None
-    has_tool_result = False
-    for event in events:
-        event_type = event.get("type")
-        if event_type == "agent":
-            for block in event.get("content", []):
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    last_tool_use = block.get("id")
-                    has_tool_result = False
-        elif event_type == "tool_result":
-            if event.get("tool_use_id") == last_tool_use:
-                has_tool_result = True
+def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | None:
+    """Extract a GitHub PR or branch URL from session events."""
+    pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
+    branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
-    if last_tool_use and not has_tool_result:
-        logger.warning(
-            "coding_agent.claude_code.idle_missing_tool_result",
-            extra={
-                "agent_id": agent_id,
-                "last_tool_use_id": last_tool_use,
-            },
-        )
-        return CodingAgentStatus.FAILED
+    for event in reversed(events):
+        if event.type != "agent":
+            continue
+        for block in getattr(event, "content", []):
+            if isinstance(block, dict) and block.get("type") == "text":
+                text = block.get("text", "")
+                pr_match = pr_pattern.search(text)
+                if pr_match:
+                    return pr_match.group(0)
+                branch_match = branch_pattern.search(text)
+                if branch_match:
+                    return branch_match.group(0)
 
-    return CodingAgentStatus.COMPLETED
+    return None
 
 
-def get_claude_session_status(client, agent_id) -> tuple[str | None, CodingAgentStatus | None]:
-    try:
-        session_status = client.get_session_status(agent_id)
-    except RequestException:
-        return (None, None)
-
-    claude_status = session_status.status
-    new_status = CodingAgentStatus.from_claude_code_status(claude_status)
-
-    logger.info(
-        "coding_agent.claude_code.session_status_details",
-        extra={
-            "agent_id": agent_id,
-            "claude_status": claude_status,
-            "session_result": session_status.result,
-            "raw_status_response": str(session_status),
-        },
-    )
-    return claude_status, new_status
-
-
-def build_result_from_session(
-    client, agent_id, agent_name, new_status: CodingAgentStatus
+def build_result_from_events(
+    events: list[ClaudeSessionEvent],
+    client: Any,
+    agent_id: str,
+    agent_name: str,
+    new_status: CodingAgentStatus,
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
     if new_status == CodingAgentStatus.COMPLETED:
-        try:
-            pr_url = client.extract_result_url_from_events(agent_id)
-        except Exception:
-            pass
+        pr_url = extract_result_url_from_events(events)
         if not pr_url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",

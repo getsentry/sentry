@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
+import {VitalCard} from 'sentry/views/insights/mobile/screens/components/vitalCard';
 
 describe('VitalCard', () => {
   const mockProps = {

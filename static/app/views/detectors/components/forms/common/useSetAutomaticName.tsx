@@ -1,8 +1,8 @@
 import {useContext, useEffect} from 'react';
 import {autorun} from 'mobx';
 
-import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import type {FormModel} from 'sentry/components/forms/model';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 
 /**

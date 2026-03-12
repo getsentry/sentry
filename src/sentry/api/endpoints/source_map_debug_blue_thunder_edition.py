@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
@@ -122,7 +122,7 @@ class SourceMapDebugResponse(TypedDict):
     has_scraping_data: bool
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Events"])
 class SourceMapDebugBlueThunderEditionEndpoint(ProjectEndpoint):
     publish_status = {

@@ -12,7 +12,7 @@ type Opts = {
   staticColumnWidths: number[];
 };
 
-function useVirtualizedGrid({
+export function useVirtualizedGrid({
   defaultColumnWidth,
   dynamicColumnIndex,
   minDynamicColumnWidth,
@@ -100,5 +100,3 @@ function useVirtualizedGrid({
     wrapperRef,
   };
 }
-
-export default useVirtualizedGrid;

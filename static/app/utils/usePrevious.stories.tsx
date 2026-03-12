@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import StructuredEventData from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 export default Storybook.story('usePrevious', story => {
   story('Default', () => {
