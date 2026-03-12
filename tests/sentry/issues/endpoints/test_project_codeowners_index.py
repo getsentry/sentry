@@ -342,8 +342,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
-                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
+                        {
+                            "id": str(self.user.id),
+                            "identifier": self.user.email,
+                            "type": "user",
+                        },
+                        {"id": str(self.team.id), "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -431,8 +435,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
-                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
+                        {
+                            "id": str(self.user.id),
+                            "identifier": self.user.email,
+                            "type": "user",
+                        },
+                        {"id": str(self.team.id), "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -455,8 +463,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
-                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
+                        {
+                            "id": str(self.user.id),
+                            "identifier": self.user.email,
+                            "type": "user",
+                        },
+                        {"id": str(self.team.id), "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -545,8 +557,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "identifier": "admin@sentry.io"},
-                        {"type": "team", "id": self.team.id, "identifier": "tiger-team"},
+                        {
+                            "type": "user",
+                            "id": str(self.user.id),
+                            "identifier": "admin@sentry.io",
+                        },
+                        {"type": "team", "id": str(self.team.id), "identifier": "tiger-team"},
                     ],
                 }
             ],
@@ -588,8 +604,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             {
                 "matcher": {"type": "codeowners", "pattern": "docs/*"},
                 "owners": [
-                    {"type": "user", "identifier": "admin@sentry.io", "id": self.user.id},
-                    {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    {"type": "user", "identifier": "admin@sentry.io", "id": str(self.user.id)},
+                    {"type": "team", "identifier": "tiger-team", "id": str(self.team.id)},
                 ],
             }
         ]
