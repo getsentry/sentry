@@ -95,6 +95,10 @@ export const useSeries = (): Record<string, SeriesItem> => {
   };
 };
 
+function isAbuseWithoutReason(by: {outcome: string; reason?: string}): boolean {
+  return by.outcome === 'abuse' && (!by.reason || by.reason === 'none');
+}
+
 type AbuseData = {
   intervalMs: number;
   intervals: number[];
@@ -109,10 +113,7 @@ function getAbuseData(
   const abuseByInterval = new Array(intervals.length).fill(0) as number[];
 
   for (const group of groups) {
-    if (
-      group.by.outcome === 'abuse' &&
-      (!group.by.reason || group.by.reason === 'none')
-    ) {
+    if (isAbuseWithoutReason(group.by)) {
       group.series['sum(quantity)']?.forEach((val, i) => {
         abuseByInterval[i]! += val;
       });
@@ -302,10 +303,7 @@ export function populateChartData(
         return;
       }
 
-      if (
-        point.by.outcome === 'abuse' &&
-        (!point.by.reason || point.by.reason === 'none')
-      ) {
+      if (isAbuseWithoutReason(point.by)) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
