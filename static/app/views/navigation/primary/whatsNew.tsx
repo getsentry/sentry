@@ -189,7 +189,7 @@ export function PrimaryNavigationWhatsNew() {
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
-            broadcasts={broadcasts}
+            broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
           />
         </PrimaryButtonOverlay>
       )}
