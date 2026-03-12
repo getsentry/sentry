@@ -53,7 +53,12 @@ from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -62,6 +67,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
@@ -307,8 +314,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.detector = Detector.objects.get(id=ard.detector_id)
         fake_detector_id = get_fake_id_from_object_id(self.detector.id)
 
-        # Fake detector IDs can be successfully resolved to detectors
-        # The serializer returns the alert_rule_id, not the fake detector ID
+        # Fake detector IDs can be successfully resolved to detectors.
+        # For dual-written detectors, the serializer returns the alert_rule_id;
+        # for single-written detectors, it returns the fake detector ID.
         resp = self.get_success_response(self.organization.slug, fake_detector_id)
         assert resp.data["id"] == str(self.alert_rule.id)
         assert resp.data["name"] == self.detector.name
@@ -862,6 +870,108 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:incidents")
+    def test_non_dual_written_detector_serialization(self) -> None:
+        """A detector created directly (not via dual-write from AlertRule) is
+        serialized into the AlertRule-compatible format by the detail endpoint."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Build the data chain: SnubaQuery → QuerySubscription → DataSource
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            query="is:unresolved",
+            aggregate="count()",
+            time_window=600,
+            resolution=60,
+        )
+        SnubaQueryEventType.objects.create(
+            snuba_query=snuba_query,
+            type=SnubaQueryEventType.EventType.ERROR.value,
+        )
+        subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id="non-dual-write-test",
+            type="metrics_alerts",
+        )
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(subscription.id),
+        )
+
+        # Create detector with a workflow_condition_group for triggers
+        dcg = self.create_data_condition_group()
+        detector = self.create_detector(
+            project=self.project,
+            name="Non-Dual-Written Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=dcg,
+            created_by_id=self.user.id,
+            owner_user_id=self.user.id,
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+
+        # Add a critical trigger and resolve condition on the condition group
+        self.create_data_condition(
+            comparison=100,
+            type=Condition.GREATER,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=dcg,
+        )
+        self.create_data_condition(
+            comparison=50,
+            type=Condition.LESS_OR_EQUAL,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=dcg,
+        )
+
+        # No AlertRuleDetector exists — the endpoint must resolve via fake ID
+        assert not AlertRuleDetector.objects.filter(detector=detector).exists()
+
+        fake_id = get_fake_id_from_object_id(detector.id)
+        resp = self.get_success_response(self.organization.slug, fake_id)
+
+        # Core identity fields
+        assert resp.data["id"] == str(fake_id)
+        assert resp.data["name"] == "Non-Dual-Written Detector"
+        assert resp.data["organizationId"] == str(self.organization.id)
+        assert resp.data["status"] == AlertRuleStatus.PENDING.value
+
+        # Query fields from SnubaQuery
+        assert resp.data["query"] == "is:unresolved"
+        assert resp.data["aggregate"] == "count()"
+        assert resp.data["timeWindow"] == 10  # 600s / 60
+        assert resp.data["dataset"] == "events"
+        assert resp.data["eventTypes"] == ["error"]
+
+        # Trigger data
+        assert len(resp.data["triggers"]) == 1
+        trigger = resp.data["triggers"][0]
+        assert trigger["label"] == "critical"
+        assert trigger["alertThreshold"] == 100
+        assert trigger["resolveThreshold"] == 50
+        assert trigger["thresholdType"] == AlertRuleThresholdType.ABOVE.value
+
+        # Project
+        assert resp.data["projects"] == [self.project.slug]
+
+        # Ownership
+        assert resp.data["owner"] is not None
+        assert resp.data["createdBy"]["id"] == self.user.id
+
+        # Snooze defaults for enabled detector
+        assert resp.data["snooze"] is False
+
+        # Static detection type from config
+        assert resp.data["detectionType"] == "static"
+        assert resp.data["sensitivity"] is None
+        assert resp.data["seasonality"] is None
+        assert resp.data["comparisonDelta"] is None
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_get_shows_count_when_stored_as_upsampled_count(
