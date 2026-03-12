@@ -527,6 +527,8 @@ function ManageDashboards() {
     );
   }
 
+  const {query: _query, ...queryWithoutSearch} = location.query;
+
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
@@ -535,7 +537,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -562,7 +564,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -576,7 +578,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
