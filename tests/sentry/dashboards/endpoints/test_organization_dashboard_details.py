@@ -3725,7 +3725,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Linked dashboard does not appear in the fields of the query" in response.content
+        assert (
+            b"Linked dashboard field does not appear in the columns of the widget query"
+            in response.content
+        )
 
     def test_rejects_cross_org_linked_dashboard(self) -> None:
         other_org = self.create_organization(name="other-org")
