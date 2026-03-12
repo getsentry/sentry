@@ -66,7 +66,7 @@ function WhatsNewContent({
           }),
           {query: {show: 'latest', limit: '3'}},
         ],
-        data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
+        data => (Array.isArray(data) ? data.map(item => ({...item, hasSeen: true})) : [])
       );
     },
   });
@@ -151,7 +151,10 @@ export function PrimaryNavigationWhatsNew() {
     }
   );
   const unseenPostIds = useMemo(
-    () => (broadcasts ?? []).filter(item => !item.hasSeen).map(item => item.id),
+    () =>
+      (Array.isArray(broadcasts) ? broadcasts : [])
+        .filter(item => !item.hasSeen)
+        .map(item => item.id),
     [broadcasts]
   );
 
