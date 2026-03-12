@@ -90,6 +90,8 @@ export function MetricSelector({
     offset: 6,
     isDismissable: true,
     shouldApplyMinWidth: true,
+    // Reset search and keyboard focus when the overlay closes so it
+    // starts fresh the next time the user opens it.
     onOpenChange: open => {
       if (!open) {
         setSearchInputValue('');
@@ -101,6 +103,10 @@ export function MetricSelector({
   const metricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
   );
+
+  // Build an option object from the currently selected trace metric so it
+  // can be shown in the list even if the API response hasn't loaded yet or
+  // doesn't include it (e.g. it was filtered out by search).
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
       label: traceMetric.name,
@@ -125,6 +131,9 @@ export function MetricSelector({
     ]
   );
 
+  // Merge API results with the currently selected metric. If the selected
+  // metric isn't present in the API response (e.g. filtered by search),
+  // prepend it so the user always sees their current selection.
   const metricOptions = useMemo((): MetricSelectOption[] => {
     const shouldIncludeOptionFromTraceMetric =
       traceMetric.name &&
@@ -138,6 +147,7 @@ export function MetricSelector({
               : undefined,
           }) === makeMetricSelectValue(traceMetric)
       );
+
     return [
       ...(shouldIncludeOptionFromTraceMetric ? [optionFromTraceMetric] : []),
       ...(metricOptionsData?.data?.map(option => ({
@@ -165,6 +175,8 @@ export function MetricSelector({
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric, hasMetricUnitsUI]);
 
+  // Auto-select the first metric when no metric is currently selected.
+  // This handles the initial load case where the URL has no metric param.
   useEffect(() => {
     if (metricOptions.length && metricOptions[0] && !traceMetric.name) {
       onChange({
@@ -178,21 +190,21 @@ export function MetricSelector({
   const traceMetricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
   );
+
+  // Show the previous options while a new search is loading so the list
+  // doesn't flash empty during debounced re-fetches.
   const previousOptions = usePrevious(metricOptions ?? []);
   const displayedOptions = useMemo(
     () => (isFetching ? previousOptions : (metricOptions ?? [])),
     [isFetching, previousOptions, metricOptions]
   );
 
+  // Clamp the focused index when the list shrinks (e.g. after a search
+  // filters out options) so it doesn't point past the end of the list.
   useEffect(() => {
-    if (displayedOptions.length === 0) {
+    if (displayedOptions.length === 0 || focusedIndex < displayedOptions.length) {
       return;
     }
-
-    if (focusedIndex < displayedOptions.length) {
-      return;
-    }
-
     setFocusedIndex(Math.max(displayedOptions.length - 1, -1));
   }, [displayedOptions.length, focusedIndex]);
 
@@ -274,8 +286,9 @@ export function MetricSelector({
   );
 
   const virtualItems = virtualizer.getVirtualItems();
-  // Fall back to rendering all items when the virtualizer can't measure the scroll
-  // container (e.g. in test environments where DOM has no layout dimensions).
+
+  // Fall back to rendering all items when the virtualizer can't measure
+  // the scroll container (e.g. in tests where the DOM has no layout).
   const itemsToRender =
     virtualItems.length > 0 || displayedOptions.length === 0
       ? virtualItems
