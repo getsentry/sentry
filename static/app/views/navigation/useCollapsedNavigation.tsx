@@ -26,7 +26,7 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {setActivePrimaryNavigationGroup} = useNavigation();
-  const {view, setView, isInteractingRef, endInteraction} = useSecondaryNavigation();
+  const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
 
@@ -34,10 +34,10 @@ export function useCollapsedNavigation() {
 
   const closeNavigation = useCallback(() => {
     isHoveredRef.current = false;
-    endInteraction();
+    setInteraction(null);
     setView('collapsed');
     setActivePrimaryNavigationGroup(null);
-  }, [endInteraction, setActivePrimaryNavigationGroup, setView]);
+  }, [setActivePrimaryNavigationGroup, setInteraction, setView]);
 
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
@@ -57,10 +57,8 @@ export function useCollapsedNavigation() {
       '[aria-expanded="true"]'
     );
 
-    return (
-      isHoveredRef.current || isInteractingRef.current || hasKeyboardFocus || hasOpenMenu
-    );
-  }, [isInteractingRef, navigationParentRef]);
+    return isHoveredRef.current || interaction.current || hasKeyboardFocus || hasOpenMenu;
+  }, [interaction, navigationParentRef]);
 
   const tryCloseNavigation = useCallback(() => {
     if (shouldNavigationStayOpen()) {
@@ -155,9 +153,8 @@ export function useCollapsedNavigation() {
     };
   }, [
     closeNavigation,
-    endInteraction,
+    interaction,
     isCollapsed,
-    isInteractingRef,
     navigationParentRef,
     setView,
     shouldNavigationStayOpen,

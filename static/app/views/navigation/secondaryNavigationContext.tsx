@@ -12,10 +12,9 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navig
 export type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
-  endInteraction: () => void;
-  isInteractingRef: React.RefObject<boolean | null>;
+  interaction: React.RefObject<string | null>;
+  setInteraction: (value: string | null) => void;
   setView: (view: SecondaryNavState) => void;
-  startInteraction: () => void;
   view: SecondaryNavState;
 }
 
@@ -56,23 +55,19 @@ export function SecondaryNavigationContextProvider(
     [setIsCollapsedPersisted]
   );
 
-  const isInteractingRef = useRef(false);
-  const startInteraction = useCallback(() => {
-    isInteractingRef.current = true;
-  }, []);
-  const endInteraction = useCallback(() => {
-    isInteractingRef.current = false;
+  const interaction = useRef<string | null>(null);
+  const setInteraction = useCallback((value: string | null) => {
+    interaction.current = value;
   }, []);
 
   const value = useMemo(() => {
     return {
       view,
       setView,
-      isInteractingRef,
-      startInteraction,
-      endInteraction,
+      interaction,
+      setInteraction,
     };
-  }, [view, setView, isInteractingRef, startInteraction, endInteraction]);
+  }, [view, setView, interaction, setInteraction]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
