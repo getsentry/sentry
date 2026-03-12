@@ -1,6 +1,15 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
 describe('ApiNewToken', () => {
@@ -139,5 +148,50 @@ describe('ApiNewToken', () => {
         })
       )
     );
+  });
+
+  it('shows new token modal after successful creation', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+      body: ApiTokenFixture({token: 'sntrys_test_token_123'}),
+    });
+
+    render(<ApiNewToken />);
+    renderGlobalModal();
+
+    const selectByValue = (name: string, value: string) =>
+      selectEvent.select(screen.getByRole('textbox', {name}), value);
+
+    await selectByValue('Project', 'Read');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    expect(await screen.findByLabelText('Generated token')).toHaveValue(
+      'sntrys_test_token_123'
+    );
+  });
+
+  it('shows error message when token creation fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+      statusCode: 400,
+    });
+
+    render(<ApiNewToken />);
+
+    const selectByValue = (name: string, value: string) =>
+      selectEvent.select(screen.getByRole('textbox', {name}), value);
+
+    await selectByValue('Project', 'Read');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
   });
 });
