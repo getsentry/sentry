@@ -30,7 +30,11 @@ import * as ts from 'typescript';
 //   node scripts/analyze-styled.ts --out csv ./static/app
 
 class Logger {
-  constructor(private debugEnabled: boolean) {}
+  private debugEnabled: boolean;
+
+  constructor(debugEnabled: boolean) {
+    this.debugEnabled = debugEnabled;
+  }
 
   log(...args: any[]): void {
     console.log(...args);
