@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import all_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.metrics import (
+    AppMentionHaltReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -308,38 +309,73 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
     def on_app_mention(self, slack_request: SlackDMRequest) -> Response:
         """Handle @mention events for Seer Explorer."""
-        data = slack_request.data.get("event", {})
-
-        ois = integration_service.get_organization_integrations(
-            integration_id=slack_request.integration.id,
-            status=ObjectStatus.ACTIVE,
-            limit=1,
-        )
-        if not ois:
-            _logger.info(
-                "on_app_mention.no-organization",
-                extra={
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.APP_MENTION,
+            spec=SlackMessagingSpec(),
+        ).capture() as lifecycle:
+            data = slack_request.data.get("event", {})
+            lifecycle.add_extras(
+                {
                     "integration_id": slack_request.integration.id,
                     "message_ts": data.get("ts"),
                     "thread_ts": data.get("thread_ts"),
-                },
+                }
             )
-            return self.respond()
 
-        organization_id = ois[0].organization_id
-        organization_context = organization_service.get_organization_by_id(
-            id=organization_id,
-            user_id=None,
-            include_projects=False,
-            include_teams=False,
-        )
-        if not organization_context:
-            _logger.info(
-                "on_app_mention.organization-not-found",
-                extra={
+            ois = integration_service.get_organization_integrations(
+                integration_id=slack_request.integration.id,
+                status=ObjectStatus.ACTIVE,
+                limit=1,
+            )
+            if not ois:
+                lifecycle.record_halt(AppMentionHaltReason.NO_ORGANIZATION)
+                return self.respond()
+
+            organization_id = ois[0].organization_id
+            lifecycle.add_extra("organization_id", organization_id)
+
+            organization_context = organization_service.get_organization_by_id(
+                id=organization_id,
+                user_id=None,
+                include_projects=False,
+                include_teams=False,
+            )
+            if not organization_context:
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_FOUND)
+                return self.respond()
+
+            if organization_context.organization.status != OrganizationStatus.ACTIVE:
+                lifecycle.add_extra("status", organization_context.organization.status)
+                lifecycle.record_halt(AppMentionHaltReason.ORGANIZATION_NOT_ACTIVE)
+                return self.respond()
+
+            if not features.has(
+                "organizations:seer-slack-explorer", organization_context.organization
+            ):
+                lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
+                return self.respond()
+
+            channel_id = slack_request.channel_id
+            text = data.get("text", "")
+            thread_ts = data.get("thread_ts")
+            message_ts = data.get("ts", "")
+
+            if not channel_id or not text:
+                lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
+                return self.respond()
+
+            from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
+
+            process_mention_for_slack.apply_async(
+                kwargs={
                     "integration_id": slack_request.integration.id,
                     "organization_id": organization_id,
-                },
+                    "channel_id": channel_id,
+                    "thread_ts": thread_ts,
+                    "message_ts": message_ts,
+                    "text": text,
+                    "slack_user_id": slack_request.user_id,
+                }
             )
             return self.respond()
 
