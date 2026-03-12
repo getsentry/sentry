@@ -29,7 +29,15 @@ export function transformEventsResponseToSeries(
     seriesWithOrdering.push([0, transformEventsStatsToSeries(data, prefixedName, field)]);
   } else if (isMultiSeriesEventsStats(data)) {
     Object.keys(data).forEach(seriesName => {
+      if (seriesName === 'order') {
+        // `order` is a metadata key on MultiSeriesEventsStats responses, skip it
+        return;
+      }
       const seriesData = data[seriesName]!;
+      if (!isEventsStats(seriesData)) {
+        // Skip non-series metadata keys; only process actual EventsStats series
+        return;
+      }
       const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
 
       seriesWithOrdering.push([

@@ -94,6 +94,49 @@ describe('transformEventsResponseToSeries', () => {
     ]);
   });
 
+  it('skips metadata keys like order in multi series response', () => {
+    const rawData = {
+      'count()': {
+        data: [
+          [1737731713, [{count: 17}]],
+          [1737731773, [{count: 22}]],
+        ],
+        order: 0,
+      },
+      order: 0,
+      'avg(transaction.duration)': {
+        data: [
+          [1737731713, [{count: 12.4}]],
+          [1737731773, [{count: 17.7}]],
+        ],
+        order: 1,
+      },
+    } as MultiSeriesEventsStats;
+
+    const widgetQuery = WidgetQueryFixture({
+      fields: ['count()', 'avg(transaction.duration)'],
+      aggregates: ['count()', 'avg(transaction.duration)'],
+      columns: [],
+    });
+
+    expect(transformEventsResponseToSeries(rawData, widgetQuery)).toEqual([
+      {
+        data: [
+          {name: 1737731713000, value: 17},
+          {name: 1737731773000, value: 22},
+        ],
+        seriesName: 'count()',
+      },
+      {
+        data: [
+          {name: 1737731713000, value: 12.4},
+          {name: 1737731773000, value: 17.7},
+        ],
+        seriesName: 'avg(transaction.duration)',
+      },
+    ]);
+  });
+
   it('converts a grouped series response to an array', () => {
     const rawData: GroupedMultiSeriesEventsStats = {
       prod: {
