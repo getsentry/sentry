@@ -596,19 +596,23 @@ export const CustomerStats = memo(
     );
 
     const handleBarHighlight = useCallback(
-      (params: {batch?: Array<{dataIndex: number}>}, instance: ECharts) => {
+      (
+        params: {batch?: Array<{dataIndex: number; seriesIndex: number}>},
+        instance: ECharts
+      ) => {
         const el = abuseTooltipRef.current;
         if (!el || !instance) {
           return;
         }
 
-        const dataIndex = params.batch?.[0]?.dataIndex;
+        // Skip mark area series (first N entries) and find a bar series highlight
+        const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
+        const barEntry = params.batch?.find(entry => entry.seriesIndex >= regions.length);
+        const dataIndex = barEntry?.dataIndex;
         if (dataIndex === undefined) {
           dismissAbuseTooltip(instance);
           return;
         }
-
-        const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
         const ts = allIntervals[dataIndex];
         if (ts === undefined) {
           dismissAbuseTooltip(instance);
