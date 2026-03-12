@@ -1,18 +1,12 @@
-import {defined} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';
 import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSettingsNavigation';
 
 export function SettingsSecondaryNavigation() {
   const organization = useOrganization();
-  const params = useParams();
-  const {activeNavigationGroup} = useNavigationContext();
-  const isProjectSettings =
-    defined(params.projectId) &&
-    activeNavigationGroup === PrimaryNavigationGroup.SETTINGS;
+  const location = useLocation();
+  const isProjectSettings = /\/settings\/projects\/[^/]/.test(location.pathname);
 
   return isProjectSettings ? (
     <ProjectSettingsNavigation organization={organization} />

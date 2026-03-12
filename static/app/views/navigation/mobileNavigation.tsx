@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
@@ -26,7 +25,6 @@ export function MobileNavigation() {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const {activeNavigationGroup} = useNavigationContext();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
 
@@ -39,11 +37,8 @@ export function MobileNavigation() {
   useEffect(() => setView('closed'), [location.pathname]);
 
   const handleClick = useCallback(
-    () =>
-      setView(v =>
-        v === 'closed' ? (activeNavigationGroup ? 'secondary' : 'primary') : 'closed'
-      ),
-    [activeNavigationGroup]
+    () => setView(v => (v === 'closed' ? 'secondary' : 'closed')),
+    []
   );
 
   const showSuperuserWarning =

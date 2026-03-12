@@ -449,6 +449,59 @@ describe('Navigation', () => {
       await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
       expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     });
+
+    // Regression: activeNavigationGroup is always non-null after the nav group
+    // context refactor, so the menu must unconditionally open to 'secondary'
+    // rather than conditionally branching on its truthiness.
+    it.each([
+      ['/organizations/org-slug/issues/'],
+      ['/organizations/org-slug/explore/traces/'],
+      ['/organizations/org-slug/settings/'],
+    ])('always opens to secondary navigation on %s', async (pathname: string) => {
+      renderNavigation({initialPathname: pathname});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('navigation', {name: 'Primary Navigation'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('closes the menu when the toggle button is clicked while open', async () => {
+      renderNavigation();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close main menu'}));
+      expect(
+        screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('closes the menu automatically when navigating to a new route', async () => {
+      const {router} = renderNavigation();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+      expect(
+        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
+      ).toBeInTheDocument();
+
+      act(() => {
+        router.navigate('/organizations/org-slug/explore/traces/');
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('tour', () => {
