@@ -445,7 +445,7 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value: OptionType) => void;
-  ref?: React.Ref<typeof ReactSelect>;
+  ref?: React.Ref<any>;
   searchable?: boolean;
   /**
    * Show line dividers between options
