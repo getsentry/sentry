@@ -1,49 +1,32 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {QueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-
-type DashboardInput = {
-  prebuiltId?: PrebuiltDashboardId;
-  widgets?: Widget[];
-};
 
 /**
  * Hook that resolves placeholder linkedDashboard IDs in a dashboard's widgets
  * by reactively fetching real dashboard IDs via useApiQuery.
  *
- * When the dashboard has a `prebuiltId`, the dashboard's own real `id` is also
- * resolved from the API response.
- *
- * @see {@link resolveLinkedDashboardIds} for the imperative equivalent
- * (used in callbacks / event handlers).
+ * @see {@link resolveLinkedDashboardIds} for the pure function equivalent
+ * (used in callbacks / event handlers after fetching dashboards yourself).
  */
-export function useResolveLinkedDashboardIds<T extends DashboardInput>(
-  dashboard?: T
-): {dashboard: (T & {id?: string}) | undefined; isLoading: boolean} {
+export function useResolveLinkedDashboardIds(dashboard?: DashboardDetails): {
+  dashboard: DashboardDetails | undefined;
+  isLoading: boolean;
+} {
   const organization = useOrganization();
 
-  const prebuiltIds = useMemo(
-    () => getLinkedPrebuiltIds({widgets: dashboard?.widgets}),
-    [dashboard]
-  );
+  const prebuiltIds = useMemo(() => getLinkedPrebuiltIds(dashboard), [dashboard]);
 
-  const prebuiltId = dashboard?.prebuiltId;
-  const allPrebuiltIds = useMemo(
-    () => [...prebuiltIds, ...(prebuiltId ? [prebuiltId] : [])].filter(defined),
-    [prebuiltIds, prebuiltId]
-  );
-
-  const shouldFetch = allPrebuiltIds.length > 0;
+  const shouldFetch = prebuiltIds.length > 0;
 
   const {data, isLoading} = useApiQuery<DashboardDetails[]>(
-    makeLinkedDashboardsQueryKey(organization.slug, allPrebuiltIds),
+    makeLinkedDashboardsQueryKey(organization.slug, prebuiltIds),
     {
       enabled: shouldFetch,
       staleTime: Infinity,
@@ -51,85 +34,35 @@ export function useResolveLinkedDashboardIds<T extends DashboardInput>(
     }
   );
 
-  return useMemo(() => {
-    if (!shouldFetch) {
-      return {dashboard, isLoading: false};
-    }
-
-    if (!data) {
-      return {dashboard, isLoading};
-    }
-
-    return {
-      dashboard: resolveIds(dashboard!, data),
-      isLoading,
-    };
-  }, [dashboard, data, shouldFetch, isLoading]);
-}
-
-/**
- * Imperatively resolves placeholder linkedDashboard IDs (e.g. '-1') in a
- * dashboard's widgets by fetching real dashboard IDs from the TanStack Query
- * cache (or API if not cached) using staticDashboardId.
- *
- * When the dashboard has a `prebuiltId`, the dashboard's own real `id` is also
- * resolved from the API response.
- *
- * @see {@link useResolveLinkedDashboardIds} for the reactive hook equivalent
- * (used in render).
- */
-export async function resolveLinkedDashboardIds<T extends DashboardInput>(
-  queryClient: QueryClient,
-  orgSlug: string,
-  dashboard: T
-): Promise<T & {id?: string}> {
-  const prebuiltIds = [
-    ...getLinkedPrebuiltIds(dashboard),
-    ...(dashboard.prebuiltId ? [dashboard.prebuiltId] : []),
-  ].filter(defined);
-
-  if (prebuiltIds.length === 0) {
-    return dashboard;
+  if (!shouldFetch) {
+    return {dashboard, isLoading: false};
   }
 
-  const [dashboards] = await queryClient.fetchQuery({
-    queryKey: makeLinkedDashboardsQueryKey(orgSlug, prebuiltIds),
-    queryFn: fetchDataQuery<DashboardDetails[]>,
-    staleTime: Infinity,
-  });
-
-  return resolveIds(dashboard, dashboards);
-}
-
-/**
- * Replaces placeholder linkedDashboard IDs in widgets and, if the dashboard
- * has a `prebuiltId`, resolves the dashboard's own real `id`.
- */
-function resolveIds<T extends DashboardInput>(
-  dashboard: T,
-  fetchedDashboards: DashboardDetails[]
-): T & {id?: string} {
-  const realId = dashboard.prebuiltId
-    ? fetchedDashboards.find(d => d.prebuiltId === dashboard.prebuiltId)?.id
-    : undefined;
-
-  if (dashboard.prebuiltId && !realId) {
-    Sentry.captureMessage('Failed to resolve prebuilt dashboard ID', {
-      extra: {prebuiltId: dashboard.prebuiltId},
-    });
-  }
-
-  const resolved = {
-    ...dashboard,
-    ...(realId ? {id: realId} : {}),
-  };
-
-  if (!dashboard.widgets) {
-    return resolved;
+  if (!data) {
+    return {dashboard, isLoading};
   }
 
   return {
-    ...resolved,
+    dashboard: resolveLinkedDashboardIds(dashboard!, data),
+    isLoading,
+  };
+}
+
+/**
+ * Replaces placeholder linkedDashboard IDs (e.g. '-1') in a dashboard's widgets
+ * with real database IDs looked up from `fetchedDashboards`.
+ *
+ * This is a pure data transformation — the caller is responsible for fetching
+ * the dashboards (e.g. via queryClient.fetchQuery or useApiQuery).
+ *
+ * @see {@link useResolveLinkedDashboardIds} for the reactive hook equivalent.
+ */
+export function resolveLinkedDashboardIds(
+  dashboard: DashboardDetails,
+  fetchedDashboards: DashboardDetails[]
+): DashboardDetails {
+  return {
+    ...dashboard,
     widgets: dashboard.widgets.map(widget => ({
       ...widget,
       queries: widget.queries.map(query => ({
@@ -160,8 +93,10 @@ function resolveIds<T extends DashboardInput>(
  * Extracts all unique staticDashboardId values from a dashboard's widget
  * queries' linkedDashboards.
  */
-function getLinkedPrebuiltIds(dashboard: DashboardInput): PrebuiltDashboardId[] {
-  return (dashboard.widgets ?? [])
+export function getLinkedPrebuiltIds(
+  dashboard?: DashboardDetails
+): PrebuiltDashboardId[] {
+  return (dashboard?.widgets ?? [])
     .flatMap(widget =>
       widget.queries.flatMap(query => query.linkedDashboards ?? []).filter(defined)
     )
@@ -173,7 +108,7 @@ function getLinkedPrebuiltIds(dashboard: DashboardInput): PrebuiltDashboardId[] 
  * Builds a TanStack Query key for fetching dashboards by prebuilt IDs.
  * Matches the query key format used by useApiQuery so cache is shared.
  */
-function makeLinkedDashboardsQueryKey(
+export function makeLinkedDashboardsQueryKey(
   orgSlug: string,
   prebuiltIds: PrebuiltDashboardId[]
 ) {

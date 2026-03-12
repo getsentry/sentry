@@ -19,14 +19,11 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {usePrebuiltDashboardId} from 'sentry/views/dashboards/hooks/usePrebuiltDashboardId';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {
-  PREBUILT_DASHBOARDS,
-  PrebuiltDashboardId,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -74,13 +71,8 @@ export function WebVitalsDetailPanel({
     location.query[SpanFields.USER_GEO_SUBREGION]
   ) as SubregionCode[];
 
-  const {dashboard: linkedWebVitalsSummaryDashboard} = useResolveLinkedDashboardIds(
-    dashboardFilters === undefined
-      ? undefined
-      : {
-          ...PREBUILT_DASHBOARDS[PrebuiltDashboardId.WEB_VITALS_SUMMARY],
-          prebuiltId: PrebuiltDashboardId.WEB_VITALS_SUMMARY,
-        }
+  const linkedDashboardId = usePrebuiltDashboardId(
+    dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY
   );
 
   const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
@@ -208,10 +200,10 @@ export function WebVitalsDetailPanel({
     }
     if (key === 'transaction') {
       const linkedDashboardUrl =
-        dashboardFilters !== undefined && linkedWebVitalsSummaryDashboard?.id
+        dashboardFilters !== undefined && linkedDashboardId
           ? getLinkedDashboardUrl({
               linkedDashboard: {
-                dashboardId: linkedWebVitalsSummaryDashboard.id,
+                dashboardId: linkedDashboardId,
                 field: SpanFields.TRANSACTION,
                 additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
               },

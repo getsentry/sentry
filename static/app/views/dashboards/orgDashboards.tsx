@@ -82,21 +82,14 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
-  const prebuiltConfig = selectedDashboard?.prebuiltId
-    ? {
-        ...PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId],
-        prebuiltId: selectedDashboard.prebuiltId,
-      }
-    : undefined;
-  const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
-    useResolveLinkedDashboardIds(prebuiltConfig);
-
-  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
-  // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt widget config
+  // into the selected dashboard. Preserve user-saved state (filters and page
+  // filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
+    const prebuiltConfig = PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId];
     selectedDashboard = {
       ...selectedDashboard,
-      ...prebuiltDashboard,
+      ...prebuiltConfig,
       id: selectedDashboard.id,
       filters: selectedDashboard.filters,
       projects: selectedDashboard.projects,
@@ -107,6 +100,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       utc: selectedDashboard.utc,
     };
   }
+
+  // Resolve placeholder linked dashboard IDs in widgets after merging prebuilt config.
+  const {dashboard: resolvedDashboard, isLoading: isPrebuiltDashboardLoading} =
+    useResolveLinkedDashboardIds(selectedDashboard ?? undefined);
 
   useEffect(() => {
     if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
@@ -192,19 +189,20 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     };
   }, [dashboardId, ENDPOINT, queryClient]);
 
+  const dashboardToRender = resolvedDashboard ?? selectedDashboard;
   const childrenProps = useMemo(
     () => ({
       error: Boolean(dashboardsError || selectedDashboardError),
-      dashboard: selectedDashboard
+      dashboard: dashboardToRender
         ? {
-            ...selectedDashboard,
-            widgets: selectedDashboard.widgets.map(assignTempId),
+            ...dashboardToRender,
+            widgets: dashboardToRender.widgets.map(assignTempId),
           }
         : null,
       dashboards: Array.isArray(dashboards) ? dashboards : [],
       onDashboardUpdate: setSelectedDashboardState,
     }),
-    [dashboardsError, selectedDashboardError, selectedDashboard, dashboards]
+    [dashboardsError, selectedDashboardError, dashboardToRender, dashboards]
   );
 
   if (isDashboardsPending || isSelectedDashboardLoading || isPrebuiltDashboardLoading) {

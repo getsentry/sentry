@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 
+import {usePrebuiltDashboardId} from './hooks/usePrebuiltDashboardId';
 import {PREBUILT_DASHBOARDS, type PrebuiltDashboardId} from './utils/prebuiltConfigs';
 
 type PrebuiltDashboardRendererProps = {
@@ -28,25 +29,38 @@ export function PrebuiltDashboardRenderer({
   storageNamespace,
 }: PrebuiltDashboardRendererProps) {
   const organization = useOrganization();
-  const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
-  const {dashboard: populatedPrebuiltDashboard, isLoading} = useResolveLinkedDashboardIds(
-    {...prebuiltDashboard, prebuiltId}
-  );
+  const prebuiltConfig = PREBUILT_DASHBOARDS[prebuiltId];
 
-  const {title, filters} = prebuiltDashboard;
-  const widgets = populatedPrebuiltDashboard?.widgets ?? prebuiltDashboard.widgets;
+  // Construct a full DashboardDetails so the hook can resolve linked dashboard IDs.
+  const dashboardForResolution: DashboardDetails = {
+    id: `prebuilt-dashboard-${prebuiltId}`,
+    prebuiltId,
+    title: prebuiltConfig.title,
+    widgets: prebuiltConfig.widgets,
+    dateCreated: '',
+    filters: prebuiltConfig.filters,
+    projects: undefined,
+  };
+
+  const {dashboard: resolvedDashboard, isLoading: isResolvingLinks} =
+    useResolveLinkedDashboardIds(dashboardForResolution);
+
+  // Separately fetch the real DB ID for this prebuilt dashboard (for the alert link).
+  const dashboardId = usePrebuiltDashboardId(prebuiltId);
+
+  const widgets = resolvedDashboard?.widgets ?? prebuiltConfig.widgets;
 
   // Merge the dashboard's built-in filters with any additional global filters.
   // Overrides replace matching filters in-place (by tag key + dataset) to preserve order.
   // Filters with no match in the base list are appended at the end.
-  const mergedFilters: DashboardFilters = {...filters};
+  const mergedFilters: DashboardFilters = {...prebuiltConfig.filters};
 
   if (additionalGlobalFilters) {
     const filterKey = (f: GlobalFilter) => `${f.tag.key}:${f.dataset}`;
     const overridesByKey = new Map(additionalGlobalFilters.map(f => [filterKey(f), f]));
     const usedKeys = new Set<string>();
 
-    const baseFilters = filters?.globalFilter ?? [];
+    const baseFilters = prebuiltConfig.filters?.globalFilter ?? [];
     mergedFilters.globalFilter = baseFilters.map(f => {
       const override = overridesByKey.get(filterKey(f));
       if (override) {
@@ -67,17 +81,15 @@ export function PrebuiltDashboardRenderer({
   const dashboard: DashboardDetails = {
     id: `prebuilt-dashboard-${prebuiltId}`,
     prebuiltId,
-    title,
+    title: prebuiltConfig.title,
     widgets,
     dateCreated: '',
     filters: mergedFilters,
     projects: undefined,
   };
 
-  const dashboardId = populatedPrebuiltDashboard?.id;
-
   return (
-    <LoadingContainer isLoading={isLoading} showChildrenWhileLoading={false}>
+    <LoadingContainer isLoading={isResolvingLinks} showChildrenWhileLoading={false}>
       {dashboardId && (
         <Container padding="xl 3xl 0">
           <Alert variant="info" showIcon>
