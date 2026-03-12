@@ -139,24 +139,18 @@ export default function ApiNewToken() {
           )}
         </TextBlock>
         <form.AppForm form={form}>
-          <Panel>
-            <PanelHeader>{t('General')}</PanelHeader>
-            <PanelBody>
-              <form.AppField name="name">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Name')}
-                    hintText={t('A name to help you identify this token.')}
-                  >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-            </PanelBody>
-          </Panel>
+          <form.FieldGroup title={t('General')}>
+            <form.AppField name="name">
+              {field => (
+                <field.Layout.Row
+                  label={t('Name')}
+                  hintText={t('A name to help you identify this token.')}
+                >
+                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          </form.FieldGroup>
           <Panel>
             <PanelHeader>{t('Permissions')}</PanelHeader>
             <PanelBody>
