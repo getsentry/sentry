@@ -24,12 +24,7 @@ import {
   NavigationTour,
   NavigationTourElement,
 } from 'sentry/views/navigation/navigationTour';
-import {
-  PrimaryNavigationLink,
-  PrimaryNavigationList,
-  PrimaryNavigationListItem,
-  PrimaryNavigationSeparator,
-} from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
@@ -72,11 +67,11 @@ export function PrimaryNavigationItems() {
 
   return (
     <Fragment>
-      <PrimaryNavigationList ref={ref}>
+      <PrimaryNavigation.List ref={ref}>
         <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
           {tourProps => (
-            <PrimaryNavigationListItem>
-              <PrimaryNavigationLink
+            <PrimaryNavigation.Item>
+              <PrimaryNavigation.Link
                 to={`/${prefix}/issues/`}
                 analyticsKey="issues"
                 group={PrimaryNavigationGroup.ISSUES}
@@ -86,8 +81,8 @@ export function PrimaryNavigationItems() {
                 )}
               >
                 <IconIssues />
-              </PrimaryNavigationLink>
-            </PrimaryNavigationListItem>
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.Item>
           )}
         </NavigationTourElement>
 
@@ -97,8 +92,8 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <PrimaryNavigationListItem>
-              <PrimaryNavigationLink
+            <PrimaryNavigation.Item>
+              <PrimaryNavigation.Link
                 to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
                 activeTo={`/${prefix}/explore`}
                 analyticsKey="explore"
@@ -109,8 +104,8 @@ export function PrimaryNavigationItems() {
                 )}
               >
                 <IconCompass />
-              </PrimaryNavigationLink>
-            </PrimaryNavigationListItem>
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.Item>
           )}
         </NavigationTourElement>
 
@@ -125,8 +120,8 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <PrimaryNavigationListItem>
-                <PrimaryNavigationLink
+              <PrimaryNavigation.Item>
+                <PrimaryNavigation.Link
                   to={`/${prefix}/dashboards/`}
                   activeTo={`/${prefix}/dashboard`}
                   analyticsKey="dashboards"
@@ -137,8 +132,8 @@ export function PrimaryNavigationItems() {
                   )}
                 >
                   <IconDashboard />
-                </PrimaryNavigationLink>
-              </PrimaryNavigationListItem>
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.Item>
             )}
           </NavigationTourElement>
         </Feature>
@@ -150,8 +145,8 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <PrimaryNavigationListItem>
-                <PrimaryNavigationLink
+              <PrimaryNavigation.Item>
+                <PrimaryNavigation.Link
                   to={`/${prefix}/insights/`}
                   activeTo={`/${prefix}/insights`}
                   analyticsKey="insights"
@@ -162,19 +157,19 @@ export function PrimaryNavigationItems() {
                   )}
                 >
                   <IconGraph type="area" />
-                </PrimaryNavigationLink>
-              </PrimaryNavigationListItem>
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.Item>
             )}
           </NavigationTourElement>
         </Feature>
 
-        <PrimaryNavigationListItem>
-          <PrimaryNavigationSeparator />
-        </PrimaryNavigationListItem>
+        <PrimaryNavigation.Item>
+          <PrimaryNavigation.Separator />
+        </PrimaryNavigation.Item>
 
         <Feature features={['workflow-engine-ui']}>
-          <PrimaryNavigationListItem>
-            <PrimaryNavigationLink
+          <PrimaryNavigation.Item>
+            <PrimaryNavigation.Link
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
               group={PrimaryNavigationGroup.MONITORS}
@@ -182,8 +177,8 @@ export function PrimaryNavigationItems() {
             >
               <IconSiren />
               <BetaBadge type="alpha" />
-            </PrimaryNavigationLink>
-          </PrimaryNavigationListItem>
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.Item>
         </Feature>
 
         <NavigationTourElement
@@ -192,8 +187,8 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <PrimaryNavigationListItem>
-              <PrimaryNavigationLink
+            <PrimaryNavigation.Item>
+              <PrimaryNavigation.Link
                 to={`/settings/${organization.slug}/`}
                 activeTo="/settings/"
                 analyticsKey="settings"
@@ -204,11 +199,11 @@ export function PrimaryNavigationItems() {
                 )}
               >
                 <IconSettings />
-              </PrimaryNavigationLink>
-            </PrimaryNavigationListItem>
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.Item>
           )}
         </NavigationTourElement>
-      </PrimaryNavigationList>
+      </PrimaryNavigation.List>
 
       <Stack gap="md" marginTop="auto" paddingBottom="md">
         <SidebarFooter>

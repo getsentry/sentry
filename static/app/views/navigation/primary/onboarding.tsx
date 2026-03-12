@@ -19,9 +19,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigationButton,
-  PrimaryNavigationButtonOverlay,
-  PrimaryNavigationItemUnreadIndicator,
+  PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
@@ -69,7 +67,7 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <PrimaryNavigationButton
+      <PrimaryNavigation.Button
         analyticsKey="onboarding"
         buttonProps={{
           ...overlayTriggerProps,
@@ -106,16 +104,16 @@ function OnboardingItem({
         label={label}
       >
         {pendingCompletionSeen && (
-          <PrimaryNavigationItemUnreadIndicator
+          <PrimaryNavigation.UnreadIndicator
             data-test-id="pending-seen-indicator"
             isMobile={isMobile}
           />
         )}
-      </PrimaryNavigationButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
-        </PrimaryNavigationButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </GuideAnchor>
   );

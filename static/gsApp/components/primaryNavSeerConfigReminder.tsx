@@ -15,9 +15,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigationButton,
-  PrimaryNavigationButtonOverlay,
-  PrimaryNavigationItemUnreadIndicator,
+  PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
@@ -207,7 +205,7 @@ export function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <PrimaryNavigationButton
+      <PrimaryNavigation.Button
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
@@ -216,13 +214,13 @@ export function PrimaryNavSeerConfigReminder() {
           icon: <IconSeer />,
         }}
       >
-        <PrimaryNavigationItemUnreadIndicator
+        <PrimaryNavigation.UnreadIndicator
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavigationLayout.MOBILE}
         />
-      </PrimaryNavigationButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
@@ -238,7 +236,7 @@ export function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryNavigationButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

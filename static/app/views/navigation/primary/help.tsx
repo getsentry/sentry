@@ -12,7 +12,7 @@ import {
   NavigationTourReminder,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationMenu} from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
@@ -21,7 +21,7 @@ export function PrimaryNavigationHelp() {
   const {startTour} = useNavigationTour();
 
   return (
-    <PrimaryNavigationMenu
+    <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
       size="sm"
       items={[

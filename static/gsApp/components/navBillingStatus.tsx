@@ -16,9 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigationButton,
-  PrimaryNavigationButtonOverlay,
-  PrimaryNavigationItemUnreadIndicator,
+  PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
@@ -528,7 +526,7 @@ export function PrimaryNavigationQuotaExceeded({
 
   return (
     <Fragment>
-      <PrimaryNavigationButton
+      <PrimaryNavigation.Button
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         buttonProps={{
@@ -536,13 +534,13 @@ export function PrimaryNavigationQuotaExceeded({
           icon: <IconWarning />,
         }}
       >
-        <PrimaryNavigationItemUnreadIndicator
+        <PrimaryNavigation.UnreadIndicator
           isMobile={layout === NavigationLayout.MOBILE}
           variant="warning"
         />
-      </PrimaryNavigationButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -550,7 +548,7 @@ export function PrimaryNavigationQuotaExceeded({
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryNavigationButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

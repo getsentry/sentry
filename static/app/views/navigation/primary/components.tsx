@@ -31,7 +31,7 @@ import {NavigationLayout} from 'sentry/views/navigation/types';
 
 interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
-export function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
+function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
   const {layout} = useNavigationContext();
 
   return (
@@ -57,10 +57,7 @@ interface PrimaryNavigationItemBaseProps {
 }
 
 interface PrimaryNavigationItemProps extends FlexProps<'li'> {}
-export function PrimaryNavigationListItem({
-  children,
-  ...props
-}: PrimaryNavigationItemProps) {
+function PrimaryNavigationListItem({children, ...props}: PrimaryNavigationItemProps) {
   const {layout} = useNavigationContext();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
@@ -80,7 +77,7 @@ interface PrimaryNavigationLinkProps extends PrimaryNavigationItemBaseProps {
   children?: React.ReactNode;
 }
 
-export function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
+function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization();
   const {layout, activePrimaryNavigationGroup} = useNavigationContext();
   const location = useLocation();
@@ -134,7 +131,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
-export function PrimaryNavigationButton({
+function PrimaryNavigationButton({
   analyticsKey,
   analyticsParams,
   children,
@@ -181,7 +178,7 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
-export function PrimaryNavigationMenu({
+function PrimaryNavigationMenu({
   items,
   children,
   analyticsKey,
@@ -248,7 +245,7 @@ export function PrimaryNavigationMenu({
   );
 }
 
-export const PrimaryNavigationSeparator = Stack.Separator;
+const PrimaryNavigationSeparator = Stack.Separator;
 
 const NavigationLinkIconContainer = styled('span')`
   display: flex;
@@ -399,7 +396,7 @@ const NavigationButton = styled((props: ButtonProps) => {
     `}
 `;
 
-export const PrimaryNavigationItemUnreadIndicator = styled('span')<{
+const PrimaryNavigationItemUnreadIndicator = styled('span')<{
   isMobile: boolean;
   variant?: 'accent' | 'danger' | 'warning';
 }>`
@@ -448,7 +445,7 @@ export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
  * on desktop and a modified overlay in mobile to match the design of
  * the mobile topbar.
  */
-export function PrimaryNavigationButtonOverlay({
+function PrimaryNavigationButtonOverlay({
   children,
   overlayProps,
 }: PrimaryNavigationButtonOverlayProps) {
@@ -497,3 +494,14 @@ export function isPrimaryNavigationLinkActive(
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
 }
+
+export const PrimaryNavigation = {
+  List: PrimaryNavigationList,
+  Item: PrimaryNavigationListItem,
+  Link: PrimaryNavigationLink,
+  Button: PrimaryNavigationButton,
+  Menu: PrimaryNavigationMenu,
+  Separator: PrimaryNavigationSeparator,
+  UnreadIndicator: PrimaryNavigationItemUnreadIndicator,
+  ButtonOverlay: PrimaryNavigationButtonOverlay,
+};

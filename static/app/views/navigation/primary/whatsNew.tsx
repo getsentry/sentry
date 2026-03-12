@@ -22,9 +22,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigationButton,
-  PrimaryNavigationButtonOverlay,
-  PrimaryNavigationItemUnreadIndicator,
+  PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
@@ -161,7 +159,7 @@ export function PrimaryNavigationWhatsNew() {
 
   return (
     <Fragment>
-      <PrimaryNavigationButton
+      <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
         buttonProps={{
@@ -171,20 +169,20 @@ export function PrimaryNavigationWhatsNew() {
         }}
       >
         {unseenPostIds.length > 0 && (
-          <PrimaryNavigationItemUnreadIndicator
+          <PrimaryNavigation.UnreadIndicator
             data-test-id="whats-new-unread-indicator"
             isMobile={layout === NavigationLayout.MOBILE}
           />
         )}
-      </PrimaryNavigationButton>
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
             broadcasts={broadcasts}
           />
-        </PrimaryNavigationButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );
