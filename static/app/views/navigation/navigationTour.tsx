@@ -30,8 +30,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {getNavigationGroupFromPath} from 'sentry/views/navigation/navigationContext';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export const enum NavigationTour {
   ISSUES = 'issues',
@@ -133,7 +133,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const activeGroup = useActiveNavigationGroup();
+  const activeNavigationGroup = getNavigationGroupFromPath(location.pathname);
 
   const onStartTour = useCallback(() => {
     // Save the initial URL when the tour starts because we need to restore it when the tour ends.
@@ -162,7 +162,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case NavigationTour.ISSUES:
-          if (activeGroup !== PrimaryNavigationGroup.ISSUES) {
+          if (activeNavigationGroup !== PrimaryNavigationGroup.ISSUES) {
             const target = normalizeUrl({
               pathname: `/${prefix}/issues/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -171,7 +171,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.EXPLORE:
-          if (activeGroup !== PrimaryNavigationGroup.EXPLORE) {
+          if (activeNavigationGroup !== PrimaryNavigationGroup.EXPLORE) {
             const target = normalizeUrl({
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -180,7 +180,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.DASHBOARDS:
-          if (activeGroup !== PrimaryNavigationGroup.DASHBOARDS) {
+          if (activeNavigationGroup !== PrimaryNavigationGroup.DASHBOARDS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/dashboards/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -189,7 +189,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.INSIGHTS:
-          if (activeGroup !== PrimaryNavigationGroup.INSIGHTS) {
+          if (activeNavigationGroup !== PrimaryNavigationGroup.INSIGHTS) {
             const target = normalizeUrl({
               pathname: `/${prefix}/insights/frontend/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -198,7 +198,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.SETTINGS:
-          if (activeGroup !== PrimaryNavigationGroup.SETTINGS) {
+          if (activeNavigationGroup !== PrimaryNavigationGroup.SETTINGS) {
             const target = normalizeUrl({
               pathname: `/settings/${organization.slug}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -210,7 +210,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           break;
       }
     },
-    [activeGroup, navigate, organization]
+    [activeNavigationGroup, navigate, organization]
   );
 
   return (

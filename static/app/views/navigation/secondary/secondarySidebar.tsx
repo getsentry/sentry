@@ -20,7 +20,6 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export function SecondarySidebar() {
   const {currentStepId} = useNavigationTour();
@@ -43,11 +42,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavigationGroup} = useNavigationContext();
-  const defaultActiveNavigationGroup = useActiveNavigationGroup();
-
-  const activeNavigationGroup =
-    activePrimaryNavigationGroup ?? defaultActiveNavigationGroup;
+  const {activeNavigationGroup} = useNavigationContext();
 
   return (
     <SecondarySidebarWrapper

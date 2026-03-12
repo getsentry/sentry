@@ -1,7 +1,5 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-
+import {getNavigationGroupFromPath} from 'sentry/views/navigation/navigationContext';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 const mockUsingCustomerDomain = jest.fn();
 
@@ -16,16 +14,10 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('useActiveNavigationGroup', () => {
+describe('getNavigationGroupFromPath', () => {
   beforeEach(() => {
     mockUsingCustomerDomain.mockReturnValue(true);
   });
-
-  function TestComponent() {
-    const activeNavigationGroup = useActiveNavigationGroup();
-
-    return <div>{activeNavigationGroup}</div>;
-  }
 
   describe('customer domain', () => {
     it.each([
@@ -36,16 +28,8 @@ describe('useActiveNavigationGroup', () => {
       [PrimaryNavigationGroup.INSIGHTS, '/insights/foo/'],
       [PrimaryNavigationGroup.SETTINGS, '/settings/foo/'],
       [PrimaryNavigationGroup.PREVENT, '/prevent/foo/'],
-    ])('correctly matches %s nav group', async (navigationGroup, path) => {
-      render(<TestComponent />, {
-        initialRouterConfig: {
-          location: {
-            pathname: path,
-          },
-        },
-      });
-
-      expect(await screen.findByText(navigationGroup)).toBeInTheDocument();
+    ])('correctly matches %s nav group', (navigationGroup, path) => {
+      expect(getNavigationGroupFromPath(path)).toBe(navigationGroup);
     });
   });
 
@@ -59,17 +43,9 @@ describe('useActiveNavigationGroup', () => {
       [PrimaryNavigationGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
       [PrimaryNavigationGroup.SETTINGS, '/settings/account/details/'],
       [PrimaryNavigationGroup.PREVENT, '/organizations/org-slug/prevent/foo/'],
-    ])('correctly matches %s nav group', async (navigationGroup, path) => {
+    ])('correctly matches %s nav group', (navigationGroup, path) => {
       mockUsingCustomerDomain.mockReturnValue(false);
-      render(<TestComponent />, {
-        initialRouterConfig: {
-          location: {
-            pathname: path,
-          },
-        },
-      });
-
-      expect(await screen.findByText(navigationGroup)).toBeInTheDocument();
+      expect(getNavigationGroupFromPath(path)).toBe(navigationGroup);
     });
   });
 });
