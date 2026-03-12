@@ -1,7 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {FrontendVersionProvider, useFrontendVersion} from './frontendVersionContext';
 

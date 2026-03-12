@@ -56,7 +56,7 @@ type State = {
   submitting?: boolean;
 };
 
-export default class AwsLambdaCloudformation extends Component<Props, State> {
+export class AwsLambdaCloudformation extends Component<Props, State> {
   state: State = {
     accountNumber: this.props.accountNumber,
     region: this.props.region,

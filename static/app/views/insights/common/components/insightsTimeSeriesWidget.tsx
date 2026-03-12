@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import {Button} from '@sentry/scraps/button';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

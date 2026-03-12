@@ -18,7 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScreenshotPagination} from './screenshotPagination';
 

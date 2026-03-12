@@ -4,10 +4,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import AlertStore from 'sentry/stores/alertStore';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
 

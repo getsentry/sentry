@@ -6,7 +6,7 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
 import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -39,7 +39,7 @@ import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import {RouteNotFound} from 'sentry/views/routeNotFound';
 import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 

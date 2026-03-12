@@ -7,7 +7,7 @@ import {PageHeader} from 'admin/components/pageHeader';
 import {RelocationBadge} from 'admin/components/relocationBadge';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: Relocation) => {
   return [

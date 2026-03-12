@@ -21,7 +21,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,16 +33,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
 import {InviteRequestRow} from './inviteRequestRow';
-import OrganizationMemberRow from './organizationMemberRow';
+import {OrganizationMemberRow} from './organizationMemberRow';
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',

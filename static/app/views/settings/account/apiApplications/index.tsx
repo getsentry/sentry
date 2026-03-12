@@ -23,7 +23,7 @@ import type {ApiApplication} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

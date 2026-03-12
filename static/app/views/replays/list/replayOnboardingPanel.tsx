@@ -10,19 +10,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {ReplayPanel} from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {

@@ -15,7 +15,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
+import type {Guide} from 'sentry/components/assistant/types';
+import {ConfigStore} from 'sentry/stores/configStore';
+import type {GuideStoreState} from 'sentry/stores/guideStore';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -25,12 +27,14 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import GSBanner from 'getsentry/components/gsBanner';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 jest.mock('getsentry/actionCreators/modal');
-const guideMock = jest.requireMock('sentry/stores/guideStore');
+const mockGuideStore = {state: {} as GuideStoreState};
 jest.mock('sentry/stores/guideStore', () => ({
-  state: {},
+  get GuideStore() {
+    return mockGuideStore;
+  },
 }));
 
 function setUpTests() {
@@ -746,7 +750,7 @@ describe('GSBanner', () => {
   });
 
   it('loads pendo', async () => {
-    guideMock.state.currentGuide = false;
+    mockGuideStore.state.currentGuide = null;
     const organization = OrganizationFixture({
       slug: 'forced-trial',
       orgRole: 'admin',
@@ -837,7 +841,7 @@ describe('GSBanner', () => {
   });
 
   it('delays pendo guides if other guides are active', async () => {
-    guideMock.state.currentGuide = true;
+    mockGuideStore.state.currentGuide = {} as Guide;
     const organization = OrganizationFixture();
     SubscriptionStore.set(
       organization.slug,

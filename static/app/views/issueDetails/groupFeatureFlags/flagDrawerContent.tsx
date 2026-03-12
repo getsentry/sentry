@@ -7,11 +7,11 @@ import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {FlagDetailsLink} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import {FlagDrawerCTA} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
+import {useGroupFlagDrawerData} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,

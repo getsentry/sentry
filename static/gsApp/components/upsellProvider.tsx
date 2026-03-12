@@ -8,8 +8,8 @@ import Confirm from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';

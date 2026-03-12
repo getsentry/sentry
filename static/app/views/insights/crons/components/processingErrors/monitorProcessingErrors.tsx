@@ -16,7 +16,7 @@ import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {
   CheckInPayload,
   CheckinProcessingError,

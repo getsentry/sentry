@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 
 const TABS = {
   details: t('Details'),

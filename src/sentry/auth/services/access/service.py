@@ -139,7 +139,7 @@ def impl_by_control_resources() -> AccessService:
 
 access_service: AccessService = silo_mode_delegation(
     {
-        SiloMode.REGION: impl_by_region_resources,
+        SiloMode.CELL: impl_by_region_resources,
         SiloMode.CONTROL: impl_by_control_resources,
         SiloMode.MONOLITH: impl_by_control_resources,
     }

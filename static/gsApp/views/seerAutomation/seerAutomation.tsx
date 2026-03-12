@@ -5,8 +5,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import useOrganization from 'sentry/utils/useOrganization';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';

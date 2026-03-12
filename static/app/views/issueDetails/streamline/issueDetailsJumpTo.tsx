@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   SectionKey,

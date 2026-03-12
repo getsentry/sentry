@@ -26,7 +26,7 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';

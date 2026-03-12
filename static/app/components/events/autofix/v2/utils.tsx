@@ -12,7 +12,7 @@ import type {
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * Animation props for artifact cards and status cards.

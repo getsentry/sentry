@@ -13,7 +13,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
@@ -22,7 +22,7 @@ import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function shouldUseOnDemandCta(category: DataCategory): boolean {

@@ -22,7 +22,7 @@ import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/s
 import DatabaseSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryDurationChartWidget';
 import DatabaseSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseSummaryThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';

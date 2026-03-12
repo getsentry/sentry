@@ -7,7 +7,7 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {isWidgetEditable} from 'sentry/views/dashboards/utils';

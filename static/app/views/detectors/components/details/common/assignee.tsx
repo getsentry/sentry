@@ -6,9 +6,9 @@ import Placeholder from 'sentry/components/placeholder';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 
 function AssignToPlaceholder() {
   return (

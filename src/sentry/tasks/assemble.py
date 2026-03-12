@@ -232,7 +232,7 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     namespace=attachments_tasks,
     processing_deadline_duration=60 * 3,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -609,7 +609,7 @@ class ArtifactBundlePostAssembler:
     name="sentry.tasks.assemble.assemble_artifacts",
     namespace=attachments_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_artifacts(
     org_id,

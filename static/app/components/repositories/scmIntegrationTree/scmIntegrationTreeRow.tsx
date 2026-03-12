@@ -18,8 +18,8 @@ import {IconAdd, IconChevron, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTimeout from 'sentry/utils/useTimeout';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
 
 // ---------------------------------------------------------------------------
 // Row component

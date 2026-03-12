@@ -10,7 +10,7 @@ import {
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
@@ -25,7 +25,7 @@ import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetAct
 
 function UserAndOrganizationNavigation() {
   const theme = useTheme();
-  const {layout, navigationParentRef} = useNavigationContext();
+  const {layout} = useNavigationContext();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
@@ -61,7 +61,6 @@ function UserAndOrganizationNavigation() {
 
   return (
     <Flex
-      ref={navigationParentRef}
       top={0}
       position={tourIsActive ? undefined : 'sticky'}
       bottom={layout === NavigationLayout.MOBILE ? undefined : 0}

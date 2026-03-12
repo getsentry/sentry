@@ -31,7 +31,7 @@ class SentryAppCellService(RpcService):
     """
 
     key = "sentry_app_region"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

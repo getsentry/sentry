@@ -7,7 +7,7 @@ import {
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface FetchGroupFlagsParams {
@@ -29,7 +29,7 @@ const makeGroupFlagsQueryKey = ({
   {query: {environment, limit, useFlagsBackend: '1'}},
 ];
 
-export default function useGroupFeatureFlags(
+export function useGroupFeatureFlags(
   parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>,
   {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
 ): UseApiQueryResult<GroupTag[], RequestError> {

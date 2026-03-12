@@ -2,7 +2,7 @@ import Access from 'sentry/components/acl/access';
 import Placeholder from 'sentry/components/placeholder';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';

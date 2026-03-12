@@ -7,20 +7,21 @@ import {Flex} from '@sentry/scraps/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons, {
+import {
+  useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import {Filters as ConsoleFilters} from 'sentry/views/replays/detail/console/consoleFilters';
 import {ConsoleLogRow} from 'sentry/views/replays/detail/console/consoleLogRow';
-import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
+import {useConsoleFilters} from 'sentry/views/replays/detail/console/useConsoleFilters';
 import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import {TabItemContainer} from 'sentry/views/replays/detail/tabItemContainer';
-import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {useVirtualizedInspector} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 // Slightly above the old minHeight to reduce "compressed then expand" feel.
 const ESTIMATED_ROW_HEIGHT = 32;

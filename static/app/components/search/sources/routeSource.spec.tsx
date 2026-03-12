@@ -4,8 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {RouteSource} from 'sentry/components/search/sources/routeSource';
-import HookStore from 'sentry/stores/hookStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('RouteSource', () => {
   const project = ProjectFixture();

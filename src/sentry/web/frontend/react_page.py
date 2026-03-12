@@ -190,7 +190,7 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             # This shouldn't happen as all requests in production for HTML pages
             # should be in control.
             logger.info(

@@ -9,7 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';

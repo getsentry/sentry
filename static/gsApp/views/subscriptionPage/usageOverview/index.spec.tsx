@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 import * as useMedia from 'sentry/utils/useMedia';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 describe('UsageOverview', () => {
@@ -68,7 +68,7 @@ describe('UsageOverview', () => {
 
   it('opens panel based with no query params', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
@@ -83,7 +83,7 @@ describe('UsageOverview', () => {
 
   it('opens panel based on query params', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
@@ -107,7 +107,7 @@ describe('UsageOverview', () => {
 
   it('defaults to last selected when query param is invalid', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview
@@ -131,7 +131,7 @@ describe('UsageOverview', () => {
 
   it('can switch panel by clicking table rows', async () => {
     jest
-      .spyOn(useMedia, 'default')
+      .spyOn(useMedia, 'useMedia')
       .mockImplementation(query => query.includes('min-width'));
     render(
       <UsageOverview

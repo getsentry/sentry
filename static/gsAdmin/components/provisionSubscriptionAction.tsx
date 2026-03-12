@@ -19,7 +19,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -337,10 +337,17 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   // Same as above, but for Seer budgets
   isSettingSeerBudget = () =>
     Object.entries(this.state.data)
-      .filter(([key, _]) => key.startsWith('reservedCpeSeer'))
+      .filter(
+        ([key, _]) =>
+          key.startsWith('reservedCpeSeerAutofix') ||
+          key.startsWith('reservedCpeSeerScanner')
+      )
       .every(([_, value]) => value !== null && value !== undefined) &&
-    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSeer'))
-      .length >= 2;
+    Object.keys(this.state.data).filter(
+      key =>
+        key.startsWith('reservedCpeSeerAutofix') ||
+        key.startsWith('reservedCpeSeerScanner')
+    ).length >= 2;
 
   isSettingReservedBudget = (category: DataCategory) => {
     if (category === DataCategory.SPANS || category === DataCategory.SPANS_INDEXED) {
@@ -1170,7 +1177,5 @@ const Modal = withApi(ProvisionSubscriptionModal);
 
 type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
-const triggerProvisionSubscription = (opts: Options) =>
+export const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});
-
-export default triggerProvisionSubscription;

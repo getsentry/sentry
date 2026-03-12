@@ -13,7 +13,7 @@ import {
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -46,6 +46,7 @@ export function MobileBuilds({organization, selectedProjectIds}: Props) {
     const query: Record<string, any> = {
       per_page: 25,
       ...normalizeDateTimeParams(location.query),
+      display: activeDisplay,
     };
 
     if (cursor) {

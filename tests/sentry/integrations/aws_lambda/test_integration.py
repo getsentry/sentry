@@ -219,7 +219,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                     "project_id": self.projectA.id,
                 }
 
-                with assume_test_silo_mode(SiloMode.REGION):
+                with assume_test_silo_mode(SiloMode.CELL):
                     sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(
                         public=True
                     )
@@ -283,7 +283,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         resp = self.client.post(self.setup_path, {"lambdaA": "true"})

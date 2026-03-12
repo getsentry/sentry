@@ -6,7 +6,7 @@ import Prism from 'prismjs';
 import type {Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 
 type ComplexSyntax = {

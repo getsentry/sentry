@@ -1132,7 +1132,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
-            silo="region" if SiloMode.get_current_mode() == SiloMode.REGION else "control",
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
         )
 
         return HttpResponse(status=204)

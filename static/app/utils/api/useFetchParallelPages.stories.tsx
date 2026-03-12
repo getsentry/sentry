@@ -3,8 +3,8 @@ import {Fragment, useCallback} from 'react';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default Storybook.story('useFetchParallelPages', story => {
   story('WARNING!', () => (

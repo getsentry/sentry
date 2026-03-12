@@ -7,7 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
-import Pill from 'sentry/components/pill';
+import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
