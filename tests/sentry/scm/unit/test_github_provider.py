@@ -32,6 +32,7 @@ def make_repository() -> Repository:
         "name": "test-org/test-repo",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
 
@@ -516,7 +517,6 @@ def _check_pull_request(result: Any) -> None:
     assert pr["body"] == "PR description"
     assert pr["state"] == "open"
     assert pr["merged"] is False
-    assert pr["url"] == "https://api.github.com/repos/test-org/test-repo/pulls/1"
     assert pr["html_url"] == "https://github.com/test-org/test-repo/pull/1"
     assert pr["head"]["sha"] == "abc123"
     assert pr["head"]["ref"] == "feature-branch"

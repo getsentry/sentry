@@ -571,6 +571,9 @@ class GitHubProvider:
             map_review_comment,
         )
 
+    # create_review_comment_line: not supported
+    # create_review_comment_multiline: not supported
+
     @catch_provider_exception
     def create_review_comment_reply(
         self,
@@ -671,6 +674,8 @@ class GitHubProvider:
     @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.minimize_comment(comment_node_id, reason)
+
+    # resolve_review_thread: not supported
 
 
 def map_author(raw_user: dict[str, Any] | None) -> Author | None:
@@ -839,7 +844,6 @@ def map_pull_request(raw: dict[str, Any]) -> PullRequest:
         body=raw.get("body"),
         state=raw["state"],
         merged=raw.get("merged", False),
-        url=raw.get("url", ""),
         html_url=raw.get("html_url", ""),
         head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
         base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),

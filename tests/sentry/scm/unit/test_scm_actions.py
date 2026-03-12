@@ -28,6 +28,7 @@ def fetch_repository(oid, rid) -> Repository:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
 
@@ -157,6 +158,7 @@ def test_repository_inactive():
                 "name": "test",
                 "organization_id": 1,
                 "is_active": False,
+                "external_id": None,
             },
         )
 
@@ -626,6 +628,7 @@ class MinimalProvider:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
@@ -729,6 +732,7 @@ class TestCan:
                 "name": "test",
                 "organization_id": 1,
                 "is_active": True,
+                "external_id": None,
             }
 
             def is_rate_limited(self, referrer: Referrer) -> bool:
