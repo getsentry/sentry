@@ -44,9 +44,11 @@ function MetricOptionTrailingItems({
     <Fragment>
       <MetricTypeBadge metricType={metricType} />
       {hasMetricUnitsUI &&
-        metricUnit &&
-        metricUnit !== '-' &&
-        metricUnit !== NONE_UNIT && <Tag variant="promotion">{metricUnit}</Tag>}
+      metricUnit &&
+      metricUnit !== '-' &&
+      metricUnit !== NONE_UNIT ? (
+        <Tag variant="promotion">{metricUnit}</Tag>
+      ) : null}
     </Fragment>
   );
 }
@@ -300,7 +302,7 @@ export function MetricSelector({
         {...overlayProps}
         style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
       >
-        {isOpen && (
+        {isOpen ? (
           <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
             <FocusScope contain restoreFocus autoFocus>
               <Flex direction={{xs: 'column', sm: 'row'}}>
@@ -315,7 +317,9 @@ export function MetricSelector({
                     <Text size="sm" bold wrap="nowrap">
                       {t('Metrics')}
                     </Text>
-                    {isFetching && <LoadingIndicator size={12} style={{margin: 0}} />}
+                    {isFetching ? (
+                      <LoadingIndicator size={12} style={{margin: 0}} />
+                    ) : null}
                   </Flex>
                   <Container padding="0 xs">
                     <InputGroup>
@@ -347,7 +351,7 @@ export function MetricSelector({
                     padding="xs 0"
                   >
                     {/* Hidden element that reserves width based on the longest option label */}
-                    {longestOption && (
+                    {longestOption ? (
                       <Container
                         aria-hidden
                         visibility="hidden"
@@ -368,7 +372,7 @@ export function MetricSelector({
                           trailingItems={longestOption.trailingItems}
                         />
                       </Container>
-                    )}
+                    ) : null}
                     {displayedOptions.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
@@ -417,7 +421,7 @@ export function MetricSelector({
                                   priority={isSelected ? 'primary' : 'default'}
                                   leadingItems={
                                     <LeadWrap aria-hidden="true">
-                                      {isSelected && <IconCheckmark size="sm" />}
+                                      {isSelected ? <IconCheckmark size="sm" /> : null}
                                     </LeadWrap>
                                   }
                                   trailingItems={option.trailingItems}
@@ -441,7 +445,7 @@ export function MetricSelector({
               </Flex>
             </FocusScope>
           </Overlay>
-        )}
+        ) : null}
       </PositionWrapper>
     </Container>
   );
@@ -472,16 +476,16 @@ function MetricDetailPanel({
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
       {hasMetricUnitsUI &&
-        metric.metricUnit &&
-        metric.metricUnit !== '-' &&
-        metric.metricUnit !== NONE_UNIT && (
-          <Flex gap="xs" align="center">
-            <Text variant="muted" size="sm">
-              {t('Unit:')}
-            </Text>
-            <Tag variant="promotion">{metric.metricUnit}</Tag>
-          </Flex>
-        )}
+      metric.metricUnit &&
+      metric.metricUnit !== '-' &&
+      metric.metricUnit !== NONE_UNIT ? (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="sm">
+            {t('Unit:')}
+          </Text>
+          <Tag variant="promotion">{metric.metricUnit}</Tag>
+        </Flex>
+      ) : null}
     </Stack>
   );
 }
