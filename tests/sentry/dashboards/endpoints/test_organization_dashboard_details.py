@@ -3443,7 +3443,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "id": str(widget_query.id),
                             "name": "Query with Links",
                             "fields": ["count()", "project", "environment"],
-                            "columns": ["project"],
+                            "columns": ["project", "environment"],
                             "aggregates": ["count()"],
                             "conditions": "event.type:error",
                             "linkedDashboards": [
