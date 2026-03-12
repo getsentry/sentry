@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
@@ -25,7 +25,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 @patch("sentry.analytics.record")
 @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
-@region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
     method = "POST"

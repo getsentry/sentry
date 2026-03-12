@@ -94,7 +94,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.utils import json
@@ -223,7 +223,7 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
-@region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class UploadingStartTest(RelocationTaskTestCase):
     def setUp(self) -> None:
         self.owner = self.create_user(

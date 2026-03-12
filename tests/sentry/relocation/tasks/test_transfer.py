@@ -23,9 +23,9 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import (
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
     create_test_regions,
-    region_silo_test,
 )
 
 TEST_REGIONS = create_test_regions("us", "de")
@@ -181,7 +181,7 @@ class ProcessRelocationTransferControlTest(TestCase):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
 
 
-@region_silo_test(regions=TEST_REGIONS)
+@cell_silo_test(regions=TEST_REGIONS)
 class ProcessRelocationTransferRegionTest(TestCase):
     def test_missing_transfer(self) -> None:
         res = process_relocation_transfer_region(transfer_id=999)
