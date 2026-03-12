@@ -121,6 +121,8 @@ def send_and_save_webhook_request(
         try:
             organization_context = organization_service.get_organization_by_id(
                 id=app_platform_event.install.organization_id,
+                include_projects=False,
+                include_teams=False
             )
             if organization_context is not None and features.has(
                 "organizations:sentry-app-webhook-hard-timeout",
