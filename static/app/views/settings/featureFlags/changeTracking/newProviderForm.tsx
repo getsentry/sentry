@@ -117,8 +117,10 @@ export function NewProviderForm({
     defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      return mutation.mutateAsync(schema.parse(value)).catch((error: RequestError) => {
-        setFieldErrors(formApi, error);
+      return mutation.mutateAsync(schema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, error);
+        }
       });
     },
   });
