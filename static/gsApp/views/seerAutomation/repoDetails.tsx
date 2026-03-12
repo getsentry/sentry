@@ -4,7 +4,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {NotFound} from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,11 +22,6 @@ export default function SeerRepoDetails() {
   const {repoId} = useParams<{repoId: string}>();
   const organization = useOrganization();
 
-  const hasSeer =
-    organization.features.includes('seat-based-seer-enabled') ||
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta');
-
   const {
     data: repoWithSettings,
     error,
@@ -35,16 +29,8 @@ export default function SeerRepoDetails() {
     refetch,
   } = useRepositoryWithSettings({
     repositoryId: repoId,
-    enabled: hasSeer,
+    enabled: true,
   });
-
-  if (!hasSeer) {
-    return (
-      <AnalyticsArea name="repo-details">
-        <NotFound />
-      </AnalyticsArea>
-    );
-  }
 
   if (isPending) {
     return (
