@@ -65,6 +65,7 @@ function WhatsNewContent({
           getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
             path: {organizationIdOrSlug: organization.slug},
           }),
+          {query: {show: 'latest', limit: '3'}},
         ],
         data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
       );
@@ -72,6 +73,9 @@ function WhatsNewContent({
   });
 
   useEffect(() => {
+    if (unseenPostIds.length === 0) {
+      return undefined;
+    }
     const MARK_SEEN_DELAY = 1000;
     const markSeenTimeout = window.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
@@ -137,6 +141,7 @@ export function PrimaryNavigationWhatsNew() {
       getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
+      {query: {show: 'latest', limit: '3'}},
     ],
     {
       // Five minute stale time prevents window focus frequent refetches

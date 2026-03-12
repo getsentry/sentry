@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.organization_contributors.reset_num_actions_for_organization_contributors",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def reset_num_actions_for_organization_contributors(organization_id: int) -> None:
     """
@@ -38,7 +38,7 @@ def reset_num_actions_for_organization_contributors(organization_id: int) -> Non
 @instrumented_task(
     name="sentry.tasks.organization_contributors.assign_seat_to_organization_contributor",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
 )
 def assign_seat_to_organization_contributor(contributor_id) -> None:

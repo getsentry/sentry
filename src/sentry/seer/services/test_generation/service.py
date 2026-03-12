@@ -17,7 +17,7 @@ class TestGenerationService(RpcService):
     """
 
     key = "test_generation"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

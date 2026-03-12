@@ -35,7 +35,7 @@ def build_team_unlinking_url(
         response_url=response_url,
         # The team-linking view is region-specific, so skip the middleware proxy if necessary.
         url_prefix=(
-            generate_locality_url() if SiloMode.get_current_mode() == SiloMode.REGION else None
+            generate_locality_url() if SiloMode.get_current_mode() == SiloMode.CELL else None
         ),
     )
 

@@ -35,7 +35,7 @@ class TombstoneBase(Model):
 
     @staticmethod
     def class_for_silo_mode(silo_mode: SiloMode) -> type[TombstoneBase] | None:
-        if silo_mode == SiloMode.REGION:
+        if silo_mode == SiloMode.CELL:
             return RegionTombstone
         if silo_mode == SiloMode.CONTROL:
             return ControlTombstone
