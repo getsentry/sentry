@@ -80,8 +80,8 @@ def build_trigger_action_task_params(
 @retry(
     timeouts=True,
     raise_on_no_retries=False,
-    ignore_and_capture=Action.DoesNotExist,
-    ignore=(Group.DoesNotExist, Project.DoesNotExist, ProjectNotActiveError),
+    ignore_and_capture=(Action.DoesNotExist, Group.DoesNotExist),
+    ignore=(Project.DoesNotExist, ProjectNotActiveError),
 )
 def trigger_action(
     action_id: int,
