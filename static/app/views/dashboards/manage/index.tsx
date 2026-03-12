@@ -518,6 +518,8 @@ function ManageDashboards() {
     );
   }
 
+  const {query: _query, ...queryWithoutSearch} = location.query;
+
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
@@ -526,7 +528,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -550,7 +552,6 @@ function ManageDashboards() {
   }
 
   function loadDashboard(dashboardId: string) {
-    const {query: _query, ...queryWithoutSearch} = location.query;
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
@@ -564,8 +565,6 @@ function ManageDashboards() {
       organization,
       dashboard_id: dashboardId,
     });
-
-    const {query: _query, ...queryWithoutSearch} = location.query;
 
     navigate(
       normalizeUrl({
