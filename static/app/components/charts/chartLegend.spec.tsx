@@ -146,6 +146,7 @@ describe('ChartLegend', () => {
     const triggerText = screen.getByText(/more/);
     const triggerButton = triggerText.closest('button')!;
     expect(triggerButton).toHaveAttribute('aria-hidden', 'true');
+    expect(triggerButton).not.toBeVisible();
   });
 
   it('fires callback when an overflow item is toggled via the dropdown', async () => {
