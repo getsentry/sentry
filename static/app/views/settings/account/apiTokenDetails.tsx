@@ -78,8 +78,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
           if (!oldData) {
             return oldData;
           }
-          oldData.name = name;
-          return oldData;
+          return {...oldData, name};
         }
       );
 
@@ -92,11 +91,9 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
             if (!Array.isArray(oldData)) {
               return oldData;
             }
-            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-            if (existingToken) {
-              existingToken.name = name;
-            }
-            return oldData;
+            return oldData.map(oldToken =>
+              oldToken.id === token.id ? {...oldToken, name} : oldToken
+            );
           }
         );
       }

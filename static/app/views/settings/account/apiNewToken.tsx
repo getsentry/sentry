@@ -64,7 +64,7 @@ function getPermissionsPreview(permissions: Permissions): string {
   return Object.entries(permissions)
     .filter(([, access]) => access !== 'no-access')
     .map(([resource, access]) => `${resource.toLowerCase()}:${access}`)
-    .join('\n');
+    .join(', ');
 }
 
 export default function ApiNewToken() {
