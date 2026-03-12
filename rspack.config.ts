@@ -486,6 +486,7 @@ const appConfig: Configuration = {
                   'node_modules/**/*',
                   'tests/**/*',
                   '**/*.spec.*',
+                  '**/*.snapshots.*',
                   'static/eslint/**/*',
                   'scripts/**/*',
                 ],
