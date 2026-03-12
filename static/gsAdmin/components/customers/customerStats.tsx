@@ -551,9 +551,9 @@ export const CustomerStats = memo(
     const abuseDataRef = useRef(abuseData);
     abuseDataRef.current = abuseData;
 
-    const highlightedRegionRef = useRef<number | null>(null);
+    const activeAbuseRegionRef = useRef<number | null>(null);
 
-    const setRegionHighlight = useCallback(
+    const updateAbuseRegionOpacity = useCallback(
       (instance: ECharts, regionIndex: number | null) => {
         const {regions} = abuseDataRef.current;
         if (regions.length === 0) {
@@ -577,21 +577,21 @@ export const CustomerStats = memo(
       []
     );
 
-    const hideAbuseTooltip = useCallback(
+    const dismissAbuseTooltip = useCallback(
       (instance?: ECharts) => {
         const el = abuseTooltipRef.current;
         if (el) {
           el.style.display = 'none';
         }
-        if (instance && highlightedRegionRef.current !== null) {
-          highlightedRegionRef.current = null;
-          setRegionHighlight(instance, null);
+        if (instance && activeAbuseRegionRef.current !== null) {
+          activeAbuseRegionRef.current = null;
+          updateAbuseRegionOpacity(instance, null);
         }
       },
-      [setRegionHighlight]
+      [updateAbuseRegionOpacity]
     );
 
-    const onHighlight = useCallback(
+    const handleBarHighlight = useCallback(
       (params: {batch?: Array<{dataIndex: number}>}, instance: ECharts) => {
         const el = abuseTooltipRef.current;
         if (!el || !instance) {
@@ -600,27 +600,27 @@ export const CustomerStats = memo(
 
         const dataIndex = params.batch?.[0]?.dataIndex;
         if (dataIndex === undefined) {
-          hideAbuseTooltip(instance);
+          dismissAbuseTooltip(instance);
           return;
         }
 
         const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
         const ts = allIntervals[dataIndex];
         if (ts === undefined) {
-          hideAbuseTooltip(instance);
+          dismissAbuseTooltip(instance);
           return;
         }
 
         const value = valueByTimestamp.get(ts);
         if (!value) {
-          hideAbuseTooltip(instance);
+          dismissAbuseTooltip(instance);
           return;
         }
 
         const regionIndex = regions.findIndex(r => ts >= r.start && ts <= r.end);
-        if (regionIndex >= 0 && regionIndex !== highlightedRegionRef.current) {
-          highlightedRegionRef.current = regionIndex;
-          setRegionHighlight(instance, regionIndex);
+        if (regionIndex >= 0 && regionIndex !== activeAbuseRegionRef.current) {
+          activeAbuseRegionRef.current = regionIndex;
+          updateAbuseRegionOpacity(instance, regionIndex);
         }
 
         const pixelPos = instance.convertToPixel('grid', [ts, 0]);
@@ -633,7 +633,7 @@ export const CustomerStats = memo(
           el.style.display = 'flex';
         }
       },
-      [hideAbuseTooltip, setRegionHighlight]
+      [dismissAbuseTooltip, updateAbuseRegionOpacity]
     );
 
     if (loading) {
@@ -711,8 +711,8 @@ export const CustomerStats = memo(
                   <ChartContainer>
                     <BarChart
                       ref={chartRef}
-                      onHighlight={onHighlight}
-                      onMouseOut={(_params, instance) => hideAbuseTooltip(instance)}
+                      onHighlight={handleBarHighlight}
+                      onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
                       isGroupedByDate
                       stacked
                       animation={false}
@@ -736,7 +736,7 @@ export const CustomerStats = memo(
                       gap="xs"
                       padding="xs md"
                       // Inline style is toggled imperatively between 'none' and 'flex'
-                      // by onHighlight/hideAbuseTooltip via direct DOM access
+                      // by handleBarHighlight/dismissAbuseTooltip via direct DOM access
                       style={{display: 'none'}}
                     >
                       <AbuseDot />
