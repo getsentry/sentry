@@ -395,8 +395,8 @@ class SourceCodeManager:
         """
         Get a paginated list of commits.
 
-        `ref` is either a branch name, a tag name, or a commit SHA. Specifying a commit SHA
-        retrieves commits up to the given commit SHA.
+        `ref` is either a branch name, a tag name, a commit SHA, or a revision range `A..B`.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
 
         Commits are returned in descending order. Equivalent to `git log ref`.
         """
@@ -410,15 +410,15 @@ class SourceCodeManager:
     def get_commits_by_path(
         self,
         path: str,
-        ref: SHA | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         """
         Get a paginated list of commits for a given filepath.
 
-        `ref` is either a branch name, a tag name, or a commit SHA. Specifying a commit SHA
-        retrieves commits up to the given commit SHA.
+        `ref` is either a branch name, a tag name, a commit SHA, or a revision range `A..B`.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
 
         Commits are returned in descending order. Equivalent to `git log ref`.
         """

@@ -575,6 +575,18 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
+    def get_commits(self, project_id, ref: str | None, path: str | None):
+        """
+        Get the set of commits ending at ref.
+        See https://docs.gitlab.com/ee/api/commits.html#list-repository-commits
+        """
+        params: dict[str, str] = {}
+        if ref:
+            params["ref_name"] = ref
+        if path:
+            params["path"] = path
+        return self.get(GitLabApiClientPath.commits.format(project=project_id), params=params)
+
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         """
         Get the merge commit sha from a commit sha

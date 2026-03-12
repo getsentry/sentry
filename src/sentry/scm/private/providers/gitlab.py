@@ -9,7 +9,6 @@ Unsupported actions:
     * create_git_tree
     * create_pull_request_draft
     * create_review
-    * get_commits_by_path
     * get_check_run
     * get_git_commit
     * get_pull_request_diff
@@ -333,7 +332,18 @@ class GitLabProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        raw = self.client.get_last_commits(self._repo_id, ref)
+        raw = self.client.get_commits(self._repo_id, ref=ref, path=None)
+        return make_paginated_result(map_commit, raw)
+
+    @catch_provider_exception
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        raw = self.client.get_commits(self._repo_id, ref=ref, path=path)
         return make_paginated_result(map_commit, raw)
 
     @catch_provider_exception

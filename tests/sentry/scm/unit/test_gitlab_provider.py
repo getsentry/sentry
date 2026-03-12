@@ -1383,9 +1383,90 @@ class ForwardToClientTest(NamedTuple):
             },
             client_calls=[
                 ClientForwardedCall(
-                    client_method="get_last_commits",
-                    client_args=("79787061", "1403774c82d64068af027d0b5d0cc4f52473b6f2"),
-                    client_kwds={},
+                    client_method="get_commits",
+                    client_args=("79787061",),
+                    client_kwds={"ref": "1403774c82d64068af027d0b5d0cc4f52473b6f2", "path": None},
+                    client_return_value=[
+                        {
+                            "id": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                            "short_id": "1403774c",
+                            "created_at": "2026-02-16T14:24:18.000+01:00",
+                            "parent_ids": [],
+                            "title": "Initial commit",
+                            "message": "Initial commit",
+                            "author_name": "Vincent Jacques",
+                            "author_email": "vincent@vincent-jacques.net",
+                            "authored_date": "2026-02-16T14:24:18.000+01:00",
+                            "committer_name": "GitHub",
+                            "committer_email": "noreply@github.com",
+                            "committed_date": "2026-02-16T14:24:18.000+01:00",
+                            "trailers": {},
+                            "extended_trailers": {},
+                            "web_url": "https://gitlab.com/jacquev6-sentry/test-sentry-integration-dev-jacquev6/-/commit/1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                        }
+                    ],
+                ),
+            ],
+            provider_return_value={
+                "data": [
+                    {
+                        "id": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                        "message": "Initial commit",
+                        "author": {
+                            "name": "Vincent Jacques",
+                            "email": "vincent@vincent-jacques.net",
+                            "date": datetime.datetime(
+                                2026,
+                                2,
+                                16,
+                                14,
+                                24,
+                                18,
+                                tzinfo=datetime.timezone(datetime.timedelta(seconds=3600)),
+                            ),
+                        },
+                        "files": None,
+                    }
+                ],
+                "type": "gitlab",
+                "raw": [
+                    {
+                        "id": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                        "short_id": "1403774c",
+                        "created_at": "2026-02-16T14:24:18.000+01:00",
+                        "parent_ids": [],
+                        "title": "Initial commit",
+                        "message": "Initial commit",
+                        "author_name": "Vincent Jacques",
+                        "author_email": "vincent@vincent-jacques.net",
+                        "authored_date": "2026-02-16T14:24:18.000+01:00",
+                        "committer_name": "GitHub",
+                        "committer_email": "noreply@github.com",
+                        "committed_date": "2026-02-16T14:24:18.000+01:00",
+                        "trailers": {},
+                        "extended_trailers": {},
+                        "web_url": "https://gitlab.com/jacquev6-sentry/test-sentry-integration-dev-jacquev6/-/commit/1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                    }
+                ],
+                "meta": {"next_cursor": None},
+            },
+        ),
+        ForwardToClientTest(
+            provider_method=GitLabProvider.get_commits_by_path,
+            provider_args={
+                "path": "src/main.py",
+                "ref": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                "pagination": None,
+                "request_options": None,
+            },
+            client_calls=[
+                ClientForwardedCall(
+                    client_method="get_commits",
+                    client_args=("79787061",),
+                    client_kwds={
+                        "ref": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
+                        "path": "src/main.py",
+                    },
                     client_return_value=[
                         {
                             "id": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
