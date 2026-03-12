@@ -1127,8 +1127,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "pull_request"
-        assert tags.get("github_action") == "opened"
+        assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
     @override_regions(region_config)
@@ -1160,8 +1159,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "push"
-        assert "github_action" not in tags
+        assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
     @override_regions(region_config)
@@ -1188,8 +1186,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert "github_event_type" not in tags
-        assert "github_action" not in tags
+        assert "github_event_and_action" not in tags
 
 
 @control_silo_test
