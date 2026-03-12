@@ -184,9 +184,7 @@ export function ScmIntegrationTreeRow({
 
   if (node.type === 'no-match') {
     let noMatchMessage: ReactNode;
-    if (node.search && node.repoFilter !== 'all') {
-      noMatchMessage = tct('No repos matching "[search]"', {search: node.search});
-    } else if (node.search) {
+    if (node.search) {
       noMatchMessage = tct('No repos matching "[search]"', {search: node.search});
     } else {
       noMatchMessage =

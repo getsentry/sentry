@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
@@ -17,7 +17,7 @@ export function ScmRepoTreeModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Add Repository')}</h4>
+        <Heading as="h4">{t('Add Repository')}</Heading>
       </Header>
       <Body>
         <Stack gap="2xl">
