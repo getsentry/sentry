@@ -329,7 +329,6 @@ function MonitorForm({
             hideLabel
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
-            orientInline
             required
             stacked
             inline={false}

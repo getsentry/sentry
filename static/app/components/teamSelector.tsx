@@ -53,8 +53,6 @@ const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 
-const getOptionValue = (option: TeamOption) => option.value;
-
 // Ensures that the svg icon is white when selected
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
   option: (provided, state) => ({
@@ -378,7 +376,7 @@ export function TeamSelector(props: Props) {
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}
-      getOptionValue={getOptionValue}
+      getOptionValue={option => option.value}
       filterOption={filterOption}
       styles={styles}
       isLoading={fetching}

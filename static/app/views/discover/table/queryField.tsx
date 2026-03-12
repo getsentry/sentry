@@ -557,7 +557,6 @@ class _QueryField extends Component<Props> {
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
-            required={descriptor.required}
             onChange={this.handleDropdownParameterChange(index + 1)}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
@@ -647,7 +646,7 @@ class _QueryField extends Component<Props> {
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
-      noOptionsMessage: () => noFieldsMessage,
+      noOptionsMessage: () => noFieldsMessage ?? null,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;

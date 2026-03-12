@@ -28,11 +28,6 @@ export enum TransactionThresholdMetric {
   LARGEST_CONTENTFUL_PAINT = 'lcp',
 }
 
-const METRIC_CHOICES = [
-  {label: t('Transaction Duration'), value: 'duration'},
-  {label: t('Largest Contentful Paint'), value: 'lcp'},
-];
-
 type Props = {
   api: Client;
   eventView: EventView;
@@ -167,12 +162,19 @@ function TransactionThresholdModal({
           required
         >
           <Select
-            required
-            options={METRIC_CHOICES.slice()}
+            options={[
+              {
+                label: t('Transaction Duration'),
+                value: TransactionThresholdMetric.TRANSACTION_DURATION,
+              },
+              {
+                label: t('Largest Contentful Paint'),
+                value: TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT,
+              },
+            ]}
             name="responseMetric"
-            label={t('Calculation Method')}
             value={metric}
-            onChange={(option: {value: TransactionThresholdMetric}) => {
+            onChange={option => {
               setMetric(option.value);
             }}
           />

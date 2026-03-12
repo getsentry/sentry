@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
+import type {AsyncProps} from 'react-select/src/Async';
 import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -400,17 +401,33 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<
-  OptionType extends OptionTypeBase = GeneralSelectValue,
-> extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
+export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
+  extends
+    AsyncProps<OptionType>,
+    Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
+  /**
+   * Enable async option loading.
+   */
+  async?: boolean;
+  cache?: Record<string, unknown>;
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
   choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
   /**
+   * Enable 'clearable' which allows values to be removed.
+   */
+  clearable?: boolean;
+  /**
+   * Enable 'create' mode which allows values to be created inline.
+   */
+  creatable?: boolean;
+  disabled?: boolean;
+  /**
    * Set to true to prefix selected values with content
    */
   inFieldLabel?: string;
+  inputRef?: React.Ref<any>;
   /**
    * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
    */
@@ -427,13 +444,15 @@ export interface ControlProps<
   /**
    * Handler for changes. Narrower than the types in react-select.
    */
-  onChange?: (value?: OptionType | null) => void;
+  onChange?: (value: OptionType) => void;
   ref?: React.Ref<typeof ReactSelect>;
+  searchable?: boolean;
   /**
    * Show line dividers between options
    */
   showDividers?: boolean;
   size?: FormSize;
+
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.
@@ -449,9 +468,11 @@ export interface ControlProps<
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: ControlProps<OptionType>
+export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  p: ControlProps<OptionType>
 ) {
+  // todo(tkdodo): typing `p` and keeping `any` localized avoids leaking it
+  const props = p as any;
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
 
@@ -474,7 +495,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.colors.gray800,
       fontWeight: 600,
-      marginRight: selectSpacing[size ?? 'md'],
+      marginRight: selectSpacing[p.size ?? 'md'],
     },
   });
 
@@ -586,29 +607,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-interface PickerProps<
-  OptionType extends OptionTypeBase,
-> extends ControlProps<OptionType> {
-  /**
-   * Enable async option loading.
-   */
-  async?: boolean;
-  /**
-   * Enable 'clearable' which allows values to be removed.
-   */
-  clearable?: boolean;
-  /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-}
-
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   ref,
   ...props
-}: PickerProps<OptionType>) {
+}: ControlProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;
@@ -624,11 +628,3 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
 }
-
-// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
-// Omit on the ControlProps messes up the union type
-// the fix is to remove this type assertion, export Select directly and fix the type issues
-export const Select = SelectControl as (
-  props: Omit<ControlProps, 'ref'> &
-    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
-) => React.JSX.Element;

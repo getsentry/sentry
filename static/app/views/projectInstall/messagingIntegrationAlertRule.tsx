@@ -6,7 +6,6 @@ import {Select, SelectOption} from '@sentry/scraps/select';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -138,9 +137,7 @@ export function MessagingIntegrationAlertRule({
                 isLoading={isPending || validateChannel.isFetching}
                 disabled={!integration}
                 value={channel ? {label: channel.label, value: channel.value} : undefined}
-                onChange={(
-                  option: (SelectValue<string> & {label: string}) | undefined
-                ) => {
+                onChange={option => {
                   if (option) {
                     setChannel({value: option.value, label: option.label, new: false});
                   } else {

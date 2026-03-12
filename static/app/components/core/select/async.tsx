@@ -83,7 +83,7 @@ class SelectAsyncControl<TData = unknown> extends Component<
       );
   }, 250);
 
-  handleLoadOptions = () =>
+  handleLoadOptions = (): Promise<any> =>
     new Promise<TData>((resolve, reject) => {
       this.doQuery((...errorOrData) => {
         if (errorOrData[0]) {
