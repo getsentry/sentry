@@ -15,7 +15,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
-import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
+import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
   autoAssignment: boolean;

@@ -57,9 +57,8 @@ class Locality:
         return {"name": self.name, "url": self.to_url("")}
 
 
-# TODO(cells): rename to LocalityConfigurationError
-class RegionConfigurationError(Exception):
-    """Indicate that a region was misconfigured or could not be initialized."""
+class CellConfigurationError(Exception):
+    """Indicate that a cell was misconfigured or could not be initialized."""
 
 
 @dataclass(frozen=True, eq=True)
@@ -121,19 +120,19 @@ class Cell:
         return self.name == settings.SENTRY_MONOLITH_REGION
 
 
-class RegionResolutionError(Exception):
-    """Indicate that a region's identity could not be resolved."""
+class CellResolutionError(Exception):
+    """Indicate that a cell's identity could not be resolved."""
 
 
-class RegionMappingNotFound(RegionResolutionError):
-    """Indicate that a mapping to a region could not be found."""
+class CellMappingNotFound(CellResolutionError):
+    """Indicate that a mapping to a cell could not be found."""
 
 
-class RegionContextError(Exception):
-    """Indicate that the server is not in a state to resolve a region."""
+class CellContextError(Exception):
+    """Indicate that the server is not in a state to resolve a cell."""
 
 
-class RegionDirectory:
+class CellDirectory:
     """A set of cells in a Sentry environment.
 
     This is a singleton class. It is immutable in a production environment,
@@ -159,8 +158,8 @@ class RegionDirectory:
     def localities(self) -> frozenset[Locality]:
         return self._localities
 
-    def get_cell_by_name(self, region_name: str) -> Cell | None:
-        return self._by_name.get(region_name)
+    def get_cell_by_name(self, cell_name: str) -> Cell | None:
+        return self._by_name.get(cell_name)
 
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
@@ -188,8 +187,8 @@ class RegionDirectory:
         return (r for name in loc.cells if (r := self._by_name.get(name)) is not None)
 
     def validate_all(self) -> None:
-        for region in self.cells:
-            region.validate()
+        for cell in self.cells:
+            cell.validate()
 
         # Ensure that a cell cannot be registered to more than one locality
         all_cell_refs = [cell_name for loc in self.localities for cell_name in loc.cells]
@@ -198,21 +197,21 @@ class RegionDirectory:
 
         if len(all_cell_refs) != len(assigned_cells):
             duplicates = {c for c in all_cell_refs if all_cell_refs.count(c) > 1}
-            raise RegionConfigurationError(
+            raise CellConfigurationError(
                 f"Cells assigned to more than one locality: {duplicates!r}"
             )
 
         # Ensure that all cells are assigned to a locality, and that all localities only reference defined cells
         if assigned_cells != defined_cells:
-            raise RegionConfigurationError(
+            raise CellConfigurationError(
                 f"Cells in locality config do not match cell config: "
                 f"locality-only={assigned_cells - defined_cells!r}, "
                 f"cell-only={defined_cells - assigned_cells!r}"
             )
 
 
-def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Cell]:
-    for config_value in region_config:
+def _parse_raw_config(cell_config: list[CellConfig]) -> Iterable[Cell]:
+    for config_value in cell_config:
         yield Cell(
             name=config_value["name"],
             snowflake_id=config_value["snowflake_id"],
@@ -222,29 +221,27 @@ def _parse_raw_config(region_config: list[CellConfig]) -> Iterable[Cell]:
         )
 
 
-def _generate_monolith_region_if_needed(regions: Collection[Cell]) -> Iterable[Cell]:
-    """Check whether a default monolith region must be generated.
+def _generate_monolith_cell_if_needed(cells: Collection[Cell]) -> Iterable[Cell]:
+    """Check whether a default monolith cell must be generated.
 
-    Check the provided set of regions to see whether a region with the configured
+    Check the provided set of cells to see whether a cell with the configured
     name is present. If so, return an empty iterator. Else, yield the newly generated
-    region.
+    cell.
     """
     if not settings.SENTRY_MONOLITH_REGION:
-        raise RegionConfigurationError(
-            "`SENTRY_MONOLITH_REGION` must provide a default region name"
-        )
-    if not regions:
+        raise CellConfigurationError("`SENTRY_MONOLITH_REGION` must provide a default cell name")
+    if not cells:
         yield Cell(
             name=settings.SENTRY_MONOLITH_REGION,
             snowflake_id=0,
             address=options.get("system.url-prefix"),
             category=RegionCategory.MULTI_TENANT,
         )
-    elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
-        raise RegionConfigurationError(
-            "The SENTRY_MONOLITH_REGION setting must point to a region name "
+    elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in cells):
+        raise CellConfigurationError(
+            "The SENTRY_MONOLITH_REGION setting must point to a cell name "
             f"({settings.SENTRY_MONOLITH_REGION=!r}; "
-            f"region names = {[r.name for r in regions]!r})"
+            f"cell names = {[r.name for r in cells]!r})"
         )
 
 
@@ -263,86 +260,85 @@ def _parse_locality_config(
 def load_from_config(
     region_config: list[CellConfig],
     locality_config: list[LocalityConfig],
-) -> RegionDirectory:
+) -> CellDirectory:
     try:
-        regions = set(_parse_raw_config(region_config))
-        regions |= set(_generate_monolith_region_if_needed(regions))
+        cells = set(_parse_raw_config(region_config))
+        cells |= set(_generate_monolith_cell_if_needed(cells))
         localities = set(_parse_locality_config(locality_config))
 
         if not locality_config:
             # TODO(cells): If no locality config present — create a synthetic 1:1 locality per cell
             # as a temporary fallback. Once SENTRY_LOCALITIES is configured, all cells
             # must be explicitly assigned; missing cells will have no locality mapping.
-            for region in regions:
+            for cell in cells:
                 localities.add(
                     Locality(
-                        name=region.name,
-                        category=region.category,
-                        cells=frozenset([region.name]),
-                        visible=region.visible,
+                        name=cell.name,
+                        category=cell.category,
+                        cells=frozenset([cell.name]),
+                        visible=cell.visible,
                     )
                 )
 
-        return RegionDirectory(regions, localities)
-    except RegionConfigurationError as e:
+        return CellDirectory(cells, localities)
+    except CellConfigurationError as e:
         sentry_sdk.capture_exception(e)
         raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise RegionConfigurationError("Unable to parse region_config.") from e
+        raise CellConfigurationError("Unable to parse region_config.") from e
 
 
-_global_regions: RegionDirectory | None = None
+_global_directory: CellDirectory | None = None
 
 
-def set_global_directory(directory: RegionDirectory) -> None:
+def set_global_directory(directory: CellDirectory) -> None:
     if not in_test_environment():
         raise Exception(
-            "The region directory can be set directly only in a test environment. "
+            "The cell directory can be set directly only in a test environment. "
             "Otherwise, it should be automatically loaded from config when "
             "get_global_directory is first called."
         )
-    global _global_regions
-    _global_regions = directory
+    global _global_directory
+    _global_directory = directory
 
 
-def get_global_directory() -> RegionDirectory:
-    global _global_regions
-    if _global_regions is not None:
-        return _global_regions
+def get_global_directory() -> CellDirectory:
+    global _global_directory
+    if _global_directory is not None:
+        return _global_directory
 
     from django.conf import settings
 
-    # For now, assume that all region configs can be taken in through Django
+    # For now, assume that all cell configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    _global_regions = load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES)
-    return _global_regions
+    _global_directory = load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES)
+    return _global_directory
 
 
 def get_cell_by_name(name: str) -> Cell:
     """Look up a cell by name."""
-    global_regions = get_global_directory()
-    region = global_regions.get_cell_by_name(name)
-    if region is not None:
-        return region
+    cell_regions = get_global_directory()
+    cell = cell_regions.get_cell_by_name(name)
+    if cell is not None:
+        return cell
     else:
-        region_names = list(global_regions.get_cell_names(RegionCategory.MULTI_TENANT))
-        raise RegionResolutionError(
-            f"No cell with name: {name!r} "
-            f"(expected one of {region_names!r} or a single-tenant name)"
+        cell_names = list(cell_regions.get_cell_names(RegionCategory.MULTI_TENANT))
+        raise CellResolutionError(
+            f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
         )
 
 
 def get_locality_by_name(name: str) -> Locality:
     """Look up a locality by name."""
-    global_regions = get_global_directory()
-    locality = global_regions.get_locality_by_name(name)
+    global_directory = get_global_directory()
+    locality = global_directory.get_locality_by_name(name)
     if locality is not None:
         return locality
     else:
-        locality_names = [loc.name for loc in global_regions.localities]
-        raise RegionResolutionError(
+        locality_names = [loc.name for loc in global_directory.localities]
+        raise CellResolutionError(
             f"No locality with name: {name!r} (expected one of {locality_names!r})"
         )
 
@@ -377,7 +373,7 @@ def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
         mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
 
     if not mapping:
-        raise RegionResolutionError(
+        raise CellResolutionError(
             f"Organization {organization_id_or_slug} has no associated mapping."
         )
 
@@ -393,7 +389,7 @@ def get_local_locality() -> Locality:
     cell = get_local_cell()
     locality = get_global_directory().get_locality_for_cell(cell.name)
     if locality is None:
-        raise RegionResolutionError(f"No locality found for cell {cell.name!r}")
+        raise CellResolutionError(f"No locality found for cell {cell.name!r}")
     return locality
 
 
@@ -403,7 +399,7 @@ def get_locality_name_for_cell(cell_name: str) -> str:
     """
     locality = get_global_directory().get_locality_for_cell(cell_name)
     if locality is None:
-        raise RegionResolutionError(f"No locality found for cell {cell_name!r}")
+        raise CellResolutionError(f"No locality found for cell {cell_name!r}")
 
     return locality.name
 
@@ -412,22 +408,22 @@ def get_local_cell() -> Cell:
     """Get the cell in which this server instance is running.
 
     Return the monolith cell if this server instance is in monolith mode.
-    Otherwise, it must be a region silo; raise RegionContextError otherwise.
+    Otherwise, it must be a cell silo; raise CellContextError otherwise.
     """
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
     if SiloMode.get_current_mode() != SiloMode.REGION:
-        raise RegionContextError("Not a region silo")
+        raise CellContextError("Not a region silo")
 
     # In our threaded acceptance tests, we need to override the region of the current
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    single_process_region = SingleProcessSiloModeState.get_region()
-    if single_process_region is not None:
-        return single_process_region
+    single_process_cell = SingleProcessSiloModeState.get_region()
+    if single_process_cell is not None:
+        return single_process_cell
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
@@ -452,7 +448,7 @@ def _find_orgs_for_user(user_id: int) -> set[int]:
 
 
 @control_silo_function
-def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
+def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -466,12 +462,12 @@ def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
 
 
 @control_silo_function
-def find_regions_for_user(user_id: int) -> set[str]:
+def find_cells_for_user(user_id: int) -> set[str]:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
 
     org_ids = _find_orgs_for_user(user_id)
-    return find_regions_for_orgs(org_ids)
+    return find_cells_for_orgs(org_ids)
 
 
 @control_silo_function
@@ -485,24 +481,24 @@ def find_cells_for_sentry_app(sentry_app: SentryApp) -> set[str]:
     organizations_with_installations = SentryAppInstallation.objects.filter(
         sentry_app=sentry_app
     ).values_list("organization_id")
-    regions = (
+    cells = (
         OrganizationMapping.objects.filter(organization_id__in=organizations_with_installations)
         .distinct("cell_name")
         .values_list("cell_name")
     )
-    return {r[0] for r in regions}
+    return {c[0] for c in cells}
 
 
 def find_all_cell_names() -> Iterable[str]:
     return get_global_directory().get_cell_names()
 
 
-def find_all_multitenant_region_names() -> list[str]:
+def find_all_multitenant_cell_names() -> list[str]:
     """
-    Return all visible multi_tenant regions.
+    Return all visible multi_tenant cells.
     """
-    regions = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
-    return list([r.name for r in regions if r.visible])
+    cells = get_global_directory().get_cells(RegionCategory.MULTI_TENANT)
+    return list([c.name for c in cells if c.visible])
 
 
 def find_all_multitenant_locality_names() -> list[str]:
@@ -514,3 +510,14 @@ def find_all_multitenant_locality_names() -> list[str]:
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
     ]
+
+
+# TODO(cells): Remove aliases once getsentry import sites are updated
+RegionConfigurationError = CellConfigurationError
+RegionResolutionError = CellResolutionError
+RegionMappingNotFound = CellMappingNotFound
+RegionContextError = CellContextError
+RegionDirectory = CellDirectory
+find_regions_for_orgs = find_cells_for_orgs
+find_regions_for_user = find_cells_for_user
+find_all_multitenant_region_names = find_all_multitenant_cell_names

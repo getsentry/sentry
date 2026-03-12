@@ -40,7 +40,7 @@ const DisabledMemberTooltip = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export default class OrganizationMemberRow extends PureComponent<Props, State> {
+export class OrganizationMemberRow extends PureComponent<Props, State> {
   state: State = {
     busy: false,
   };

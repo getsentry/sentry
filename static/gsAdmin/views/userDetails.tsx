@@ -27,7 +27,7 @@ import DetailsPage from 'admin/components/detailsPage';
 import {MergeAccountsModal} from 'admin/components/mergeAccounts';
 import SelectableContainer from 'admin/components/selectableContainer';
 import {UserCustomers} from 'admin/components/users/userCustomers';
-import UserEmailLog from 'admin/components/users/userEmailLog';
+import {UserEmailLog} from 'admin/components/users/userEmailLog';
 import {UserEmails} from 'admin/components/users/userEmails';
 import {UserOverview} from 'admin/components/users/userOverview';
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
