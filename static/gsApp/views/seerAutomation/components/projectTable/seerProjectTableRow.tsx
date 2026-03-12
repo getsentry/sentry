@@ -32,7 +32,7 @@ interface Props {
   project: Project;
 }
 
-export default function SeerProjectTableRow({
+export function SeerProjectTableRow({
   autofixSettings,
   isPendingIntegrations,
   project,

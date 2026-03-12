@@ -5,6 +5,7 @@ import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {FieldKind} from 'sentry/utils/fields';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -110,9 +111,10 @@ export function useGetTraceItemAttributeValues({
       });
 
       try {
-        const result = await api.requestPromise(queryKey[0], {
+        const {url, options} = parseQueryKey(queryKey);
+        const result = await api.requestPromise(url, {
           method: 'GET',
-          query: {...queryKey[1]?.query},
+          query: {...options?.query},
         });
         return result
           .filter((item: TraceItemAttributeValue) => defined(item.value))

@@ -34,7 +34,7 @@ type Props = Pick<FormProps, 'onCancel' | 'onSubmitSuccess' | 'onSubmitError'> &
     onResults?: (data: any, mappingKey?: string) => void;
   };
 
-export default class IntegrationExternalMappingForm extends Component<Props> {
+export class IntegrationExternalMappingForm extends Component<Props> {
   model = new FormModel();
 
   get initialData() {

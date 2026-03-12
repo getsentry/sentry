@@ -60,6 +60,14 @@ export function MonitorsSecondaryNavigation() {
               {t('Uptime')}
             </SecondaryNavigation.Item>
           </Feature>
+          <Feature features={['organizations:preprod-size-monitors-frontend']}>
+            <SecondaryNavigation.Item
+              to={`${baseUrl}/mobile-builds/`}
+              analyticsItemName="monitors_mobile_builds"
+            >
+              {t('Mobile Builds')}
+            </SecondaryNavigation.Item>
+          </Feature>
         </SecondaryNavigation.Section>
 
         <SecondaryNavigation.Section id="monitors-automations">
