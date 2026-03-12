@@ -328,8 +328,6 @@ class GitLabProvider:
     def get_commits(
         self,
         sha: SHA | None = None,
-        # The 'path' parameter is not supported by GitLab's API, so it's ignored
-        path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:

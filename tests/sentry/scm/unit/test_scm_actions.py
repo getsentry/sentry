@@ -76,6 +76,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     # Commit operations
     ("get_commit", {"sha": "abc123"}),
     ("get_commits", {}),
+    ("get_commits_by_path", {"path": "src/main.py"}),
     ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
     # Git data operations
     ("get_tree", {"tree_sha": "tree123"}),
@@ -504,6 +505,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (SourceCodeManager.get_file_content, {"path": "README.md"}, _check_file_content),
     (SourceCodeManager.get_commit, {"sha": "abc123"}, _check_get_commit),
     (SourceCodeManager.get_commits, {}, _check_get_commits),
+    (SourceCodeManager.get_commits_by_path, {"path": "src/main.py"}, _check_get_commits),
     (
         SourceCodeManager.compare_commits,
         {"start_sha": "aaa", "end_sha": "bbb"},

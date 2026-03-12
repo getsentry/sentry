@@ -368,7 +368,22 @@ class GitHubProvider:
     def get_commits(
         self,
         sha: SHA | None = None,
-        path: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        raw_commits = self.client.get_commits(self.repository["name"], sha=sha)
+        return PaginatedActionResult(
+            data=[map_commit(c) for c in raw_commits],
+            type="github",
+            raw=raw_commits,
+            meta=_DEFAULT_PAGINATED_META,
+        )
+
+    @catch_provider_exception
+    def get_commits_by_path(
+        self,
+        path: str,
+        sha: SHA | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:

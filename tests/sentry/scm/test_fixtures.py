@@ -789,7 +789,21 @@ class BaseTestProvider(Provider):
     def get_commits(
         self,
         sha: str | None = None,
-        path: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        inner = self.get_commit("abc123")
+        return PaginatedActionResult(
+            data=[inner["data"]],
+            type="github",
+            raw={},
+            meta=_DEFAULT_PAGINATED_META,
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        sha: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:

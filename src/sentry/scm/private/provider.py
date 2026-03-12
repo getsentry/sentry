@@ -230,7 +230,17 @@ class GetCommitsProtocol(Protocol):
     def get_commits(
         self,
         sha: SHA | None = None,
-        path: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]: ...
+
+
+@runtime_checkable
+class GetCommitsByPathProtocol(Protocol):
+    def get_commits_by_path(
+        self,
+        path: str,
+        sha: SHA | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
@@ -531,6 +541,7 @@ class ActionMap:
     update_branch = UpdateBranchProtocol
     get_commit = GetCommitProtocol
     get_commits = GetCommitsProtocol
+    get_commits_by_path = GetCommitsByPathProtocol
     compare_commits = CompareCommitsProtocol
     get_pull_request = GetPullRequestProtocol
     get_pull_requests = GetPullRequestsProtocol

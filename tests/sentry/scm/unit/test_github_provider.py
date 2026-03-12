@@ -82,6 +82,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_file_content", {"path": "README.md"}),
     ("get_commit", {"sha": "abc123"}),
     ("get_commits", {}),
+    ("get_commits_by_path", {"path": "src/main.py"}),
     ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
     ("get_tree", {"tree_sha": "tree123"}),
     ("get_git_commit", {"sha": "abc123"}),
@@ -259,8 +260,8 @@ CLIENT_DELEGATION_TESTS: list[
         ("get_commits", ("test-org/test-repo",), {"sha": None, "path": None}),
     ),
     (
-        "get_commits",
-        {"sha": "main", "path": "src/main.py"},
+        "get_commits_by_path",
+        {"path": "src/main.py", "sha": "main"},
         ("get_commits", ("test-org/test-repo",), {"sha": "main", "path": "src/main.py"}),
     ),
     (
@@ -815,6 +816,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     (
         "get_commits",
         {},
+        {"commits_data": [make_github_commit()]},
+        _check_get_commits,
+    ),
+    (
+        "get_commits_by_path",
+        {"path": "src/main.py"},
         {"commits_data": [make_github_commit()]},
         _check_get_commits,
     ),

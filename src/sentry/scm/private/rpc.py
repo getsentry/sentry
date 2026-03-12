@@ -106,6 +106,7 @@ scm_action_registry: dict[str, Callable] = {
     "get_file_content_v1": SourceCodeManager.get_file_content,
     "get_commit_v1": SourceCodeManager.get_commit,
     "get_commits_v1": SourceCodeManager.get_commits,
+    "get_commits_by_path_v1": SourceCodeManager.get_commits_by_path,
     "compare_commits_v1": SourceCodeManager.compare_commits,
     "get_tree_v1": SourceCodeManager.get_tree,
     "get_git_commit_v1": SourceCodeManager.get_git_commit,

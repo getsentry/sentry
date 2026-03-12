@@ -389,14 +389,27 @@ class SourceCodeManager:
     def get_commits(
         self,
         sha: SHA | None = None,
-        path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         return self._exec(
             ActionMap.get_commits,  # type: ignore[type-abstract]
             lambda p: p.get_commits(
-                sha=sha, path=path, pagination=pagination, request_options=request_options
+                sha=sha, pagination=pagination, request_options=request_options
+            ),
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        sha: SHA | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        return self._exec(
+            ActionMap.get_commits_by_path,  # type: ignore[type-abstract]
+            lambda p: p.get_commits_by_path(
+                path=path, sha=sha, pagination=pagination, request_options=request_options
             ),
         )
 
