@@ -24,8 +24,11 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {
   isArtifact,
+  isExplorerFilePatch,
+  isRepoPRState,
   type Artifact,
   type Block,
   type ExplorerCodingAgentState,
@@ -129,6 +132,14 @@ interface SuggestedAssignee {
 export interface TriageArtifact {
   suggested_assignee?: SuggestedAssignee | null;
   suspect_commit?: SuspectCommit | null;
+}
+
+export function isCodeChangesArtifact(value: unknown): value is ExplorerFilePatch[] {
+  return isArrayOf(value, isExplorerFilePatch) && value.length > 0;
+}
+
+export function isPullRequestArtifact(value: unknown): value is RepoPRState[] {
+  return isArrayOf(value, isRepoPRState) && value.length > 0;
 }
 
 /**
@@ -290,78 +301,137 @@ export function getOrderedArtifactKeys(
   });
 }
 
-const CODE_CHANGES_KEY = Symbol('codeChanges');
+export interface AutofixSection {
+  artifacts: AutofixArtifact[];
+  messages: Array<Block['message']>;
+  status: 'processing' | 'completed';
+  step: string;
+}
 
-type ArtifactKey = string | typeof CODE_CHANGES_KEY;
-export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
-
-export function getOrderedAutofixArtifacts(
-  runState: ExplorerAutofixState | null
-): AutofixArtifact[] {
+export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
   const blocks = runState?.blocks ?? [];
   if (!blocks.length) {
     return [];
   }
 
-  type OrderedArtifact = {
-    artifact: Artifact;
-    index: number;
-    type: 'artifact';
-  };
-
-  type OrderedExplorerFilePatch = {
-    index: number;
-    patches: Map<string, ExplorerFilePatch>;
-    type: 'patch';
-  };
-
-  const artifactsByKey = new Map<
-    ArtifactKey,
-    OrderedArtifact | OrderedExplorerFilePatch
-  >();
   const mergedByFile = new Map<string, ExplorerFilePatch>();
 
-  for (let index = 0; index < blocks.length; index++) {
-    const block = blocks[index]!;
+  const sections: AutofixSection[] = [];
 
-    for (const artifact of block.artifacts ?? []) {
-      artifactsByKey.set(artifact.key, {
-        type: 'artifact',
-        index,
-        artifact,
-      });
+  let section: AutofixSection = {
+    step: 'unknown',
+    artifacts: [],
+    messages: [],
+    status: 'processing',
+  };
+
+  function finalizeSection() {
+    if (section.messages.length) {
+      const lastMessage = section.messages[section.messages.length - 1];
+      if (isLastMessageOfSection(lastMessage)) {
+        section.status = 'completed';
+      }
+
+      if (section.step === 'code_changes') {
+        // if this is a code changes section, we should take the current
+        // merged file patches and turn it into an artifact for the section
+        section.artifacts.push(Array.from(mergedByFile.values()));
+      }
+
+      sections.push(section);
     }
+  }
 
+  for (const block of blocks) {
+    // we always collect the file patches at every block as they need to be merged
     if (block.merged_file_patches?.length) {
       for (const patch of block.merged_file_patches) {
         const key = `${patch.repo_name}:${patch.patch.path}`;
         mergedByFile.set(key, patch);
       }
-      artifactsByKey.set(CODE_CHANGES_KEY, {
-        type: 'patch',
-        index,
-        patches: mergedByFile,
-      });
     }
+
+    const message = block.message;
+
+    const metadata = message.metadata;
+    if (metadata?.step) {
+      finalizeSection();
+
+      section = {
+        step: metadata.step,
+        artifacts: [],
+        messages: [],
+        status: 'processing',
+      };
+    }
+
+    section.messages.push(message);
+    section.artifacts.push(...(block.artifacts ?? []));
   }
 
-  const artifacts: AutofixArtifact[] = [...artifactsByKey.values()]
-    .sort((artifact1, artifact2) => artifact1.index - artifact2.index)
-    .map(artifact => {
-      if (artifact.type === 'artifact') {
-        return artifact.artifact;
-      }
-      return Array.from(artifact.patches.values());
+  finalizeSection();
+
+  const artifact = Object.values(runState?.repo_pr_states ?? {});
+  if (artifact.length) {
+    sections.push({
+      step: 'pull_request',
+      artifacts: [artifact],
+      messages: [],
+      status: artifact.some(pullRequest => pullRequest.pr_creation_status === 'creating')
+        ? 'processing'
+        : 'completed',
     });
-
-  if (runState?.repo_pr_states) {
-    const states = Object.values(runState.repo_pr_states);
-    if (states.length) {
-      artifacts.push(states);
-    }
   }
 
-  return artifacts;
+  return sections;
+}
+
+export function isRootCauseSection(section: AutofixSection): boolean {
+  return section.step === 'root_cause';
+}
+
+export function isSolutionSection(section: AutofixSection): boolean {
+  return section.step === 'solution';
+}
+
+export function isCodeChangesSection(section: AutofixSection): boolean {
+  return section.step === 'code_changes';
+}
+
+export function isPullRequestSection(section: AutofixSection): boolean {
+  return section.step === 'pull_requests';
+}
+
+export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
+
+export function getOrderedAutofixArtifacts(
+  runState: ExplorerAutofixState | null
+): AutofixArtifact[] {
+  return getOrderedAutofixSections(runState)
+    .map(section => {
+      if (isRootCauseSection(section)) {
+        return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+      }
+      if (isSolutionSection(section)) {
+        return section.artifacts.findLast(isSolutionArtifact) ?? null;
+      }
+      if (isCodeChangesSection(section)) {
+        return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+      }
+      if (isPullRequestSection(section)) {
+        return section.artifacts.findLast(isPullRequestArtifact) ?? null;
+      }
+      return null;
+    })
+    .filter(defined);
+}
+
+function isLastMessageOfSection(message?: Block['message']): boolean {
+  return (
+    message?.role === 'assistant' &&
+    message?.content !== 'Thinking...' &&
+    !message?.tool_calls?.length
+  );
 }
 
 /**
