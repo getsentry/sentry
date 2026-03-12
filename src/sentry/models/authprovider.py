@@ -51,7 +51,7 @@ class AuthProvider(ReplicatedControlModel):
 
         serialized = serialize_auth_provider(self)
         region_replica_service.upsert_replicated_auth_provider(
-            auth_provider=serialized, region_name=region_name
+            auth_provider=serialized, cell_name=region_name
         )
 
     @classmethod
@@ -65,7 +65,7 @@ class AuthProvider(ReplicatedControlModel):
         from sentry.hybridcloud.services.replica.service import region_replica_service
 
         region_replica_service.delete_replicated_auth_provider(
-            auth_provider_id=identifier, region_name=region_name
+            auth_provider_id=identifier, cell_name=region_name
         )
 
     class flags(TypedClassBitField):
