@@ -35,7 +35,7 @@ import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboa
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({
