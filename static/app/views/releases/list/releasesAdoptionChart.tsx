@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
