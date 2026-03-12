@@ -87,7 +87,7 @@ export function ScmIntegrationTreeRow({
                   provider={node.provider}
                   organization={organization}
                   onAddIntegration={onAddIntegration}
-                  disabled={!canAccess}
+                  disabled={!canAccess || !node.provider.canAdd}
                   buttonText={t('Install Config')}
                 />
               </Tooltip>
