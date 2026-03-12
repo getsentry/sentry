@@ -2,10 +2,6 @@ import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event, Frame} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -60,8 +56,6 @@ export interface StackTraceProviderProps {
   children: ReactNode;
   event: Event;
   stacktrace: StacktraceType;
-  /** Sentry App integrations that provide "open in X" stacktrace links. */
-  components?: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */

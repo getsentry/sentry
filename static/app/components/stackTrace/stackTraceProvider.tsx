@@ -2,14 +2,9 @@ import {useEffect, useEffectEvent, useMemo, useState} from 'react';
 
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 import {
   createInitialHiddenFrameToggleMap,
@@ -28,7 +23,6 @@ function getDefaultPlatform(stacktrace: StacktraceType, event: Event): PlatformK
 
 export function StackTraceProvider({
   children,
-  components: componentsProp,
   exceptionIndex,
   event,
   frameSourceMapDebuggerData,
@@ -41,26 +35,9 @@ export function StackTraceProvider({
 }: StackTraceProviderProps) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
 
-  const storeComponents = useSentryAppComponentsStore({componentType: 'stacktrace-link'});
-  const storeStacktraceLinkComponents = useMemo(
-    () =>
-      storeComponents.filter(
-        (
-          component: SentryAppComponent
-        ): component is SentryAppComponent<SentryAppSchemaStacktraceLink> =>
-          component.type === 'stacktrace-link' &&
-          component.schema.type === 'stacktrace-link'
-      ),
-    [storeComponents]
-  );
-
   const activeStacktrace =
     isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
   const frames = useMemo(() => activeStacktrace.frames ?? [], [activeStacktrace.frames]);
-  const components = useMemo(
-    () => componentsProp ?? storeStacktraceLinkComponents,
-    [componentsProp, storeStacktraceLinkComponents]
-  );
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(candidate => candidate.id === event.projectID),
@@ -133,7 +110,6 @@ export function StackTraceProvider({
 
   const value = useMemo<StackTraceContextValue>(
     () => ({
-      components,
       exceptionIndex,
       event,
       hasAnyExpandableFrames,
@@ -155,7 +131,6 @@ export function StackTraceProvider({
       },
     }),
     [
-      components,
       exceptionIndex,
       event,
       frameSourceMapDebuggerData,

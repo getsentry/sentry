@@ -17,10 +17,7 @@ import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvide
 import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
+import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
@@ -536,7 +533,7 @@ describe('Core StackTrace', () => {
 
   it('renders sentry app frame links with line context', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    const components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>> = [
+    SentryAppComponentsStore.loadComponents([
       {
         uuid: 'stacktrace-component',
         type: 'stacktrace-link',
@@ -552,14 +549,10 @@ describe('Core StackTrace', () => {
           avatars: [],
         },
       },
-    ];
+    ]);
 
     render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        components={components}
-      >
+      <TestStackTraceProvider event={event} stacktrace={stacktrace}>
         <DisplayOptions />
         <StackTraceFrames
           frameContextComponent={FrameContent}

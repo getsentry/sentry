@@ -34,10 +34,6 @@ import {
   type ExceptionValue,
   type Frame,
 } from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
 import {Coverage} from 'sentry/types/integrations';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -254,28 +250,6 @@ function makeStackTraceData(): StackTraceStoryData {
   });
 
   return {event, stacktrace};
-}
-
-function makeStacktraceLinkComponents(): Array<
-  SentryAppComponent<SentryAppSchemaStacktraceLink>
-> {
-  return [
-    {
-      uuid: 'stacktrace-source-link',
-      type: 'stacktrace-link',
-      schema: {
-        uri: '/stacktrace-link',
-        url: 'https://example.com/source-link?projectSlug=sentry',
-        type: 'stacktrace-link',
-      },
-      sentryApp: {
-        uuid: 'source-lens-app',
-        slug: 'source-lens',
-        name: 'Source Lens',
-        avatars: [],
-      },
-    },
-  ];
 }
 
 function makeCircularStackTraceData(): StackTraceStoryData {
@@ -936,25 +910,6 @@ export default Storybook.story('StackTrace', story => {
             ...stacktrace,
             framesOmitted: [1, 3],
           }}
-        >
-          <StackTraceFrames
-            frameContextComponent={FrameContent}
-            frameActionsComponent={StoryFrameActions}
-          />
-        </StoryStackTraceProvider>
-      </Fragment>
-    );
-  });
-
-  story('StackTraceProvider - With Sentry App Frame Links', () => {
-    const {event, stacktrace} = makeStackTraceData();
-
-    return (
-      <Fragment>
-        <StoryStackTraceProvider
-          event={event}
-          stacktrace={stacktrace}
-          components={makeStacktraceLinkComponents()}
         >
           <StackTraceFrames
             frameContextComponent={FrameContent}

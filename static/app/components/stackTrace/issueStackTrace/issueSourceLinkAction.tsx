@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -8,6 +9,11 @@ import {
   useStackTraceContext,
   useStackTraceFrameContext,
 } from 'sentry/components/stackTrace/stackTraceContext';
+import type {
+  SentryAppComponent,
+  SentryAppSchemaStacktraceLink,
+} from 'sentry/types/integrations';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
@@ -17,7 +23,22 @@ interface IssueSourceLinkActionProps {
 
 export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActionProps) {
   const {frame, event, isExpanded} = useStackTraceFrameContext();
-  const {components, project} = useStackTraceContext();
+  const {project} = useStackTraceContext();
+
+  const storeComponents = useSentryAppComponentsStore({
+    componentType: 'stacktrace-link',
+  });
+  const components = useMemo(
+    () =>
+      storeComponents.filter(
+        (
+          component: SentryAppComponent
+        ): component is SentryAppComponent<SentryAppSchemaStacktraceLink> =>
+          component.type === 'stacktrace-link' &&
+          component.schema.type === 'stacktrace-link'
+      ),
+    [storeComponents]
+  );
 
   const contextLine = frame.context?.find(([lineNumber]) => lineNumber === frame.lineNo);
   const frameCanShowActions =

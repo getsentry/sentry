@@ -2,10 +2,6 @@ import {createContext, useContext, useMemo, useState} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event, Frame} from 'sentry/types/event';
-import type {
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types/integrations';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -55,8 +51,6 @@ export function StackTraceViewStateProvider({
 }
 
 export interface StackTraceContextValue {
-  /** Sentry App stacktrace-link integrations shown in frame actions. */
-  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   /** Event payload for project/platform metadata and integrations. */
   event: Event;
   /** Active frame list for the selected (symbolicated/minified) stacktrace. */
