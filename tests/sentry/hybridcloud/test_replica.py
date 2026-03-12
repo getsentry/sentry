@@ -53,7 +53,7 @@ def test_replicate_external_actor() -> None:
     assert xar2.external_name == xa2.external_name
     assert xar2.external_id == xa2.external_id
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         xa2.user_id = 12382317  # not a user id
         xa2.save()
 
@@ -70,7 +70,7 @@ def test_replicate_auth_provider() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         assert AuthProviderReplica.objects.count() == 0
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -78,7 +78,7 @@ def test_replicate_auth_provider() -> None:
             organization_id=org.id, provider="abc", config={"a": 1}
         )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = AuthProviderReplica.objects.get(organization_id=org.id)
 
     assert replicated.auth_provider_id == auth_provider.id
@@ -94,7 +94,7 @@ def test_replicate_auth_provider() -> None:
         auth_provider.flags.scim_enabled = not auth_provider.flags.scim_enabled
         auth_provider.save()
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = AuthProviderReplica.objects.get(organization_id=org.id)
 
     assert replicated.auth_provider_id == auth_provider.id
@@ -117,7 +117,7 @@ def test_replicate_api_key() -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
         api_key = Factories.create_api_key(org, scope_list=["a", "b"])
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
 
     assert replicated.get_scopes() == api_key.get_scopes()
@@ -126,7 +126,7 @@ def test_replicate_api_key() -> None:
         api_key.scope_list = ["a", "b", "c"]
         api_key.save()
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = ApiKeyReplica.objects.get(apikey_id=api_key.id)
 
     assert replicated.get_scopes() == api_key.get_scopes()
@@ -140,7 +140,7 @@ def test_replicate_auth_identity() -> None:
     user3 = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         assert AuthIdentityReplica.objects.count() == 0
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -151,7 +151,7 @@ def test_replicate_auth_identity() -> None:
             user=user, auth_provider=auth_provider, ident="some-ident", data={"b": 2}
         )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = AuthIdentityReplica.objects.get(
             ident=auth_identity.ident, auth_provider_id=auth_provider.id
         )
@@ -166,7 +166,7 @@ def test_replicate_auth_identity() -> None:
         auth_identity.data = {"v": "new data"}
         auth_identity.save()
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         replicated = AuthIdentityReplica.objects.get(
             ident=auth_identity.ident, auth_provider_id=auth_provider.id
         )
@@ -196,7 +196,7 @@ def test_replicate_auth_identity() -> None:
                 ai.ident = next_ident
                 ai.save()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
                 assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
 
@@ -208,7 +208,7 @@ def test_replicate_team() -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert TeamReplica.objects.count() == 0
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         team = Factories.create_team(org)
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -219,7 +219,7 @@ def test_replicate_team() -> None:
     assert replicated.name == team.name
     assert replicated.status == team.status
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         teams = [
             team,
             Factories.create_team(organization=team.organization),
@@ -264,7 +264,7 @@ def test_replicate_organization_member_team() -> None:
     assert replicated.is_active == omt.is_active
     assert replicated.role == omt.role
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         omt.role = "boo"
         omt.save()
 
