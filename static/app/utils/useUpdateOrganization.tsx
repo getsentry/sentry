@@ -102,6 +102,7 @@ export function useUpdateOrganization(organization: Organization) {
       // ProjectsStore should've been updated already. It could be out of sync if
       // there are multiple mutations in parallel.
       queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
+      queryClient.invalidateQueries({queryKey: v1QueryKey});
     },
   });
 }
