@@ -1,6 +1,6 @@
 name: 💡 Feature Request
 description: Tell us about a problem our software could solve but doesn't.
-labels: ['Feature']
+labels: ['Type: Feature Request']
 body:
   - type: textarea
     id: problem

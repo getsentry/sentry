@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way we (probably) intend.
-labels: ['Bug']
+labels: ['Type: Bug']
 body:
   - type: dropdown
     id: environment

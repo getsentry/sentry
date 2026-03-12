@@ -1,6 +1,6 @@
 name: 🛎️ Support Request
 description: Tell us about something you can't quite figure out in Sentry.
-labels: ['Support']
+labels: ['Type: Support Request']
 body:
   - type: markdown
     attributes:
@@ -53,8 +53,8 @@ body:
         - 'Projects - Project Details'
         - 'Performance'
         - 'Performance - Queries'
-        - 'Product Area: Performance - Interactions'
-        - 'Product Area: Performance - Web Vitals'
+        - 'Performance - Interactions'
+        - 'Performance - Web Vitals'
         - 'Profiling'
         - 'DDM'
         - 'Replays'
