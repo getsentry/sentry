@@ -1,7 +1,15 @@
-import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
@@ -14,7 +22,6 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +51,6 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -86,11 +92,32 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navigationParentRef} = useNavigationContext();
-  // Check if we have a valid nav reference
-  const hasValidNav = Boolean(navigationParentRef?.current);
+  const navigationElementRef = useRef<HTMLDivElement>(null);
+  const [navigationDimensions, setNavigationElementDimensions] = useState<{
+    height: number;
+    width: number;
+  }>({width: 0, height: 0});
 
-  const dimensions = useDimensions({elementRef: navigationParentRef});
+  useEffect(() => {
+    if (navigationElementRef.current) return;
+
+    const navigationElement = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationElement) {
+      navigationElementRef.current = navigationElement as HTMLDivElement;
+    }
+  }, [isOpen]);
+
+  useResizeObserver({
+    ref: navigationElementRef,
+    onResize: () => {
+      setNavigationElementDimensions({
+        width: navigationElementRef.current?.clientWidth ?? 0,
+        height: navigationElementRef.current?.clientHeight ?? 0,
+      });
+    },
+  });
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -150,15 +177,15 @@ function WidgetBuilderV2({
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar
                 style={
-                  hasValidNav
+                  navigationElementRef.current
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: `${dimensions.height ?? 0}px`,
+                          top: `${navigationDimensions.height ?? 0}px`,
                           willChange: 'top',
                         }
                       : {
-                          left: `${dimensions.width ?? 0}px`,
+                          left: `${navigationDimensions.width ?? 0}px`,
                           top: 0,
                           willChange: 'left',
                         }
