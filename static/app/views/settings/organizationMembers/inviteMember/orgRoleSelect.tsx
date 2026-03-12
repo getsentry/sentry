@@ -28,7 +28,7 @@ type Props = {
   setSelected: (id: string) => void;
 };
 
-function OrganizationRoleSelect({
+export function OrganizationRoleSelect({
   disabled,
   enforceRetired,
   enforceAllowed,
@@ -79,5 +79,3 @@ const StyledPanelHeader = styled(PanelHeader)`
   gap: ${p => p.theme.space.xs};
   justify-content: left;
 `;
-
-export default OrganizationRoleSelect;

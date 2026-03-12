@@ -48,7 +48,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
-import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
+import {OrganizationRoleSelect} from './inviteMember/orgRoleSelect';
 
 const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
