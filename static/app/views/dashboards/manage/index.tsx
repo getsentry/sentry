@@ -550,10 +550,11 @@ function ManageDashboards() {
   }
 
   function loadDashboard(dashboardId: string) {
+    const {query: _query, ...queryWithoutSearch} = location.query;
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
