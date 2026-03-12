@@ -39,7 +39,6 @@ class SeerExplorerChatSerializer(serializers.Serializer):
     )
     override_ce_enable = serializers.BooleanField(
         required=False,
-        allow_null=True,
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
@@ -126,7 +125,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
-        override_ce_enable = validated_data.get("override_ce_enable", True)
+        override_ce_enable = validated_data["override_ce_enable"]
 
         try:
             enable_coding = organization.get_option("sentry:enable_seer_coding", True)
