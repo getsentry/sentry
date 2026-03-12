@@ -5,6 +5,7 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
 import {ScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
 import {useScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -17,11 +18,15 @@ export default function SeerAutomationSCM() {
   return (
     <AnalyticsArea name="scm">
       <SeerSettingsPageWrapper>
+        <SentryDocumentTitle title={t('Source Code Management')} />
         <SettingsPageHeader
-          title={t('Seer SCM Config')}
+          title={t('Source Code Management')}
           subtitle={tct(
-            `Integrate with a Seer compatible Source Code Management provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
+            `Integrate with a Seer compatible [scm:Source Code Management] provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
             {
+              scm: (
+                <ExternalLink href="https://docs.sentry.io/organization/getting-started/#source-code-management" />
+              ),
               privacy: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
               ),

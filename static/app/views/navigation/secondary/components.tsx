@@ -20,9 +20,9 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 function Collapsible({
   children,
@@ -105,9 +105,10 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 }
 
 function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
-  const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
+  const {layout} = useNavigation();
+  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
 
-  if (layout === NavigationLayout.MOBILE) {
+  if (layout === 'mobile') {
     return null;
   }
 
@@ -133,13 +134,13 @@ function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
 }
 
 function SecondaryNavigationBody({children}: {children: ReactNode}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={layout === NavigationLayout.MOBILE ? '0 0 md 0' : undefined}
+      padding={layout === 'mobile' ? '0 0 md 0' : undefined}
     >
       {children}
     </Container>
@@ -159,14 +160,14 @@ function SectionTitle({
   title: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   if (canCollapse) {
     return (
       <SectionTitleCollapsible
         size="sm"
         priority="transparent"
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
         }}
@@ -191,7 +192,7 @@ function SectionTitle({
   }
 
   return (
-    <SectionTitleUnCollapsible isMobile={layout === NavigationLayout.MOBILE}>
+    <SectionTitleUnCollapsible isMobile={layout === 'mobile'}>
       {title}
       {trailingItems}
     </SectionTitleUnCollapsible>
@@ -213,12 +214,12 @@ function SecondaryNavigationSection({
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === NavigationLayout.SIDEBAR;
+  const canCollapse = collapsible && layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -268,9 +269,9 @@ function SecondaryNavigationLink({
   const organization = useOrganization();
   const location = useLocation();
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
@@ -307,7 +308,7 @@ function SecondaryNavigationLink({
 }
 
 function SecondaryNavigationFooter({children}: {children: ReactNode}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return <Footer layout={layout}>{children}</Footer>;
 }
@@ -425,9 +426,9 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
-const Section = styled('div')<{layout: NavigationLayout}>`
+const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   ${p =>
-    p.layout === NavigationLayout.SIDEBAR &&
+    p.layout === 'sidebar' &&
     css`
       padding: 0 ${p.theme.space.md};
     `}
@@ -503,7 +504,7 @@ const Separator = styled('hr')`
 `;
 
 interface ItemProps extends LinkProps {
-  layout: NavigationLayout;
+  layout: 'mobile' | 'sidebar';
 }
 
 const Item = styled(Link)<ItemProps>`
@@ -514,11 +515,10 @@ const Item = styled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
-    p.layout === NavigationLayout.MOBILE
+    p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
       : `${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-radius: ${p =>
-    p.theme.radius[p.layout === NavigationLayout.MOBILE ? '0' : 'md']};
+  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -571,12 +571,12 @@ const ItemText = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const Footer = styled('div')<{layout: NavigationLayout}>`
+const Footer = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
-    p.layout === NavigationLayout.MOBILE &&
+    p.layout === 'mobile' &&
     css`
       padding: ${p.theme.space.md} 0;
     `}

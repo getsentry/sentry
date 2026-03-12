@@ -6,10 +6,9 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -87,8 +86,8 @@ export function IssuesSecondaryNavigation() {
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const organization = useOrganization();
-  const {layout} = useNavigationContext();
-  const isSticky = layout === NavigationLayout.SIDEBAR;
+  const {layout} = useNavigation();
+  const isSticky = layout === 'sidebar';
 
   const hasRedirectOptOut = organization.features.includes(
     'workflow-engine-redirect-opt-out'

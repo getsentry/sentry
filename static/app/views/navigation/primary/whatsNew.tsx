@@ -20,12 +20,11 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
@@ -63,6 +62,7 @@ function WhatsNewContent({
           getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
             path: {organizationIdOrSlug: organization.slug},
           }),
+          {query: {show: 'latest', limit: '3'}},
         ],
         data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
       );
@@ -70,6 +70,9 @@ function WhatsNewContent({
   });
 
   useEffect(() => {
+    if (unseenPostIds.length === 0) {
+      return undefined;
+    }
     const MARK_SEEN_DELAY = 1000;
     const markSeenTimeout = window.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
@@ -135,6 +138,7 @@ export function PrimaryNavigationWhatsNew() {
       getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
+      {query: {show: 'latest', limit: '3'}},
     ],
     {
       // Five minute stale time prevents window focus frequent refetches
@@ -155,7 +159,7 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryNavigationButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>
@@ -171,7 +175,7 @@ export function PrimaryNavigationWhatsNew() {
         {unseenPostIds.length > 0 && (
           <PrimaryNavigation.UnreadIndicator
             data-test-id="whats-new-unread-indicator"
-            isMobile={layout === NavigationLayout.MOBILE}
+            isMobile={layout === 'mobile'}
           />
         )}
       </PrimaryNavigation.Button>

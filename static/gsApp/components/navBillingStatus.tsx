@@ -14,12 +14,13 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
+  PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
+  usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
@@ -434,8 +435,8 @@ export function PrimaryNavigationQuotaExceeded({
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryNavigationButtonOverlay({});
-  const {layout} = useNavigationContext();
+  } = usePrimaryButtonOverlay({});
+  const {layout} = useNavigation();
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -526,7 +527,7 @@ export function PrimaryNavigationQuotaExceeded({
 
   return (
     <Fragment>
-      <PrimaryNavigation.Button
+      <SidebarButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         buttonProps={{
@@ -534,13 +535,10 @@ export function PrimaryNavigationQuotaExceeded({
           icon: <IconWarning />,
         }}
       >
-        <PrimaryNavigation.UnreadIndicator
-          isMobile={layout === NavigationLayout.MOBILE}
-          variant="warning"
-        />
-      </PrimaryNavigation.Button>
+        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="warning" />
+      </SidebarButton>
       {isOpen && (
-        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -548,7 +546,7 @@ export function PrimaryNavigationQuotaExceeded({
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryNavigation.ButtonOverlay>
+        </PrimaryButtonOverlay>
       )}
     </Fragment>
   );

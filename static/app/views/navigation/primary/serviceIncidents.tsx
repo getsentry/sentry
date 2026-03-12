@@ -6,25 +6,26 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
+  PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
+  usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryNavigationButtonOverlay();
+  } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>
-      <PrimaryNavigation.Button
+      <SidebarButton
         analyticsKey="statusupdate"
         label={t('Service status')}
         buttonProps={{
@@ -33,19 +34,16 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           size: 'sm',
         }}
       >
-        <PrimaryNavigation.UnreadIndicator
-          isMobile={layout === NavigationLayout.MOBILE}
-          variant="danger"
-        />
-      </PrimaryNavigation.Button>
+        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="danger" />
+      </SidebarButton>
       {isOpen && (
-        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
           {incidents.map(incident => (
             <IncidentItemWrapper key={incident.id}>
               <ServiceIncidentDetails incident={incident} />
             </IncidentItemWrapper>
           ))}
-        </PrimaryNavigation.ButtonOverlay>
+        </PrimaryButtonOverlay>
       )}
     </Fragment>
   );

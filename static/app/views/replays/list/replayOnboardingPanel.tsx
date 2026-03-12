@@ -19,7 +19,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
@@ -47,7 +47,7 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {isCollapsed} = useNavigationContext();
+  const {isCollapsed} = useSecondaryNavigation();
 
   const supportedPlatforms = replayPlatforms;
 
@@ -58,11 +58,11 @@ export default function ReplayOnboardingPanel() {
   const hasSelectedProjects = selectedProjects.length > 0;
 
   const allProjectsUnsupported = projects.projects.every(
-    p => !supportedPlatforms.includes(p.platform!)
+    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
   );
 
   const allSelectedProjectsUnsupported = selectedProjects.every(
-    p => !supportedPlatforms.includes(p.platform!)
+    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
   );
 
   // if all projects are unsupported we should prompt the user to create a project
