@@ -15,13 +15,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
+  PrimaryButtonOverlay,
   SidebarButton,
   SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {
-  PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
+} from 'sentry/views/navigation/primary/components';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
