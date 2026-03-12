@@ -565,10 +565,12 @@ function ManageDashboards() {
       dashboard_id: dashboardId,
     });
 
+    const {query: _query, ...queryWithoutSearch} = location.query;
+
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
