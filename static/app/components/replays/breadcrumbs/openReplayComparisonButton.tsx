@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const LazyComparisonModal = lazy(
   () => import('sentry/components/replays/breadcrumbs/replayComparisonModal')

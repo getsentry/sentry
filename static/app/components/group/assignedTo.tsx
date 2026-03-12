@@ -30,10 +30,10 @@ import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
+import {useApi} from 'sentry/utils/useApi';
+import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]

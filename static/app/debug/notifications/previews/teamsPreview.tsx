@@ -17,7 +17,7 @@ import {
 import {IconCheckmark, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const MSTEAMS_PREVIEW_URL = 'https://adaptivecards.microsoft.com/designer.html';
 

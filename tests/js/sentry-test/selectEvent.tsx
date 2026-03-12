@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import {waitFor, within, type Matcher} from 'sentry-test/reactTestingLibrary';
 

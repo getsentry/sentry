@@ -1,7 +1,7 @@
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useCreateProjectFromWizard() {

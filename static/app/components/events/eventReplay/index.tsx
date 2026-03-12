@@ -5,7 +5,7 @@ import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClip
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
+import {useEventCanShowReplayUpsell} from 'sentry/utils/event/useEventCanShowReplayUpsell';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';

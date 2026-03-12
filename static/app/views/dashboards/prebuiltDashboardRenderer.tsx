@@ -5,11 +5,11 @@ import {Link} from '@sentry/scraps/link';
 
 import {useDismissable} from 'sentry/components/banner';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import {
   DashboardState,

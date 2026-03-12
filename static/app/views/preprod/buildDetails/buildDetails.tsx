@@ -16,7 +16,7 @@ import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient'
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';

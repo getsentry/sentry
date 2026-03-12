@@ -4,7 +4,7 @@ import {Outlet} from 'react-router-dom';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import DashboardDetail from './detail';
 import {OrgDashboards} from './orgDashboards';

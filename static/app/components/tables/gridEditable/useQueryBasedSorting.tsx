@@ -11,7 +11,7 @@ interface Props {
   location: Location<{sort?: undefined | string}>;
 }
 
-export default function useQueryBasedSorting({location, defaultSort}: Props) {
+export function useQueryBasedSorting({location, defaultSort}: Props) {
   const sorts = useMemo(() => decodeSorts(location.query.sort), [location.query.sort]);
   const currentSort = useMemo(() => sorts.at(0) ?? defaultSort, [defaultSort, sorts]);
 

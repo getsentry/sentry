@@ -1,5 +1,5 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_LANDING_TITLE,

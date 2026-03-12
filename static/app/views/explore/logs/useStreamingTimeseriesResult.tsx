@@ -3,10 +3,10 @@ import {useEffect, useMemo, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import type {
   TimeSeries,
   TimeSeriesItem,

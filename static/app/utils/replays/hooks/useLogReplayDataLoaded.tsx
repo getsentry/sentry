@@ -3,15 +3,15 @@ import {useEffect} from 'react';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 interface Props {
   projectId: string | null;
   replay: ReplayReader;
 }
 
-export default function useLogReplayDataLoaded({projectId, replay}: Props) {
+export function useLogReplayDataLoaded({projectId, replay}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({
     project_id: projectId ?? undefined,

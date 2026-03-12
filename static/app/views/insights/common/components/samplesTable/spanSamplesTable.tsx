@@ -15,7 +15,7 @@ import {
   generateProfileFlamechartRoute,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/insights/common/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {FilenameCell} from 'sentry/views/insights/common/components/tableCells/filenameCell';

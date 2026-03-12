@@ -4,7 +4,7 @@ import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
+import {useUserHealthBreakdown} from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 

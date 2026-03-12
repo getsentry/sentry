@@ -245,7 +245,7 @@ interface Props {
   rightOffsetMs: number;
 }
 
-export default function useExtractDiffMutations({
+export function useExtractDiffMutations({
   leftOffsetMs,
   replay,
   rightOffsetMs,

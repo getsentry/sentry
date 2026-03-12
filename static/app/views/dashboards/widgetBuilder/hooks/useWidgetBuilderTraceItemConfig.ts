@@ -1,4 +1,4 @@
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';

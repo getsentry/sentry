@@ -5,7 +5,7 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 type ReaderResult = ReturnType<typeof useLoadReplayReader>;
 

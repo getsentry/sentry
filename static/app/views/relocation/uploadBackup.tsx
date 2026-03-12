@@ -10,7 +10,7 @@ import {Client} from 'sentry/api';
 import {IconDelete, IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 

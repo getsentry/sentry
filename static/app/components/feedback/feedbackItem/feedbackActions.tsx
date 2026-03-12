@@ -8,15 +8,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
-import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
+import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconCopy, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;

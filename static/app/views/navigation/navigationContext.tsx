@@ -2,7 +2,7 @@ import {createContext, useCallback, useContext, useMemo, useRef, useState} from 
 import {useTheme} from '@emotion/react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';

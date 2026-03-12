@@ -10,7 +10,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {PageHeader} from 'admin/components/pageHeader';
 

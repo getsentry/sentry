@@ -24,7 +24,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconFatal} from 'sentry/icons/iconFatal';
 import {tct} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
 import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';

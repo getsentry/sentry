@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   CONVERSATIONS_LANDING_SUB_PATH,
   CONVERSATIONS_LANDING_TITLE,

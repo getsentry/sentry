@@ -10,7 +10,7 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import type {ReleaseMeta} from 'sentry/types/release';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 

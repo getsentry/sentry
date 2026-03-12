@@ -13,8 +13,8 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
-import useRouter from 'sentry/utils/useRouter';
+import {useApi} from 'sentry/utils/useApi';
+import {useRouter} from 'sentry/utils/useRouter';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
