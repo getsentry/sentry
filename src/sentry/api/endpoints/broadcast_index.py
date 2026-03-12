@@ -68,6 +68,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self, request: Request, organization: RpcOrganization | None = None, **kwargs
     ) -> Response:
+        limit = None
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
@@ -117,10 +118,13 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if organization:
             data = self._secondary_filtering(request, organization, queryset)
             if request.GET.get("show") == "latest":
-                data = data[:limit]
+                if limit is not None:
+                    data = data[:limit]
             return self.respond(self._serialize_objects(data, request))
 
         if request.GET.get("show") == "latest":
+            if limit is not None:
+                data = list(queryset[:limit])
             return self.respond(self._serialize_objects(list(queryset[:limit]), request))
 
         sort_by = request.GET.get("sortBy")
