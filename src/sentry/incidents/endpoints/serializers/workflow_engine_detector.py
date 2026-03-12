@@ -439,6 +439,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "detectionType": obj.config.get("detection_type"),
         }
 
+        if not obj.enabled:
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 

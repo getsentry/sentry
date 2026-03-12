@@ -33,9 +33,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,32 +56,31 @@ export function SetupTitle({project}: {project: Project}) {
 
 function WaitingIndicator({project}: {project: Project}) {
   const organization = useOrganization();
+  const firstIssue = useEventWaiter({
+    eventType: 'error',
+    organization,
+    project,
+  });
+
+  if (!firstIssue) {
+    return <EventWaitingIndicator />;
+  }
 
   return (
-    <EventWaiter organization={organization} project={project} eventType="error">
-      {({firstIssue}) =>
-        firstIssue ? (
-          <LinkButton
-            onClick={() =>
-              trackAnalytics('growth.onboarding_take_to_error', {
-                organization,
-                platform: project.platform,
-              })
-            }
-            to={`/organizations/${organization.slug}/issues/${
-              firstIssue && firstIssue !== true && 'id' in firstIssue
-                ? `${firstIssue.id}/`
-                : ''
-            }?referrer=onboarding-first-event-indicator`}
-            priority="primary"
-          >
-            {t('Take me to my error')}
-          </LinkButton>
-        ) : (
-          <EventWaitingIndicator />
-        )
+    <LinkButton
+      onClick={() =>
+        trackAnalytics('growth.onboarding_take_to_error', {
+          organization,
+          platform: project.platform,
+        })
       }
-    </EventWaiter>
+      to={`/organizations/${organization.slug}/issues/${
+        firstIssue !== true && 'id' in firstIssue ? `${firstIssue.id}/` : ''
+      }?referrer=onboarding-first-event-indicator`}
+      priority="primary"
+    >
+      {t('Take me to my error')}
+    </LinkButton>
   );
 }
 

@@ -380,7 +380,9 @@ function WidgetCard(props: Props) {
       >
         <WidgetFrame
           title={widget.title}
-          description={widget.description}
+          description={
+            widget.displayType === DisplayType.TEXT ? undefined : widget.description
+          }
           badgeProps={badges}
           warnings={warnings}
           actionsDisabled={actionsDisabled}
