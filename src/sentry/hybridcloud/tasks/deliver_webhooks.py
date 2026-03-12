@@ -439,9 +439,7 @@ def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
         if payload.destination_type == DestinationType.SENTRY_REGION
         else "codecov"
     )
-    tags = {"region_sent_to": region_sent_to}
-    if options.get("hybridcloud.deliver_webhooks.delivery_time_include_github_tags"):
-        tags |= _get_github_delivery_time_tags(payload)
+    tags = {"region_sent_to": region_sent_to} | _get_github_delivery_time_tags(payload)
     metrics.distribution(
         "hybridcloud.deliver_webhooks.delivery_time_ms",
         # e.g. 0.123 seconds → 123 milliseconds

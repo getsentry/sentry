@@ -24,10 +24,10 @@ import WidgetCardChart from './chart';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 type Props = {
-  api: Client;
   selection: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  api?: Client;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
   disableTableActions?: boolean;
