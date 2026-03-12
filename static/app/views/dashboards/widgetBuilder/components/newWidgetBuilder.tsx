@@ -9,7 +9,6 @@ import {
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
@@ -22,6 +21,7 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -93,10 +93,6 @@ function WidgetBuilderV2({
   );
 
   const navigationElementRef = useRef<HTMLDivElement>(null);
-  const [navigationDimensions, setNavigationElementDimensions] = useState<{
-    height: number;
-    width: number;
-  }>({width: 0, height: 0});
 
   useEffect(() => {
     if (navigationElementRef.current) return;
@@ -107,17 +103,9 @@ function WidgetBuilderV2({
     if (navigationElement) {
       navigationElementRef.current = navigationElement as HTMLDivElement;
     }
-  }, [isOpen]);
+  }, []);
 
-  useResizeObserver({
-    ref: navigationElementRef,
-    onResize: () => {
-      setNavigationElementDimensions({
-        width: navigationElementRef.current?.clientWidth ?? 0,
-        height: navigationElementRef.current?.clientHeight ?? 0,
-      });
-    },
-  });
+  const dimensions = useDimensions({elementRef: navigationElementRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -181,11 +169,11 @@ function WidgetBuilderV2({
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: `${navigationDimensions.height ?? 0}px`,
+                          top: `${dimensions.height ?? 0}px`,
                           willChange: 'top',
                         }
                       : {
-                          left: `${navigationDimensions.width ?? 0}px`,
+                          left: `${dimensions.width ?? 0}px`,
                           top: 0,
                           willChange: 'left',
                         }
