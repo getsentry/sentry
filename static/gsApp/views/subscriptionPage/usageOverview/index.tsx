@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';

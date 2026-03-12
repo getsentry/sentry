@@ -16,7 +16,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MonitorCreateForm} from 'sentry/views/insights/crons/components/monitorCreateForm';
 
 import {PlatformPickerPanel} from './platformPickerPanel';

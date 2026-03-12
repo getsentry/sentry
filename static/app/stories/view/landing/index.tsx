@@ -15,8 +15,8 @@ import {Text} from '@sentry/scraps/text';
 import {IconOpen} from 'sentry/icons';
 import {Acronym} from 'sentry/stories/view/landing/acronym';
 import {StoryDarkModeProvider} from 'sentry/stories/view/useStoriesDarkMode';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {Colors, Icons, Typography} from './figures';
 

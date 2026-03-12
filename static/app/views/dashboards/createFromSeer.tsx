@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 

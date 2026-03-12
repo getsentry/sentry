@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -55,23 +55,23 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
 
@@ -420,7 +420,19 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const copyEnabled = useCopySetupInstructionsEnabled();
-  const [received, setReceived] = useState<boolean>(false);
+
+  const doesNotSupportPerformance = project.platform
+    ? withoutPerformanceSupport.has(project.platform)
+    : false;
+
+  const firstIssue = useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project,
+    disabled: doesNotSupportPerformance,
+  });
+  const received = !!firstIssue;
+
   const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useTraces({
     enabled: received,
@@ -446,10 +458,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
-
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
 
   useEffect(() => {
     if (isLoading || !currentPlatform || !dsn || !projectKeyId) {
@@ -565,20 +573,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
-  const eventWaitingIndicator = (
-    <EventWaiter
-      api={api}
-      organization={organization}
-      project={project}
-      eventType="transaction"
-      onIssueReceived={() => {
-        setReceived(true);
-      }}
-    >
-      {({firstIssue}) =>
-        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
-      }
-    </EventWaiter>
+  const eventWaitingIndicator = received ? (
+    <EventReceivedIndicator />
+  ) : (
+    <EventWaitingIndicator />
   );
 
   return (

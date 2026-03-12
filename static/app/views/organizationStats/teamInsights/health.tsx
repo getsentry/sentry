@@ -7,12 +7,12 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {TeamWithProjects} from 'sentry/types/project';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRouter} from 'sentry/utils/useRouter';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 
@@ -36,7 +36,7 @@ export default function TeamStatsHealth() {
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   let localTeamId: string | null | undefined =
-    decodeScalar(query.team) ?? localStorage.getItem(localStorageKey);
+    decodeScalar(query.team) ?? localStorageWrapper.getItem(localStorageKey);
   if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }

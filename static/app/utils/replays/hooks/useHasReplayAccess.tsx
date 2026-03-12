@@ -1,5 +1,5 @@
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 /**

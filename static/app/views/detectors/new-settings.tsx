@@ -7,7 +7,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorTypeQueryState} from 'sentry/views/detectors/components/detectorTypeForm';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';

@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 
 import {useUrlConversationDrawer} from './useUrlConversationDrawer';

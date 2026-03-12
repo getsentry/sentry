@@ -6,8 +6,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {cloneDashboard} from 'sentry/views/dashboards/utils';

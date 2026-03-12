@@ -10,7 +10,7 @@ import {defined} from 'sentry/utils';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';

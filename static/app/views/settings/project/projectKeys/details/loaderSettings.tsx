@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   data: ProjectKey;

@@ -7,7 +7,7 @@ import type {Series} from 'sentry/types/echarts';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are used as series names for chart lookup - do not translate
 export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';

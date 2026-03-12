@@ -12,7 +12,7 @@ from sentry.silo.base import SiloMode
 
 class ActionService(RpcService):
     key = "workflow_engine_action"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

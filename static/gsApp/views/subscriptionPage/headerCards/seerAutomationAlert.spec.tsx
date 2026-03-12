@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';

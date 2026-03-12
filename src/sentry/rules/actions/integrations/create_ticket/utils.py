@@ -26,13 +26,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
 
-@region_silo_function
+@cell_silo_function
 def create_link(
     integration: RpcIntegration,
     installation: IntegrationInstallation,

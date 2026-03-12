@@ -19,7 +19,7 @@ interface WorkflowEngineDetailLayoutProps {
 /**
  * Precomposed 67/33 layout for Monitors / Alerts detail pages.
  */
-function DetailLayout({children}: WorkflowEngineDetailLayoutProps) {
+function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
   return <StyledPage>{children}</StyledPage>;
 }
 
@@ -84,7 +84,7 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
   );
 }
 
-const WorkflowEngineDetailLayout = Object.assign(DetailLayout, {
+export const DetailLayout = Object.assign(DetailLayoutComponent, {
   Body: StyledBody,
   Main,
   Sidebar,
@@ -93,5 +93,3 @@ const WorkflowEngineDetailLayout = Object.assign(DetailLayout, {
   Actions,
   Title,
 });
-
-export default WorkflowEngineDetailLayout;

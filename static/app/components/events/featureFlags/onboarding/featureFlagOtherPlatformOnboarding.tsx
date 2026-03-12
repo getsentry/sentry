@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {OnboardingAdditionalFeatures} from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOtherPlatformOnboardingProps {
   integration: string;

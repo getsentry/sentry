@@ -3,7 +3,7 @@ import type {eventWithTime, ReplayPlugin} from '@sentry-internal/rrweb';
 
 import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const Context = createContext<(events: eventWithTime[]) => ReplayPlugin[]>(() => []);
 

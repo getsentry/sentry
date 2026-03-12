@@ -41,7 +41,7 @@ from sentry.users.services.user.model import RpcUser
 
 class OrganizationService(RpcService):
     key = "organization"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -668,7 +668,7 @@ def _signal_from_on_commit() -> OrganizationSignalService:
 
 _organization_check_service: OrganizationCheckService = silo_mode_delegation(
     {
-        SiloMode.REGION: _region_check_organization,
+        SiloMode.CELL: _region_check_organization,
         SiloMode.CONTROL: _control_check_organization,
         SiloMode.MONOLITH: _region_check_organization,
     }
@@ -677,7 +677,7 @@ _organization_check_service: OrganizationCheckService = silo_mode_delegation(
 
 _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     {
-        SiloMode.REGION: _signal_from_on_commit,
+        SiloMode.CELL: _signal_from_on_commit,
         SiloMode.CONTROL: _signal_from_outbox,
         SiloMode.MONOLITH: _signal_from_on_commit,
     }

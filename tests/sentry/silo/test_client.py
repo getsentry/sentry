@@ -23,7 +23,7 @@ from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
 from sentry.testutils.region import override_regions
-from sentry.types.region import Cell, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
 
 
@@ -46,7 +46,7 @@ class SiloClientTest(TestCase):
             with raises(SiloClientError):
                 RegionSiloClient("atlantis")  # type: ignore[arg-type]
 
-            with raises(RegionResolutionError):
+            with raises(CellResolutionError):
                 region = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
                 RegionSiloClient(region)
 
@@ -54,7 +54,7 @@ class SiloClientTest(TestCase):
             assert client.base_url is not None
             assert self.region.address in client.base_url
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
     def test_init_clients_from_region(self) -> None:
         with raises(SiloClientError):
@@ -327,7 +327,7 @@ class SiloClientTest(TestCase):
 
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
 
         with (
@@ -346,7 +346,7 @@ class SiloClientTest(TestCase):
 
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -391,7 +391,7 @@ def test_validate_region_ip_address() -> None:
         assert validate_region_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("allowed_region_ip_addresses is empty for: 172.31.255.255",)
 
     with (
@@ -401,7 +401,7 @@ def test_validate_region_ip_address() -> None:
         assert validate_region_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
 
     with (

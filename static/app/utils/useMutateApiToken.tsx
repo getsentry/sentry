@@ -8,7 +8,7 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const API_TOKEN_QUERY_KEY: ApiQueryKey = [getApiUrl('/api-tokens/')];
 
@@ -28,11 +28,7 @@ interface UseMutateApiTokenProps {
   onSuccess?: (token: InternalAppApiToken | undefined) => void;
 }
 
-export default function useMutateApiToken({
-  token,
-  onSuccess,
-  onError,
-}: UseMutateApiTokenProps) {
+export function useMutateApiToken({token, onSuccess, onError}: UseMutateApiTokenProps) {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation<unknown, RequestError, UpdateTokenQueryVariables>({

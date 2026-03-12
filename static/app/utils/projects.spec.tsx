@@ -3,7 +3,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import Projects from 'sentry/utils/projects';
 
 describe('utils.projects', () => {

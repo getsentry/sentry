@@ -121,7 +121,7 @@ class AvatarBase(Model):
 
         url_base = options.get("system.url-prefix")
         silo_limit = getattr(cls._meta, "silo_limit", None)
-        if silo_limit is not None and SiloMode.REGION in silo_limit.modes:
+        if silo_limit is not None and SiloMode.CELL in silo_limit.modes:
             url_base = get_local_locality().to_url("")
 
         return urljoin(url_base, f"/{self.url_path}/{self.ident}/")

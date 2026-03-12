@@ -20,8 +20,8 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';

@@ -30,7 +30,7 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
 @instrumented_task(
     name="sentry.integrations.slack.tasks.search_channel_id_for_alert_rule",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def find_channel_id_for_alert_rule(
     organization_id: int,

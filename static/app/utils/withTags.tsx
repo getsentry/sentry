@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {TagCollection} from 'sentry/types/group';
-import getDisplayName from 'sentry/utils/getDisplayName';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;

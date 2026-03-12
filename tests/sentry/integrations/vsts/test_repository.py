@@ -60,7 +60,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             },
         )
         integration.add_organization(self.organization, self.user, default_auth.id)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -150,7 +150,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user, default_auth.id)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",
@@ -181,7 +181,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
             json=repository_config,
         )
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def assert_repository(self, repository_config, organization_id=None):
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,

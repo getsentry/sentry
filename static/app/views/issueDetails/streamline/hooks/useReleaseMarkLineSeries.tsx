@@ -7,7 +7,7 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';

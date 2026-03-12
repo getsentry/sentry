@@ -1,4 +1,4 @@
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
 export function shiftTabularDataToNow(tabularData: TabularData): TabularData {

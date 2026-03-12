@@ -12,7 +12,7 @@ import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 

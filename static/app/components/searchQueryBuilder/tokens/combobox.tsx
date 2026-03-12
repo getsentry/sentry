@@ -39,8 +39,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -485,12 +484,17 @@ export function SearchQueryBuilderCombobox<
     state
   );
 
-  const previousInputValue = usePrevious(inputValue);
-  useEffect(() => {
-    if (inputValue !== previousInputValue) {
+  // Reset the focused key when the user types in the input.
+  // This is intentionally done in the onChange handler (not an effect watching
+  // inputValue) so that programmatic inputValue changes (e.g. multi-select
+  // checkbox toggles) don't reset focus and scroll position.
+  const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    e => {
+      onInputChange?.(e);
       state.selectionManager.setFocusedKey(null);
-    }
-  }, [inputValue, previousInputValue, state.selectionManager]);
+    },
+    [onInputChange, state.selectionManager]
+  );
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -609,7 +613,7 @@ export function SearchQueryBuilderCombobox<
         placeholder={placeholder}
         onClick={handleInputClick}
         value={inputValue}
-        onChange={onInputChange}
+        onChange={handleInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}

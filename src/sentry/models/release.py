@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -192,7 +192,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         return release_version or None
 
 
-@region_silo_model
+@cell_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a

@@ -5,7 +5,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
 
 const mockHandleSearch = jest.fn();

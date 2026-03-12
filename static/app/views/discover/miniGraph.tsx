@@ -25,7 +25,7 @@ import type {PlotType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;

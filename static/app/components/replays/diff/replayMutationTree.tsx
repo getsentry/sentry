@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBanner';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import useExtractDiffMutations from 'sentry/utils/replays/hooks/useExtractDiffMutations';
+import {useExtractDiffMutations} from 'sentry/utils/replays/hooks/useExtractDiffMutations';
 
 export function ReplayMutationTree() {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();

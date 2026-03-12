@@ -69,13 +69,13 @@ class ControlOutboxTest(TestCase):
         ).should_skip_shard()
 
     def test_control_sharding_keys(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = Factories.create_organization()
 
         user1 = Factories.create_user()
         user2 = Factories.create_user()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             expected_region_name = get_local_cell().name
             om = OrganizationMember.objects.create(
                 organization_id=org.id,

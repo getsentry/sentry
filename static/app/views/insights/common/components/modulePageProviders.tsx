@@ -4,7 +4,7 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
