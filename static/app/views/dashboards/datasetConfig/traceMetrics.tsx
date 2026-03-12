@@ -239,10 +239,10 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        seriesName: formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        }),
+        seriesName:
+          widgetQuery.columns.length > 0
+            ? `${timeSeries.meta.isOther ? 'Other' : timeSeries.groupBy?.map(groupBy => groupBy.value).join(',')} : ${timeSeries.yAxis}`
+            : timeSeries.yAxis,
       };
     });
   },
