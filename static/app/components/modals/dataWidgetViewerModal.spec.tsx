@@ -17,7 +17,7 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
+import DataWidgetViewerModal from 'sentry/components/modals/dataWidgetViewerModal';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -84,7 +84,7 @@ async function renderModal({
     navigate: jest.fn(),
   });
   const rendered = render(
-    <WidgetViewerModal
+    <DataWidgetViewerModal
       Header={stubEl}
       Footer={stubEl as ModalRenderProps['Footer']}
       Body={stubEl as ModalRenderProps['Body']}
@@ -111,7 +111,7 @@ async function renderModal({
   return rendered;
 }
 
-describe('Modals -> WidgetViewerModal', () => {
+describe('Modals -> DataWidgetViewerModal', () => {
   let initialData: InitialData;
   let initialDataWithFlag: InitialData;
   beforeEach(() => {
