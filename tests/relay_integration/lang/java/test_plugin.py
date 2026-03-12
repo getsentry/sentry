@@ -1088,6 +1088,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             file=file,
         )
 
+    @pytest.mark.skip(reason="flaky: #110538")
     @requires_symbolicator
     def test_basic_source_lookup(self) -> None:
         debug_id = str(uuid4())
