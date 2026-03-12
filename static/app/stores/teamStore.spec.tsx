@@ -110,4 +110,25 @@ describe('TeamStore', () => {
       });
     });
   });
+
+  describe('getById', () => {
+    beforeEach(() => {
+      TeamStore.loadInitialData([teamFoo, teamBar]);
+    });
+
+    it('returns team by string ID', () => {
+      const team = TeamStore.getById('1');
+      expect(team).toEqual(teamFoo);
+    });
+
+    it('returns team by numeric ID (defensive handling)', () => {
+      const team = TeamStore.getById(1 as any);
+      expect(team).toEqual(teamFoo);
+    });
+
+    it('returns null for non-existent ID', () => {
+      const team = TeamStore.getById('999');
+      expect(team).toBeNull();
+    });
+  });
 });

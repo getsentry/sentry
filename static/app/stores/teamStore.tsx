@@ -138,7 +138,8 @@ const teamStoreConfig: TeamStoreDefinition = {
 
   getById(id: string) {
     const {teams} = this.state;
-    return teams.find(item => item.id.toString() === id.toString()) || null;
+    const normalizedId = String(id);
+    return teams.find(item => item.id === normalizedId) || null;
   },
 
   getBySlug(slug: string) {

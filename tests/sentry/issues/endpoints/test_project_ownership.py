@@ -493,3 +493,31 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "*.js #tiger-team #other-team"})
         assert resp.status_code == 200
         assert resp.data["raw"] == "*.js #tiger-team #other-team"
+
+    def test_owner_ids_serialized_as_strings(self) -> None:
+        """
+        Test that owner IDs in the schema are serialized as strings to match the frontend Actor type.
+        This prevents the "trim is not a function" error when numeric IDs are passed to avatar rendering.
+        """
+        self.login_as(user=self.user)
+
+        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        assert resp.status_code == 200
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+
+        schema = resp.data.get("schema")
+        assert schema is not None
+
+        rules = schema.get("rules")
+        assert rules is not None
+        assert len(rules) > 0
+
+        for rule in rules:
+            owners = rule.get("owners", [])
+            for owner in owners:
+                if "id" in owner:
+                    assert isinstance(owner["id"], str), (
+                        f"Owner ID should be string, got {type(owner['id'])}"
+                    )

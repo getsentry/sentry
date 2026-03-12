@@ -158,7 +158,7 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
  * the svg, etc) will also need to be changed there.
  */
 function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
-  const sanitizedName = name?.trim();
+  const sanitizedName = String(name ?? '').trim();
 
   if (!sanitizedName) {
     return '?' as Tagged<string, '__avatar'>;

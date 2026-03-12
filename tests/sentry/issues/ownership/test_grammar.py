@@ -7,6 +7,7 @@ from sentry.issues.ownership.grammar import (
     Matcher,
     Owner,
     Rule,
+    add_owner_ids_to_schema,
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
     dump_schema,
@@ -1244,3 +1245,27 @@ def test_codeowners_double_star_matching(
     "/**/example.py" pattern should only match files named exactly "example.py" at any directory depth.
     """
     _assert_matcher(Matcher("codeowners", pattern), path_details, expected)
+
+
+def test_add_owner_ids_to_schema_serializes_ids_as_strings() -> None:
+    """
+    Test that add_owner_ids_to_schema converts numeric IDs to strings.
+    This ensures the frontend Actor type contract (id: string) is respected.
+    """
+    rules = [
+        {
+            "matcher": {"type": "path", "pattern": "*.js"},
+            "owners": [
+                {"type": "team", "identifier": "frontend"},
+                {"type": "user", "identifier": "user@example.com"},
+            ],
+        }
+    ]
+    owners_id = {"frontend": 12345, "user@example.com": 67890}
+
+    add_owner_ids_to_schema(rules, owners_id)
+
+    assert rules[0]["owners"][0]["id"] == "12345"
+    assert rules[0]["owners"][1]["id"] == "67890"
+    assert isinstance(rules[0]["owners"][0]["id"], str)
+    assert isinstance(rules[0]["owners"][1]["id"], str)

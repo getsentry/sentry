@@ -527,7 +527,7 @@ def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, in
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():
-                rule_owner["id"] = owners_id[rule_owner["identifier"]]
+                rule_owner["id"] = str(owners_id[rule_owner["identifier"]])
 
 
 def create_schema_from_issue_owners(

@@ -43,6 +43,14 @@ describe('useAvatar', () => {
       );
       expect(screen.getByText('?')).toBeInTheDocument();
     });
+
+    it('handles numeric name values defensively', () => {
+      render(
+        // @ts-expect-error testing defensive handling of non-string name
+        <Avatar type="letter_avatar" identifier="team-123" name={2251960} />
+      );
+      expect(screen.getByText('2')).toBeInTheDocument();
+    });
   });
 
   describe('identifier vs name', () => {
