@@ -848,6 +848,32 @@ describe('Dashboards > WidgetCard', () => {
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
   });
 
+  it('does not render description for text display type widgets', async () => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TEXT,
+          description: 'Valid widget description',
+        }}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    // Wait for the widget to render by checking for the actions button
+    await screen.findByLabelText('Widget actions');
+    expect(screen.queryByLabelText('Widget description')).not.toBeInTheDocument();
+  });
+
   it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {
     renderWithProviders(
       <WidgetCard

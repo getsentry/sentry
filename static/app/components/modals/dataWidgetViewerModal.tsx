@@ -121,7 +121,7 @@ import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataS
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
-export interface WidgetViewerModalOptions {
+export interface DataWidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -132,7 +132,7 @@ export interface WidgetViewerModalOptions {
   widgetInterval?: string;
 }
 
-interface Props extends ModalRenderProps, WidgetViewerModalOptions {
+interface Props extends ModalRenderProps, DataWidgetViewerModalOptions {
   organization: Organization;
   selection: PageFilters;
 }
@@ -182,7 +182,7 @@ async function fetchDiscoverTotal(
   }
 }
 
-function WidgetViewerModal(props: Props) {
+function DataWidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
@@ -1220,4 +1220,4 @@ const EmptyQueryContainer = styled('span')`
   color: ${p => p.theme.tokens.content.disabled};
 `;
 
-export default withPageFilters(WidgetViewerModal);
+export default withPageFilters(DataWidgetViewerModal);
