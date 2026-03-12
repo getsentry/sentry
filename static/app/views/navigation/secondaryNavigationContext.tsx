@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
@@ -13,25 +13,25 @@ interface SecondaryNavigationContext {
   startInteraction: () => void;
 }
 
-const SecondaryNavigationContext = createContext<SecondaryNavigationContext>({
-  isCollapsed: false,
-  setIsCollapsed: () => {},
-  isOpen: false,
-  setIsOpen: () => {},
-  isInteractingRef: {current: false},
-  startInteraction: () => {},
-  endInteraction: () => {},
-});
+const SecondaryNavigationContext = createContext<SecondaryNavigationContext | null>(null);
 
 export function useSecondaryNavigation(): SecondaryNavigationContext {
-  return useContext(SecondaryNavigationContext);
+  const context = useContext(SecondaryNavigationContext);
+  if (!context) {
+    throw new Error(
+      'useSecondaryNavigation must be used within a SecondaryNavigationContextProvider'
+    );
+  }
+  return context;
 }
 
-export function SecondaryNavigationContextProvider({
-  children,
-}: {
+interface SecondaryNavigationContextProviderProps {
   children: React.ReactNode;
-}) {
+}
+
+export function SecondaryNavigationContextProvider(
+  props: SecondaryNavigationContextProviderProps
+) {
   const [isCollapsed, setIsCollapsed] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
@@ -46,19 +46,29 @@ export function SecondaryNavigationContextProvider({
     isInteractingRef.current = false;
   }, []);
 
+  const value = useMemo(() => {
+    return {
+      isCollapsed,
+      setIsCollapsed,
+      isOpen,
+      setIsOpen,
+      isInteractingRef,
+      startInteraction,
+      endInteraction,
+    };
+  }, [
+    isCollapsed,
+    setIsCollapsed,
+    isOpen,
+    setIsOpen,
+    isInteractingRef,
+    startInteraction,
+    endInteraction,
+  ]);
+
   return (
-    <SecondaryNavigationContext.Provider
-      value={{
-        isCollapsed,
-        setIsCollapsed,
-        isOpen,
-        setIsOpen,
-        isInteractingRef,
-        startInteraction,
-        endInteraction,
-      }}
-    >
-      {children}
+    <SecondaryNavigationContext.Provider value={value}>
+      {props.children}
     </SecondaryNavigationContext.Provider>
   );
 }

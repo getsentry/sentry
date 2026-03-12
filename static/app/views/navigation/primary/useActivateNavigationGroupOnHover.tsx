@@ -26,14 +26,14 @@ export function useActivateNavigationGroupOnHover({
 }: {
   ref: React.RefObject<HTMLElement | null>;
 }) {
-  const {layout} = useNavigation();
+  const {layout, setActivePrimaryNavigationGroup} = useNavigation();
+  const {isCollapsed, isOpen} = useSecondaryNavigation();
+
   const mouseAccelerationRef = useMouseMovement({
     ref,
     disabled: layout !== 'sidebar',
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavigationGroup} = useNavigation();
-  const {isCollapsed, isOpen} = useSecondaryNavigation();
   const windowHeight = useWindowHeight();
 
   return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
