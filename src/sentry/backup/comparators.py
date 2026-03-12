@@ -1004,6 +1004,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "seer.seerorganizationsettings": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "seer.seerprojectrepository": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
         },
     )
 
