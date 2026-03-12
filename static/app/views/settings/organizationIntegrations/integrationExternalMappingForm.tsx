@@ -136,14 +136,6 @@ function mergeOptions(
   return result;
 }
 
-/**
- * Custom getOptionValue for react-select that extracts `.id` from our
- * SentrySelection objects.  Also handles the case where react-select
- * receives the raw form value (before option resolution) instead of an
- * option wrapper — we fall back through opt.value.id → opt.id → ''.
- */
-const getOptionValue = (opt: any) => opt?.value?.id ?? opt?.id ?? '';
-
 function buildMutationData(
   mapping: ExternalActorMappingOrSuggestion | undefined,
   integration: Integration,
@@ -209,7 +201,7 @@ function InlineMappingForm({
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
-              getOptionValue={getOptionValue}
+              getOptionValue={opt => opt.value.id}
               placeholder={t('Select Sentry Team')}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
@@ -217,7 +209,7 @@ function InlineMappingForm({
             <field.SelectAsync
               value={field.state.value}
               onChange={field.handleChange}
-              getOptionValue={getOptionValue}
+              getOptionValue={opt => opt.value.id}
               placeholder={t('Select Sentry User')}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
@@ -334,7 +326,7 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
-                    getOptionValue={getOptionValue}
+                    getOptionValue={opt => opt.value.id}
                     placeholder={t('Select Sentry Team')}
                     queryOptions={makeTeamSelectQueryOptions(
                       orgSlug,
@@ -348,7 +340,7 @@ function ModalMappingForm({
                   <field.SelectAsync
                     value={field.state.value}
                     onChange={field.handleChange}
-                    getOptionValue={getOptionValue}
+                    getOptionValue={opt => opt.value.id}
                     placeholder={t('Select Sentry User')}
                     queryOptions={makeMemberSelectQueryOptions(
                       orgSlug,
