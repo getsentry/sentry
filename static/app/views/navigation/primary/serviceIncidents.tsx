@@ -8,10 +8,10 @@ import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigationButton,
+  PrimaryNavigationButtonOverlay,
+  PrimaryNavigationItemUnreadIndicator,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -20,13 +20,13 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
+  } = usePrimaryNavigationButtonOverlay();
 
   const {layout} = useNavigationContext();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigationButton
         analyticsKey="statusupdate"
         label={t('Service status')}
         buttonProps={{
@@ -35,19 +35,19 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           size: 'sm',
         }}
       >
-        <SidebarItemUnreadIndicator
+        <PrimaryNavigationItemUnreadIndicator
           isMobile={layout === NavigationLayout.MOBILE}
           variant="danger"
         />
-      </SidebarButton>
+      </PrimaryNavigationButton>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
           {incidents.map(incident => (
             <IncidentItemWrapper key={incident.id}>
               <ServiceIncidentDetails incident={incident} />
             </IncidentItemWrapper>
           ))}
-        </PrimaryButtonOverlay>
+        </PrimaryNavigationButtonOverlay>
       )}
     </Fragment>
   );

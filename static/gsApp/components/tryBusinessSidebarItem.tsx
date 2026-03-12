@@ -7,8 +7,8 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
+  PrimaryNavigationButton,
+  PrimaryNavigationItemUnreadIndicator,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -48,7 +48,7 @@ function TryBusinessNavigationItem({
 
   return (
     <TrialStartedSidebarItem {...{organization, subscription}}>
-      <SidebarButton
+      <PrimaryNavigationButton
         label={t('Try Business')}
         onClick={() => {
           setTryBusinessSeen(true);
@@ -61,9 +61,11 @@ function TryBusinessNavigationItem({
         }}
       >
         {showIsNew && (
-          <SidebarItemUnreadIndicator isMobile={layout === NavigationLayout.MOBILE} />
+          <PrimaryNavigationItemUnreadIndicator
+            isMobile={layout === NavigationLayout.MOBILE}
+          />
         )}
-      </SidebarButton>
+      </PrimaryNavigationButton>
     </TrialStartedSidebarItem>
   );
 }

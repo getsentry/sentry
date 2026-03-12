@@ -19,10 +19,10 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigationButton,
+  PrimaryNavigationButtonOverlay,
+  PrimaryNavigationItemUnreadIndicator,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
@@ -52,7 +52,7 @@ function OnboardingItem({
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay({
+  } = usePrimaryNavigationButtonOverlay({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
@@ -69,7 +69,7 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarButton
+      <PrimaryNavigationButton
         analyticsKey="onboarding"
         buttonProps={{
           ...overlayTriggerProps,
@@ -106,16 +106,16 @@ function OnboardingItem({
         label={label}
       >
         {pendingCompletionSeen && (
-          <SidebarItemUnreadIndicator
+          <PrimaryNavigationItemUnreadIndicator
             data-test-id="pending-seen-indicator"
             isMobile={isMobile}
           />
         )}
-      </SidebarButton>
+      </PrimaryNavigationButton>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigationButtonOverlay>
       )}
     </GuideAnchor>
   );

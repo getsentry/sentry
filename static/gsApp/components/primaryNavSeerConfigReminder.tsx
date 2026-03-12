@@ -15,10 +15,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigationButton,
+  PrimaryNavigationButtonOverlay,
+  PrimaryNavigationItemUnreadIndicator,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -184,7 +184,7 @@ export function PrimaryNavSeerConfigReminder() {
     triggerProps: overlayTriggerProps,
     overlayProps,
     state,
-  } = usePrimaryButtonOverlay();
+  } = usePrimaryNavigationButtonOverlay();
 
   const {layout} = useNavigationContext();
 
@@ -207,7 +207,7 @@ export function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigationButton
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
@@ -216,13 +216,13 @@ export function PrimaryNavSeerConfigReminder() {
           icon: <IconSeer />,
         }}
       >
-        <SidebarItemUnreadIndicator
+        <PrimaryNavigationItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
           isMobile={layout === NavigationLayout.MOBILE}
         />
-      </SidebarButton>
+      </PrimaryNavigationButton>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
@@ -238,7 +238,7 @@ export function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryButtonOverlay>
+        </PrimaryNavigationButtonOverlay>
       )}
     </Fragment>
   );

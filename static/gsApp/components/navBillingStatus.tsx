@@ -16,10 +16,10 @@ import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigationButton,
+  PrimaryNavigationButtonOverlay,
+  PrimaryNavigationItemUnreadIndicator,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
@@ -436,7 +436,7 @@ export function PrimaryNavigationQuotaExceeded({
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryButtonOverlay({});
+  } = usePrimaryNavigationButtonOverlay({});
   const {layout} = useNavigationContext();
 
   const hasSnoozedAllPrompts = useCallback(() => {
@@ -528,7 +528,7 @@ export function PrimaryNavigationQuotaExceeded({
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigationButton
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         buttonProps={{
@@ -536,13 +536,13 @@ export function PrimaryNavigationQuotaExceeded({
           icon: <IconWarning />,
         }}
       >
-        <SidebarItemUnreadIndicator
+        <PrimaryNavigationItemUnreadIndicator
           isMobile={layout === NavigationLayout.MOBILE}
           variant="warning"
         />
-      </SidebarButton>
+      </PrimaryNavigationButton>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigationButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -550,7 +550,7 @@ export function PrimaryNavigationQuotaExceeded({
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigationButtonOverlay>
       )}
     </Fragment>
   );

@@ -22,7 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
+import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function Collapsible({
@@ -278,7 +278,7 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
   const organization = useOrganization();
   const location = useLocation();
   const isActive =
-    incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavigationContext();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();

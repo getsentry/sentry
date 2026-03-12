@@ -14,7 +14,7 @@ import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarr
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
+import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
 
@@ -31,9 +31,13 @@ export function DashboardsSecondaryNavigation() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = urlFilter === DashboardFilter.ONLY_PREBUILT;
-  const isOnDashboardsList = isSidebarLinkActive(`${baseUrl}/`, location.pathname, {
-    end: true,
-  });
+  const isOnDashboardsList = isPrimaryNavigationLinkActive(
+    `${baseUrl}/`,
+    location.pathname,
+    {
+      end: true,
+    }
+  );
 
   return (
     <Fragment>

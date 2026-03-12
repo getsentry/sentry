@@ -12,48 +12,16 @@ import {
   NavigationTourReminder,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
-import {SidebarMenu} from 'sentry/views/navigation/primary/components';
-
-function getContactSupportItem({
-  organization,
-}: {
-  organization: Organization;
-}): MenuItemProps | null {
-  const supportEmail = ConfigStore.get('supportEmail');
-
-  if (!supportEmail) {
-    return null;
-  }
-
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  return {
-    key: 'support',
-    label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
-  };
-}
+import {PrimaryNavigationMenu} from 'sentry/views/navigation/primary/components';
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
-  const contactSupportItem = getContactSupportItem({organization});
+  const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {startTour} = useNavigationTour();
 
   return (
-    <SidebarMenu
+    <PrimaryNavigationMenu
       triggerWrap={NavigationTourReminder}
       size="sm"
       items={[
@@ -127,4 +95,32 @@ export function PrimaryNavigationHelp() {
       icon={<IconEllipsis />}
     />
   );
+}
+
+function getContactSupportItem(organization: Organization): MenuItemProps | null {
+  const supportEmail = ConfigStore.get('supportEmail');
+
+  if (!supportEmail) {
+    return null;
+  }
+
+  if (hasZendesk()) {
+    return {
+      key: 'support',
+      label: t('Contact Support'),
+      onAction() {
+        activateZendesk();
+        trackAnalytics('zendesk_link.clicked', {
+          organization,
+          source: 'sidebar',
+        });
+      },
+    };
+  }
+
+  return {
+    key: 'support',
+    label: t('Contact Support'),
+    externalHref: `mailto:${supportEmail}`,
+  };
 }
