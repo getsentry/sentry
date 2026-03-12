@@ -4,7 +4,7 @@ import {OrganizationAvatar} from '@sentry/scraps/avatar';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -15,7 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
-import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 

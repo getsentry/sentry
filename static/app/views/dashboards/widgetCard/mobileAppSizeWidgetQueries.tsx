@@ -1,6 +1,6 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';

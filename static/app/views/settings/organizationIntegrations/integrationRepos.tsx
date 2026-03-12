@@ -13,7 +13,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {RepositoryRow} from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

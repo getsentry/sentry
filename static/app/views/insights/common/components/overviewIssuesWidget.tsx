@@ -9,7 +9,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 import type {

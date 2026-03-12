@@ -4,14 +4,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 import {UnmaskAlert} from './unmaskAlert';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/components/replays/useUserViewedReplays.tsx');
 
-const mockGetItem = jest.mocked(localStorage.getItem);
+const mockGetItem = jest.mocked(localStorageWrapper.getItem);
 
 const now = new Date('2020-01-01');
 
@@ -76,7 +76,7 @@ describe('UnmaskAlert', () => {
 
     expect(screen.queryByTestId('unmask-alert')).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(localStorage.setItem).toHaveBeenCalledWith(
+      expect(localStorageWrapper.setItem).toHaveBeenCalledWith(
         'replay-unmask-alert-dismissed',
         '"1577836800000"'
       )

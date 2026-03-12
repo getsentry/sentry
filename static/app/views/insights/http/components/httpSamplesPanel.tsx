@@ -51,8 +51,8 @@ import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/defini
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
-import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
-import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
+import {decodePanel} from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
+import {decodeResponseCodeClass} from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {
   ModuleName,
   SpanFields,

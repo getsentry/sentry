@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';

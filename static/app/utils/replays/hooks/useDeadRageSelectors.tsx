@@ -1,7 +1,7 @@
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import hydratedSelectorData from 'sentry/utils/replays/hydrateSelectorData';
+import {hydratedSelectorData} from 'sentry/utils/replays/hydrateSelectorData';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {

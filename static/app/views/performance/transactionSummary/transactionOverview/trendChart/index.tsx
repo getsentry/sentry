@@ -27,7 +27,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import type {ViewProps} from 'sentry/views/performance/types';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 

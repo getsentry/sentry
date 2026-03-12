@@ -1,7 +1,7 @@
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';

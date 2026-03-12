@@ -5,8 +5,8 @@
 import {render, screen, waitFor} from '@testing-library/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {PipelineView} from 'sentry/views/integrationPipeline/pipelineView';
 
 function MockAwsLambdaProjectSelect() {

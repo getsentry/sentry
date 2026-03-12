@@ -31,7 +31,7 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {
   setApiQueryData,
   useApiQuery,

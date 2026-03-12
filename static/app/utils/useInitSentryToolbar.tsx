@@ -1,10 +1,10 @@
 import type {FeatureFlagAdapter} from '@sentry/toolbar';
 import {useSentryToolbar} from '@sentry/toolbar';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 export function useInitSentryToolbar(organization: null | Organization) {

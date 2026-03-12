@@ -40,5 +40,4 @@ const storeConfig: SentryAppComponentsStoreDefinition = {
   },
 };
 
-const SentryAppComponentsStore = createStore(storeConfig);
-export default SentryAppComponentsStore;
+export const SentryAppComponentsStore = createStore(storeConfig);

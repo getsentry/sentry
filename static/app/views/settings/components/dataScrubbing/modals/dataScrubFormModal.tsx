@@ -24,7 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
+import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
   EditableRule,
   Rule,

@@ -418,6 +418,4 @@ const makeEventViewForWidget = (
   return widgetEventView;
 };
 
-const WidgetContainer = withOrganization(WidgetContainerInner);
-
-export default WidgetContainer;
+export const WidgetContainer = withOrganization(WidgetContainerInner);

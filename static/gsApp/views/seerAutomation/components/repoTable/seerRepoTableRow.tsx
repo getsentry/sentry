@@ -11,7 +11,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';

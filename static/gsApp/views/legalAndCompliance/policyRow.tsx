@@ -9,7 +9,7 @@ import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';

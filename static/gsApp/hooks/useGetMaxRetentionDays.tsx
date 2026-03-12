@@ -1,6 +1,6 @@
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 export function useGetMaxRetentionDays(): number | undefined {
   const organization = useOrganization();

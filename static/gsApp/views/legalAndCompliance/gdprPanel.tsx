@@ -20,7 +20,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {GDPRDetails, Subscription} from 'getsentry/types';
 
 interface GDPREditModalProps extends ModalRenderProps {

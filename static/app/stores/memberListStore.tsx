@@ -69,5 +69,4 @@ const storeConfig: MemberListStoreDefinition = {
   },
 };
 
-const MemberListStore = createStore(storeConfig);
-export default MemberListStore;
+export const MemberListStore = createStore(storeConfig);

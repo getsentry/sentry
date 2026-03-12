@@ -15,7 +15,7 @@ import {Timeline} from 'sentry/components/timeline';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();

@@ -19,7 +19,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {SubscriptionContext} from 'getsentry/components/subscriptionContext';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';

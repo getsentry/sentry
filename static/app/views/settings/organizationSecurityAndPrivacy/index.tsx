@@ -16,7 +16,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';

@@ -7,7 +7,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {TeamWithProjects} from 'sentry/types/project';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,7 +35,7 @@ export default function TeamStatsIssues() {
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
 
   let localTeamId: string | null | undefined =
-    (query.team as string | undefined) ?? localStorage.getItem(localStorageKey);
+    (query.team as string | undefined) ?? localStorageWrapper.getItem(localStorageKey);
   if (localTeamId && !teams.some(team => team.id === localTeamId)) {
     localTeamId = null;
   }

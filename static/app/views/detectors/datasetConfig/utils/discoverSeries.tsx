@@ -2,7 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
   EAP_EXTRAPOLATION_MODE_MAP,

@@ -17,7 +17,7 @@ import {useInviteModal} from 'sentry/components/modals/inviteMembersModal/useInv
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 import {
   type BaseDetectorUpdatePayload,
   type Detector,

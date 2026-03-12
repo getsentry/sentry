@@ -14,7 +14,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';

@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 import * as useMedia from 'sentry/utils/useMedia';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 describe('UsageOverview', () => {

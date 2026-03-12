@@ -10,7 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';

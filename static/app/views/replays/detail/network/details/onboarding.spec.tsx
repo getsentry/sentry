@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import {Setup} from 'sentry/views/replays/detail/network/details/onboarding';

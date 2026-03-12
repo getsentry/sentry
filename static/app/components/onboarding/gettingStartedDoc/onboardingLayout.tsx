@@ -28,7 +28,7 @@ import {
 } from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

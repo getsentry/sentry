@@ -5,8 +5,8 @@ import {motion, type MotionProps} from 'framer-motion';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import Hook from 'sentry/components/hook';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';

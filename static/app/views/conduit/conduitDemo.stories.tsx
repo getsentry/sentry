@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
-import getCsrfToken from 'sentry/utils/getCsrfToken';
+import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Message = {

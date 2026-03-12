@@ -1,5 +1,5 @@
 import {Redirect} from 'sentry/components/redirect';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 function SettingsIndex() {

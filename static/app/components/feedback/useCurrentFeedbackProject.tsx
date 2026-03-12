@@ -1,4 +1,4 @@
-import decodeFeedbackSlug from 'sentry/components/feedback/decodeFeedbackSlug';
+import {decodeFeedbackSlug} from 'sentry/components/feedback/decodeFeedbackSlug';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 
 // See also: useCurrentFeedbackId()

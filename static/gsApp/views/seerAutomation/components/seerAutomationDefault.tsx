@@ -6,7 +6,7 @@ import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -5,7 +5,7 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
 import {setApiQueryData} from 'sentry/utils/queryClient';

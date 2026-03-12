@@ -1,4 +1,4 @@
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {

@@ -14,7 +14,7 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';

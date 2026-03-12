@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/scoreCard';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
