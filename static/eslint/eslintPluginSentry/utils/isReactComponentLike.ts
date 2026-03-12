@@ -49,7 +49,11 @@ function getFunctionName(
 function isPascalCase(name: string) {
   return /^[A-Z][A-Za-z0-9]*$/u.test(name);
 }
+const PASCAL_CASE_RE = /^[A-Z][A-Za-z0-9]*$/u;
 
+function isPascalCase(name: string) {
+  return PASCAL_CASE_RE.test(name);
+}
 function isStyledCallExpression(node: TSESTree.Node) {
   if (node.type !== AST_NODE_TYPES.CallExpression) {
     return false;
