@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {
@@ -39,7 +39,6 @@ import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {
   getCompareApiUrl,
   getCompareBuildPath,
@@ -75,19 +74,30 @@ export function SizeCompareSelectionContent({
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];
+  if (headBuildDetails.app_info?.app_id) {
+    searchFilters.push(`app_id:"${headBuildDetails.app_info.app_id}"`);
+  }
+  if (headBuildDetails.app_info?.build_configuration) {
+    searchFilters.push(
+      `build_configuration_name:"${headBuildDetails.app_info.build_configuration}"`
+    );
+  }
+  if (searchQuery) {
+    searchFilters.push(searchQuery);
+  }
+  const fullQuery = searchFilters.join(' ');
+
   const queryParams: Record<string, any> = {
     per_page: 25,
-    state: BuildDetailsState.PROCESSED,
-    app_id: headBuildDetails.app_info?.app_id,
-    build_configuration: headBuildDetails.app_info?.build_configuration,
     project: headBuildDetails.project_id,
+    query: fullQuery,
     ...(cursor && {cursor}),
-    ...(searchQuery && {query: searchQuery}),
   };
 
-  const buildsQuery = useApiQuery<ListBuildsApiResponse>(
+  const buildsQuery = useApiQuery<BuildDetailsApiResponse[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},
@@ -186,7 +196,7 @@ export function SizeCompareSelectionContent({
       )}
       {buildsQuery.data && (
         <Stack gap="md">
-          {buildsQuery.data.builds.map(build => {
+          {buildsQuery.data?.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }

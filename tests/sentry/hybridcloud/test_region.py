@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Cell, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError, RegionCategory
 
 _TEST_REGIONS = (
     Cell("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
@@ -82,10 +82,10 @@ class RegionResolutionTest(TestCase):
             override_regions([self.target_region]),
             override_settings(SENTRY_SINGLE_ORGANIZATION=False),
         ):
-            with pytest.raises(RegionResolutionError):
+            with pytest.raises(CellResolutionError):
                 region_resolution.resolve({})
 
         with override_regions(_TEST_REGIONS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.create_organization(region=_TEST_REGIONS[1])
-            with pytest.raises(RegionResolutionError):
+            with pytest.raises(CellResolutionError):
                 region_resolution.resolve({})

@@ -4,12 +4,12 @@ import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import Legend from 'sentry/components/charts/components/legend';
-import xAxis from 'sentry/components/charts/components/xAxis';
+import {Legend} from 'sentry/components/charts/components/legend';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
@@ -446,7 +446,7 @@ function UsageChartBody({
         },
       }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
-      xAxis={xAxis({
+      xAxis={XAxis({
         show: true,
         type: 'category',
         name: 'Date',

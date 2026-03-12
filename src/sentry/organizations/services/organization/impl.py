@@ -79,7 +79,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
@@ -824,11 +824,11 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
                 "args": args,
                 "signal": int(RpcOrganizationSignal.from_signal(signal)),
             }
-            for region_name in find_regions_for_orgs([organization_id]):
+            for region_name in find_cells_for_orgs([organization_id]):
                 ControlOutbox(
                     shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                     shard_identifier=organization_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     category=OutboxCategory.SEND_SIGNAL,
                     object_identifier=ControlOutbox.next_object_identifier(),
                     payload=payload,

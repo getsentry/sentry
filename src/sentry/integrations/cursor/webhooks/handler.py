@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import (
@@ -30,7 +30,7 @@ from sentry.seer.autofix.utils import (
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class CursorWebhookEndpoint(Endpoint):
     owner = ApiOwner.ML_AI
     publish_status = {

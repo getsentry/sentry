@@ -5,7 +5,7 @@ import {AvatarList} from '@sentry/scraps/avatar';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +30,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType, tenSecondInMs} from './utils';
 
-function ReleaseContext(props: BaseContextProps) {
+export function ReleaseContext(props: BaseContextProps) {
   const user = useUser();
   const {dataRow, organization} = props;
   const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
@@ -211,5 +211,3 @@ const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ReleaseContext;

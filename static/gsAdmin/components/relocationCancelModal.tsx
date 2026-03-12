@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import SelectField from 'sentry/components/forms/fields/selectField';
 
 import type {Relocation} from 'admin/types';
@@ -14,7 +14,13 @@ type Props = ModalRenderProps & {
   onSuccess?: (relocation: Relocation) => void;
 };
 
-function RelocationCancelModal({Body, Header, relocation, onSuccess, closeModal}: Props) {
+export function RelocationCancelModal({
+  Body,
+  Header,
+  relocation,
+  onSuccess,
+  closeModal,
+}: Props) {
   const currentStep = RelocationSteps[relocation.step];
   const choices = Object.keys(RelocationSteps)
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
@@ -65,5 +71,3 @@ function RelocationCancelModal({Body, Header, relocation, onSuccess, closeModal}
     </Fragment>
   );
 }
-
-export default RelocationCancelModal;

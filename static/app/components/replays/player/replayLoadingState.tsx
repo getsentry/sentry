@@ -1,17 +1,17 @@
 import type {ReactNode} from 'react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
-import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayRequestsThrottledAlert from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
+import {ReplayRequestsThrottledAlert} from 'sentry/components/replays/alerts/replayRequestsThrottledAlert';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type ReplayReaderResult = ReturnType<typeof useLoadReplayReader>;
 
-export default function ReplayLoadingState({
+export function ReplayLoadingState({
   children,
   readerResult,
   renderArchived,

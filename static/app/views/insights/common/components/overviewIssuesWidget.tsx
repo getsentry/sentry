@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {type MenuItemProps} from 'sentry/components/dropdownMenu';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

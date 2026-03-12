@@ -19,7 +19,7 @@ interface UpsellFooterProps {
   source?: string;
 }
 
-function Footer({
+export function Footer({
   subscription,
   organization,
   source,
@@ -91,5 +91,3 @@ const SidebarFooter = styled('div')`
     margin-bottom: 0.5rem;
   }
 `;
-
-export default Footer;

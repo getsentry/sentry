@@ -30,14 +30,14 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Autofix Agent'), key: 'fixes'},
+  {title: t('Autofix Handoff'), key: 'fixes'},
   {
     title: (
       <Flex gap="sm" align="center">
         {t('PR Creation')}
         <InfoTip
           title={t(
-            'This setting only applies when an Autofix Agent is configured to run automatically.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
         />
       </Flex>

@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -18,13 +18,13 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 type Props = {
   integration: Integration;
 };
 
-function IntegrationExternalUserMappings(props: Props) {
+export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -109,7 +109,7 @@ function IntegrationExternalUserMappings(props: Props) {
   const defaultUserOptions = initialResults
     .filter(member => member.user)
     .map(({user, email, name}) => {
-      const label = email === name ? `${email}` : `${name} - ${email}`;
+      const label = email === name ? email : `${name} - ${email}`;
       return {
         value: {id: user?.id!, name: label},
         label,
@@ -148,5 +148,3 @@ function IntegrationExternalUserMappings(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationExternalUserMappings;

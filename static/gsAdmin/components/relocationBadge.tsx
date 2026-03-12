@@ -6,7 +6,7 @@ type Props = {
   data: Relocation;
 };
 
-function RelocationBadge({data}: Props) {
+export function RelocationBadge({data}: Props) {
   let text = '';
   let theme: TagProps['variant'] = 'muted';
   switch (data.status) {
@@ -40,5 +40,3 @@ function RelocationBadge({data}: Props) {
 
   return <Tag variant={theme}>{text}</Tag>;
 }
-
-export default RelocationBadge;

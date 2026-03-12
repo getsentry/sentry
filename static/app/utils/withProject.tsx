@@ -8,7 +8,7 @@ type InjectedProjectProps = {
   project?: Project;
 };
 
-function withProject<P extends InjectedProjectProps>(
+export function withProject<P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedProjectProps> & Partial<InjectedProjectProps>;
@@ -24,5 +24,3 @@ function withProject<P extends InjectedProjectProps>(
 
   return Wrapper;
 }
-
-export default withProject;

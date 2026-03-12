@@ -11,7 +11,7 @@ import {
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
 } from 'sentry/views/insights/sessions/components/chartMap';
-import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 type TChart = keyof typeof CHART_MAP;

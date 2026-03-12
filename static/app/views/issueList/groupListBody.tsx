@@ -2,8 +2,8 @@ import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
@@ -70,7 +70,7 @@ function LoadingSkeleton({
   );
 }
 
-function GroupListBody({
+export function GroupListBody({
   groupIds,
   memberList,
   query,
@@ -170,5 +170,3 @@ function GroupList({
     </PanelBody>
   );
 }
-
-export default GroupListBody;

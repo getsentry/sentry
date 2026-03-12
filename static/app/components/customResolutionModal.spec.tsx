@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import ConfigStore from 'sentry/stores/configStore';
 

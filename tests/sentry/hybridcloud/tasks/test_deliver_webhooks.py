@@ -25,7 +25,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError, RegionCategory
 
 region_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
 
@@ -302,7 +302,7 @@ class DrainMailboxTest(TestCase):
             mailbox_name="github:123",
             cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox(webhook_one.id)
         assert len(responses.calls) == 0
 
@@ -738,7 +738,7 @@ class DrainMailboxParallelTest(TestCase):
             mailbox_name="github:123",
             cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox_parallel(webhook_one.id)
         assert len(responses.calls) == 0
 

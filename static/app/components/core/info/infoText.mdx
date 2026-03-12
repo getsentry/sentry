@@ -12,9 +12,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/info/infoText';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/info/infoText');
 
 `InfoText` renders text with a dotted underline that reveals a tooltip on hover or focus. It's keyboard accessible out of the box and provides a consistent pattern for inline explanations.
 

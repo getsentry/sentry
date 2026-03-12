@@ -13,7 +13,7 @@ type Props = {
   system: boolean;
 };
 
-function AlertMessage({alert, system}: Props) {
+export function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);
 
   return (
@@ -38,8 +38,6 @@ function AlertMessage({alert, system}: Props) {
     </Alert>
   );
 }
-
-export default AlertMessage;
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;

@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
-import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
+import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
@@ -69,7 +69,7 @@ interface ResolveActionsProps {
   size?: 'xs' | 'sm';
 }
 
-function ResolveActions({
+export function ResolveActions({
   size = 'xs',
   isResolved = false,
   isAutoResolved = false,
@@ -379,8 +379,6 @@ function ResolveActions({
     </Tooltip>
   );
 }
-
-export default ResolveActions;
 
 /**
  * Used to hide the list items when prompting to set up releases

@@ -4,6 +4,7 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
+import type {NamedProps as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
@@ -37,29 +38,29 @@ function SelectIndicatorsContainer({
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps<TValue> = BaseFieldProps<HTMLInputElement> &
-  Omit<
-    React.ComponentProps<typeof Select>,
-    | 'value'
-    | 'onChange'
-    | 'onBlur'
-    | 'disabled'
-    | 'multiple'
-    | 'multi'
-    | 'clearable'
-    | 'id'
-    | 'options'
-    | 'getOptionValue'
-  > & {
-    disabled?: boolean | string;
-    getOptionValue?: (option: SelectValue<TValue>) => string;
+type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
+  ReactSelectProps<SelectValue<TValue>, IsMulti>,
+  | 'value'
+  | 'onChange'
+  | 'onBlur'
+  | 'isDisabled'
+  | 'isMulti'
+  | 'isClearable'
+  | 'id'
+  | 'options'
+> &
+  BaseFieldProps<HTMLInputElement> & {
+    options: ReadonlyArray<SelectValue<TValue>>;
   };
 
 // Helper type for non-array constraint
 type NonArray<T> = T extends readonly unknown[] ? never : T;
 
 // Single select WITHOUT clearable - onChange receives TValue (never null)
-interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
+interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
+  TValue,
+  false
+> {
   onChange: (value: NonArray<TValue>) => void;
   options: Array<SelectValue<NoInfer<TValue>>>;
   value: NonArray<TValue> | null;
@@ -68,7 +69,10 @@ interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps
 }
 
 // Single select WITH clearable - onChange can receive TValue | null
-interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
+interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
+  TValue,
+  false
+> {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
   options: Array<SelectValue<NoInfer<TValue>>>;
@@ -77,15 +81,16 @@ interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<T
 }
 
 // Multiple select - TValue must be an array
-interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps<TValue> {
+interface MultipleSelectFieldProps<
+  TValue extends NonArray<any>,
+> extends BaseSelectFieldProps<TValue, true> {
   multiple: true;
-  onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
-  options: TValue extends ReadonlyArray<infer U> ? Array<SelectValue<U>> : never;
-  value: TValue extends readonly unknown[] ? TValue : never;
+  onChange: (value: TValue[]) => void;
+  value: TValue[];
   clearable?: boolean;
 }
 
-export type SelectFieldProps<TValue = string> =
+export type SelectFieldProps<TValue> =
   | SingleUnclearableSelectFieldProps<TValue>
   | SingleClearableSelectFieldProps<TValue>
   | MultipleSelectFieldProps<TValue>;
@@ -105,7 +110,7 @@ const applyInputToRef =
     }
   };
 
-export function SelectField<TValue = string>({
+export function SelectField<TValue>({
   onChange,
   disabled,
   multiple,

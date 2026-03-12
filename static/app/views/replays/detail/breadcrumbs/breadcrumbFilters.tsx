@@ -4,13 +4,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
   frames: undefined | unknown[];
 } & ReturnType<typeof useBreadcrumbFilters>;
 
-function BreadcrumbFilters({
+export function BreadcrumbFilters({
   frames,
   getBreadcrumbTypes,
   searchTerm,
@@ -44,5 +44,3 @@ function BreadcrumbFilters({
     </FiltersGrid>
   );
 }
-
-export default BreadcrumbFilters;

@@ -16,7 +16,7 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,

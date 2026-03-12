@@ -1,6 +1,6 @@
 import type {Actor} from 'sentry/types/core';
 
-import BadgeDisplayName from './badgeDisplayName';
+import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface ActorBadgeProps extends BaseBadgeProps {

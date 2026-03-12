@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 
 export type PerformanceWidgetContainerTypes = 'panel' | 'inline';
 

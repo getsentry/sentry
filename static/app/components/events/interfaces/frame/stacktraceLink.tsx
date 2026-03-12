@@ -25,7 +25,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import StacktraceLinkModal from './stacktraceLinkModal';
+import {StacktraceLinkModal} from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];
@@ -237,7 +237,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         ) : coverage &&
           shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
+            coverageUrl={frame.sourceLink}
             status={coverage.status}
             organization={organization}
             event={event}

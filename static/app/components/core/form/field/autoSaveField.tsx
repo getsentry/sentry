@@ -103,6 +103,7 @@ type AutoSaveFieldRenderArg<
 
 interface AutoSaveFieldProps<
   TData,
+  TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
 > {
@@ -123,7 +124,7 @@ interface AutoSaveFieldProps<
     TData,
     Error,
     NoInfer<Record<TFieldName, z.infer<TSchema>[TFieldName]>>,
-    any // context type from onMutate - allow any shape
+    TContext
   >;
 
   /**
@@ -157,9 +158,10 @@ interface AutoSaveFieldProps<
 
 export function AutoSaveField<
   TData,
+  TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->(props: AutoSaveFieldProps<TData, TSchema, TFieldName>) {
+>(props: AutoSaveFieldProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);

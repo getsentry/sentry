@@ -27,7 +27,7 @@ type GeneralInfoProps = {
   organization: Organization;
 };
 
-function GeneralInfo(props: GeneralInfoProps) {
+export function GeneralInfo(props: GeneralInfoProps) {
   const {node, onParentClick} = props;
 
   const startTimestamp = node.space[0];
@@ -117,5 +117,3 @@ const ContentWrapper = styled('div')`
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default GeneralInfo;

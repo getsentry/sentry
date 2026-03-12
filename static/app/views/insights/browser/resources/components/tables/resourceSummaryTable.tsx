@@ -23,7 +23,7 @@ import {useResourceSummarySort} from 'sentry/views/insights/browser/resources/ut
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {ResourceSizeCell} from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -52,7 +52,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<keyof Row>;
 
-function ResourceSummaryTable() {
+export function ResourceSummaryTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const {groupId} = useParams();
@@ -211,5 +211,3 @@ const DescriptionWrapper = styled('div')`
 const TransactionLink = styled(Link)`
   min-width: ${p => p.theme.space['2xl']};
 `;
-
-export default ResourceSummaryTable;

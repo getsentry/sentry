@@ -17,7 +17,7 @@ import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
@@ -41,7 +41,7 @@ interface Props {
   updateDimensions?: () => void;
 }
 
-export default function BreadcrumbItem({
+export function BreadcrumbItem({
   className,
   frame,
   expandPaths,

@@ -6,7 +6,7 @@ import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-chang
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import PageBanner from 'sentry/components/alerts/pageBanner';
+import {PageBanner} from 'sentry/components/alerts/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 

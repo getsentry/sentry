@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
@@ -31,7 +31,7 @@ type Props = {
   successMessage?: React.ReactNode;
 };
 
-function EditableText({
+export function EditableText({
   value,
   onChange,
   name,
@@ -222,8 +222,6 @@ function EditableText({
     </Wrapper>
   );
 }
-
-export default EditableText;
 
 const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;

@@ -8,7 +8,7 @@ import {
   InviteMembersContext,
   type InviteMembersContextValue,
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
+import {InviteRowControl as InviteRowControlNew} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam} from 'sentry/types/organization';
 

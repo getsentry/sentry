@@ -10,7 +10,7 @@ from django.utils.functional import SimpleLazyObject
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
-from sentry.silo.base import SiloMode, region_silo_function
+from sentry.silo.base import SiloMode, cell_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
 from sentry.users.services.user.model import RpcUser
@@ -61,7 +61,7 @@ def serialize_anonymous_user(arg: AnonymousUser, key: str | None = None) -> dict
     }
 
 
-@region_silo_function
+@cell_silo_function
 def async_send_notification(
     NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:

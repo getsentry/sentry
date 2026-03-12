@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import LoadingError from 'sentry/components/loadingError';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -21,7 +21,7 @@ import {
   type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
+import {TagFacetsDistributionMeter} from './tagFacetsDistributionMeter';
 
 export const MOBILE_TAGS = [
   'device',

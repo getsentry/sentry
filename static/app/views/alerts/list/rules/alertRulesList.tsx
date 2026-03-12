@@ -10,13 +10,13 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingError} from 'sentry/components/loadingError';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -33,13 +33,13 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import FilterBar from 'sentry/views/alerts/filterBar';
-import AlertHeader from 'sentry/views/alerts/list/header';
+import {FilterBar} from 'sentry/views/alerts/filterBar';
+import {AlertHeader} from 'sentry/views/alerts/list/header';
 import type {CombinedAlerts} from 'sentry/views/alerts/types';
 import {AlertRuleType, CombinedAlertType} from 'sentry/views/alerts/types';
 import {getTeamParams, isIssueAlert} from 'sentry/views/alerts/utils';
 
-import RuleListRow from './row';
+import {RuleListRow} from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
 const defaultSort: SortField = ['incident_status', 'date_triggered'];

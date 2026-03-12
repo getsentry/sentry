@@ -2,11 +2,11 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
@@ -26,7 +26,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType} from './utils';
 
-function IssueContext(props: BaseContextProps) {
+export function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
 
   useEffect(() => {
@@ -177,4 +177,3 @@ const AssignedToBody = styled(ContextBody)`
 const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
-export default IssueContext;

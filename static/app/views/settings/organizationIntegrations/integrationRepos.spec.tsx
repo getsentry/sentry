@@ -5,7 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
+import {IntegrationRepos} from 'sentry/views/settings/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', () => {
   const org = OrganizationFixture();

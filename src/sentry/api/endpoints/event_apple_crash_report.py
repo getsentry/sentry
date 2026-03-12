@@ -4,7 +4,7 @@ from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.lang.native.applecrashreport import AppleCrashReport
@@ -12,7 +12,7 @@ from sentry.services import eventstore
 from sentry.utils.safe import get_path
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {

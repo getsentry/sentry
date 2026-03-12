@@ -3,9 +3,9 @@ import {useSearchParams} from 'react-router-dom';
 import type {BarSeriesOption} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

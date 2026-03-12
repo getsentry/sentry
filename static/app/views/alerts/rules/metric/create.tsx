@@ -35,7 +35,7 @@ type Props = {
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-function MetricRulesCreate(props: Props) {
+export function MetricRulesCreate(props: Props) {
   const theme = useTheme();
   function handleSubmitSuccess(data: any) {
     const {organization, project, router} = props;
@@ -95,5 +95,3 @@ function MetricRulesCreate(props: Props) {
     />
   );
 }
-
-export default MetricRulesCreate;

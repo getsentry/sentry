@@ -37,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-function TagFacetsDistributionMeter({
+export function TagFacetsDistributionMeter({
   segments,
   title,
   totalValues,
@@ -261,8 +261,6 @@ function TagFacetsDistributionMeter({
     </TagSummary>
   );
 }
-
-export default TagFacetsDistributionMeter;
 
 const TagSummary = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};

@@ -5,12 +5,12 @@ import {Grid} from '@sentry/scraps/layout';
 
 import Confirm from 'sentry/components/confirm';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -21,7 +21,12 @@ type Props = {
   className?: string;
 };
 
-function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: Props) {
+export function RecoveryCodes({
+  className,
+  isEnrolled,
+  codes,
+  onRegenerateBackupCodes,
+}: Props) {
   const printCodes = () => {
     // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     // eslint-disable-next-line dot-notation
@@ -88,8 +93,6 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
     </CodeContainer>
   );
 }
-
-export default RecoveryCodes;
 
 const CodeContainer = styled(Panel)`
   margin-top: ${p => p.theme.space['3xl']};

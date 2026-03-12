@@ -31,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Cell, find_regions_for_orgs, get_cell_by_name
+from sentry.types.region import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -374,7 +374,7 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        region_names = find_regions_for_orgs([org.id for org in organizations])
+        region_names = find_cells_for_orgs([org.id for org in organizations])
         return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:

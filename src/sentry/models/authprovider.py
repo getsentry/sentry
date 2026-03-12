@@ -18,7 +18,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -160,9 +160,9 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.RESET_IDP_FLAGS,
                 object_identifier=self.organization_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     def disable_scim(self):
@@ -208,9 +208,9 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.MARK_INVALID_SSO,
                 object_identifier=user_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     @classmethod

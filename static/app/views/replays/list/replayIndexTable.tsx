@@ -9,7 +9,7 @@ import {
   JetpackComposePiiNotice,
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
@@ -26,10 +26,10 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
-import ReplaysFilters from 'sentry/views/replays/list/filters';
+import {BulkDeleteAlert} from 'sentry/views/replays/list/bulkDeleteAlert';
+import {ReplaysFilters} from 'sentry/views/replays/list/filters';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
-import ReplaysSearch from 'sentry/views/replays/list/search';
+import {ReplaysSearch} from 'sentry/views/replays/list/search';
 import useReplayIndexTableColumns from 'sentry/views/replays/list/useReplayIndexTableColumns';
 import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -42,7 +42,7 @@ interface Props {
   replays: ReplayListRecord[];
 }
 
-export default function ReplayIndexTable({
+export function ReplayIndexTable({
   error,
   hasMoreResults,
   isPending,

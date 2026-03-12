@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
@@ -69,22 +69,38 @@ export function useLogsSearchQueryBuilderProps({
     ]
   );
 
-  const tracesItemSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps = {
-    initialQuery: logsSearch.formatString(),
-    searchSource: 'ourlogs',
-    onSearch,
-    booleanAttributes,
-    numberAttributes,
-    stringAttributes,
-    itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
-    booleanSecondaryAliases,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-    caseInsensitive,
-    onCaseInsensitiveClick: setCaseInsensitive,
-    replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
-    matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
-  };
+  const initialQuery = logsSearch.formatString();
+  const tracesItemSearchQueryBuilderProps = useMemo<TraceItemSearchQueryBuilderProps>(
+    () => ({
+      initialQuery,
+      searchSource: 'ourlogs',
+      onSearch,
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      caseInsensitive,
+      onCaseInsensitiveClick: setCaseInsensitive,
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['message'] : undefined,
+      matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
+    }),
+    [
+      booleanAttributes,
+      booleanSecondaryAliases,
+      caseInsensitive,
+      hasRawSearchReplacement,
+      initialQuery,
+      numberAttributes,
+      numberSecondaryAliases,
+      onSearch,
+      setCaseInsensitive,
+      stringAttributes,
+      stringSecondaryAliases,
+    ]
+  );
 
   const searchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps

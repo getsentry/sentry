@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
@@ -27,7 +27,11 @@ const commitSchema = z.object({
     .refine((val): val is Commit => val !== null, t('Please select a commit')),
 });
 
-function CustomCommitsResolutionModal({
+const defaultValues: z.input<typeof commitSchema> = {
+  commit: null,
+};
+
+export function CustomCommitsResolutionModal({
   onSelected,
   orgSlug,
   projectSlug,
@@ -38,9 +42,7 @@ function CustomCommitsResolutionModal({
 }: CustomCommitsResolutionModalProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      commit: null as Commit | null,
-    },
+    defaultValues,
     validators: {
       onDynamic: commitSchema,
     },
@@ -108,5 +110,3 @@ function CustomCommitsResolutionModal({
     </form.AppForm>
   );
 }
-
-export default CustomCommitsResolutionModal;
