@@ -21,8 +21,9 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 function Collapsible({
   children,
@@ -124,7 +125,8 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
 }: {
   children?: ReactNode;
 }) {
-  const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
+  const {layout} = useNavigation();
+  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
 
   if (layout === 'mobile') {
     return null;
@@ -156,7 +158,7 @@ SecondaryNavigation.Body = function SecondaryNavigationBody({
 }: {
   children: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return <Body layout={layout}>{children}</Body>;
 };
@@ -174,7 +176,7 @@ function SectionTitle({
   title: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   if (canCollapse) {
     return (
@@ -234,7 +236,7 @@ SecondaryNavigation.Section = function SecondaryNavigationSection({
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
@@ -279,7 +281,7 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
   const isActive =
     incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
@@ -320,7 +322,7 @@ SecondaryNavigation.Footer = function SecondaryNavigationFooter({
 }: {
   children: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return <Footer layout={layout}>{children}</Footer>;
 };

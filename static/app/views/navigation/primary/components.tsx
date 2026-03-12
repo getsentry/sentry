@@ -20,7 +20,7 @@ import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
@@ -32,7 +32,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
     <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
       <Flex
@@ -84,7 +84,7 @@ export function SidebarMenu({
 }: SidebarMenuProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const theme = useTheme();
 
   const showLabel = layout === 'mobile';
@@ -187,7 +187,7 @@ function SidebarNavigationLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
+  const {layout, activePrimaryNavigationGroup} = useNavigation();
   const location = useLocation();
   const isActive = isSidebarLinkActive(
     normalizeUrl(activeTo, location),
@@ -252,7 +252,7 @@ export function SidebarButton({
   label,
 }: SidebarButtonProps) {
   const organization = useOrganization();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const showLabel = layout === 'mobile';
 
   return (
@@ -418,7 +418,7 @@ const NavigationLink = styled(Link, {
 
 const NavigationButton = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
-    const {layout} = useNavigationContext();
+    const {layout} = useNavigation();
 
     return (
       <Button

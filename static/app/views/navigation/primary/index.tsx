@@ -20,7 +20,7 @@ import {
 } from 'sentry/icons';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -45,7 +45,7 @@ function SidebarBody({
   children: React.ReactNode;
   ref: React.RefObject<HTMLUListElement | null>;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
     <SidebarList isMobile={layout === 'mobile'} data-primary-list-container ref={ref}>
       {children}
@@ -54,7 +54,7 @@ function SidebarBody({
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const isMobile = layout === 'mobile';
 
   if (!children) {

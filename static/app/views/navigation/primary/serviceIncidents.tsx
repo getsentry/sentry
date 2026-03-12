@@ -6,7 +6,7 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -23,7 +23,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     overlayProps,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>

@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -438,7 +438,7 @@ export function PrimaryNavigationQuotaExceeded({
     overlayProps,
     state: overlayState,
   } = usePrimaryButtonOverlay({});
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);

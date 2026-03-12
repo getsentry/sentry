@@ -13,7 +13,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -187,7 +187,7 @@ export function PrimaryNavSeerConfigReminder() {
     state,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();

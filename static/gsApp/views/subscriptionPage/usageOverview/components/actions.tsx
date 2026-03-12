@@ -8,13 +8,15 @@ import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import useMedia from 'sentry/utils/useMedia';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavigationContext();
+  const {layout: navLayout} = useNavigation();
+  const {isCollapsed: navIsCollapsed} = useSecondaryNavigation();
   const isMobile = navLayout === 'mobile';
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =

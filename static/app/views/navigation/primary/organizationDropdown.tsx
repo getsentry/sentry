@@ -20,7 +20,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -44,7 +44,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 

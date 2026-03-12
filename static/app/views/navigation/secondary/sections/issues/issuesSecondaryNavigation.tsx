@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
@@ -75,7 +75,7 @@ export function IssuesSecondaryNavigation() {
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const organization = useOrganization();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const isSticky = layout === 'sidebar';
 
   const hasRedirectOptOut = organization.features.includes(

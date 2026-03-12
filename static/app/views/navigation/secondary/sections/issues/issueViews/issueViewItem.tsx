@@ -14,7 +14,7 @@ import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
@@ -77,7 +77,7 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useNavigationContext();
+  const {startInteraction, endInteraction, isInteractingRef} = useNavigation();
 
   return (
     <StyledReorderItem

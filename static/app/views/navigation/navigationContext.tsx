@@ -1,43 +1,34 @@
 import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 interface NavigationContext {
   activePrimaryNavigationGroup: PrimaryNavigationGroup | null;
-  collapsedNavigationIsOpen: boolean;
   endInteraction: () => void;
-  isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;
   layout: 'mobile' | 'sidebar';
   navigationParentRef: React.RefObject<HTMLDivElement | null>;
   setActivePrimaryNavigationGroup: (
     activePrimaryNavigationGroup: PrimaryNavigationGroup | null
   ) => void;
-  setCollapsedNavigationIsOpen: (collapsedNavigationIsOpen: boolean) => void;
-  setIsCollapsed: (isCollapsed: boolean) => void;
   startInteraction: () => void;
 }
 
 const NavigationContext = createContext<NavigationContext>({
   layout: 'sidebar',
   navigationParentRef: {current: null},
-  isCollapsed: false,
-  setIsCollapsed: () => {},
   isInteractingRef: {current: false},
   startInteraction: () => {},
   endInteraction: () => {},
   activePrimaryNavigationGroup: null,
   setActivePrimaryNavigationGroup: () => {},
-  collapsedNavigationIsOpen: false,
-  setCollapsedNavigationIsOpen: () => {},
 });
 
-export function useNavigationContext(): NavigationContext {
+export function useNavigation(): NavigationContext {
   return useContext(NavigationContext);
 }
 
@@ -45,11 +36,6 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
   const isInteractingRef = useRef(false);
-  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
-    NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
-    false
-  );
-  const [collapsedNavigationIsOpen, setCollapsedNavigationIsOpen] = useState(false);
   const [activePrimaryNavigationGroup, setActivePrimaryNavigationGroup] =
     useState<PrimaryNavigationGroup | null>(null);
 
@@ -68,32 +54,20 @@ export function NavigationContextProvider({children}: {children: React.ReactNode
     () => ({
       navigationParentRef,
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
-      isCollapsed,
-      setIsCollapsed,
       isInteractingRef,
       startInteraction,
       endInteraction,
       activePrimaryNavigationGroup,
       setActivePrimaryNavigationGroup,
-      collapsedNavigationIsOpen,
-      setCollapsedNavigationIsOpen,
     }),
-    [
-      isMobile,
-      isCollapsed,
-      setIsCollapsed,
-      startInteraction,
-      endInteraction,
-      activePrimaryNavigationGroup,
-      setActivePrimaryNavigationGroup,
-      collapsedNavigationIsOpen,
-      setCollapsedNavigationIsOpen,
-    ]
+    [isMobile, startInteraction, endInteraction, activePrimaryNavigationGroup]
   );
 
   return (
     <NavigationTourReminderContextProvider>
-      <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
+      <SecondaryNavigationContextProvider>
+        <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
+      </SecondaryNavigationContextProvider>
     </NavigationTourReminderContextProvider>
   );
 }

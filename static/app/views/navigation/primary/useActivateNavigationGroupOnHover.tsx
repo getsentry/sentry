@@ -1,9 +1,10 @@
 import {useRef} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useWindowHeight} from 'sentry/views/navigation/primary/useWindowHeight';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
@@ -25,14 +26,14 @@ export function useActivateNavigationGroupOnHover({
 }: {
   ref: React.RefObject<HTMLElement | null>;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const mouseAccelerationRef = useMouseMovement({
     ref,
     disabled: layout !== 'sidebar',
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavigationGroup, isCollapsed, collapsedNavigationIsOpen} =
-    useNavigationContext();
+  const {setActivePrimaryNavigationGroup} = useNavigation();
+  const {isCollapsed, isOpen} = useSecondaryNavigation();
   const windowHeight = useWindowHeight();
 
   return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
@@ -41,7 +42,7 @@ export function useActivateNavigationGroupOnHover({
         clearTimeout(timeoutRef.current);
       }
 
-      if (isCollapsed && !collapsedNavigationIsOpen) {
+      if (isCollapsed && !isOpen) {
         setActivePrimaryNavigationGroup(group);
         return;
       }

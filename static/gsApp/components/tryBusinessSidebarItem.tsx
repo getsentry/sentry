@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -43,7 +43,7 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <TrialStartedSidebarItem {...{organization, subscription}}>

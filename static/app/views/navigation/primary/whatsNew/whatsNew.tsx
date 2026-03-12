@@ -16,7 +16,7 @@ import {
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
@@ -127,7 +127,7 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>

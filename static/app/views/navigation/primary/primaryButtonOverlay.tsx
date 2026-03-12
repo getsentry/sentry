@@ -5,7 +5,7 @@ import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
 type PrimaryButtonOverlayProps = {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ type PrimaryButtonOverlayProps = {
 };
 
 export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return useOverlay({
     offset: 8,
@@ -35,7 +35,7 @@ export function PrimaryButtonOverlay({
   overlayProps,
 }: PrimaryButtonOverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>

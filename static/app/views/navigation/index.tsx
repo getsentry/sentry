@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTourProvider,
   useNavigationTour,
@@ -24,7 +24,7 @@ import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetAct
 
 function UserAndOrganizationNavigation() {
   const theme = useTheme();
-  const {layout, navigationParentRef} = useNavigationContext();
+  const {layout, navigationParentRef} = useNavigation();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
