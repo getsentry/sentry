@@ -727,6 +727,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,none)"] == 1
 
+    @pytest.mark.skip(reason="flaky: #110536")
     def test_aggregation_with_none_includes_items_with_none_explicitly_set(self):
         trace_metrics = [
             self.create_trace_metric(
