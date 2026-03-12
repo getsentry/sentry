@@ -194,6 +194,9 @@ export function MetricSelector({
     setFocusedIndex(Math.max(displayedOptions.length - 1, -1));
   }, [displayedOptions.length, focusedIndex]);
 
+  // Find the option with the longest label to render as a hidden element.
+  // This reserves enough width for the overlay so it doesn't resize as
+  // the user scrolls through the virtualized list.
   const longestOption = useMemo(
     () =>
       displayedOptions.reduce<MetricSelectOption | null>(
@@ -343,10 +346,13 @@ export function MetricSelector({
                     maxHeight="400px"
                     padding="xs 0"
                   >
+                    {/* Hidden element that reserves width based on the longest option label */}
                     {longestOption && (
-                      <div
+                      <Container
                         aria-hidden
-                        style={{visibility: 'hidden', height: 0, overflow: 'hidden'}}
+                        visibility="hidden"
+                        height={0}
+                        overflow="hidden"
                       >
                         <MenuListItem
                           as="div"
@@ -361,7 +367,7 @@ export function MetricSelector({
                           }
                           trailingItems={longestOption.trailingItems}
                         />
-                      </div>
+                      </Container>
                     )}
                     {displayedOptions.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
