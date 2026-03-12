@@ -796,7 +796,10 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         except NoProjects:
             return Response({"attributes": {}})
 
-        definitions = get_column_definitions(item_type)
+        try:
+            definitions = get_column_definitions(item_type)
+        except ValueError:
+            return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
         resolver = SearchResolver(
             params=snuba_params,
             config=SearchResolverConfig(),

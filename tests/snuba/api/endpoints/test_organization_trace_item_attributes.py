@@ -2164,6 +2164,16 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         )
         assert response.status_code == 400
 
+    def test_unsupported_item_type(self):
+        response = self.do_request(
+            payload={
+                "itemType": "uptime_results",
+                "attributes": ["some.attr"],
+            },
+        )
+        assert response.status_code == 400
+        assert "Unsupported item type" in response.data["detail"]
+
     def test_well_known_attributes(self):
         response = self.do_request(
             payload={
