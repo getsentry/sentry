@@ -9,7 +9,7 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navig
  * - 'collapsed': Sidebar is hidden (user preference, persisted)
  * - 'peek': Sidebar is temporarily visible via hover/focus while collapsed
  */
-export type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
+type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
   interaction: React.RefObject<string | null>;

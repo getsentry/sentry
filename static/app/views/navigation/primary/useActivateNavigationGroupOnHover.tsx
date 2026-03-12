@@ -26,7 +26,7 @@ export function useActivateNavigationGroupOnHover({
   ref: React.RefObject<HTMLElement | null>;
 }) {
   const {layout, setActivePrimaryNavigationGroup} = useNavigation();
-  const {isCollapsed, isOpen} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
 
   const mouseAccelerationRef = useMouseMovement({
     ref,
@@ -41,7 +41,7 @@ export function useActivateNavigationGroupOnHover({
         clearTimeout(timeoutRef.current);
       }
 
-      if (isCollapsed && !isOpen) {
+      if (view === 'collapsed') {
         setActivePrimaryNavigationGroup(group);
         return;
       }
