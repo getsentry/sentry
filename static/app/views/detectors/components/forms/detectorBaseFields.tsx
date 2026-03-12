@@ -121,8 +121,8 @@ function EnvironmentField({
   return (
     <StyledEnvironmentField
       choices={[
-        ...(includeAllEnvironments ? [['', t('All Environments')]] : []),
-        ...(environments?.map(environment => [environment, environment]) ?? []),
+        ...(includeAllEnvironments ? [['', t('All Environments')] as const] : []),
+        ...(environments?.map(environment => [environment, environment] as const) ?? []),
       ]}
       inline={false}
       flexibleControlStateSize

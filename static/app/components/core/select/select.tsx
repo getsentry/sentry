@@ -3,6 +3,7 @@ import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import type {AsyncProps} from 'react-select/src/Async';
+import type {CreatableProps} from 'react-select/src/Creatable';
 import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -418,6 +419,7 @@ type SelectProps<OptionType extends OptionTypeBase> =
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
   SelectProps<OptionType> &
     AsyncProps<OptionType> &
+    CreatableProps<OptionType, false> &
     Omit<
       ReactSelectProps<OptionType>,
       'onChange' | 'value' | 'menuPlacement' | 'theme'
@@ -454,6 +456,7 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        * menu's boundaries will automatically be truncated.
        */
       maxMenuWidth?: number | string;
+      onClear?: () => void;
       ref?: React.Ref<any>;
       searchable?: boolean;
       /**

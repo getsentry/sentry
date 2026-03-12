@@ -3,6 +3,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -83,7 +84,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-type Props = ControlProps & {
+type Props = DistributedOmit<ControlProps, 'onChange'> & {
   onChange: (value: any) => any;
   /**
    * Controls whether the dropdown allows to create a new team

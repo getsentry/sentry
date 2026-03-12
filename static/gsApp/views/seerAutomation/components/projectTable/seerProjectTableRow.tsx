@@ -88,7 +88,6 @@ export default function SeerProjectTableRow({
           <Stack align="stretch" flex="1">
             <Select
               size="xs"
-              width="100%"
               disabled={!canWrite}
               name="autofixAgent"
               options={options}
