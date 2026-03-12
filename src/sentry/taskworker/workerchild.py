@@ -50,10 +50,12 @@ def child_worker_init(process_type: str) -> None:
 
 @contextlib.contextmanager
 def timeout_alarm(
-    seconds: int, handler: Callable[[int, FrameType | None], None]
+    seconds: float, handler: Callable[[int, FrameType | None], None]
 ) -> Generator[None]:
     """
-    Context manager to handle SIGALRM handlers
+    Context manager to handle SIGALRM handlers.
+
+    Uses setitimer(ITIMER_REAL) for float-precision timeouts (delivers SIGALRM).
 
     To prevent tasks from consuming a worker forever, we set a timeout
     alarm that will interrupt tasks that run longer than
@@ -66,26 +68,26 @@ def timeout_alarm(
     on exit, adjusted for elapsed time.
     """
     original_handler = signal.signal(signal.SIGALRM, handler)
-    previous_remaining = signal.alarm(seconds)
+    previous_remaining, _ = signal.setitimer(signal.ITIMER_REAL, seconds)
 
     if 0 < previous_remaining <= seconds:
-        # Undo: restore original outer alarm and handler before raising
-        signal.alarm(previous_remaining)
+        # Undo: restore original outer timer and handler before raising
+        signal.setitimer(signal.ITIMER_REAL, previous_remaining)
         signal.signal(signal.SIGALRM, original_handler)
         raise ValueError(
             f"Inner timeout ({seconds}s) must be less than outer alarm remaining ({previous_remaining}s)"
         )
-    start = time.monotonic()
     try:
         yield
     finally:
-        elapsed = int(time.monotonic() - start)
-        signal.alarm(0)
+        remaining_inner, _ = signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, original_handler)
 
         if previous_remaining > 0:
-            # Restore original outer alarm adjusted for elapsed time.
-            signal.alarm(max(1, previous_remaining - elapsed))
+            # Restore original outer timer adjusted for elapsed time.
+            # elapsed = seconds - remaining_inner, so outer restore = previous_remaining - seconds + remaining_inner.
+            # This is always > 0: remaining_inner >= 0 and previous_remaining > seconds was enforced at entry.
+            signal.setitimer(signal.ITIMER_REAL, previous_remaining - seconds + remaining_inner)
 
 
 def load_parameters(data: str, headers: dict[str, str]) -> dict[str, Any]:

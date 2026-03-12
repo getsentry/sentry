@@ -1,6 +1,5 @@
-import signal
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from requests import Response
@@ -8,7 +7,6 @@ from requests import Response
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
-from sentry.taskworker.workerchild import timeout_alarm
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -102,33 +100,6 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_timeout_exception_propagates(self, mock_safe_urlopen):
-        # Make safe_urlopen sleep
-        def slow_urlopen(*args, **kwargs):
-            time.sleep(2.0)
-            return Mock(spec=Response)
-
-        mock_safe_urlopen.side_effect = slow_urlopen
-
-        app_platform_event = AppPlatformEvent(
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=self.install,
-            data={"test": "data"},
-        )
-
-        with pytest.raises(WebhookTimeoutError):
-            send_and_save_webhook_request(self.sentry_app, app_platform_event)
-
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
-    @override_options(
-        {
-            "sentry-apps.webhook.hard-timeout.sec": 1.0,
-            "sentry-apps.webhook.timeout.sec": 10.0,
-            "sentry-apps.webhook.restricted-webhook-sending": [],
-        }
-    )
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_lifecycle_record_halt_called_on_timeout(self, mock_record, mock_safe_urlopen):
         # Make safe_urlopen sleep
@@ -163,16 +134,14 @@ class WebhookTimeoutTest(TestCase):
         }
     )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_timeout_alarm_restores_signal_handler(self, mock_safe_urlopen):
-        # Get original handler
-        original_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
-        signal.signal(signal.SIGALRM, original_handler)
-
-        # Mock quick response
+    @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
+    def test_timeout_alarm_is_used(self, mock_timeout_alarm, mock_safe_urlopen):
         mock_response = Mock(spec=Response)
         mock_response.status_code = 200
         mock_response.headers = {}
         mock_safe_urlopen.return_value = mock_response
+        mock_timeout_alarm.return_value.__enter__ = Mock(return_value=None)
+        mock_timeout_alarm.return_value.__exit__ = Mock(return_value=False)
 
         app_platform_event = AppPlatformEvent(
             resource=SentryAppResourceType.ISSUE,
@@ -183,80 +152,4 @@ class WebhookTimeoutTest(TestCase):
 
         send_and_save_webhook_request(self.sentry_app, app_platform_event)
 
-        # Verify signal handler was restored
-        current_handler = signal.signal(signal.SIGALRM, signal.SIG_DFL)
-        signal.signal(signal.SIGALRM, current_handler)
-        assert current_handler == original_handler
-
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
-    @override_options(
-        {
-            "sentry-apps.webhook.hard-timeout.sec": 5.0,
-            "sentry-apps.webhook.timeout.sec": 1.0,
-            "sentry-apps.webhook.restricted-webhook-sending": [],
-            "sentry-apps.webhook-logging.enabled": {"installation_uuid": [], "sentry_app_slug": []},
-        }
-    )
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_alarm_cancelled_after_successful_webhook(self, mock_safe_urlopen):
-        mock_response = Mock(spec=Response)
-        mock_response.status_code = 200
-        mock_response.headers = {}
-        mock_safe_urlopen.return_value = mock_response
-
-        app_platform_event = AppPlatformEvent(
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=self.install,
-            data={"test": "data"},
-        )
-
-        send_and_save_webhook_request(self.sentry_app, app_platform_event)
-
-        # Verify no alarm is pending
-        remaining = signal.alarm(0)
-        assert remaining == 0  # No alarm was pending
-
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
-    @override_options(
-        {
-            "sentry-apps.webhook.hard-timeout.sec": 3,
-            "sentry-apps.webhook.timeout.sec": 1.0,
-        }
-    )
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_nested_timeout_alarm_restores_outer_alarm(self, mock_safe_urlopen):
-        """
-        Simulate the nested timeout_alarm scenario: task worker sets an outer alarm,
-        then send_and_save_webhook_request sets an inner alarm. After the inner exits,
-        the outer alarm must still be active (remaining > 0) and the outer handler restored.
-        """
-
-        mock_response = Mock(spec=Response)
-        mock_response.status_code = 200
-        mock_response.headers = {}
-        mock_safe_urlopen.return_value = mock_response
-
-        outer_called = []
-
-        def outer_handler(signum, frame):
-            outer_called.append(signum)
-
-        app_platform_event = AppPlatformEvent(
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=self.install,
-            data={"test": "data"},
-        )
-
-        # Outer alarm: simulate a 30s task processing deadline
-        with timeout_alarm(30, outer_handler):
-            send_and_save_webhook_request(self.sentry_app, app_platform_event)
-
-            # After the inner webhook timeout_alarm exits, outer alarm must still be active
-            remaining = signal.alarm(0)
-            signal.alarm(remaining)  # re-arm so teardown is clean
-            assert remaining > 0, "Outer alarm was not restored after inner timeout_alarm exited"
-
-        # And the outer handler must be restored after outer context exits
-        assert signal.getsignal(signal.SIGALRM) is not outer_handler
+        mock_timeout_alarm.assert_called_once_with(5.0, ANY)

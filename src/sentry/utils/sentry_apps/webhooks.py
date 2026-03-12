@@ -126,7 +126,7 @@ def send_and_save_webhook_request(
                 "organizations:sentry-app-webhook-hard-timeout",
                 organization_context.organization,
             ):
-                timeout_seconds = int(options.get("sentry-apps.webhook.hard-timeout.sec"))
+                timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
                 with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
                     response = safe_urlopen(
                         url=url,
