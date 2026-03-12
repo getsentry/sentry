@@ -11,7 +11,7 @@ import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SimilarStackTraceItem} from './item';
 import Toolbar from './toolbar';

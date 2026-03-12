@@ -3,8 +3,8 @@ import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {

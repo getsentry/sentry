@@ -1,7 +1,7 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
-import useTags from 'sentry/utils/useTags';
+import {useTags} from 'sentry/utils/useTags';
 
 describe('useTags', () => {
   beforeEach(() => {

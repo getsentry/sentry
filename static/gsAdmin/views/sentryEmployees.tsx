@@ -2,7 +2,7 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
 import ConfigStore from 'sentry/stores/configStore';

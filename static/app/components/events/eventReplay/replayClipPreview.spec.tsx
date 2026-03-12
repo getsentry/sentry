@@ -6,7 +6,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useRoutes} from 'sentry/utils/useRoutes';

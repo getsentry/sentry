@@ -1,5 +1,5 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AGENTS_LANDING_SUB_PATH,
   AGENTS_SIDEBAR_LABEL,

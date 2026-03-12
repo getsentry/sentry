@@ -9,7 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 import {IconLink} from 'sentry/icons';
 import {useStory} from 'sentry/stories/view/useStory';
 import slugify from 'sentry/utils/slugify';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 export function StoryHeading(props: ComponentProps<typeof Heading>) {
   const {story} = useStory();

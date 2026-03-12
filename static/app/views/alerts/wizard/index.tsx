@@ -21,7 +21,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';

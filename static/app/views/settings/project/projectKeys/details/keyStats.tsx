@@ -44,7 +44,7 @@ type StateSuccess = {
   until: number;
 };
 
-function KeyStats({api, organization, params, theme}: Props) {
+export function KeyStats({api, organization, params, theme}: Props) {
   const {keyId, projectId} = params;
   const queryBase = useMemo(() => {
     const until = Math.floor(Date.now() / 1000);
@@ -135,5 +135,3 @@ function KeyStats({api, organization, params, theme}: Props) {
     </Panel>
   );
 }
-
-export default KeyStats;

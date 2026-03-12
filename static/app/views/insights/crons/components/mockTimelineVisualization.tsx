@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {CheckInStatus, ScheduleType} from 'sentry/views/insights/crons/types';
 import {
   checkInStatusPrecedent,

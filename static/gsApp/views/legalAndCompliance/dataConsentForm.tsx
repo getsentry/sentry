@@ -4,7 +4,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {useGenAiConsentButtonAccess} from 'getsentry/hooks/genAiAccess';

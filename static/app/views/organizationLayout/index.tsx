@@ -13,9 +13,9 @@ import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilin
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {Organization} from 'sentry/types/organization';
-import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';

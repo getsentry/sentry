@@ -1,10 +1,10 @@
 import type {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {QueryClient, QueryObserverResult} from 'sentry/utils/queryClient';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {PromotionData} from 'getsentry/types';
-import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
+import {usePromotionTriggerCheck} from 'getsentry/utils/usePromotionTriggerCheck';
 
 type InjectedPromotionProps = {
   isError?: boolean;

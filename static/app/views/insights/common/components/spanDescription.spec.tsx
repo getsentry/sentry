@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 
 jest.mock('sentry/components/pageFilters/usePageFilters');

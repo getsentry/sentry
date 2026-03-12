@@ -24,9 +24,9 @@ import type {Team} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import slugify from 'sentry/utils/slugify';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 

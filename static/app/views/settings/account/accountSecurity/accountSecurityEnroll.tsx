@@ -37,7 +37,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';

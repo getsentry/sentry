@@ -24,7 +24,7 @@ import {
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,

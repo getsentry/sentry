@@ -18,7 +18,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactNode;

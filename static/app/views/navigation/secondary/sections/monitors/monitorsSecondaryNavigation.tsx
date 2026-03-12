@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
 export function MonitorsSecondaryNavigation() {

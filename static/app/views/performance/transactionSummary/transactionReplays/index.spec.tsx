@@ -29,8 +29,7 @@ type InitializeOrgProps = {
 };
 
 jest.mock('sentry/utils/useMedia', () => ({
-  __esModule: true,
-  default: jest.fn(() => true),
+  useMedia: jest.fn(() => true),
 }));
 
 const mockEventsUrl = '/organizations/org-slug/events/';

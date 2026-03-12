@@ -3,7 +3,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import useUserViewedReplays from 'sentry/components/replays/useUserViewedReplays';
+import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
 import localStorage from 'sentry/utils/localStorage';
 
 import {UnmaskAlert} from './unmaskAlert';

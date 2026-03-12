@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {MessageFormatter} from 'sentry/views/replays/detail/console/messageFormatter';
 import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';

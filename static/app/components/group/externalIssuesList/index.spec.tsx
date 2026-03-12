@@ -11,7 +11,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import type {Group} from 'sentry/types/group';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 import {ExternalIssueList as ExternalIssuesList} from '.';
 

@@ -11,7 +11,7 @@ import type {
   ErrorSelectOption,
   FilterFields,
 } from 'sentry/views/replays/detail/errorList/useErrorFilters';
-import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

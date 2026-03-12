@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
 
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';

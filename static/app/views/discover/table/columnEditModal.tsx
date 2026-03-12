@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import useTags from 'sentry/utils/useTags';
+import {useTags} from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {ColumnEditCollection} from './columnEditCollection';

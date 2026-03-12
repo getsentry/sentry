@@ -13,9 +13,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 

@@ -131,7 +131,7 @@ export interface UseOverlayProps
   strategy?: PopperProps<any>['strategy'];
 }
 
-function useOverlay({
+export function useOverlay({
   isOpen,
   onClose,
   defaultOpen,
@@ -349,5 +349,3 @@ function useOverlay({
     },
   };
 }
-
-export default useOverlay;

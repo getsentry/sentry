@@ -15,7 +15,7 @@ import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/util/forms';
 import {useMutateDataForwarderProject} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
 import type {DataForwarder} from 'sentry/views/settings/organizationDataForwarding/util/types';

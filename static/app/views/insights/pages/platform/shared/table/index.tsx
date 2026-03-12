@@ -8,7 +8,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';

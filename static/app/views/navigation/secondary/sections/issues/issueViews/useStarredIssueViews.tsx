@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {defined} from 'sentry/utils';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
