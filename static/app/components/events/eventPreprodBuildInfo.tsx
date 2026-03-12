@@ -88,11 +88,10 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
   const platform = app_info.platform ?? undefined;
   const labels = getLabels(platform);
 
-  // Left column: platform, build, base build, sizes
-  const buildItems: KeyValueListDataItem[] = [];
+  const items: KeyValueListDataItem[] = [];
 
   if (platform) {
-    buildItems.push({
+    items.push({
       key: 'platform',
       subject: t('Platform'),
       value: getReadablePlatformLabel(platform),
@@ -105,7 +104,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
       {organizationSlug: organization.slug, baseArtifactId: headArtifactId},
       'size'
     );
-    buildItems.push({
+    items.push({
       key: 'build',
       subject: t('Build'),
       value: buildName,
@@ -124,7 +123,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
       },
       'size'
     );
-    buildItems.push({
+    items.push({
       key: 'base-build',
       subject: t('Base Build'),
       value: baseBuildName,
@@ -135,7 +134,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
   if (isSizeInfoCompleted(size_info)) {
     const installSize = formattedPrimaryMetricInstallSize(size_info);
     if (installSize !== '-') {
-      buildItems.push({
+      items.push({
         key: 'install-size',
         subject: labels.installSizeLabel,
         value: installSize,
@@ -144,7 +143,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
 
     const downloadSize = formattedPrimaryMetricDownloadSize(size_info);
     if (downloadSize !== '-') {
-      buildItems.push({
+      items.push({
         key: 'download-size',
         subject: labels.downloadSizeLabel,
         value: downloadSize,
@@ -152,12 +151,9 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
     }
   }
 
-  // Right column: repo, branch, PR, sha, base sha
-  const gitItems: KeyValueListDataItem[] = [];
-
   if (vcs_info.head_repo_name) {
     const repoUrl = getRepoUrl(vcs_info, vcs_info.head_repo_name);
-    gitItems.push({
+    items.push({
       key: 'repo',
       subject: t('Repo'),
       value: repoUrl ? (
@@ -170,7 +166,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
 
   if (vcs_info.head_ref) {
     const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
-    gitItems.push({
+    items.push({
       key: 'branch',
       subject: t('Branch'),
       value: branchUrl ? (
@@ -184,7 +180,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
   if (vcs_info.pr_number) {
     const prUrl = getPrUrl(vcs_info);
     const prLabel = `#${vcs_info.pr_number}`;
-    gitItems.push({
+    items.push({
       key: 'pr',
       subject: t('PR'),
       value: prUrl ? <ExternalLink href={prUrl}>{prLabel}</ExternalLink> : prLabel,
@@ -193,7 +189,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
 
   if (vcs_info.head_sha) {
     const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
-    gitItems.push({
+    items.push({
       key: 'sha',
       subject: t('SHA'),
       value: shaUrl ? (
@@ -206,7 +202,7 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
 
   if (vcs_info.base_sha) {
     const baseShaUrl = getShaUrl(vcs_info, vcs_info.base_sha, true);
-    gitItems.push({
+    items.push({
       key: 'base-sha',
       subject: t('Base SHA'),
       value: baseShaUrl ? (
@@ -217,26 +213,25 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
     });
   }
 
-  if (buildItems.length === 0 && gitItems.length === 0) {
+  const rows = items.map(item => (
+    <KeyValueData.Content key={item.key} item={item} disableFormattedData />
+  ));
+
+  if (rows.length === 0) {
     return null;
+  }
+
+  const columns: React.ReactNode[] = [];
+  const columnSize = Math.ceil(rows.length / columnCount);
+  for (let i = 0; i < rows.length; i += columnSize) {
+    columns.push(
+      <TreeColumn key={`col-${i}`}>{rows.slice(i, i + columnSize)}</TreeColumn>
+    );
   }
 
   return (
     <BuildInfoContainer columnCount={columnCount} ref={containerRef}>
-      {buildItems.length > 0 && (
-        <TreeColumn key="build">
-          {buildItems.map(item => (
-            <KeyValueData.Content key={item.key} item={item} disableFormattedData />
-          ))}
-        </TreeColumn>
-      )}
-      {gitItems.length > 0 && (
-        <TreeColumn key="git">
-          {gitItems.map(item => (
-            <KeyValueData.Content key={item.key} item={item} disableFormattedData />
-          ))}
-        </TreeColumn>
-      )}
+      {columns}
     </BuildInfoContainer>
   );
 }
