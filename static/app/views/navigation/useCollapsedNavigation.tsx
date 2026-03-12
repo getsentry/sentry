@@ -26,17 +26,18 @@ const IGNORE_ELEMENTS = [
  */
 export function useCollapsedNavigation() {
   const {setActivePrimaryNavigationGroup} = useNavigation();
-  const {isCollapsed, isOpen, setIsOpen, isInteractingRef, endInteraction} =
-    useSecondaryNavigation();
+  const {view, setView, isInteractingRef, endInteraction} = useSecondaryNavigation();
+
+  const isCollapsed = view !== 'expanded';
 
   const isHoveredRef = useRef(false);
 
   const closeNavigation = useCallback(() => {
     isHoveredRef.current = false;
     endInteraction();
-    setIsOpen(false);
+    setView('collapsed');
     setActivePrimaryNavigationGroup(null);
-  }, [endInteraction, setActivePrimaryNavigationGroup, setIsOpen]);
+  }, [endInteraction, setActivePrimaryNavigationGroup, setView]);
 
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
@@ -69,14 +70,6 @@ export function useCollapsedNavigation() {
     closeNavigation();
   }, [closeNavigation, shouldNavigationStayOpen]);
 
-  // Resets hover state if nav is disabled
-  // Without this the menu will pop back open when collapsing
-  useEffect(() => {
-    if (!isCollapsed && isOpen) {
-      closeNavigation();
-    }
-  });
-
   // Sets up event listeners hover and focus changes
   useEffect(() => {
     const element = navigationParentRef.current;
@@ -95,7 +88,7 @@ export function useCollapsedNavigation() {
       isHoveredRef.current = true;
 
       openTimer = setTimeout(() => {
-        setIsOpen(true);
+        setView('peek');
       }, NAVIGATION_SIDEBAR_OPEN_DELAY_MS);
     };
 
@@ -134,7 +127,7 @@ export function useCollapsedNavigation() {
     const handleFocusIn = (e: FocusEvent) => {
       if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
         clearTimeout(closeTimer);
-        setIsOpen(true);
+        setView('peek');
       }
     };
 
@@ -166,7 +159,7 @@ export function useCollapsedNavigation() {
     isCollapsed,
     isInteractingRef,
     navigationParentRef,
-    setIsOpen,
+    setView,
     shouldNavigationStayOpen,
     tryCloseNavigation,
   ]);
@@ -187,8 +180,8 @@ export function useCollapsedNavigation() {
 
       closeNavigation();
     },
-    isDisabled: !isCollapsed || !isOpen,
+    isDisabled: view !== 'peek',
   });
 
-  return {isOpen};
+  return {view};
 }

@@ -30,7 +30,7 @@ export function Navigation() {
   const organization = useOrganization();
 
   const collapsedNavigation = useCollapsedNavigation();
-  const {isCollapsed: sidebarIsCollapsed} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
 
   useNavigationTourModal();
 
@@ -40,7 +40,7 @@ export function Navigation() {
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   const {currentStepId} = useNavigationTour();
-  const isCollapsed = currentStepId === null ? sidebarIsCollapsed : false;
+  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -50,10 +50,10 @@ export function Navigation() {
   const sidebarAnimationProps = useMemo(
     () =>
       makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.isOpen,
+        collapsedNavigation.view === 'peek',
         secondarySidebarWidth
       ),
-    [collapsedNavigation.isOpen, secondarySidebarWidth]
+    [collapsedNavigation.view, secondarySidebarWidth]
   );
 
   return (
@@ -95,7 +95,7 @@ export function Navigation() {
       </Flex>
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
-          data-visible={collapsedNavigation.isOpen}
+          data-visible={collapsedNavigation.view === 'peek'}
           data-test-id="collapsed-secondary-sidebar"
           height="100%"
           left={`${PRIMARY_SIDEBAR_WIDTH}px`}
