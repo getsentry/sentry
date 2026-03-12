@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import ANY, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from django.test import override_settings
@@ -54,11 +54,11 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert len(data) == 2
         assert data == [
             {
-                "id": UUID(bytes=bytes(reversed(logs[0].item_id))).hex,
+                "id": logs[0].item_id.hex(),
                 "log.body": "foo",
             },
             {
-                "id": UUID(bytes=bytes(reversed(logs[1].item_id))).hex,
+                "id": logs[1].item_id.hex(),
                 "log.body": "bar",
             },
         ]
@@ -417,7 +417,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert len(data) == 2
         for result, source in zip(data, reversed(logs)):
             assert result == {
-                "sentry.item_id": UUID(bytes=bytes(reversed(source.item_id))).hex,
+                "sentry.item_id": source.item_id.hex(),
                 "project.id": self.project.id,
                 "trace": source.trace_id,
                 "severity_number": source.attributes["sentry.severity_number"].int_value,

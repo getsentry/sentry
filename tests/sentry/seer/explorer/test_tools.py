@@ -3048,7 +3048,7 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:
-        return item.item_id[::-1].hex()
+        return item.item_id.hex()
 
     def test_get_log_attributes_for_trace_basic(self) -> None:
         result = get_log_attributes_for_trace(

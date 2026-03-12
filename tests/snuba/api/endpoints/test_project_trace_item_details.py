@@ -67,7 +67,7 @@ class ProjectTraceItemDetailsEndpointTest(
             timestamp=self.one_min_ago,
         )
         self.store_eap_items([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -122,7 +122,7 @@ class ProjectTraceItemDetailsEndpointTest(
             timestamp=self.one_min_ago,
         )
         self.store_eap_items([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -322,7 +322,7 @@ class ProjectTraceItemDetailsEndpointTest(
             timestamp=self.one_min_ago,
         )
         self.store_eap_items([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
 
@@ -375,7 +375,7 @@ class ProjectTraceItemDetailsEndpointTest(
         )
 
         self.store_eap_items([log])
-        item_id = uuid.UUID(bytes=bytes(reversed(log.item_id))).hex
+        item_id = log.item_id.hex()
 
         trace_details_response = self.do_request("logs", item_id)
         assert trace_details_response.status_code == 200, trace_details_response.content
