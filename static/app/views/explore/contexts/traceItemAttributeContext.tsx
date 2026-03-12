@@ -349,31 +349,19 @@ export function usePreprodItemAttributes(
   );
 }
 
+const TAGS_REGEX = /^tags\[(?<tagKey>\w+),(?<attributeType>boolean|number|string)\]$/;
+
 /**
  * Extracts the base key from a tag key, handling both plain keys and
  * explicit format like `tags[key,type]`.
  */
 export function extractBaseKey(key: string): string {
-  if (!key.startsWith('tags[') || !key.endsWith(']')) {
+  const match = TAGS_REGEX.exec(key);
+  if (!match?.groups) {
     return key;
   }
 
-  const inner = key.slice(5, -1);
-  const typeSeparatorIndex = inner.lastIndexOf(',');
-  if (typeSeparatorIndex === -1) {
-    return key;
-  }
-
-  const attributeType = inner.slice(typeSeparatorIndex + 1).trim();
-  if (
-    attributeType !== 'boolean' &&
-    attributeType !== 'number' &&
-    attributeType !== 'string'
-  ) {
-    return key;
-  }
-
-  return inner.slice(0, typeSeparatorIndex);
+  return match.groups.tagKey;
 }
 
 /**
