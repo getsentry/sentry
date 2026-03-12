@@ -32,7 +32,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org_slug_replicas: dict[str, OrganizationSlugReservationReplica] = {
                 org_slug_r.slug: org_slug_r
                 for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())

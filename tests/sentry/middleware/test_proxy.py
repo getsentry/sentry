@@ -63,6 +63,6 @@ class FakedAPIProxyTest(APITestCase):
             )
 
         result = json.loads(resp.getvalue())
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             team = Team.objects.get(id=result["id"])
             assert team.idp_provisioned

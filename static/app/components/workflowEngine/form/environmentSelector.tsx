@@ -3,7 +3,7 @@ import {useContext, useMemo} from 'react';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';

@@ -21,7 +21,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

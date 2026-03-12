@@ -1,6 +1,6 @@
 import {useQuery} from 'sentry/utils/queryClient';
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
 type Args = {

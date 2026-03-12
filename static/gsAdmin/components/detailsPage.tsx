@@ -120,7 +120,7 @@ type Props = {
   sections?: SectionItem[];
 };
 
-function DetailsPage({
+export function DetailsPage({
   rootName,
   name,
   crumbs = [],
@@ -174,5 +174,3 @@ function DetailsPage({
 const SectionBody = styled('div')<{withPadding?: boolean}>`
   ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
 `;
-
-export default DetailsPage;

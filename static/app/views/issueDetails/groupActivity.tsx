@@ -13,7 +13,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReprocessedBox} from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,

@@ -38,7 +38,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
+import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';

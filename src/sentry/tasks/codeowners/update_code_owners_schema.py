@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.update_code_owners_schema",
     namespace=issues_tasks,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def update_code_owners_schema(

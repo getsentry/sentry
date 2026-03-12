@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {

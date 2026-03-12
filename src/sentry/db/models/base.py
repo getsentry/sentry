@@ -500,7 +500,7 @@ Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-cell_silo_model = ModelSiloLimit(SiloMode.REGION)
+cell_silo_model = ModelSiloLimit(SiloMode.CELL)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.

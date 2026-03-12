@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import type {VideoEvent} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

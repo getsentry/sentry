@@ -22,7 +22,7 @@ import type {
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
     retry=Retry(times=3),
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact(
     org_id: int,
@@ -681,7 +681,7 @@ def _assemble_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_size_analysis(
     org_id: int,
@@ -801,7 +801,7 @@ def _assemble_preprod_artifact_installable_app(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_preprod_artifact_installable_app(
     org_id: int, project_id: int, checksum: str, chunks: Any, artifact_id: int, **kwargs: Any
@@ -822,7 +822,7 @@ def assemble_preprod_artifact_installable_app(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
     namespace=preprod_tasks,
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def detect_expired_preprod_artifacts() -> None:
     """

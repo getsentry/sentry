@@ -7,7 +7,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';

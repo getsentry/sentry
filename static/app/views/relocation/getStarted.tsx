@@ -7,8 +7,8 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import testableTransition from 'sentry/utils/testableTransition';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import {useApi} from 'sentry/utils/useApi';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';

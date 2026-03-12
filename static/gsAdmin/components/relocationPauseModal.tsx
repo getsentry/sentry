@@ -7,7 +7,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 type Props = ModalRenderProps & {
   relocation: Relocation;

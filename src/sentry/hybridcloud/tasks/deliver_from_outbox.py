@@ -41,13 +41,13 @@ def enqueue_outbox_jobs_control(
 @instrumented_task(
     name="sentry.tasks.enqueue_outbox_jobs",
     namespace=hybridcloud_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def enqueue_outbox_jobs(
     concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
 ) -> None:
     schedule_batch(
-        silo_mode=SiloMode.REGION,
+        silo_mode=SiloMode.CELL,
         drain_task=drain_outbox_shards,
         concurrency=concurrency,
         process_outbox_backfills=process_outbox_backfills,
@@ -74,7 +74,7 @@ def schedule_batch(
     if not concurrency:
         concurrency = CONCURRENCY
     try:
-        for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
+        for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.value]:
             outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
             aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
@@ -134,7 +134,7 @@ def schedule_batch(
     name="sentry.tasks.drain_outbox_shards",
     namespace=hybridcloud_tasks,
     processing_deadline_duration=90,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def drain_outbox_shards(
     outbox_identifier_low: int = 0,

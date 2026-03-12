@@ -59,7 +59,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         )
         self.bb_server_client = self.install.get_client()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = Repository.objects.create(
                 provider=self.integration.provider,
                 name="PROJ/repository-name",

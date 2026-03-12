@@ -40,7 +40,7 @@ pytestmark = [requires_snuba]
 
 
 def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs):
-    if SiloMode.get_current_mode() == SiloMode.REGION:
+    if SiloMode.get_current_mode() == SiloMode.CELL:
         match: list[Any] | None = kwargs.pop("match", None)
         if match is None:
             match = [matchers.header_matcher({PROXY_PATH: path})]
@@ -59,7 +59,7 @@ def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwa
 
 def assert_response_calls(expected_region_response, expected_non_region_response):
     assert len(expected_region_response) == len(expected_non_region_response)
-    if SiloMode.get_current_mode() == SiloMode.REGION:
+    if SiloMode.get_current_mode() == SiloMode.CELL:
         for index, path in enumerate(expected_region_response):
             assert (
                 responses.calls[index].request.url

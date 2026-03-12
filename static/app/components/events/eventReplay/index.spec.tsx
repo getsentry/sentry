@@ -9,14 +9,14 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventReplay} from 'sentry/components/events/eventReplay';
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');

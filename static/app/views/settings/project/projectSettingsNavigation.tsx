@@ -1,8 +1,8 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {withProject} from 'sentry/utils/withProject';
-import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
-import getConfiguration from 'sentry/views/settings/project/navigationConfiguration';
+import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
+import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 
 type Props = {
   organization: Organization;
@@ -12,7 +12,7 @@ type Props = {
 function ProjectSettingsNavigation({organization, project}: Props) {
   return (
     <SettingsNavigation
-      navigationObjects={getConfiguration({
+      navigationObjects={getNavigationConfiguration({
         project,
         organization,
         debugFilesNeedsReview: false,

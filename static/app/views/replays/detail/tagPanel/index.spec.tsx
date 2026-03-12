@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {TagPanel} from 'sentry/views/replays/detail/tagPanel';
 
 const mockReplay = ReplayReader.factory({

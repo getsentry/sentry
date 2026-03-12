@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
 import type {LineCoverage} from 'sentry/types/integrations';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';

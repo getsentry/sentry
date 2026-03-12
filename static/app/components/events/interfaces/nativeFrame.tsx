@@ -32,7 +32,7 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {

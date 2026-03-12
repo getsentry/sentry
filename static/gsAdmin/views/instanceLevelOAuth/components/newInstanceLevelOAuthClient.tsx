@@ -5,11 +5,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 import {ClientSecretModal} from './clientSecretModal';

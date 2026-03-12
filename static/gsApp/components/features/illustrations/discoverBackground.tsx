@@ -2,7 +2,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 // Computed using SVGGeometryElement.getTotalLength()
 const STROKE_LENGTH = 4445;

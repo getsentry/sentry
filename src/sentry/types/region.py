@@ -414,8 +414,8 @@ def get_local_cell() -> Cell:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        raise CellContextError("Not a region silo")
+    if SiloMode.get_current_mode() != SiloMode.CELL:
+        raise CellContextError("Not a cell silo")
 
     # In our threaded acceptance tests, we need to override the region of the current
     # context when passing through test rpc calls, but we can't rely on settings because

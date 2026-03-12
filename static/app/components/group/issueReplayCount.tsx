@@ -7,7 +7,7 @@ import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {

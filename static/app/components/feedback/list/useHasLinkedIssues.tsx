@@ -1,6 +1,6 @@
 import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import {useIssueTrackingFilter} from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

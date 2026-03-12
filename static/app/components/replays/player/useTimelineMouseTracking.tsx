@@ -2,7 +2,7 @@ import type {RefObject} from 'react';
 import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import divide from 'sentry/utils/number/divide';
+import {divide} from 'sentry/utils/number/divide';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';

@@ -8,7 +8,7 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {useMailboxCounts} from 'sentry/components/feedback/list/useMailboxCounts';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

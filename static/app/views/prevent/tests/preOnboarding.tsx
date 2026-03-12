@@ -12,7 +12,7 @@ import Access from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';

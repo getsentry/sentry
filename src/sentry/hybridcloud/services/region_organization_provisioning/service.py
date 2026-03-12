@@ -18,7 +18,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
     """
 
     key = "region_organization_provisioning"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @regional_rpc_method(resolve=ByCellName())
     @abstractmethod

@@ -2,9 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {IssueAlertFilterType} from 'sentry/types/alerts';
 import {IssueCategory} from 'sentry/types/group';
 import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';

@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 /**

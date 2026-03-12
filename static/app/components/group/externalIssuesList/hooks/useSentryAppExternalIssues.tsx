@@ -5,7 +5,7 @@ import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useE
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

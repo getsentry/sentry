@@ -49,13 +49,13 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -115,7 +115,7 @@ const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 function readShowTagsState() {
-  const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
+  const value = localStorageWrapper.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
 }
 
@@ -428,7 +428,7 @@ export class Results extends Component<Props, State> {
     });
     this.setState(state => {
       const newValue = !state.showTags;
-      localStorage.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
+      localStorageWrapper.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
       return {...state, showTags: newValue};
     });
   };

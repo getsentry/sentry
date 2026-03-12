@@ -9,7 +9,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

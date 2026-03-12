@@ -19,7 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {

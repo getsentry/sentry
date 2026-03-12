@@ -6,7 +6,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';

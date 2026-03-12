@@ -8,7 +8,7 @@ import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import UptimeOverview from 'sentry/views/insights/uptime/views/overview';
 
 jest.mock('sentry/components/pageFilters/usePageFilters');

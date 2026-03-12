@@ -11,7 +11,7 @@ import {
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {

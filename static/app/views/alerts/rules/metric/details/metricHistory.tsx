@@ -12,7 +12,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';

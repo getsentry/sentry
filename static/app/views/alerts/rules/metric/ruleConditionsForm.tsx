@@ -52,7 +52,7 @@ import {
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {getHasTag} from 'sentry/utils/tag';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 import {withTags} from 'sentry/utils/withTags';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';

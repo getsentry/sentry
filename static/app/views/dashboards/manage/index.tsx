@@ -32,11 +32,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -78,12 +78,12 @@ const GRID = 'grid';
 const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
-  const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
+  const shouldShow = localStorageWrapper.getItem(SHOW_TEMPLATES_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
-  const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+  const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
 
   // There was a bug where the layout was saved as 'list' instead of 'table'
   // this coerces it back to TABLE in case we still rely on it anywhere

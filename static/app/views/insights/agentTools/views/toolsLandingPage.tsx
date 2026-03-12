@@ -20,6 +20,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {TwoColumnWidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
 import {ToolCallsWidget as ToolUsageWidget} from 'sentry/views/insights/pages/agents/components/toolCallsWidget';
 import {ToolErrorsWidget} from 'sentry/views/insights/pages/agents/components/toolErrorsWidget';
@@ -29,7 +30,6 @@ import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {useHasPlatformizedAiAndMcp} from 'sentry/views/insights/pages/agents/utils/useHasPlatformizedAiAndMcp';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -46,7 +46,7 @@ function AgentToolsLandingPage({datePageFilterProps}: AgentToolsLandingPageProps
   useAgentMonitoringTrackPageView();
 
   const {view} = useDomainViewFilters();
-  const hasPlatformized = useHasPlatformizedAiAndMcp();
+  const hasPlatformized = useHasPlatformizedInsights();
   if (hasPlatformized) {
     return (
       <PrebuiltDashboardRenderer

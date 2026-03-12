@@ -12,7 +12,7 @@ import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useQueryClient} from 'sentry/utils/queryClient';

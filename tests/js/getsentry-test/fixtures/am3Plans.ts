@@ -292,7 +292,7 @@ const commonFieldsForDs = {
   availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
 };
 
-const AM3_PLANS = {
+export const AM3_PLANS = {
   am3_business: {
     ...commonFields,
     id: 'am3_business',
@@ -3524,5 +3524,3 @@ const AM3_PLANS = {
     },
   },
 } as const satisfies Record<string, Plan>;
-
-export default AM3_PLANS;

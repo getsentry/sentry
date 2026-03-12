@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';

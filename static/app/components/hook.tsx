@@ -1,6 +1,6 @@
 import {Component, memo, type ComponentType} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 // Only allow hooks that return a React component
