@@ -29,6 +29,10 @@ export function useCollapsedNavigation() {
   const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
+  // Keep a ref so event handlers can read the latest isCollapsed value during
+  // React's commit phase (e.g. focusout fires while React is unmounting elements).
+  const isCollapsedRef = useRef(isCollapsed);
+  isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);
 
@@ -130,6 +134,9 @@ export function useCollapsedNavigation() {
     };
 
     const handleFocusOut = () => {
+      if (!isCollapsedRef.current) {
+        return;
+      }
       tryCloseNavigation();
     };
 
