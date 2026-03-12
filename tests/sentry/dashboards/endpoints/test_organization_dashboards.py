@@ -2368,3 +2368,44 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert response.status_code == 400, response.data
             assert "widgets" in response.data, response.data
             assert response.data["widgets"][0]["queries"][0] == "Text widgets don't have queries"
+
+    def test_get_dashboards_with_project_read_scope(self) -> None:
+        """Test that users with project:read scope can view dashboards."""
+        # Create a user with only project-level access
+        project_user = self.create_user()
+        self.create_member(
+            user=project_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(project_user)
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+        # User should be able to see dashboards
+        assert len(response.data) >= 1
+
+    def test_post_dashboard_with_project_write_scope(self) -> None:
+        """Test that users with project:write scope can create dashboards."""
+        # Create a user with project-level access
+        project_user = self.create_user()
+        self.create_member(
+            user=project_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+        self.login_as(project_user)
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard created by project user",
+                "widgets": [],
+            },
+        )
+        # User with project access should be able to create dashboards
+        assert response.status_code == 201, response.content
+        assert response.data["title"] == "Dashboard created by project user"
