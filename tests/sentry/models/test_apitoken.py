@@ -228,7 +228,7 @@ class ApiTokenTest(TestCase):
 
         mock_delete_replica.assert_called_once_with(
             apitoken_id=token_id,
-            region_name=mock.ANY,
+            cell_name=mock.ANY,
         )
 
     @override_options({"api-token-async-flush": True})
