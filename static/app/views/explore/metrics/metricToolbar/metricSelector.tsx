@@ -396,7 +396,7 @@ export function MetricSelector({
                       <Container
                         width="100%"
                         position="relative"
-                        style={{height: virtualizer.getTotalSize()}}
+                        style={{height: `${virtualizer.getTotalSize()}px`}}
                       >
                         <Container
                           width="100%"
