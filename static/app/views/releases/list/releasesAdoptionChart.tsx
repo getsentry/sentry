@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
@@ -43,6 +42,7 @@ import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
