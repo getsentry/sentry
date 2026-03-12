@@ -121,17 +121,11 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
         </Container>
       ) : null}
       {hasFrameVariables ? (
-        <Container
-          borderTop="primary"
-          padding="sm md"
-          data-test-id="core-stacktrace-frame-vars"
-        >
-          <FrameVariablesGrid
-            platform={platform}
-            data={frameVariables}
-            meta={meta?.frames?.[frameIndex]?.vars}
-          />
-        </Container>
+        <FrameVariablesGrid
+          platform={platform}
+          data={frameVariables}
+          meta={meta?.frames?.[frameIndex]?.vars}
+        />
       ) : null}
       {hasFrameRegisters ? (
         <Container borderTop="primary">

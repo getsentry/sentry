@@ -151,6 +151,7 @@ function IssueStackTraceContent({
         event={event}
         stacktrace={exc.stacktrace}
         minifiedStacktrace={exc.rawStacktrace ?? undefined}
+        meta={meta?.[exc.exceptionIndex]?.stacktrace}
       >
         <InterimSection
           type={SectionKey.EXCEPTION}
@@ -295,6 +296,7 @@ function IssueStackTraceContent({
                       event={event}
                       stacktrace={exc.stacktrace}
                       minifiedStacktrace={exc.rawStacktrace ?? undefined}
+                      meta={meta?.[exc.exceptionIndex]?.stacktrace}
                     >
                       <StackTraceFrames
                         frameContextComponent={IssueStackTraceFrameContext}
