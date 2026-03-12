@@ -20,9 +20,9 @@ import {
   getFees,
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function NextBillCard({
+export function NextBillCard({
   subscription,
   organization,
 }: {
@@ -172,5 +172,3 @@ function NextBillCard({
     />
   );
 }
-
-export default NextBillCard;

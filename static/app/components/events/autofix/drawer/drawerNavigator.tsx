@@ -4,15 +4,15 @@ import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 interface SeerDrawerNavigatorProps {

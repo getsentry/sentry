@@ -86,6 +86,8 @@ interface ContainerLayoutProps {
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
 
+  visibility?: Responsive<'visible' | 'hidden' | 'collapse'>;
+
   // Text Wrapping
   whiteSpace?: Responsive<
     'break-spaces' | 'normal' | 'nowrap' | 'pre' | 'pre-line' | 'pre-wrap'
@@ -225,6 +227,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'right',
   'row',
   'top',
+  'visibility',
   'width',
   'whiteSpace',
 ]);
@@ -314,6 +317,7 @@ export const Container = styled(
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
 
+  ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**

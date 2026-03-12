@@ -13,16 +13,16 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {ProductTrialTag} from 'getsentry/components/productTrial/productTrialTag';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, UsageAction} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function shouldUseOnDemandCta(category: DataCategory): boolean {
@@ -49,7 +49,7 @@ interface ProductTrialAlertProps {
   product?: DataCategory;
 }
 
-function ProductTrialAlert(props: ProductTrialAlertProps) {
+export function ProductTrialAlert(props: ProductTrialAlertProps) {
   const {trial, subscription, organization, onDismiss, product, api} = props;
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isUpgradeSent, setIsUpgradeSent] = useState(false);
@@ -255,8 +255,6 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
     </TrialAlert>
   );
 }
-
-export default ProductTrialAlert;
 
 const TrialAlert = styled(Alert)`
   align-items: center;

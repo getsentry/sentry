@@ -417,6 +417,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         full_trace_id,
         additional_attributes=["span.status_code"],
         referrer=Referrer.SEER_EXPLORER_TOOLS,
+        organization=organization,
     )
 
     return EAPTrace(
@@ -1168,6 +1169,8 @@ def get_issue_details(
         "timeseries_interval": timeseries_interval,
         "tags_overview": tags_overview,
         "user_activity": serialized_activities,
+        "project_id": group.project_id,
+        "project_slug": group.project.slug,
     }
 
 

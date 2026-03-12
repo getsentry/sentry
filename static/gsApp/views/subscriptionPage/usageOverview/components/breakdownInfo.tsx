@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';

@@ -10,7 +10,6 @@ import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -514,23 +513,22 @@ def _assemble_preprod_artifact_size_analysis(
 
         try:
             organization = preprod_artifact.project.organization
-            if features.has("organizations:preprod-size-metrics-eap-write", organization):
-                for size_metric in size_metrics_updated:
-                    produce_preprod_size_metric_to_eap(
-                        size_metric=size_metric,
-                        organization=organization,
-                        organization_id=org_id,
-                        project_id=project.id,
-                    )
-                logger.info(
-                    "Successfully wrote preprod size metrics to EAP",
-                    extra={
-                        "preprod_artifact_id": preprod_artifact.id,
-                        "size_metrics_ids": [m.id for m in size_metrics_updated],
-                        "organization_id": org_id,
-                        "project_id": project.id,
-                    },
+            for size_metric in size_metrics_updated:
+                produce_preprod_size_metric_to_eap(
+                    size_metric=size_metric,
+                    organization=organization,
+                    organization_id=org_id,
+                    project_id=project.id,
                 )
+            logger.info(
+                "Successfully wrote preprod size metrics to EAP",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "size_metrics_ids": [m.id for m in size_metrics_updated],
+                    "organization_id": org_id,
+                    "project_id": project.id,
+                },
+            )
         except Exception as eap_error:
             logger.exception(
                 "Failed to write preprod size metrics to EAP",
@@ -744,21 +742,20 @@ def _assemble_preprod_artifact_installable_app(
 
     try:
         organization = preprod_artifact.project.organization
-        if features.has("organizations:preprod-build-distribution-eap-write", organization):
-            produce_preprod_build_distribution_to_eap(
-                artifact=preprod_artifact,
-                organization=organization,
-                organization_id=org_id,
-                project_id=project.id,
-            )
-            logger.info(
-                "Successfully wrote preprod build distribution to EAP",
-                extra={
-                    "preprod_artifact_id": preprod_artifact.id,
-                    "organization_id": org_id,
-                    "project_id": project.id,
-                },
-            )
+        produce_preprod_build_distribution_to_eap(
+            artifact=preprod_artifact,
+            organization=organization,
+            organization_id=org_id,
+            project_id=project.id,
+        )
+        logger.info(
+            "Successfully wrote preprod build distribution to EAP",
+            extra={
+                "preprod_artifact_id": preprod_artifact.id,
+                "organization_id": org_id,
+                "project_id": project.id,
+            },
+        )
     except Exception:
         logger.exception(
             "Failed to write preprod build distribution to EAP",
@@ -852,6 +849,7 @@ def detect_expired_preprod_artifacts() -> None:
     expired_artifacts = PreprodArtifact.objects.filter(
         state__in=[PreprodArtifact.ArtifactState.UPLOADING, PreprodArtifact.ArtifactState.UPLOADED],
         date_updated__lte=timeout_threshold,
+        preprodsnapshotmetrics__isnull=True,
     )
 
     expired_artifacts_count = 0

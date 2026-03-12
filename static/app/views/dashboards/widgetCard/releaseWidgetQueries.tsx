@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -14,9 +14,9 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {

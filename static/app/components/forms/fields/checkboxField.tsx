@@ -35,7 +35,7 @@ type Props = {
   required?: boolean;
 } & FormFieldProps;
 
-function CheckboxField(props: Props) {
+export function CheckboxField(props: Props) {
   const {name, disabled, stacked, required, label, help} = props;
 
   const helpElement = typeof help === 'function' ? help(props) : help;
@@ -81,5 +81,3 @@ function CheckboxField(props: Props) {
     </FormField>
   );
 }
-
-export default CheckboxField;

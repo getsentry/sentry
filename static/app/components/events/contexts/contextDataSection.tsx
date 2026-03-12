@@ -19,7 +19,7 @@ interface ContextDataSectionProps {
   project?: Project;
 }
 
-export default function ContextDataSection({
+export function ContextDataSection({
   event,
   group,
   project,

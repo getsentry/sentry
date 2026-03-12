@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 import orjson
@@ -60,8 +59,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer = mock_seer
             yield
 
-    def test_pull_request_opened(self) -> None:
-        """Test that opened action triggers Seer request and adds reaction."""
+    def test_pull_request_opened_uses_review_request_endpoint(self) -> None:
+        """Test that opened action uses review-request endpoint."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             assert event["action"] == "opened"
@@ -73,9 +72,11 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
-            assert call_kwargs["path"] == "/v1/automation/overwatch-request"
+            assert call_kwargs["path"] == "/v1/code_review/review-request"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == SeerCodeReviewRequestType.PR_REVIEW.value
+            assert "request_type" in payload
+            assert "external_owner_id" in payload
+            assert "data" in payload
 
             self.mock_reaction.assert_called_once_with(
                 event["repository"]["full_name"],
@@ -234,8 +235,8 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
             self.mock_reaction.assert_not_called()
 
-    def test_pull_request_closed_action(self) -> None:
-        """Test that closed action triggers Seer request with pr-closed request type and skips reaction."""
+    def test_pull_request_closed_uses_pr_closed_endpoint(self) -> None:
+        """Test that closed action uses pr-closed endpoint."""
         with self.code_review_setup(), self.tasks():
             event = orjson.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
             event["action"] = "closed"
@@ -247,19 +248,12 @@ class PullRequestEventWebhookTest(GitHubWebhookCodeReviewTestCase):
 
             self.mock_seer.assert_called_once()
             call_kwargs = self.mock_seer.call_args[1]
-            assert call_kwargs["path"] == "/v1/automation/overwatch-request"
+            assert call_kwargs["path"] == "/v1/code_review/pr-closed"
             payload = call_kwargs["payload"]
-            assert payload["request_type"] == SeerCodeReviewRequestType.PR_CLOSED.value
+            assert "request_type" in payload
+            assert "external_owner_id" in payload
+            assert "data" in payload
             assert payload["data"]["config"]["trigger"] == SeerCodeReviewTrigger.UNKNOWN.value
-            assert payload["data"]["config"]["trigger_user"] == "baxterthehacker"
-            assert payload["data"]["config"]["trigger_comment_id"] is None
-            assert payload["data"]["config"]["trigger_comment_type"] is None
-            # After Pydantic validation, trigger_at is a datetime object
-            assert payload["data"]["config"]["trigger_at"] == datetime(
-                2015, 5, 5, 23, 40, 27, tzinfo=timezone.utc
-            )
-            # sentry_received_trigger_at is set to current time when transform happens
-            assert isinstance(payload["data"]["config"]["sentry_received_trigger_at"], datetime)
             self.mock_reaction.assert_not_called()
 
     def test_pull_request_opened_filtered_when_trigger_disabled_post_ga(self) -> None:

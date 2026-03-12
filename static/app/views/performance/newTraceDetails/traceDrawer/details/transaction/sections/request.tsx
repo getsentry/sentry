@@ -7,17 +7,16 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import getTransformedData from 'sentry/components/events/interfaces/request/getTransformedData';
+import {getTransformedData} from 'sentry/components/events/interfaces/request/getTransformedData';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import {
   StructuredData,
   type StructedEventDataConfig,
 } from 'sentry/components/structuredEventData';
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -292,7 +291,7 @@ const Path = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
 
   & strong {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
@@ -300,7 +299,7 @@ const Path = styled('span')`
 // doesn't quite get it in place.
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   position: relative;
   top: 1px;

@@ -8,11 +8,11 @@ import type {Client} from 'sentry/api';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
-import withApi from 'sentry/utils/withApi';
+import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
+import {withApi} from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = (value: any) => !!value || value === 0;

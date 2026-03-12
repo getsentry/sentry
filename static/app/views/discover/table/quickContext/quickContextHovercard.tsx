@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,9 +16,9 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import EventContext from './eventContext';
-import IssueContext from './issueContext';
-import ReleaseContext from './releaseContext';
+import {EventContext} from './eventContext';
+import {IssueContext} from './issueContext';
+import {ReleaseContext} from './releaseContext';
 import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
 

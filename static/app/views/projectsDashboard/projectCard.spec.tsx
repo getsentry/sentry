@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectCard from 'sentry/views/projectsDashboard/projectCard';
+import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');

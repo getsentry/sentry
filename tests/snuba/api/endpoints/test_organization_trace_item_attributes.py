@@ -945,7 +945,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "string"})
 
@@ -986,7 +986,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         # Query for http metric attributes
         response = self.do_request(
@@ -1018,7 +1018,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "number"})
 
@@ -1055,7 +1055,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "boolean"})
 
@@ -2089,7 +2089,7 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
                 attributes={"http.method": "POST"},
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(key="http.method")
         assert response.status_code == 200

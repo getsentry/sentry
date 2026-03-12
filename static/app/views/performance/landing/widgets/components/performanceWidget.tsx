@@ -1,16 +1,16 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import getPerformanceWidgetContainer, {
   type PerformanceWidgetContainerTypes,
 } from 'sentry/views/performance/landing/widgets/components/performanceWidgetContainer';
@@ -196,9 +196,9 @@ const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`
 `;
 
 const ContentContainer = styled('div')<{bottomPadding?: boolean; noPadding?: boolean}>`
-  padding-left: ${p => (p.noPadding ? 0 : space(2))};
-  padding-right: ${p => (p.noPadding ? 0 : space(2))};
-  padding-bottom: ${p => (p.bottomPadding ? space(1) : 0)};
+  padding-left: ${p => (p.noPadding ? 0 : p.theme.space.xl)};
+  padding-right: ${p => (p.noPadding ? 0 : p.theme.space.xl)};
+  padding-bottom: ${p => (p.bottomPadding ? p.theme.space.md : 0)};
 `;
 
 const ContentBodyContainer = styled(ContentContainer)`

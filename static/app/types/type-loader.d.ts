@@ -16,13 +16,7 @@ declare namespace TypeLoader {
 }
 
 declare module '!!type-loader!*' {
-  const TypeLoaderResult:
-    | {
-        props: Record<string, TypeLoader.ComponentDocWithFilename>;
-        exports: Record<string, {name: string; typeOnly: boolean}[]>;
-      }
-    // If the type loader is not enabled, the return value is an empty module
-    | Record<string, undefined>;
+  const TypeLoaderResult: TypeLoader.TypeLoaderResult;
 
   export default TypeLoaderResult;
 }

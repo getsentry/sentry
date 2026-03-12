@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import GridEditable, {
@@ -17,13 +17,15 @@ import GridEditable, {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
+import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraces} from 'sentry/views/explore/hooks/useTraces';
@@ -90,6 +92,7 @@ const DEFAULT_LIMIT = 10;
 
 interface TracesTableProps {
   openTraceViewDrawer: ReturnType<typeof useTraceViewDrawer>['openTraceViewDrawer'];
+  dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
   tableWidths?: number[];
@@ -98,6 +101,7 @@ interface TracesTableProps {
 export function TracesTable({
   openTraceViewDrawer,
   frameless,
+  dashboardFilters,
   limit = DEFAULT_LIMIT,
   tableWidths,
 }: TracesTableProps) {
@@ -112,7 +116,13 @@ export function TracesTable({
         : defaultColumnOrder,
   });
 
-  const combinedQuery = useCombinedQuery(getHasAiSpansFilter());
+  const combinedQuery =
+    applyDashboardFilters(
+      useCombinedQuery(getHasAiSpansFilter()),
+      dashboardFilters,
+      WidgetType.SPANS // This widget technically has its own widget type, but it uses the spans dataset
+    ) ?? '';
+
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useTraces({

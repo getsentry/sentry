@@ -13,19 +13,19 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest} from 'getsentry/actionCreators/upsell';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import StartTrialButton from 'getsentry/components/startTrialButton';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
@@ -33,7 +33,7 @@ type AiSetupDataConsentProps = {
   groupId?: string;
 };
 
-function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
+export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -294,8 +294,6 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     </Stack>
   );
 }
-
-export default AiSetupDataConsent;
 
 const SayHelloHeader = styled('h3')`
   margin: 0;

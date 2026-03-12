@@ -1,4 +1,4 @@
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 
 describe('toPercent', () => {
   it('should format a decimal into to percent, 3 decimal places by default', () => {

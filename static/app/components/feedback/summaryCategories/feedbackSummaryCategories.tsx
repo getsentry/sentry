@@ -5,14 +5,14 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
-import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
+import {FeedbackSummary} from 'sentry/components/feedback/summaryCategories/feedbackSummary';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export default function FeedbackSummaryCategories() {
+export function FeedbackSummaryCategories() {
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
   const [isExpanded, setIsExpanded] = useSyncedLocalStorageState(

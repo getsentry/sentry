@@ -7,10 +7,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 /**
@@ -150,7 +149,7 @@ export function UptimeHeadersField(props: Omit<FormFieldProps, 'children'>) {
 const HeaderItems = styled('fieldset')`
   display: grid;
   grid-template-columns: minmax(200px, 1fr) 2fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
 `;
 

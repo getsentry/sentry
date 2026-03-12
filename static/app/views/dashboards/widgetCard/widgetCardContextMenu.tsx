@@ -24,7 +24,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
@@ -266,7 +266,7 @@ export function getMenuOptions(
         dashboardFilters,
         selection,
         organization,
-        Mode.SAMPLES,
+        widget.queries.some(q => q.aggregates.length > 0) ? Mode.AGGREGATE : Mode.SAMPLES,
         getReferrer(widget.displayType)
       ),
     });
@@ -285,7 +285,11 @@ export function getMenuOptions(
       .map((series, index) => {
         const transformed = transformWidgetSeriesToTimeSeries(series, widget);
 
-        if (!transformed || transformed.timeSeries.meta.isOther) {
+        if (
+          !transformed ||
+          transformed.timeSeries.meta.isOther ||
+          isEquation(transformed.timeSeries.yAxis)
+        ) {
           return null;
         }
 
@@ -302,7 +306,7 @@ export function getMenuOptions(
         const search = new MutableSearch(baseQuery);
         for (const group of timeSeries.groupBy ?? []) {
           if (group.value !== null && !Array.isArray(group.value)) {
-            search.addFilterValue(group.key, `${group.value}`);
+            search.addFilterValue(group.key, group.value);
           }
         }
 

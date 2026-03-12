@@ -22,7 +22,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 

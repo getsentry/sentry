@@ -3,16 +3,16 @@ import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
-import Redirect from 'sentry/components/redirect';
-import ConfigStore from 'sentry/stores/configStore';
+import {Redirect} from 'sentry/components/redirect';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {RouteComponent} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
-import useOrganization from './useOrganization';
+import {useOrganization} from './useOrganization';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
@@ -33,7 +33,7 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P>(WrappedComponent: RouteComponent) {
+export function withDomainRedirect<P>(WrappedComponent: RouteComponent) {
   return function WithDomainRedirectWrapper(props: P) {
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
@@ -83,5 +83,3 @@ function withDomainRedirect<P>(WrappedComponent: RouteComponent) {
     return <WrappedComponent {...props} />;
   };
 }
-
-export default withDomainRedirect;

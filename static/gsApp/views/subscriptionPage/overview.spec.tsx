@@ -9,7 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {CohortId, PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 
@@ -74,7 +74,7 @@ describe('Subscription > Overview', () => {
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        planDetails: PlanDetailsLookupFixture('mm2_a_100k')!,
+        planDetails: PlanDetailsLookupFixture('mm2_a_100k'),
       }),
     });
 

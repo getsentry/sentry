@@ -4,11 +4,11 @@ import {Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function SettingsPageTabs() {
+export function SettingsPageTabs() {
   const organization = useOrganization();
   const {pathname} = useLocation();
 

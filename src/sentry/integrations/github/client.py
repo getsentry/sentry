@@ -504,6 +504,16 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}")
 
+    def get_languages(self, repo: str) -> dict[str, int]:
+        """
+        https://docs.github.com/en/rest/repos/repos#list-repository-languages
+
+        :param repo: "owner/repo" format
+        :returns: {"Python": 50000, "JavaScript": 30000, ...}
+                  Keys are GitHub Linguist names, values are bytes of code.
+        """
+        return self.get(f"/repos/{repo}/languages")
+
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
         """This gives information of the current rate limit"""
@@ -913,12 +923,12 @@ class GitHubBaseClient(
             headers=headers,
         )
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
-        )
-        return result
+        if codeowners:
+            if not contents.ok:
+                raise ApiError.from_response(contents)
+            return contents.content.decode("utf-8")
+
+        return b64decode(contents["content"]).decode("utf-8")
 
     def _graphql(
         self,

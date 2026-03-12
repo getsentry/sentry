@@ -1,6 +1,6 @@
 import {Client} from 'sentry/api';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const BASE_API_CLIENT = new Client({baseUrl: ''});
 

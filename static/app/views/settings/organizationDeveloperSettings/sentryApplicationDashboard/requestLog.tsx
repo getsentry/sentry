@@ -12,12 +12,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -129,7 +129,7 @@ function makeRequestLogQueryKey(
   ];
 }
 
-export default function RequestLog({app}: RequestLogProps) {
+export function RequestLog({app}: RequestLogProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);

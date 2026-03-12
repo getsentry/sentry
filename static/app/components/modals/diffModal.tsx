@@ -4,10 +4,9 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff> {
   project: Project;
@@ -50,8 +49,8 @@ function DiffModal({
 const modalCss = css`
   position: absolute;
   padding: 0;
-  inset: ${space(3)};
-  width: calc(100% - 2 * ${space(3)});
+  inset: 24px;
+  width: calc(100% - 2 * 24px);
 
   [role='document'] {
     height: 100%;

@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types/event';
 
 const organization = OrganizationFixture();

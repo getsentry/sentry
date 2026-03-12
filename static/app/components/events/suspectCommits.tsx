@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -13,10 +13,10 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCommitters from 'sentry/utils/useCommitters';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCommitters} from 'sentry/utils/useCommitters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface CommitWithGroupOwner extends Commit {

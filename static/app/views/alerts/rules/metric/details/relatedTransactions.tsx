@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 
 import GridEditable from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -30,7 +30,7 @@ interface RelatedTransactionsProps {
   timePeriod: TimePeriodType;
 }
 
-function RelatedTransactions({
+export function RelatedTransactions({
   organization,
   projects,
   timePeriod,
@@ -139,8 +139,6 @@ function RelatedTransactions({
     </DiscoverQuery>
   );
 }
-
-export default RelatedTransactions;
 
 const HeaderCell = styled('div')<{align: Alignments}>`
   display: block;

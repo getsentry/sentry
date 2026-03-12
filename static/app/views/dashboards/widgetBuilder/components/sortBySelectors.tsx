@@ -18,7 +18,7 @@ import {
   isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -28,7 +28,7 @@ import {
   sortDirections,
   type SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -73,7 +73,7 @@ export function SortBySelectors({
   const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
-    sortBy: `${EQUATION_PREFIX}`,
+    sortBy: EQUATION_PREFIX,
     sortDirection: values.sortDirection,
   });
   useEffect(() => {

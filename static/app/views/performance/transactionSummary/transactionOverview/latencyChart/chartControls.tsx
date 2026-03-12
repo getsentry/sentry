@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
 import Histogram from 'sentry/utils/performance/histogram';
 
@@ -10,7 +10,7 @@ type Props = {
   location: Location;
 };
 
-function ChartControls({location}: Props) {
+export function ChartControls({location}: Props) {
   return (
     <Histogram location={location} zoomKeys={[ZOOM_START, ZOOM_END]}>
       {({filterOptions, handleFilterChange, activeFilter}) => {
@@ -26,5 +26,3 @@ function ChartControls({location}: Props) {
     </Histogram>
   );
 }
-
-export default ChartControls;

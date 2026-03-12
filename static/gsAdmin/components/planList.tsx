@@ -1,13 +1,13 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
 import InputField from 'sentry/components/forms/fields/inputField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -20,7 +20,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
   activePlan: Plan | null;
@@ -34,7 +34,7 @@ type Props = {
   tierPlans: BillingConfig['planList'];
 };
 
-function PlanList({
+export function PlanList({
   activePlan,
   subscription,
   onSubmit,
@@ -274,5 +274,3 @@ const CurrentValueText = styled('div')`
 const AuditFields = styled('div')`
   margin-top: ${p => p.theme.space.xl};
 `;
-
-export default PlanList;

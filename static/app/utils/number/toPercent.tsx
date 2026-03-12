@@ -3,6 +3,6 @@
  *
  * toPercent(0.42) === '42.000%'
  */
-export default function toPercent(value: number, places = 3) {
+export function toPercent(value: number, places = 3) {
   return `${(value * 100).toFixed(places)}%`;
 }

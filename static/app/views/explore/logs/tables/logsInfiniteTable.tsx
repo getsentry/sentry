@@ -11,10 +11,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FileSize from 'sentry/components/fileSize';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -246,13 +246,15 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
+  const searchString = search.formatString();
   const highlightTerms = useMemo(() => {
     const terms = getLogBodySearchTerms(search);
     if (localOnlyItemFilters?.filterText) {
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-  }, [search, localOnlyItemFilters?.filterText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchString, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,

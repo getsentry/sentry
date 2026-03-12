@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
@@ -96,7 +96,7 @@ def send_search_agent_start_request(
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
     Endpoint to start an async search agent and return a run_id for polling.

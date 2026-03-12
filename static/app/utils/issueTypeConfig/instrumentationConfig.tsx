@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const instrumentationConfig: IssueCategoryConfigMapping = {
+export const instrumentationConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     evidence: {title: t('Details')},
@@ -39,5 +39,3 @@ const instrumentationConfig: IssueCategoryConfigMapping = {
     instrumentationFixSection: {enabled: true},
   },
 };
-
-export default instrumentationConfig;

@@ -24,6 +24,7 @@ from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
+    ProjectNotActiveError,
     build_workflow_event_data_from_event,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -94,7 +95,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
 @retry(
     timeouts=True,
     exclude=EventNotFoundError,
-    ignore=(Group.DoesNotExist, Project.DoesNotExist),
+    ignore=(Group.DoesNotExist, Project.DoesNotExist, ProjectNotActiveError),
     on_silent=DataConditionGroup.DoesNotExist,
 )
 def process_workflows_event(

@@ -83,7 +83,8 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
 from sentry.eventstream.item_helpers import (
-    _build_occurrence_attributes,
+    _encode_attribute_data,
+    _gather_attribute_data_from_event_data,
 )
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -1238,17 +1239,6 @@ class SnubaTestCase(BaseTestCase):
                 events.append(event)
         return events
 
-    def store_trace_metrics(self, trace_metrics):
-        files = {
-            f"trace_metric_{i}": trace_metric.SerializeToString()
-            for i, trace_metric in enumerate(trace_metrics)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
@@ -1256,6 +1246,11 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+        # Reverse the ids since these are stored in little endian in
+        # ClickHouse and end up reversed. This helps if we want to compare
+        # these inserted items to results returned from EAP.
+        for item in items:
+            item.item_id = item.item_id[::-1]
 
     def store_issues(self, issues):
         assert (
@@ -3592,16 +3587,20 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             "title": title,
             "type": occurrence_type,
         }
+        preprocessed: dict[str, Any] = {}
         if group_id is not None:
-            data["group_id"] = group_id
+            preprocessed["group_id"] = group_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
             data["transaction"] = transaction
         if attributes:
             data.update(attributes)
+        if tags is not None:
+            data["tags"] = tags.items()
 
-        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+        attr_data = _gather_attribute_data_from_event_data(data, preprocessed=preprocessed)
+        attributes_proto = _encode_attribute_data(attr_data)
 
         return TraceItem(
             organization_id=organization.id,

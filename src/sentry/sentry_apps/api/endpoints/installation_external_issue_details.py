@@ -6,7 +6,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.sentry_apps.services.region import sentry_app_region_service
+from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 
 
@@ -25,7 +25,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 status_code=400,
             )
 
-        result = sentry_app_region_service.delete_external_issue(
+        result = sentry_app_cell_service.delete_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
             external_issue_id=external_issue_id,

@@ -4,14 +4,14 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ConfigStore from 'sentry/stores/configStore';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {
   useHaveSelectedProjectsSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import ListPage from 'sentry/views/replays/list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
@@ -196,7 +196,7 @@ describe('ReplayList', () => {
 
   it('should show access denied when user does not have granular replay permissions', async () => {
     const mockOrg = OrganizationFixture({
-      features: [...AM2_FEATURES, 'granular-replay-permissions'],
+      features: [...AM2_FEATURES],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });
