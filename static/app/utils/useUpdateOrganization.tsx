@@ -1,6 +1,5 @@
 import OrganizationStore from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -38,8 +37,7 @@ export function useUpdateOrganization(organization: Organization) {
       // 3. then OrganizationStore
       // 4. defaulting to the org we have in props
       const previousOrganization =
-        queryClient.getQueryData<ApiResponse<Organization>>(queryOptions.queryKey)
-          ?.json ||
+        queryClient.getQueryData(queryOptions.queryKey)?.json ||
         getApiQueryData<Organization>(queryClient, v1QueryKey) ||
         OrganizationStore.get().organization ||
         organization;
@@ -51,7 +49,7 @@ export function useUpdateOrganization(organization: Organization) {
       const updatedOrganization = {
         ...previousOrganization,
         ...data,
-      } as Organization;
+      } satisfies Organization;
 
       // Update caches optimistically
       // 1. update the OrganizationStore
@@ -61,17 +59,14 @@ export function useUpdateOrganization(organization: Organization) {
       setApiQueryData(queryClient, v1QueryKey, updatedOrganization);
 
       // 3. update the v2 cache
-      const prevApiResponse = queryClient.getQueryData<ApiResponse<Organization>>(
-        queryOptions.queryKey
+      queryClient.setQueryData(queryOptions.queryKey, prevApiResponse =>
+        prevApiResponse
+          ? {
+              ...prevApiResponse,
+              json: updatedOrganization,
+            }
+          : prevApiResponse
       );
-      queryClient.setQueryData(queryOptions.queryKey, {
-        headers: prevApiResponse?.headers ?? {
-          Link: undefined,
-          'X-Hits': undefined,
-          'X-Max-Hits': undefined,
-        },
-        json: updatedOrganization,
-      });
 
       return {previousOrganization};
     },
@@ -92,17 +87,14 @@ export function useUpdateOrganization(organization: Organization) {
         setApiQueryData(queryClient, v1QueryKey, context.previousOrganization);
 
         // 3. rollback the v2 cache
-        const prevApiResponse = queryClient.getQueryData<ApiResponse<Organization>>(
-          queryOptions.queryKey
+        queryClient.setQueryData(queryOptions.queryKey, prevApiResponse =>
+          prevApiResponse
+            ? {
+                ...prevApiResponse,
+                json: context.previousOrganization,
+              }
+            : prevApiResponse
         );
-        queryClient.setQueryData(queryOptions.queryKey, {
-          headers: prevApiResponse?.headers ?? {
-            Link: undefined,
-            'X-Hits': undefined,
-            'X-Max-Hits': undefined,
-          },
-          json: context.previousOrganization,
-        });
       }
     },
     onSettled: () => {
