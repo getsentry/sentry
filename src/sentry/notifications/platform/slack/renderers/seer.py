@@ -27,6 +27,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerExplorerError,
     SeerExplorerResponse,
 )
 from sentry.notifications.platform.types import (
@@ -93,6 +94,8 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data)
+        elif isinstance(data, SeerExplorerError):
+            return cls._render_explorer_error(data)
         elif isinstance(data, SeerExplorerResponse):
             return cls._render_explorer_response(data)
         else:
@@ -190,6 +193,16 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             blocks.append(ActionsBlock(elements=action_elements))
 
         return SlackRenderable(blocks=blocks, text="Seer has emerged with news from its voyage")
+
+    @classmethod
+    def _render_explorer_error(cls, data: SeerExplorerError) -> SlackRenderable:
+        return SlackRenderable(
+            blocks=[
+                SectionBlock(text=data.error_title),
+                SectionBlock(text=MarkdownTextObject(text=f">{data.error_message}")),
+            ],
+            text=f"Seer stumbled: {data.error_title}",
+        )
 
     @classmethod
     def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
