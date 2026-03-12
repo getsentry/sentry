@@ -20,13 +20,15 @@ export function PreventSecondaryNavigation() {
       <SecondaryNavigation.Header>{t('Prevent')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="prevent-main">
-          <Feature features={['prevent-test-analytics']}>
-            <SecondaryNavigation.ListItem>
-              <SecondaryNavigation.Link to={testsPathname} activeTo={testsPathname}>
-                {t('Tests')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-          </Feature>
+          <SecondaryNavigation.List>
+            <Feature features={['prevent-test-analytics']}>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link to={testsPathname} activeTo={testsPathname}>
+                  {t('Tests')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            </Feature>
+          </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['prevent-test-analytics']}>
           <SecondaryNavigation.Section id="prevent-configure" title={t('Configure')}>
