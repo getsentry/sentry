@@ -14,7 +14,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,13 +60,22 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
     {staleTime: 0}
   );
 
+  // Always render the container so the ref is attached and useIssueDetailsColumnCount
+  // can measure width. Without this, the ref is null during loading, columnCount
+  // initializes to 1, and never updates when data arrives.
   if (query.isLoading) {
-    return <LoadingIndicator />;
+    return (
+      <BuildInfoContainer columnCount={columnCount} ref={containerRef}>
+        <LoadingIndicator />
+      </BuildInfoContainer>
+    );
   }
 
   if (query.isError) {
     return (
-      <LoadingError message={t('Failed to load build info.')} onRetry={query.refetch} />
+      <BuildInfoContainer columnCount={columnCount} ref={containerRef}>
+        <LoadingError message={t('Failed to load build info.')} onRetry={query.refetch} />
+      </BuildInfoContainer>
     );
   }
 
@@ -213,29 +221,22 @@ function EventPreprodBuildInfoContent({headArtifactId}: {headArtifactId: string}
     return null;
   }
 
-  const columns: React.ReactNode[] = [];
-  if (buildItems.length > 0) {
-    columns.push(
-      <TreeColumn key="build">
-        {buildItems.map(item => (
-          <KeyValueData.Content key={item.key} item={item} disableFormattedData />
-        ))}
-      </TreeColumn>
-    );
-  }
-  if (gitItems.length > 0) {
-    columns.push(
-      <TreeColumn key="git">
-        {gitItems.map(item => (
-          <KeyValueData.Content key={item.key} item={item} disableFormattedData />
-        ))}
-      </TreeColumn>
-    );
-  }
-
   return (
     <BuildInfoContainer columnCount={columnCount} ref={containerRef}>
-      {columns}
+      {buildItems.length > 0 && (
+        <TreeColumn key="build">
+          {buildItems.map(item => (
+            <KeyValueData.Content key={item.key} item={item} disableFormattedData />
+          ))}
+        </TreeColumn>
+      )}
+      {gitItems.length > 0 && (
+        <TreeColumn key="git">
+          {gitItems.map(item => (
+            <KeyValueData.Content key={item.key} item={item} disableFormattedData />
+          ))}
+        </TreeColumn>
+      )}
     </BuildInfoContainer>
   );
 }
@@ -245,7 +246,15 @@ const BuildInfoContainer = styled(TreeContainer)`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-function EventPreprodBuildInfoSection({headArtifactId}: {headArtifactId: string}) {
+interface Props {
+  event: Event;
+}
+
+function EventPreprodBuildInfo({event}: Props) {
+  const headArtifactId = event.occurrence?.evidenceData?.headArtifactId;
+  if (!headArtifactId) {
+    return null;
+  }
   return (
     <InterimSection title={t('Build Info')} type={SectionKey.PREPROD_BUILD_METADATA}>
       <ErrorBoundary mini>
@@ -253,19 +262,6 @@ function EventPreprodBuildInfoSection({headArtifactId}: {headArtifactId: string}
       </ErrorBoundary>
     </InterimSection>
   );
-}
-
-type Props = {
-  event: Event;
-  project: Project;
-};
-
-function EventPreprodBuildInfo({event}: Props) {
-  const headArtifactId = event.occurrence?.evidenceData?.headArtifactId;
-  if (!headArtifactId) {
-    return null;
-  }
-  return <EventPreprodBuildInfoSection headArtifactId={headArtifactId} />;
 }
 
 export {EventPreprodBuildInfo};

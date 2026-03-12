@@ -4,7 +4,6 @@ import {
   PreprodBuildDetailsWithSizeInfoFixture,
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +14,6 @@ import {EventPreprodBuildInfo} from './eventPreprodBuildInfo';
 
 describe('EventPreprodBuildInfo', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
 
   const BUILD_DETAILS_URL =
     '/organizations/org-slug/preprodartifacts/artifact-123/build-details/';
@@ -26,19 +24,13 @@ describe('EventPreprodBuildInfo', () => {
 
   it('returns nothing when evidenceData has no headArtifactId', () => {
     const event = EventFixture({occurrence: null});
-    const {container} = render(
-      <EventPreprodBuildInfo event={event} project={project} />,
-      {organization}
-    );
+    const {container} = render(<EventPreprodBuildInfo event={event} />, {organization});
     expect(container).toBeEmptyDOMElement();
   });
 
   it('returns nothing when occurrence is missing', () => {
     const event = EventFixture();
-    const {container} = render(
-      <EventPreprodBuildInfo event={event} project={project} />,
-      {organization}
-    );
+    const {container} = render(<EventPreprodBuildInfo event={event} />, {organization});
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -80,7 +72,7 @@ describe('EventPreprodBuildInfo', () => {
       ),
     });
 
-    render(<EventPreprodBuildInfo event={event} project={project} />, {
+    render(<EventPreprodBuildInfo event={event} />, {
       organization,
     });
 
@@ -129,7 +121,7 @@ describe('EventPreprodBuildInfo', () => {
       ),
     });
 
-    render(<EventPreprodBuildInfo event={event} project={project} />, {
+    render(<EventPreprodBuildInfo event={event} />, {
       organization,
     });
 
@@ -164,7 +156,7 @@ describe('EventPreprodBuildInfo', () => {
       ),
     });
 
-    render(<EventPreprodBuildInfo event={event} project={project} />, {
+    render(<EventPreprodBuildInfo event={event} />, {
       organization,
     });
 
@@ -239,7 +231,7 @@ describe('EventPreprodBuildInfo', () => {
       ),
     });
 
-    render(<EventPreprodBuildInfo event={event} project={project} />, {
+    render(<EventPreprodBuildInfo event={event} />, {
       organization,
     });
 
@@ -266,7 +258,7 @@ describe('EventPreprodBuildInfo', () => {
       body: {detail: 'Internal Server Error'},
     });
 
-    render(<EventPreprodBuildInfo event={event} project={project} />, {
+    render(<EventPreprodBuildInfo event={event} />, {
       organization,
     });
 

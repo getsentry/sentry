@@ -444,7 +444,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
-      <EventPreprodBuildInfo event={event} project={project} />
+      <EventPreprodBuildInfo event={event} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
