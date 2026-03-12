@@ -1,3 +1,24 @@
+"""
+GitLab service provider module.
+
+Unsupported actions:
+
+    * create_check_run
+    * create_git_blob
+    * create_git_commit
+    * create_git_tree
+    * create_review
+    * get_check_run
+    * get_git_commit
+    * get_pull_request_diff
+    * get_tree
+    * minimize_comment
+    * request_review
+    * resolve_review_thread
+    * update_branch
+    * update_check_run
+"""
+
 import datetime
 import functools
 from collections.abc import Callable
@@ -33,23 +54,19 @@ from sentry.scm.types import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 
-REACTION_MAPPING: list[tuple[Reaction, str]] = [
-    ("+1", "thumbsup"),
-    ("-1", "thumbsdown"),
-    ("laugh", "laughing"),
-    ("confused", "confused"),
-    ("heart", "heart"),
-    ("hooray", "tada"),
-    ("rocket", "rocket"),
-    ("eyes", "eyes"),
-]
-
 AWARD_NAME_BY_REACTION: dict[Reaction, str] = {
-    reaction: award for reaction, award in REACTION_MAPPING
+    "+1": "thumbsup",
+    "-1": "thumbsdown",
+    "laugh": "laughing",
+    "confused": "confused",
+    "heart": "heart",
+    "hooray": "tada",
+    "rocket": "rocket",
+    "eyes": "eyes",
 }
 
 REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
-    award: reaction for reaction, award in REACTION_MAPPING
+    award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
 }
 
 
@@ -285,10 +302,6 @@ class GitLabProvider:
         raw = self.client.create_branch(self._repo_id, branch, sha)
         return make_result(map_git_ref, raw)
 
-    # update_branch: not supported
-
-    # create_git_blob: not supported
-
     @catch_provider_exception
     def get_file_content(
         self,
@@ -331,14 +344,6 @@ class GitLabProvider:
         raw = self.client.compare_commits(self._repo_id, start_sha, end_sha)
         return make_paginated_result(map_commit, raw, raw_items=raw["commits"])
 
-    # get_tree: not supported
-
-    # get_git_commit: not supported
-
-    # create_git_tree: not supported
-
-    # create_git_commit: not supported
-
     @catch_provider_exception
     def get_pull_request_files(
         self,
@@ -358,8 +363,6 @@ class GitLabProvider:
     ) -> PaginatedActionResult[PullRequestCommit]:
         raw = self.client.get_merge_request_commits(self._repo_id, pull_request_id)
         return make_paginated_result(map_pull_request_commit, raw, raw_items=reversed(raw))
-
-    # get_pull_request_diff: not supported
 
     @catch_provider_exception
     def get_pull_requests(
@@ -421,8 +424,6 @@ class GitLabProvider:
         raw = self.client.update_merge_request(self._repo_id, pull_request_id, data)
         return make_result(map_pull_request, raw)
 
-    # request_review: not supported
-
     @catch_provider_exception
     def create_review_comment_file(
         self,
@@ -473,13 +474,6 @@ class GitLabProvider:
             map_review_comment(comment_id),
             raw,
         )
-
-    # create_review: not supported
-    # create_check_run: not supported
-    # get_check_run: not supported
-    # update_check_run: not supported
-    # minimize_comment: not supported
-    # resolve_review_thread: not supported
 
 
 def make_paginated_result[T](
