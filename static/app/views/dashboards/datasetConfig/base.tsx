@@ -30,6 +30,7 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -227,6 +228,12 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   filterYAxisOptions?: (
     displayType: DisplayType
   ) => (option: FieldValueOption) => boolean;
+  /**
+   * Custom label formatter for time series in chart legends.
+   * When provided, this overrides the default label computation
+   * in transformWidgetSeriesToTimeSeries.
+   */
+  formatSeriesLabel?: (timeSeries: TimeSeries, widgetQuery: WidgetQuery) => string;
   /**
    * Used to select custom renderers for field types.
    */

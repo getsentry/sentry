@@ -189,6 +189,8 @@ export const TraceMetricsConfig: DatasetConfig<
   enableEquations: false,
   SearchBar: TraceMetricsSearchBar,
   useSearchBarDataProvider: useTraceMetricsSearchBarDataProvider,
+  formatSeriesLabel: (timeSeries, widgetQuery) =>
+    formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
@@ -237,15 +239,10 @@ export const TraceMetricsConfig: DatasetConfig<
           value: value.value ?? 0,
         })),
 
-        label: formatMetricsTimeseriesLabel({
+        seriesName: formatMetricsTimeseriesLabel({
           widgetQuery,
           timeSeries,
         }),
-
-        seriesName:
-          widgetQuery.columns.length > 0
-            ? `${timeSeries.meta.isOther ? 'Other' : timeSeries.groupBy?.map(groupBy => groupBy.value).join(',')} : ${timeSeries.yAxis}`
-            : timeSeries.yAxis,
       };
     });
   },
@@ -338,7 +335,7 @@ function filterSeriesSortOptions(columns: Set<string>) {
   };
 }
 
-export function formatMetricsTimeseriesLabel({
+function formatMetricsTimeseriesLabel({
   widgetQuery,
   timeSeries,
 }: {

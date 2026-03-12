@@ -4,8 +4,8 @@ import {
   SERIES_NAME_PART_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import {formatMetricsTimeseriesLabel} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -60,10 +60,10 @@ export function transformWidgetSeriesToTimeSeries(
     return null;
   }
 
-  // Trace metrics have their own label formatting that already handles
-  // query names, groupings, and multiple aggregates — use it directly.
-  if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    const label = formatMetricsTimeseriesLabel({widgetQuery, timeSeries});
+  // If the dataset config provides a custom label formatter, use it directly.
+  const datasetConfig = getDatasetConfig(widget.widgetType);
+  if (datasetConfig.formatSeriesLabel) {
+    const label = datasetConfig.formatSeriesLabel(timeSeries, widgetQuery);
     return {timeSeries, label, seriesName, widgetQuery};
   }
 
