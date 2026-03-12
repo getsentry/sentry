@@ -27,7 +27,6 @@ export const ORGANIZATION: OrganizationSummary = {
   dateCreated: '2021-01-01',
   features: [],
   githubNudgeInvite: false,
-  githubOpenPRBot: false,
   githubPRBot: false,
   gitlabPRBot: false,
   hideAiFeatures: false,
