@@ -4,7 +4,7 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
-export const RESULTS_LIMIT = 10;
+const RESULTS_LIMIT = 10;
 
 // Both dashboards and widgets use the 'new' keyword when creating
 export const NEW_DASHBOARD_ID = 'new';
