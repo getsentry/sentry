@@ -70,6 +70,8 @@ REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
 }
 
+PULL_REQUEST_EVENT_STATE_MAP: dict[PullRequestState, str] = {"open": "reopen", "closed": "close"}
+
 
 def catch_provider_exception(fn):
     @functools.wraps(fn)
@@ -374,12 +376,7 @@ class GitLabProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]:
-        if state is None:
-            gitlab_state = None
-        elif state == "open":
-            gitlab_state = "opened"
-        else:
-            gitlab_state = "closed"
+        gitlab_state = PULL_REQUEST_EVENT_STATE_MAP[state] if state else None
         raw = self.client.get_merge_requests(self._repo_id, state=gitlab_state)
         return make_paginated_result(map_pull_request, raw)
 
@@ -414,12 +411,7 @@ class GitLabProvider:
         if body is not None:
             data["description"] = body
         if state is not None:
-            if state == "open":
-                data["state_event"] = "reopen"
-            elif state == "closed":
-                data["state_event"] = "close"
-            else:
-                raise ValueError("Invalid state value")
+            data["state_event"] = PULL_REQUEST_EVENT_STATE_MAP[state]
         raw = self.client.update_merge_request(self._repo_id, pull_request_id, data)
         return make_result(map_pull_request, raw)
 
