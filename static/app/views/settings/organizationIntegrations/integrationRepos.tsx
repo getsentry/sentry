@@ -1,7 +1,9 @@
 import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -17,10 +19,127 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
+
+type DetectedPlatform = {
+  bytes: number;
+  confidence: string;
+  language: string;
+  platform: string;
+};
+
+type DetectionState = {
+  error: string | null;
+  loading: boolean;
+  results: DetectedPlatform[] | null;
+};
+
+function RepoWithPlatformDetection({
+  repo,
+  orgSlug,
+  isGitHub,
+  onRepositoryChange,
+}: {
+  isGitHub: boolean;
+  onRepositoryChange: (data: Repository) => void;
+  orgSlug: string;
+  repo: Repository;
+}) {
+  const api = useApi();
+  const [state, setState] = useState<DetectionState>({
+    loading: false,
+    results: null,
+    error: null,
+  });
+
+  async function handleDetect() {
+    setState({loading: true, results: null, error: null});
+    try {
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/repos/${repo.id}/platforms/`
+      );
+      setState({loading: false, results: response.platforms, error: null});
+    } catch (err) {
+      const message =
+        err?.responseJSON?.detail || err?.message || 'Failed to detect platforms';
+      setState({loading: false, results: null, error: message});
+    }
+  }
+
+  return (
+    <div>
+      <Flex align="center">
+        <Flex flex={1}>
+          <RepositoryRow
+            repository={repo}
+            orgSlug={orgSlug}
+            onRepositoryChange={onRepositoryChange}
+          />
+        </Flex>
+        {isGitHub && (
+          <Flex padding="0 lg" flexShrink={0}>
+            <Button size="sm" onClick={handleDetect} disabled={state.loading}>
+              {state.loading ? t('Detecting...') : t('Detect Platforms')}
+            </Button>
+          </Flex>
+        )}
+      </Flex>
+      {state.loading && (
+        <Flex padding="sm lg">
+          <LoadingIndicator mini />
+        </Flex>
+      )}
+      {state.error && (
+        <Flex padding="sm lg">
+          <Text variant="danger" size="sm">
+            {state.error}
+          </Text>
+        </Flex>
+      )}
+      {state.results?.length === 0 && (
+        <Flex padding="sm lg">
+          <Text variant="muted" size="sm">
+            {t('No platforms detected for this repository.')}
+          </Text>
+        </Flex>
+      )}
+      {state.results && state.results.length > 0 && (
+        <div style={{padding: '8px 16px 16px'}}>
+          <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
+            <thead>
+              <tr
+                style={{
+                  textAlign: 'left',
+                  borderBottom: '1px solid #e2dee6',
+                  color: '#80708f',
+                }}
+              >
+                <th style={{padding: '4px 8px'}}>{t('Platform')}</th>
+                <th style={{padding: '4px 8px'}}>{t('Language')}</th>
+                <th style={{padding: '4px 8px'}}>{t('Bytes')}</th>
+                <th style={{padding: '4px 8px'}}>{t('Confidence')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.results.map(p => (
+                <tr key={p.platform} style={{borderBottom: '1px solid #f0ecf5'}}>
+                  <td style={{padding: '4px 8px', fontWeight: 600}}>{p.platform}</td>
+                  <td style={{padding: '4px 8px'}}>{p.language}</td>
+                  <td style={{padding: '4px 8px'}}>{p.bytes.toLocaleString()}</td>
+                  <td style={{padding: '4px 8px'}}>{p.confidence}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type Props = {
   integration: Integration;
@@ -132,10 +251,11 @@ export function IntegrationRepos(props: Props) {
             </EmptyMessage>
           )}
           {itemList.map(repo => (
-            <RepositoryRow
+            <RepoWithPlatformDetection
               key={repo.id}
-              repository={repo}
+              repo={repo}
               orgSlug={organization.slug}
+              isGitHub={integration.provider.key === 'github'}
               onRepositoryChange={onRepositoryChange}
             />
           ))}
