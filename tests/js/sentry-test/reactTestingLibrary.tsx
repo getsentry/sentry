@@ -30,7 +30,6 @@ import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
@@ -121,13 +120,11 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <SecondaryNavigationContextProvider>
-        <OrganizationContext value={optionalOrganization}>
-          <GlobalDrawer>
-            <AdditionalWrapper>{children}</AdditionalWrapper>
-          </GlobalDrawer>
-        </OrganizationContext>
-      </SecondaryNavigationContextProvider>
+      <OrganizationContext value={optionalOrganization}>
+        <GlobalDrawer>
+          <AdditionalWrapper>{children}</AdditionalWrapper>
+        </GlobalDrawer>
+      </OrganizationContext>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;
