@@ -307,16 +307,30 @@ export interface AutofixSection {
   step: string;
 }
 
+/**
+ * Groups a flat list of autofix blocks into ordered sections.
+ *
+ * Blocks arrive as a flat stream from the backend. Each block may carry a
+ * `metadata.step` field that signals the start of a new logical section
+ * (e.g. "root_cause", "code_changes", "pull_request"). This function walks
+ * the blocks in order, splitting them into sections at each step boundary,
+ * and attaches the relevant artifacts (file patches, PR states) to each section.
+ */
 export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
   const blocks = runState?.blocks ?? [];
   if (!blocks.length) {
     return [];
   }
 
+  // Accumulates file patches across all blocks, keyed by "repo:path".
+  // Patches are merged globally (later patches for the same file overwrite
+  // earlier ones) and snapshotted into the code_changes section when it finalizes.
   const mergedByFile = new Map<string, ExplorerFilePatch>();
 
   const sections: AutofixSection[] = [];
 
+  // The "current" section being built. Blocks without a step marker are
+  // appended to whatever section is in progress (initially an 'unknown' one).
   let section: AutofixSection = {
     step: 'unknown',
     artifacts: [],
@@ -324,16 +338,17 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     status: 'processing',
   };
 
+  // Closes the current section and pushes it to `sections` (if non-empty).
   function finalizeSection() {
     if (section.messages.length) {
+      // Mark the section as completed if the last message is a terminal marker.
       const lastMessage = section.messages[section.messages.length - 1];
       if (isLastMessageOfSection(lastMessage)) {
         section.status = 'completed';
       }
 
       if (section.step === 'code_changes') {
-        // if this is a code changes section, we should take the current
-        // merged file patches and turn it into an artifact for the section
+        // Snapshot the accumulated file patches as an artifact for this section.
         section.artifacts.push(Array.from(mergedByFile.values()));
       }
 
@@ -342,7 +357,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   }
 
   for (const block of blocks) {
-    // we always collect the file patches at every block as they need to be merged
+    // Accumulate file patches globally — they need to be merged across all
+    // blocks regardless of section boundaries so later patches win per file.
     if (block.merged_file_patches?.length) {
       for (const patch of block.merged_file_patches) {
         const key = `${patch.repo_name}:${patch.patch.path}`;
@@ -352,6 +368,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
 
     const message = block.message;
 
+    // A step marker means this block starts a new section.
+    // Finalize the previous section and start a fresh one.
     const metadata = message.metadata;
     if (metadata?.step) {
       finalizeSection();
@@ -364,12 +382,15 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       };
     }
 
+    // Append the block's message and any inline artifacts to the current section.
     section.messages.push(message);
     section.artifacts.push(...(block.artifacts ?? []));
   }
 
+  // Finalize the last in-progress section.
   finalizeSection();
 
+  // If there are any PR states, append a synthetic "pull_request" section.
   const artifact = Object.values(runState?.repo_pr_states ?? {});
   if (artifact.length) {
     sections.push({
