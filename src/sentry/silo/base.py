@@ -201,6 +201,3 @@ class FunctionSiloLimit(SiloLimit):
 cell_silo_function = FunctionSiloLimit(SiloMode.CELL)
 control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
 all_silo_function = FunctionSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
-
-# TODO(cells): Remove once getsentry is updated
-region_silo_function = cell_silo_function
