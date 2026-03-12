@@ -17,6 +17,7 @@
     "node_modules",
     // Exclude test files — not needed for MDX type resolution
     "**/*.spec.*",
+    "**/*.snapshots.*",
     "**/*.stories.tsx",
     "tests"
   ]
