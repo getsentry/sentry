@@ -211,4 +211,4 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
-        self.store_eap_items([uptime_result], reverse_ids=True)
+        self.store_eap_items([uptime_result])

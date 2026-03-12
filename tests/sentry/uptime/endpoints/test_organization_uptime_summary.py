@@ -316,7 +316,7 @@ class OrganizationUptimeSummaryEAPTest(
             kwargs["check_duration_us"] = check_duration_us
 
         uptime_result = self.create_eap_uptime_result(**kwargs)
-        self.store_eap_items([uptime_result], reverse_ids=True)
+        self.store_eap_items([uptime_result])
 
     def test_average_duration_available(self) -> None:
         """Test that average duration is available and correctly calculated for EAP uptime results."""

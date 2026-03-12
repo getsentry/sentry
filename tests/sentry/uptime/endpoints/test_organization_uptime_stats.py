@@ -168,7 +168,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             incident_status=incident_status,
             scheduled_check_time=scheduled_check_time,
         )
-        self.store_eap_items([uptime_result], reverse_ids=True)
+        self.store_eap_items([uptime_result])
 
     def test_detector_ids_with_eap(self) -> None:
         """Test that the endpoint works with uptimeDetectorId parameters for EAP."""
@@ -191,7 +191,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
                 request_url="https://detector-eap-test.com",
                 **scenario,
             )
-            self.store_eap_items([uptime_result], reverse_ids=True)
+            self.store_eap_items([uptime_result])
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -266,7 +266,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             )
             for scheduled_time, check_status, incident_status in test_scenarios
         ]
-        self.store_eap_items(uptime_results, reverse_ids=True)
+        self.store_eap_items(uptime_results)
 
         start_time = base_time
         end_time = base_time + timedelta(minutes=8)

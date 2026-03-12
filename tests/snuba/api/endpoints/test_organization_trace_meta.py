@@ -278,7 +278,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         """Test that uptime_checks field is NOT present when include_uptime is not set"""
         self.load_trace()
         uptime_result = self.create_uptime_check()
-        self.store_eap_items([uptime_result], reverse_ids=True)
+        self.store_eap_items([uptime_result])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -302,7 +302,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
             self.create_uptime_check(check_status="failure"),
             self.create_uptime_check(check_status="success"),
         ]
-        self.store_eap_items(uptime_results, reverse_ids=True)
+        self.store_eap_items(uptime_results)
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -343,7 +343,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.load_trace()
         other_trace_id = uuid4().hex
         uptime_result = self.create_uptime_check(trace_id=other_trace_id)
-        self.store_eap_items([uptime_result], reverse_ids=True)
+        self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client.get(
