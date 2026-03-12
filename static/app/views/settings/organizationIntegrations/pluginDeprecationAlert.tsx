@@ -14,7 +14,7 @@ type Props = {
   plugin: PluginWithProjectList;
 };
 
-function PluginDeprecationAlert({organization, plugin}: Props) {
+export function PluginDeprecationAlert({organization, plugin}: Props) {
   // Short-circuit if not deprecated.
   if (!plugin.deprecationDate) {
     return <Fragment />;
@@ -56,5 +56,3 @@ const UpgradeNowButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
   float: right;
 `;
-
-export default PluginDeprecationAlert;
