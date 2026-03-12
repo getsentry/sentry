@@ -19,7 +19,7 @@ runTsc(fileURLToPath(import.meta.resolve('typescript/lib/tsc.js')), ['.mdx'], ()
       remarkPlugins,
       [], // virtualCodePlugins
       true, // checkMdx
-      'react-jsx'
+      'react'
     ),
   ],
 }));
