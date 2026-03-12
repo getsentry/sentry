@@ -9,6 +9,7 @@ Unsupported actions:
     * create_git_tree
     * create_pull_request_draft
     * create_review
+    * get_commits_by_path
     * get_check_run
     * get_git_commit
     * get_pull_request_diff
@@ -70,7 +71,8 @@ REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
 }
 
-PULL_REQUEST_EVENT_STATE_MAP: dict[PullRequestState, str] = {"open": "reopen", "closed": "close"}
+PULL_REQUEST_STATE_CREATE_MAP: dict[PullRequestState, str] = {"open": "opened", "closed": "closed"}
+PULL_REQUEST_STATE_UPDATE_MAP: dict[PullRequestState, str] = {"open": "reopen", "closed": "close"}
 
 
 def catch_provider_exception(fn):
@@ -374,7 +376,7 @@ class GitLabProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]:
-        gitlab_state = PULL_REQUEST_EVENT_STATE_MAP[state] if state else None
+        gitlab_state = PULL_REQUEST_STATE_CREATE_MAP[state] if state else None
         raw = self.client.get_merge_requests(self._repo_id, state=gitlab_state)
         return make_paginated_result(map_pull_request, raw)
 
@@ -409,7 +411,7 @@ class GitLabProvider:
         if body is not None:
             data["description"] = body
         if state is not None:
-            data["state_event"] = PULL_REQUEST_EVENT_STATE_MAP[state]
+            data["state_event"] = PULL_REQUEST_STATE_UPDATE_MAP[state]
         raw = self.client.update_merge_request(self._repo_id, pull_request_id, data)
         return make_result(map_pull_request, raw)
 
