@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {APIRequestMethod} from 'sentry/api';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -18,6 +17,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import useApi from 'sentry/utils/useApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
@@ -193,7 +193,7 @@ function AllocationForm({
     const PATH = `/organizations/${organization.slug}/spend-allocations/`;
     try {
       await api.requestPromise(PATH, {
-        method: METHOD as APIRequestMethod,
+        method: METHOD as RequestMethod,
         data: {
           billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           target_id: targetId,

@@ -1017,15 +1017,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             if len(linked_fields) != len(set(linked_fields)):
                 raise serializers.ValidationError("Duplicate fields in linked dashboards")
 
-            # check if the linked dashboard appears in the fields of the query
+            # check if the linked dashboard field appears in the columns (group bys) of the query
             if not all(
-                field in query.fields
+                field in (query.columns or [])
                 for field in [
                     linked_dashboard.get("field") for linked_dashboard in linked_dashboards
                 ]
             ):
                 raise serializers.ValidationError(
-                    "Linked dashboard does not appear in the fields of the query"
+                    "Linked dashboard field does not appear in the columns of the widget query"
                 )
 
             # Validate all linked dashboard IDs belong to this organization

@@ -114,7 +114,7 @@ function getYAxisBounds(
  * This chart displays shaded regions that represent different Trigger thresholds in a
  * Metric Alert rule.
  */
-export default class ThresholdsChart extends PureComponent<Props> {
+export class ThresholdsChart extends PureComponent<Props> {
   static defaultProps: DefaultProps = {
     data: [],
     comparisonData: [],

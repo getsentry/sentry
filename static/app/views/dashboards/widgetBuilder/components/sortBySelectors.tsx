@@ -25,7 +25,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

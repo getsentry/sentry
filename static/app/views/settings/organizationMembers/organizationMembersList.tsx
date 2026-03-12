@@ -42,7 +42,7 @@ import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner
 
 import {MembersFilter} from './components/membersFilter';
 import {InviteRequestRow} from './inviteRequestRow';
-import OrganizationMemberRow from './organizationMemberRow';
+import {OrganizationMemberRow} from './organizationMemberRow';
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',

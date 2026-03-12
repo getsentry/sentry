@@ -28,7 +28,7 @@ import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-import ArithmeticInput from './arithmeticInput';
+import {ArithmeticInput} from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
 import {FieldValueKind} from './types';
 

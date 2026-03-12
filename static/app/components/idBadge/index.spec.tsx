@@ -17,7 +17,8 @@ describe('IdBadge', () => {
 
   it('renders the correct component when `team` property is passed', () => {
     render(<IdBadge team={TeamFixture()} />);
-    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TN');
+    // Avatar initials now derived from slug ("team-slug" -> "team slug" -> "TS")
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('TS');
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('#team-slug');
   });
 

@@ -10,6 +10,15 @@ import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types'
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
+export enum DashboardFilter {
+  ONLY_FAVORITES = 'onlyFavorites',
+  EXCLUDE_FAVORITES = 'excludeFavorites',
+  OWNED = 'owned',
+  SHARED = 'shared',
+  EXCLUDE_PREBUILT = 'excludePrebuilt',
+  ONLY_PREBUILT = 'onlyPrebuilt',
+}
+
 export type LegendType = 'default' | 'breakdown';
 
 // Max widgets per dashboard we are currently willing
