@@ -31,6 +31,7 @@ from sentry.grouping.ingest.grouphash_metadata import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
@@ -323,6 +324,11 @@ def get_or_create_grouphashes(
                 logger.warning(
                     "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
                 )
+        try:
+            grouphash._metadata = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        except GroupHashMetadata.DoesNotExist:
+            pass
+
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
 
