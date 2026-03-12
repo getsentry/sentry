@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo, useRef, useState} from 'react';
 
 import {getItemsWithKeys, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
@@ -85,6 +85,7 @@ export function useFrozenSuggestionSectionItems({
 
   const previousSuggestionGroupsRef = useRef<SuggestionSection[] | null>(null);
   const frozenOrderRef = useRef<FrozenSuggestionOrder | null>(null);
+  const [frozenVersion, setFrozenVersion] = useState(0);
 
   // Predefined suggestions can rebuild equivalent arrays when the token text
   // changes, so only reset when the visible suggestion contents actually do or
@@ -102,6 +103,7 @@ export function useFrozenSuggestionSectionItems({
   ) {
     previousSuggestionGroupsRef.current = suggestionGroups;
     frozenOrderRef.current = null;
+    setFrozenVersion(v => v + 1);
   }
 
   return useMemo<SuggestionSectionItem[]>(() => {
@@ -160,5 +162,6 @@ export function useFrozenSuggestionSectionItems({
         })
       ),
     }));
-  }, [createItem, suggestionGroups]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- frozenVersion forces recomputation when the render-time check resets frozenOrderRef
+  }, [createItem, suggestionGroups, frozenVersion]);
 }
