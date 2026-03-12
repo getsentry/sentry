@@ -6,6 +6,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -125,7 +126,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -146,7 +148,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -168,7 +171,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -190,7 +194,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -213,7 +218,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -236,7 +242,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -255,7 +262,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -274,7 +282,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -295,7 +304,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -318,7 +328,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -339,7 +350,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await assertNewHeaderCards({
       organization,
@@ -360,7 +372,8 @@ describe('SubscriptionHeader', () => {
     });
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     await screen.findByText('Subscription');
     expect(
@@ -397,7 +410,8 @@ describe('SubscriptionHeader', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
   });
@@ -429,7 +443,8 @@ describe('SubscriptionHeader', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
   });
@@ -468,7 +483,8 @@ describe('SubscriptionHeader', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
   });
@@ -507,7 +523,8 @@ describe('SubscriptionHeader', () => {
 
     SubscriptionStore.set(organization.slug, subscription);
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
   });
@@ -522,7 +539,8 @@ describe('SubscriptionHeader', () => {
     });
 
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     const managedNote = screen.getByTestId('managed-note');
     expect(managedNote).toBeInTheDocument();
@@ -545,7 +563,8 @@ describe('SubscriptionHeader', () => {
     });
 
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.queryByTestId('managed-note')).not.toBeInTheDocument();
   });
@@ -558,7 +577,8 @@ describe('SubscriptionHeader', () => {
       organization,
     });
     render(
-      <SubscriptionHeader organization={organization} subscription={subscription} />
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
     expect(screen.queryByTestId('trial-alert')).not.toBeInTheDocument();
   });

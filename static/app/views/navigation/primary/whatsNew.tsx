@@ -20,14 +20,13 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
   SidebarButton,
   SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
@@ -162,7 +161,7 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>
@@ -178,7 +177,7 @@ export function PrimaryNavigationWhatsNew() {
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator
             data-test-id="whats-new-unread-indicator"
-            isMobile={layout === NavigationLayout.MOBILE}
+            isMobile={layout === 'mobile'}
           />
         )}
       </SidebarButton>
