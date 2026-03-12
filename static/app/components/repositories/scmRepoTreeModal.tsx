@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
-import ScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
+import {ScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
 import type {RepoFilter} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {t, tct} from 'sentry/locale';
 
