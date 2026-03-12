@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import {InputGroup} from '@sentry/scraps/input';
 
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 

@@ -8,8 +8,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -26,7 +26,7 @@ type Props = ModalRenderProps & {
   userId: string;
 };
 
-function MergeAccountsModal(props: Props) {
+export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [error, setError] = useState(false);
@@ -153,5 +153,3 @@ function MergeAccountsModal(props: Props) {
     </Fragment>
   );
 }
-
-export default MergeAccountsModal;

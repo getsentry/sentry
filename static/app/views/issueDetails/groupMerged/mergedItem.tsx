@@ -21,7 +21,7 @@ interface Props {
   totalFingerprint: number;
 }
 
-function MergedItem({fingerprint, totalFingerprint}: Props) {
+export function MergedItem({fingerprint, totalFingerprint}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -205,5 +205,3 @@ const MergedEventList = styled('div')`
   border: none;
   background-color: ${p => p.theme.tokens.background.primary};
 `;
-
-export default MergedItem;

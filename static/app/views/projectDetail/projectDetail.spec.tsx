@@ -13,7 +13,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as pageFilters from 'sentry/components/pageFilters/actions';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-import ProjectDetail from './projectDetail';
+import {ProjectDetail} from './projectDetail';
 import ProjectDetailContainer from './';
 
 jest.mock('sentry/actionCreators/organization');

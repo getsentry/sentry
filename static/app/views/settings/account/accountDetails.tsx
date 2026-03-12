@@ -5,10 +5,10 @@ import {z} from 'zod';
 import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {updateUser} from 'sentry/actionCreators/account';
-import AvatarChooser from 'sentry/components/avatarChooser';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
@@ -22,7 +22,7 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 // The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
 export type ChangeAvatarUser = Omit<
@@ -50,9 +50,12 @@ const accountDetailsSchema = z.object({
   id: z.string(),
 });
 
+const languageCodes = languages.map(([code]) => code);
+type Language = (typeof languageCodes)[number];
+
 const preferencesSchema = z.object({
   theme: z.string(),
-  language: z.string(),
+  language: z.enum(languageCodes),
   timezone: z.string(),
   stacktraceOrder: z.string(),
   defaultIssueEvent: z.string(),
@@ -255,7 +258,7 @@ function AccountDetails() {
           <AutoSaveField
             name="language"
             schema={preferencesSchema}
-            initialValue={user.options.language}
+            initialValue={user.options.language as Language}
             mutationOptions={userOptionsMutationOptions}
           >
             {field => (

@@ -118,14 +118,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         (message): message is Exclude<typeof message, null> =>
           message !== null && Boolean(message.content)
       );
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return messages;
   }
 }
@@ -157,14 +150,7 @@ function transformInputMessages(inputMessages: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -197,12 +183,7 @@ function transformPrompt(prompt: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -265,14 +246,7 @@ export function transformPartsMessages(messages: string): {
       result: JSON.stringify(transformed),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing gen_ai messages with parts format', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,

@@ -11,7 +11,7 @@ function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
 }
 
-export default function SettingsWrapper() {
+export function SettingsWrapper() {
   const location = useLocation();
   useScrollToTop({location, disable: scrollDisable});
 

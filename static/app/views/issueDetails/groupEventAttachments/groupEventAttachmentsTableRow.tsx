@@ -5,8 +5,8 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import FileSize from 'sentry/components/fileSize';
+import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
+import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
@@ -26,7 +26,7 @@ type Props = {
   projectSlug: string;
 };
 
-function GroupEventAttachmentsTableRow({
+export function GroupEventAttachmentsTableRow({
   attachment,
   projectSlug,
   onDelete,
@@ -100,5 +100,3 @@ const FlexCenter = styled('div')`
 const InlineAttachment = styled('div')`
   grid-column: 1/-1;
 `;
-
-export default GroupEventAttachmentsTableRow;

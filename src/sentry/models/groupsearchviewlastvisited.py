@@ -3,12 +3,12 @@ from django.db.models import UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model
+from sentry.db.models import FlexibleForeignKey, cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class GroupSearchViewLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 

@@ -7,7 +7,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
@@ -18,7 +18,7 @@ type Props = {
   replayErrors: RawReplayError[];
 };
 
-export default function ErrorCounts({replayErrors}: Props) {
+export function ErrorCounts({replayErrors}: Props) {
   const {pathname, query} = useLocation();
 
   const getLink = useCallback(

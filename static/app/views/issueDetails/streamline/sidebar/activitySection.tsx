@@ -30,7 +30,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
-import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
+import {getGroupActivityItem} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -145,7 +145,7 @@ interface StreamlinedActivitySectionProps {
   isDrawer?: boolean;
 }
 
-export default function StreamlinedActivitySection({
+export function StreamlinedActivitySection({
   group,
   isDrawer,
   filterComments,

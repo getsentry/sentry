@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';

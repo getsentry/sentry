@@ -3,15 +3,16 @@ import {Fragment} from 'react';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {FeatureFilter} from './featureFilter';
+import {PrCommentsToggle} from './prCommentsToggle';
 import {StatusCheckRules} from './statusCheckRules';
 
 const SIZE_ENABLED_READ_KEY = 'sentry:preprod_size_enabled_by_customer';
@@ -44,7 +45,6 @@ export default function PreprodSettings() {
         </TextBlock>
         <PreprodQuotaAlert />
         <Stack gap="lg">
-          <StatusCheckRules />
           <FeatureFilter
             enabledReadKey={SIZE_ENABLED_READ_KEY}
             enabledWriteKey={SIZE_ENABLED_WRITE_KEY}
@@ -54,6 +54,7 @@ export default function PreprodSettings() {
             successMessage={t('Size analysis settings updated')}
             docsUrl="https://docs.sentry.io/product/size-analysis/#configuring-size-analysis-uploads"
           />
+          <StatusCheckRules />
           <FeatureFilter
             enabledReadKey={DISTRIBUTION_ENABLED_READ_KEY}
             enabledWriteKey={DISTRIBUTION_ENABLED_WRITE_KEY}
@@ -64,6 +65,9 @@ export default function PreprodSettings() {
             docsUrl="https://docs.sentry.io/product/build-distribution/"
             display={PreprodBuildsDisplay.DISTRIBUTION}
           />
+          <Feature features="organizations:preprod-build-distribution-pr-comments">
+            <PrCommentsToggle />
+          </Feature>
         </Stack>
       </Feature>
     </Fragment>

@@ -4,7 +4,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import {SelectField} from 'sentry/components/deprecatedforms/selectField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';

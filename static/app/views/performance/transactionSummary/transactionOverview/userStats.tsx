@@ -5,8 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import UserMisery from 'sentry/components/userMisery';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {UserMisery} from 'sentry/components/userMisery';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -18,7 +18,7 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
+import {VitalInfo} from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
   error: QueryError | null;
@@ -31,7 +31,7 @@ type Props = {
   transactionName: string;
 };
 
-function UserStats({
+export function UserStats({
   isLoading,
   hasWebVitals,
   error,
@@ -133,5 +133,3 @@ function UserStats({
     </Fragment>
   );
 }
-
-export default UserStats;

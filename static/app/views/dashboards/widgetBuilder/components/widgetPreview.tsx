@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,7 +33,7 @@ interface WidgetPreviewProps {
 
 const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 
-function WidgetPreview({
+export function WidgetPreview({
   dashboard,
   dashboardFilters,
   isWidgetInvalid,
@@ -144,5 +144,3 @@ function WidgetPreview({
     />
   );
 }
-
-export default WidgetPreview;

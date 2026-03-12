@@ -20,7 +20,7 @@ interface WidgetBuilderNameAndDescriptionProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderNameAndDescription({
+export function WidgetBuilderNameAndDescription({
   error,
   setError,
 }: WidgetBuilderNameAndDescriptionProps) {
@@ -122,8 +122,6 @@ function WidgetBuilderNameAndDescription({
     </Fragment>
   );
 }
-
-export default WidgetBuilderNameAndDescription;
 
 const StyledTextField = styled(TextField)`
   margin-bottom: ${p => p.theme.space.md};

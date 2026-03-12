@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import NotFound from 'sentry/components/errors/notFound';
+import {NotFound} from 'sentry/components/errors/notFound';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

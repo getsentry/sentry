@@ -1,8 +1,8 @@
 import {Link} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +13,9 @@ interface SpikeProtectionProjectSettingsProps {
   project: Project;
 }
 
-function SpikeProtectionProjectSettings({project}: SpikeProtectionProjectSettingsProps) {
+export function SpikeProtectionProjectSettings({
+  project,
+}: SpikeProtectionProjectSettingsProps) {
   const organization = useOrganization();
   const helpText = tct(
     'Enables automated rate limits for errors when a spike is detected for this project. [link]',
@@ -41,5 +43,3 @@ function SpikeProtectionProjectSettings({project}: SpikeProtectionProjectSetting
     </Panel>
   );
 }
-
-export default SpikeProtectionProjectSettings;

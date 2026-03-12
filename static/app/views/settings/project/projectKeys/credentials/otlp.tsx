@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {CodeBlock} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface OtlpTabProps {

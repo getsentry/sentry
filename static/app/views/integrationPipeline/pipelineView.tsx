@@ -22,10 +22,10 @@ import useApi from 'sentry/utils/useApi';
 import {GithubInstallationSelect} from 'sentry/views/integrationPipeline/githubInstallationSelect';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
-import AwsLambdaCloudformation from './awsLambdaCloudformation';
-import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
-import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
-import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
+import {AwsLambdaCloudformation} from './awsLambdaCloudformation';
+import {AwsLambdaFailureDetails} from './awsLambdaFailureDetails';
+import {AwsLambdaFunctionSelect} from './awsLambdaFunctionSelect';
+import {AwsLambdaProjectSelect} from './awsLambdaProjectSelect';
 
 const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
@@ -61,7 +61,7 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 /**
  * This component is a wrapper for specific pipeline views for integrations
  */
-function PipelineView({pipelineName, ...props}: Props) {
+export function PipelineView({pipelineName, ...props}: Props) {
   const mapping = pipelineMapper[pipelineName];
 
   if (!mapping) {
@@ -137,5 +137,3 @@ function PipelineView({pipelineName, ...props}: Props) {
     </QueryClientProvider>
   );
 }
-
-export default PipelineView;

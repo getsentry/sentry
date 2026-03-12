@@ -261,6 +261,7 @@ export default typescript.config([
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
     'fixtures/profiles/embedded.js',
     'jest.config.ts',
+    'jest.config.snapshots.ts',
     'api-docs/**/*',
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
@@ -381,6 +382,11 @@ export default typescript.config([
           selector:
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
+        },
+        {
+          selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+          message:
+            "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
         },
         // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
         {
@@ -590,12 +596,14 @@ export default typescript.config([
           '@typescript-eslint/no-base-to-string': 'error',
           '@typescript-eslint/no-duplicate-type-constituents': 'error',
           '@typescript-eslint/no-for-in-array': 'error',
+          '@typescript-eslint/no-unnecessary-template-expression': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/only-throw-error': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-default-export-components': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},

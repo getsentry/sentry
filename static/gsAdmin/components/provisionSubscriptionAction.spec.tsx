@@ -1534,6 +1534,31 @@ describe('provisionSubscriptionAction', () => {
     );
   }, 15_000);
 
+  it('shows seer budget when both seer reserved CPE fields are set', async () => {
+    const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
+    triggerProvisionSubscription({
+      subscription: am3Sub,
+      orgId: am3Sub.slug,
+      onSuccess,
+      billingConfig: mockBillingConfig,
+    });
+
+    await loadModal();
+
+    await selectEvent.select(
+      await screen.findByRole('textbox', {name: 'Plan'}),
+      'Enterprise (Business) (am3)'
+    );
+
+    expect(screen.queryByLabelText('Seer Budget')).not.toBeInTheDocument();
+
+    typeNumForField('Reserved Cost-Per-Event Issue Fixes', '1');
+    expect(screen.queryByLabelText('Seer Budget')).not.toBeInTheDocument();
+
+    typeNumForField('Reserved Cost-Per-Event Issue Scans', '0.5');
+    expect(screen.getByLabelText('Seer Budget')).toBeInTheDocument();
+  });
+
   it('calls api with seer reserved budget args with 0 values', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({

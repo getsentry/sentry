@@ -13,16 +13,14 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavContext} from 'sentry/views/nav/context';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+} from 'sentry/views/navigation/primary/components';
+import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
@@ -179,7 +177,7 @@ function useReminderCopywriting() {
   return descriptionByStep[Steps.SETUP_ROOT_CAUSE_ANALYSIS];
 }
 
-export default function PrimaryNavSeerConfigReminder() {
+export function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
   const {
     isOpen,
@@ -188,7 +186,7 @@ export default function PrimaryNavSeerConfigReminder() {
     state,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavContext();
+  const {layout} = useNavigationContext();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -220,7 +218,7 @@ export default function PrimaryNavSeerConfigReminder() {
       >
         <SidebarItemUnreadIndicator
           data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={layout === NavigationLayout.MOBILE}
         />
       </SidebarButton>
       {isOpen && (

@@ -11,7 +11,7 @@ const DEFAULT: InsideDataZoomComponentOption = {
   throttle: 50,
 };
 
-export default function DataZoomInside(
+export function DataZoomInside(
   props: InsideDataZoomComponentOption | InsideDataZoomComponentOption[]
 ): InsideDataZoomComponentOption[] {
   // `props` can be boolean, if so return default

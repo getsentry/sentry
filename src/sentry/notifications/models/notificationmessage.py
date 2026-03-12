@@ -9,11 +9,11 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import CharField, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import CharField, FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
 
-@region_silo_model
+@cell_silo_model
 class NotificationMessage(Model):
     """
     Data model represents the aggregate for an entire notification message.

@@ -5,8 +5,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
@@ -37,7 +37,7 @@ type SubmitQueryResponse = Record<string, any>;
 const POPULARITY_MIN = 0;
 const POPULARITY_MAX = 32767;
 
-function SentryAppUpdateModal(props: Props) {
+export function SentryAppUpdateModal(props: Props) {
   const api = useApi({persistInFlight: true});
   const {sentryAppData, closeModal, Header, Body} = props;
   const [popularityError, setPopularityError] = useState(false);
@@ -146,5 +146,3 @@ function SentryAppUpdateModal(props: Props) {
     </Fragment>
   );
 }
-
-export default SentryAppUpdateModal;

@@ -6,12 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
 import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import DropdownActions from 'admin/components/dropdownActions';
-import PageHeader from 'admin/components/pageHeader';
+import {DropdownActions} from 'admin/components/dropdownActions';
+import {PageHeader} from 'admin/components/pageHeader';
 
 export type ActionItem = {
   key: string;

@@ -10,8 +10,8 @@ import {Select} from '@sentry/scraps/select';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -20,11 +20,11 @@ import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
-import withOrganization from 'sentry/utils/withOrganization';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
-import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
-import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
+import {withOrganization} from 'sentry/utils/withOrganization';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {ActionSpecificTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
+import {ActionTargetSelector} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
+import {DeleteActionButton} from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
 import {
   ActionLabel,
   AlertRuleComparisonType,
@@ -113,7 +113,7 @@ const getFullActionTitle = ({
     if (status && status !== 'published') {
       return `${sentryAppName} (${status})`;
     }
-    return `${sentryAppName}`;
+    return sentryAppName;
   }
 
   const label = ActionLabel[type];

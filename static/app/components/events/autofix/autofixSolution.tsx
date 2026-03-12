@@ -40,7 +40,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();

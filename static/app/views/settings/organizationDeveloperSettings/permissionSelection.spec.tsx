@@ -3,7 +3,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
   let onChange: jest.Mock;

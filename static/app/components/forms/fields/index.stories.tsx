@@ -3,9 +3,9 @@ import Form from 'sentry/components/forms/form';
 import * as Storybook from 'sentry/stories';
 import useProjects from 'sentry/utils/useProjects';
 
-import BlankField from './blankField';
+import {BlankField} from './blankField';
 import BooleanField from './booleanField';
-import CheckboxField from './checkboxField';
+import {CheckboxField} from './checkboxField';
 import DateTimeField from './dateTimeField';
 import EmailField from './emailField';
 import FileField from './fileField';
@@ -14,11 +14,11 @@ import NumberField from './numberField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
 import SecretField from './secretField';
-import SegmentedRadioField from './segmentedRadioField';
+import {SegmentedRadioField} from './segmentedRadioField';
 import SelectField from './selectField';
-import SentryMemberTeamSelectorField from './sentryMemberTeamSelectorField';
+import {SentryMemberTeamSelectorField} from './sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
-import SeparatorField from './separatorField';
+import {SeparatorField} from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 

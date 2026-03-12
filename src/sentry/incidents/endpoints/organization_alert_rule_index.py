@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
@@ -196,10 +196,8 @@ class AlertRuleFetchMixin(Endpoint):
 
         if features.has("organizations:workflow-engine-rule-serializers", organization):
             detectors = Detector.objects.filter(
-                alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules]
+                alertruledetector__alert_rule_id__in=alert_rules.values_list("id", flat=True)
             )
-            if not len(detectors):
-                return Response(status=status.HTTP_404_NOT_FOUND)
             response = self.paginate(
                 request,
                 queryset=detectors,
@@ -224,7 +222,7 @@ class AlertRuleFetchMixin(Endpoint):
         return response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
@@ -265,7 +263,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -610,7 +608,7 @@ Metric alert rule trigger actions follow the following structure:
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {

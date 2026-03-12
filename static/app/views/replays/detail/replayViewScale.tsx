@@ -1,7 +1,7 @@
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Placeholder from 'sentry/components/placeholder';
-import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconRuler} from 'sentry/icons/iconRuler';
 import {t} from 'sentry/locale';
@@ -12,7 +12,7 @@ interface Props {
   isLoading: boolean;
 }
 
-export default function ReplayViewScale({isLoading}: Props) {
+export function ReplayViewScale({isLoading}: Props) {
   const {dimensions} = useReplayContext();
   const [{scale}] = useReplayPlayerSize();
 

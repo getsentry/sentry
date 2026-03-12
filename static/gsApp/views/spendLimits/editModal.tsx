@@ -22,7 +22,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import EmbeddedSpendLimitSettings from 'getsentry/views/spendLimits/embeddedSettings';
+import {EmbeddedSpendLimitSettings} from 'getsentry/views/spendLimits/embeddedSettings';
 
 import {
   convertOnDemandBudget,

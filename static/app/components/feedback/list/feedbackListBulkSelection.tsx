@@ -17,7 +17,7 @@ interface Props extends Pick<
   mailbox: Mailbox;
 }
 
-export default function FeedbackListBulkSelection({
+export function FeedbackListBulkSelection({
   mailbox,
   countSelected,
   selectedIds,

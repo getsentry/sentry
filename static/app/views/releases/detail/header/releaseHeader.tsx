@@ -10,10 +10,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,7 +23,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import ReleaseActions from './releaseActions';
+import {ReleaseActions} from './releaseActions';
 
 type Props = {
   location: Location;
@@ -34,7 +34,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseHeader({
+export function ReleaseHeader({
   location,
   organization,
   release,
@@ -210,5 +210,3 @@ const NavTabsBadge = styled(Badge)`
 const BadgeWrapper = styled('div')`
   margin-left: 0;
 `;
-
-export default ReleaseHeader;

@@ -14,7 +14,7 @@ import {
 import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
+import {EventsContent as EventsPageContent} from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 function initializeData() {

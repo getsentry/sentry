@@ -22,7 +22,7 @@ type Props = ModalRenderProps & {
   windowOptions: Array<SelectValue<number>>;
 };
 
-export default function CustomIgnoreCountModal(props: Props) {
+export function CustomIgnoreCountModal(props: Props) {
   const [count, setCount] = useState<number>(100);
   const [window, setWindow] = useState<number | null>(null);
   const {

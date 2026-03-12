@@ -28,7 +28,7 @@ interface WidgetTemplatesListProps {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({
+export function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
@@ -167,8 +167,6 @@ function WidgetTemplatesList({
     </Fragment>
   );
 }
-
-export default WidgetTemplatesList;
 
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
   border-bottom: ${p =>

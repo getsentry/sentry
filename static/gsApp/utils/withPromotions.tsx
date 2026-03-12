@@ -1,4 +1,4 @@
-import type LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {QueryClient, QueryObserverResult} from 'sentry/utils/queryClient';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

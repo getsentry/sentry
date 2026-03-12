@@ -46,7 +46,7 @@ const getRow = (orgId: string, region: string, row: any) => [
   </td>,
 ];
 
-function CustomerCharges({orgId, region, ...props}: Props) {
+export function CustomerCharges({orgId, region, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -74,5 +74,3 @@ function CustomerCharges({orgId, region, ...props}: Props) {
     />
   );
 }
-
-export default CustomerCharges;

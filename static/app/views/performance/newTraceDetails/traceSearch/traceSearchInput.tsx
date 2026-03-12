@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -237,16 +237,14 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       />
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
-          {`${
-            traceState.search.query && !traceState.search.results?.length
-              ? t('no results')
-              : traceState.search.query
-                ? (traceState.search.resultIteratorIndex === null
-                    ? '-'
-                    : traceState.search.resultIteratorIndex + 1) +
-                  `/${traceState.search.results?.length ?? 0}`
-                : ''
-          }`}
+          {traceState.search.query && !traceState.search.results?.length
+            ? t('no results')
+            : traceState.search.query
+              ? (traceState.search.resultIteratorIndex === null
+                  ? '-'
+                  : traceState.search.resultIteratorIndex + 1) +
+                `/${traceState.search.results?.length ?? 0}`
+              : ''}
         </StyledTrailingText>
         {traceState.search.query ? (
           <Fragment>

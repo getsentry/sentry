@@ -1,6 +1,6 @@
 import * as qs from 'query-string';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -182,7 +182,7 @@ export function getAlertRuleLogsUrl({
     }
   }
 
-  return `${basePath}` + `?${qs.stringify(queryParams, {skipNull: true})}`;
+  return basePath + `?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function getAlertRuleMetricsUrl({

@@ -14,7 +14,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   barHeight?: number;
 }
 
-function ColorBar(props: Props) {
+export function ColorBar(props: Props) {
   return (
     <VitalBar
       barHeight={props.barHeight}
@@ -50,5 +50,3 @@ const VitalBar = styled('div')<VitalBarProps>`
 const BarStatus = styled('div')<{color: string}>`
   background-color: ${p => p.color};
 `;
-
-export default ColorBar;

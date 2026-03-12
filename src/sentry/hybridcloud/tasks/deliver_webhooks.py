@@ -399,10 +399,14 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
 
 
 def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
-    """Extract GitHub event type and action from payload for delivery_time_ms metric tags."""
+    """Extract GitHub event and action from payload for delivery_time_ms metric tags.
+
+    Returns a single tag github_event_and_action as "<event>.<action>", using "unknown"
+    when the request body has no action (e.g. push, ping).
+    """
     if payload.provider != "github":
         return {}
-    tags: dict[str, str] = {}
+    event_type: str | None = None
     try:
         headers = orjson.loads(payload.request_headers)
     except orjson.JSONDecodeError:
@@ -410,24 +414,28 @@ def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
     if isinstance(headers, dict):
         for key, value in headers.items():
             if key.upper() == "X-GITHUB-EVENT" and isinstance(value, str) and value:
-                tags["github_event_type"] = value
+                event_type = value
                 break
+    if not event_type:
+        return {}
+    action = "unknown"
     try:
         body = orjson.loads(payload.request_body)
     except orjson.JSONDecodeError:
-        return tags
-    if isinstance(body, dict):
-        action = body.get("action")
-        if isinstance(action, str) and action:
-            tags["github_action"] = action
-    return tags
+        pass
+    else:
+        if isinstance(body, dict):
+            body_action = body.get("action")
+            if isinstance(body_action, str) and body_action:
+                action = body_action
+    return {"github_event_and_action": f"{event_type}.{action}"}
 
 
 def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
     """Record delivery time metrics for a successfully delivered webhook payload."""
     duration = timezone.now() - payload.date_added
     region_sent_to = (
-        payload.region_name
+        payload.cell_name
         if payload.destination_type == DestinationType.SENTRY_REGION
         else "codecov"
     )
@@ -616,10 +624,12 @@ def perform_request(payload: WebhookPayload) -> None:
 
     match destination_type:
         case DestinationType.SENTRY_REGION:
-            assert payload.region_name is not None
-            region = get_cell_by_name(name=payload.region_name)
+            assert payload.cell_name is not None
+            region = get_cell_by_name(name=payload.cell_name)
             perform_region_request(region, payload)
         case DestinationType.CODECOV:
+            if options.get("codecov.forward-webhooks.disabled"):
+                return
             perform_codecov_request(payload)
 
 
@@ -739,6 +749,10 @@ def _should_skip_codecov_forward_for_github_owner(payload: WebhookPayload) -> bo
     Return True if this payload should be skipped (not forwarded to Codecov).
     The payload is still deleted by the caller when skipped.
     """
+
+    if options.get("codecov.forward-webhooks.disabled"):
+        return True
+
     skip_github_owners = options.get("codecov.forward-webhooks.skip-github-owners") or ()
     skip_set = (
         frozenset(str(x) for x in skip_github_owners if x) if skip_github_owners else frozenset()
@@ -768,6 +782,9 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
     """
     We don't retry forwarding Codecov requests for now. We want to prove out that it would work.
     """
+    if options.get("codecov.forward-webhooks.disabled"):
+        return
+
     with metrics.timer(
         "hybridcloud.deliver_webhooks.send_request_to_codecov",
     ):

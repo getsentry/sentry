@@ -6,6 +6,7 @@ export interface TodoItem {
 }
 
 export interface ExplorerFilePatch {
+  diff: string;
   patch: FilePatch;
   repo_name: string;
 }
@@ -15,7 +16,11 @@ export function isExplorerFilePatch(value: unknown): value is ExplorerFilePatch 
     return false;
   }
   const obj = value as Record<string, unknown>;
-  return isFilePatch(obj.patch) && typeof obj.repo_name === 'string';
+  return (
+    isFilePatch(obj.patch) &&
+    typeof obj.repo_name === 'string' &&
+    typeof obj.diff === 'string'
+  );
 }
 
 export interface RepoPRState {

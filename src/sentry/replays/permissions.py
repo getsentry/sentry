@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.http import HttpRequest
 
-from sentry import features
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
@@ -24,14 +23,11 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     - Superusers always have access.
     - Org auth tokens with event:read scope have access (replays are event data).
     - SentryApp proxy users with event:read scope have access (replays are event data).
-    - If the 'organizations:granular-replay-permissions' feature flag is OFF, all users have access.
     - If the 'sentry:granular-replay-permissions' org option is not set or falsy, all org members have access.
-    - If no allowlist records exist for the organization but the feature flag is on, no one has access.
+    - If no allowlist records exist for the organization, no one has access.
     - If allowlist records exist, only users explicitly present in the OrganizationMemberReplayAccess allowlist have access.
     - Returns True if allowed, False otherwise.
     """
-    if not features.has("organizations:granular-replay-permissions", organization):
-        return True
     if superuser_has_permission(request):
         return True
 

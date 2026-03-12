@@ -10,7 +10,7 @@ import type {
   NavigationSection,
 } from 'sentry/views/settings/types';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 type Props = {
