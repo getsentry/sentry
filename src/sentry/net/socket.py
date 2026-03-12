@@ -136,14 +136,20 @@ def safe_create_connection(
         raise LocationParseError("'{host}', label empty or too long") from None
 
     addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-    sentry_sdk.set_context("addresses", addresses)
+    sentry_sdk.set_context(
+        "addresses",
+        {
+            "addresses": addresses,
+            "length": len(addresses),
+        },
+    )
 
     for res in addresses:
         with sentry_sdk.start_span(
             op="socket.getaddrinfo.loop", description="socket.getaddrinfo.loop"
         ) as span:
             af, socktype, proto, canonname, sa = res
-            span.set_context(
+            span.set_data(
                 "res",
                 {"af": af, "socktype": socktype, "proto": proto, "canonname": canonname, "sa": sa},
             )
