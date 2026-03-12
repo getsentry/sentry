@@ -128,6 +128,9 @@ def send_and_save_webhook_request(
                 "organizations:sentry-app-webhook-hard-timeout",
                 organization_context.organization,
             ):
+                # We're using a signal based timeout here because we need to interrupt the blocking socket.connect() opeartion.
+                # See SENTRY-5HA6 for more context. Here we're hanging at the socket.connect() call and the timeout we set
+                # in safe_urlopen is not being respected.
                 timeout_seconds = options.get("sentry-apps.webhook.hard-timeout.sec")
                 with timeout_alarm(timeout_seconds, _handle_webhook_timeout):
                     response = safe_urlopen(

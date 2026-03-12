@@ -2644,11 +2644,11 @@ register(
 
 # Hard timeout for webhook requests to prevent indefinite hangs.
 # Must be strictly less than the shortest task processing_deadline_duration that
-# calls send_and_save_webhook_request (currently 5s for send_alert_webhook_v2 and
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
 # send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
 register(
     "sentry-apps.webhook.hard-timeout.sec",
-    default=3.0,
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
