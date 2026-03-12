@@ -46,6 +46,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           : dashboardDetail;
 
         const newDashboard = cloneDashboard(resolved);
+        newDashboard.title = `${newDashboard.title} copy`;
         delete newDashboard.prebuiltId;
         newDashboard.widgets.map(widget => (widget.id = undefined));
         const copiedDashboard = await createDashboard(
