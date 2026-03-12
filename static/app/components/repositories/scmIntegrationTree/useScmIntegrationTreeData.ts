@@ -16,6 +16,7 @@ type ScmIntegrationTreeData = {
   connectedRepos: Repository[];
   isError: boolean;
   isPending: boolean;
+  refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
   reposQueryKey: unknown;
@@ -136,6 +137,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmIntegrations,
     connectedRepos,
     connectedIdentifiers,
+    refetchIntegrations: integrationsQuery.refetch,
     reposByIntegrationId,
     reposPendingByIntegrationId,
     reposQueryKey: reposQueryOptions.queryKey,

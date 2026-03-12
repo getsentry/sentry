@@ -2,7 +2,7 @@ import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -20,6 +20,7 @@ import type {Integration, IntegrationRepository} from 'sentry/types/integrations
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 // ---------------------------------------------------------------------------
 // Row component
@@ -27,6 +28,7 @@ import useTimeout from 'sentry/utils/useTimeout';
 
 type Props = {
   node: TreeNode;
+  onAddIntegration: () => void;
   onToggleIntegration: (integrationId: string) => void;
   onToggleProvider: (providerKey: string) => void;
   onToggleRepo: (
@@ -34,16 +36,15 @@ type Props = {
     integration: Integration,
     isConnected: boolean
   ) => void;
-  orgSlug: string;
   style: CSSProperties;
 };
 
 export function ScmIntegrationTreeRow({
   node,
+  onAddIntegration,
   onToggleProvider,
   onToggleIntegration,
   onToggleRepo,
-  orgSlug,
   style,
 }: Props) {
   const organization = useOrganization();
@@ -80,14 +81,15 @@ export function ScmIntegrationTreeRow({
                   'You must be an organization owner, manager or admin to configure'
                 )}
               >
-                <LinkButton
+                <AddIntegrationButton
                   size="xs"
                   icon={<IconAdd />}
-                  to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
+                  provider={node.provider}
+                  organization={organization}
+                  onAddIntegration={onAddIntegration}
                   disabled={!canAccess}
-                >
-                  {t('Install Config')}
-                </LinkButton>
+                  buttonText={t('Install Config')}
+                />
               </Tooltip>
             </Flex>
           </Flex>
@@ -124,14 +126,15 @@ export function ScmIntegrationTreeRow({
                     'You must be an organization owner, manager or admin to configure'
                   )}
                 >
-                  <LinkButton
+                  <AddIntegrationButton
                     size="xs"
                     icon={<IconAdd />}
-                    to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
+                    provider={node.provider}
+                    organization={organization}
+                    onAddIntegration={onAddIntegration}
                     disabled={!canAccess}
-                  >
-                    {t('Install Config')}
-                  </LinkButton>
+                    buttonText={t('Install Config')}
+                  />
                 </Tooltip>
               </Flex>
             </Flex>
@@ -218,14 +221,15 @@ export function ScmIntegrationTreeRow({
             position="left"
             title={t('You must be an organization owner, manager or admin to configure')}
           >
-            <LinkButton
+            <AddIntegrationButton
               size="xs"
               icon={<IconAdd />}
-              to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
+              provider={node.provider}
+              organization={organization}
+              onAddIntegration={onAddIntegration}
               disabled={!canAccess}
-            >
-              {t('Add %s Config', node.provider.name)}
-            </LinkButton>
+              buttonText={t('Add %s Config', node.provider.name)}
+            />
           </Tooltip>
         </Flex>
       </RowContainer>
