@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -155,7 +155,7 @@ export function GroupBySelector({
     widgetType &&
     [WidgetType.SPANS, WidgetType.LOGS, WidgetType.TRACEMETRICS].includes(widgetType);
   const renderTagOverride = isEAPType
-    ? (_kind: FieldValueKind, _label: string, meta: FieldValue['meta']) => {
+    ? (_kind: FieldValueKind, _label: ReactNode, meta: FieldValue['meta']) => {
         if (!('dataType' in meta)) {
           return null;
         }
