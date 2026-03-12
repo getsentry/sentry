@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -229,7 +229,7 @@ class ProjectManager(BaseManager["Project"]):
 
 
 @snowflake_id_model
-@region_silo_model
+@cell_silo_model
 class Project(Model):
     from sentry.models.projectteam import ProjectTeam
 

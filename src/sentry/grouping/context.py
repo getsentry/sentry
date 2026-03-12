@@ -7,12 +7,6 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event
 
 
-# XXX: Want to make ContextDict typeddict but also want to type/overload dict
-# API on GroupingContext
-ContextValue = Any
-ContextDict = dict[str, ContextValue]
-
-
 class GroupingContext:
     """
     A key-value store used for passing state between strategy functions and other helpers used
@@ -45,18 +39,18 @@ class GroupingContext:
         self.event = event
         self._push_context_layer()
 
-    def __setitem__(self, key: str, value: ContextValue) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         # Add the key-value pair to the context layer at the top of the stack
         self._stack[-1][key] = value
 
-    def __getitem__(self, key: str) -> ContextValue:
+    def __getitem__(self, key: str) -> Any:
         # Walk down the stack from the top and return the first instance of `key` found
         for d in reversed(self._stack):
             if key in d:
                 return d[key]
         raise KeyError(key)
 
-    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
+    def get(self, key: str, default: Any = None) -> Any | None:
         try:
             return self[key]
         except KeyError:

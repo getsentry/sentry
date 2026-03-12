@@ -10,7 +10,7 @@ from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -37,7 +37,7 @@ class ActionManager(BaseManager["Action"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class Action(DefaultFieldsModel, JSONConfigBase):
     """
     Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.

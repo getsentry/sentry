@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -15,6 +15,7 @@ import {
   RootCauseCard,
   SolutionCard,
 } from 'sentry/components/events/autofix/v3/autofixCards';
+import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import Placeholder from 'sentry/components/placeholder';
 import {isArrayOf} from 'sentry/types/utils';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -31,14 +32,27 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
     [autofix.runState]
   );
 
-  return autofix.isLoading ? (
-    <Flex direction="column" gap="xl">
-      <Placeholder height="10rem" />
-      <Placeholder height="15rem" />
+  if (autofix.isLoading) {
+    return (
+      <Flex direction="column" gap="xl">
+        <Placeholder height="10rem" />
+        <Placeholder height="15rem" />
+      </Flex>
+    );
+  }
+
+  if (!autofix.runState && aiConfig.hasAutofix) {
+    return null; // TODO: should this have an empty state?
+  }
+
+  return (
+    <Flex direction="column" gap="lg">
+      <SeerDrawerArtifacts artifacts={artifacts} />
+      {autofix.runState?.status === 'completed' && (
+        <SeerDrawerNextStep autofix={autofix} artifacts={artifacts} />
+      )}
     </Flex>
-  ) : !autofix.runState && aiConfig.hasAutofix ? null : artifacts.length ? (
-    <SeerDrawerArtifacts artifacts={artifacts} />
-  ) : null;
+  );
 }
 
 interface SeerDrawerArtifactsProps {
@@ -47,7 +61,7 @@ interface SeerDrawerArtifactsProps {
 
 function SeerDrawerArtifacts({artifacts}: SeerDrawerArtifactsProps) {
   return (
-    <Flex direction="column" gap="lg">
+    <Fragment>
       {artifacts.map(artifact => {
         // there should only be 1 artifact of each type
         if (isRootCauseArtifact(artifact)) {
@@ -69,6 +83,6 @@ function SeerDrawerArtifacts({artifacts}: SeerDrawerArtifactsProps) {
         // TODO: maybe send a log?
         return null;
       })}
-    </Flex>
+    </Fragment>
   );
 }

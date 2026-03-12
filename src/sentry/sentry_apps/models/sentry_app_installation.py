@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_cell_names, find_regions_for_orgs
+from sentry.types.region import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -149,7 +149,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             return None
 
     def outbox_region_names(self) -> Collection[str]:
-        return find_regions_for_orgs([self.organization_id])
+        return find_cells_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         # Use 0 in case of bad relations from api_application_id -- the replication ordering for

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
@@ -96,7 +96,7 @@ class OrganizationOptionManager(OptionManager["OrganizationOption"]):
         self.reload_cache(instance.organization_id, "organizationoption.post_delete")
 
 
-@region_silo_model
+@cell_silo_model
 class OrganizationOption(Model):
     """
     Organization options apply only to an instance of a organization.

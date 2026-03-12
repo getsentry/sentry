@@ -417,6 +417,7 @@ def get_trace_waterfall(trace_id: str, organization_id: int) -> EAPTrace | None:
         full_trace_id,
         additional_attributes=["span.status_code"],
         referrer=Referrer.SEER_EXPLORER_TOOLS,
+        organization=organization,
     )
 
     return EAPTrace(

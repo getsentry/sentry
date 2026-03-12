@@ -18,7 +18,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 
 jest.mock('sentry/utils/analytics', () => ({
   ...jest.requireActual('sentry/utils/analytics'),
