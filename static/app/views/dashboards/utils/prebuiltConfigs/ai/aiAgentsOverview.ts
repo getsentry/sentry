@@ -4,6 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const AGENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:agent`;
@@ -187,7 +188,7 @@ const AGENTS_TRACES_TABLE = {
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
-  limit: 10,
+  limit: RESULTS_LIMIT,
   queries: [
     {
       conditions: '',
