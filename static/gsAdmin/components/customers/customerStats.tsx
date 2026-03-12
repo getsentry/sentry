@@ -155,37 +155,40 @@ function getAbuseData(
   return {regions, valueByTimestamp, intervals: allTimestamps, intervalMs};
 }
 
-function buildAbuseMarkAreaSeries(
+function useAbuseMarkAreaSeries(
   regions: Array<{end: number; start: number}>,
-  theme: ReturnType<typeof useTheme>,
   intervalMs: number
 ): SeriesItem[] {
-  if (regions.length === 0) {
-    return [];
-  }
+  const theme = useTheme();
 
-  const halfInterval = intervalMs / 2;
+  return useMemo(() => {
+    if (regions.length === 0) {
+      return [];
+    }
 
-  return regions.map(r => ({
-    seriesName: '',
-    data: [] as DataPoint[],
-    markArea: MarkArea({
-      silent: true,
-      itemStyle: {
-        color: theme.tokens.graphics.promotion.vibrant,
-        opacity: 0.1,
-      },
-      label: {
-        show: false,
-      },
-      data: [
-        [
-          {xAxis: new Date(r.start - halfInterval).toISOString()},
-          {xAxis: new Date(r.end + halfInterval).toISOString()},
-        ] as [{xAxis: string}, {xAxis: string}],
-      ],
-    }),
-  })) as SeriesItem[];
+    const halfInterval = intervalMs / 2;
+
+    return regions.map(r => ({
+      seriesName: '',
+      data: [] as DataPoint[],
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: theme.tokens.graphics.promotion.vibrant,
+          opacity: 0.1,
+        },
+        label: {
+          show: false,
+        },
+        data: [
+          [
+            {xAxis: new Date(r.start - halfInterval).toISOString()},
+            {xAxis: new Date(r.end + halfInterval).toISOString()},
+          ] as [{xAxis: string}, {xAxis: string}],
+        ],
+      }),
+    })) as SeriesItem[];
+  }, [regions, intervalMs, theme]);
 }
 
 function zeroFillDates(start: number, end: number, {color}: {color: string}) {
@@ -548,6 +551,8 @@ export const CustomerStats = memo(
       [abuseStats]
     );
 
+    const abuseMarkArea = useAbuseMarkAreaSeries(abuseData.regions, abuseData.intervalMs);
+
     const abuseDataRef = useRef(abuseData);
     abuseDataRef.current = abuseData;
 
@@ -652,12 +657,6 @@ export const CustomerStats = memo(
 
     const zeroFillStart =
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
-
-    const abuseMarkArea = buildAbuseMarkAreaSeries(
-      abuseData.regions,
-      theme,
-      abuseData.intervalMs
-    );
 
     const chartSeries = [
       // Abuse markArea first so bars render on top and get mouse events
