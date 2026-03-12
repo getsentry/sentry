@@ -645,6 +645,10 @@ class WorkflowEngineRuleSerializer(Serializer):
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
+            for f in filters:
+                if f.get("value"):
+                    f["value"] = int(f["value"])
+
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 

@@ -113,8 +113,10 @@ def assert_serializer_results_match(
 
     for rule_action_data, workflow_action_data in zip(rule_actions, workflow_actions):
         del rule_action_data["uuid"]
-        del rule_action_data["legacy_rule_id"]
-        del rule_action_data["workflow_id"]
+        if rule_action_data.get("legacy_rule_id"):
+            del rule_action_data["legacy_rule_id"]
+        if rule_action_data.get("workflow_id"):
+            del rule_action_data["workflow_id"]
         assert rule_action_data == workflow_action_data
 
     # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value
@@ -1493,6 +1495,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
 
         assert_rule_from_payload(self.rule, payload)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     @responses.activate
     def test_update_sentry_app_action_success(self) -> None:
