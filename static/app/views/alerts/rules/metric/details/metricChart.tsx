@@ -14,13 +14,13 @@ import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert'
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {
   transformComparisonTimeseriesData,
   transformTimeseriesData,
 } from 'sentry/components/charts/eventsRequest';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {
   ChartControls,
   HeaderTitleLegend,
@@ -29,10 +29,10 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -153,7 +153,7 @@ function getRuleChangeSeries(
   ];
 }
 
-export default function MetricChart({
+export function MetricChart({
   rule,
   project,
   timePeriod,

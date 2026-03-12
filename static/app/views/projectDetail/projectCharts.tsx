@@ -5,8 +5,8 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
   ChartControls,
@@ -21,7 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';

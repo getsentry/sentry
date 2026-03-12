@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import EditableText from 'sentry/components/editableText';
+import {EditableText} from 'sentry/components/editableText';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import FormField from 'sentry/components/forms/formField';

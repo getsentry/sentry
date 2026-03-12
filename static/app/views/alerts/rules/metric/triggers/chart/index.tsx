@@ -11,7 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import EventsRequest, {
   type EventsRequestProps,
 } from 'sentry/components/charts/eventsRequest';
@@ -25,7 +25,7 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import LoadingMask from 'sentry/components/loadingMask';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -81,7 +81,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import ThresholdsChart from './thresholdsChart';
+import {ThresholdsChart} from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];

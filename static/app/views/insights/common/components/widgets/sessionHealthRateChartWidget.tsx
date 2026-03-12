@@ -3,7 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import useSessionHealthBreakdown from 'sentry/views/insights/sessions/queries/useSessionHealthBreakdown';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';

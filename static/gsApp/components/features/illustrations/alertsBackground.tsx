@@ -87,7 +87,7 @@ type Props = {
   anchorRef: React.Ref<SVGForeignObjectElement>;
 };
 
-function AlertsBackground({anchorRef}: Props) {
+export function AlertsBackground({anchorRef}: Props) {
   let alertInterval: undefined | number;
 
   const alertAnimationHook: React.Ref<SVGGElement> = el => {
@@ -686,5 +686,3 @@ function AlertsBackground({anchorRef}: Props) {
     </svg>
   );
 }
-
-export default AlertsBackground;

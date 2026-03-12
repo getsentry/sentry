@@ -7,19 +7,19 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import PageHeader from 'admin/components/pageHeader';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {PageHeader} from 'admin/components/pageHeader';
 import type {
   Contract,
   ContractDate,
@@ -238,7 +238,7 @@ function SharedBudgets({budgets}: {budgets: SharedSKUBudget[]}) {
   );
 }
 
-export default function CustomerContractDetails() {
+export function CustomerContractDetails() {
   const {orgId} = useParams<{orgId: string}>();
   const {data, isPending, isError, refetch} = useApiQuery<Contract>(
     [

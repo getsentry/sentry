@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
@@ -25,7 +25,7 @@ const unknownUser: AvatarUser = {
   ip_address: '',
 };
 
-function LastCommit({commit}: Props) {
+export function LastCommit({commit}: Props) {
   function renderMessage(message: Commit['message']) {
     if (!message) {
       return (
@@ -76,8 +76,6 @@ function LastCommit({commit}: Props) {
     </div>
   );
 }
-
-export default LastCommit;
 
 const Message = styled('div')`
   display: block;

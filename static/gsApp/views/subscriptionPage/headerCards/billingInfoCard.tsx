@@ -6,7 +6,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {NavigationLayout} from 'sentry/views/navigation/types';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -14,11 +14,11 @@ import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 const MAX_WIDTH = 'calc(100vw - 48px - 32px)'; // 100vw - 48px (outer padding) - 32px (inner padding)
 
-function BillingInfoCard({
+export function BillingInfoCard({
   subscription,
   organization,
 }: {
@@ -153,5 +153,3 @@ function PaymentSourceInfo({subscription}: {subscription: Subscription}) {
     </Text>
   );
 }
-
-export default BillingInfoCard;

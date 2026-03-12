@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -22,33 +22,49 @@ import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigat
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
-function MobileTopbar() {
+export function MobileNavigation() {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
+
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
     updateNavigationStyleAttributes(view);
   }, [view]);
-  /** Automatically close the menu after any navigation */
-  useEffect(() => {
-    setView('closed');
-  }, [location.pathname]);
-  const handleClick = useCallback(() => {
-    setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed'));
-  }, [activeGroup]);
 
-  // Avoid showing superuser UI on certain organizations
-  const isExcludedOrg = HookStore.get('component:superuser-warning-excluded')[0]?.(
-    organization
+  /** Close menu after any location pathname change */
+  useEffect(() => setView('closed'), [location.pathname]);
+
+  const handleClick = useCallback(
+    () =>
+      setView(v => (v === 'closed' ? (activeGroup ? 'secondary' : 'primary') : 'closed')),
+    [activeGroup]
   );
+
   const showSuperuserWarning =
-    isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   return (
-    <Topbar showSuperuserWarning={showSuperuserWarning}>
+    <Flex
+      as="header"
+      direction="row"
+      align="center"
+      height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
+      paddingLeft="lg"
+      paddingRight="lg"
+      width="100vw"
+      borderBottom="primary"
+      background="secondary"
+      justify="between"
+      position="sticky"
+      top={0}
+      style={{zIndex: theme.zIndex.sidebar}}
+    >
       <Flex align="center" gap="md">
         {/* If the view is not closed, it will render under the full screen mobile menu */}
         <OrganizationDropdown onClick={() => setView('closed')} />
@@ -76,11 +92,48 @@ function MobileTopbar() {
           ) : null}
         </NavigationOverlayPortal>
       )}
-    </Topbar>
+    </Flex>
   );
 }
 
-export default MobileTopbar;
+interface NavigationOverlayPortalProps {
+  children: React.ReactNode;
+  closeButtonRef: React.RefObject<HTMLButtonElement | null>;
+  label: string;
+  setView: (view: ActiveView) => void;
+}
+
+function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
+  const theme = useTheme();
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useOnClickOutside(ref, e => {
+    // Without this check the menu will reopen when the click event triggers
+    if (props.closeButtonRef.current?.contains(e.target as Node)) {
+      return;
+    }
+    props.setView('closed');
+  });
+
+  return createPortal(
+    <Flex
+      ref={ref}
+      as="nav"
+      aria-label={props.label}
+      direction="column"
+      background="tertiary"
+      position="fixed"
+      top={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
+      right={0}
+      bottom={0}
+      left={0}
+      style={{zIndex: theme.zIndex.modal}}
+    >
+      {props.children}
+    </Flex>,
+    document.body
+  );
+}
 
 /** When the mobile menu opens, set the main content to `inert` and disable `body` scrolling */
 function updateNavigationStyleAttributes(view: ActiveView) {
@@ -99,60 +152,3 @@ function updateNavigationStyleAttributes(view: ActiveView) {
     document.body.style.setProperty('overflow', 'hidden');
   }
 }
-
-function NavigationOverlayPortal({
-  children,
-  label,
-  setView,
-  closeButtonRef,
-}: {
-  children: React.ReactNode;
-  closeButtonRef: React.RefObject<HTMLButtonElement | null>;
-  label: string;
-  setView: (view: ActiveView) => void;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useOnClickOutside(ref, e => {
-    // Without this check the menu will reopen when the click event triggers
-    if (closeButtonRef.current?.contains(e.target as Node)) {
-      return;
-    }
-    setView('closed');
-  });
-  return createPortal(
-    <NavigationOverlay ref={ref} aria-label={label}>
-      {children}
-    </NavigationOverlay>,
-    document.body
-  );
-}
-
-const Topbar = styled('header')<{showSuperuserWarning: boolean}>`
-  height: ${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px;
-  width: 100vw;
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.colors.gray200};
-  background: ${p => p.theme.tokens.background.secondary};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: ${p => p.theme.zIndex.sidebar};
-`;
-
-const NavigationOverlay = styled('nav')`
-  position: fixed;
-  top: 40px;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: flex;
-  flex-direction: column;
-  background: ${p => p.theme.tokens.background.tertiary};
-  z-index: ${p => p.theme.zIndex.modal};
-  --color: ${p => p.theme.tokens.content.primary};
-  --color-hover: ${p => p.theme.tokens.interactive.link.accent.rest};
-`;

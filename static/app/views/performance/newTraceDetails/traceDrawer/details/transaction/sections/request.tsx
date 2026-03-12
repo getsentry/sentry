@@ -14,7 +14,7 @@ import {
   StructuredData,
   type StructedEventDataConfig,
 } from 'sentry/components/structuredEventData';
-import Truncate from 'sentry/components/truncate';
+import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {EntryType, type EntryRequest, type EventTransaction} from 'sentry/types/event';

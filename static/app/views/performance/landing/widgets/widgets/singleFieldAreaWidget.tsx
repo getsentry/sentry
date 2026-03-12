@@ -13,7 +13,7 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
-import DurationChart from 'sentry/views/performance/charts/chart';
+import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';

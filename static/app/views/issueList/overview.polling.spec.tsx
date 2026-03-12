@@ -12,7 +12,9 @@ import TagStore from 'sentry/stores/tagStore';
 import type {Group} from 'sentry/types/group';
 import IssueList from 'sentry/views/issueList/overview';
 
-jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/filters', () => ({
+  IssueListFilters: jest.fn(() => null),
+}));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
   default: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),

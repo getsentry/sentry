@@ -11,7 +11,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
 
-export default function NumericDropdownFilter({
+export function NumericDropdownFilter({
   type,
   val,
   formatter = DEFAULT_NUMERIC_DROPDOWN_FORMATTER,

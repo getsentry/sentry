@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventTitleError from 'sentry/components/eventTitleError';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventTitleError} from 'sentry/components/eventTitleError';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';

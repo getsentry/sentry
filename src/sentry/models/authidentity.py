@@ -14,7 +14,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.auth.identity")
 
@@ -37,7 +37,7 @@ class AuthIdentity(ReplicatedControlModel):
     date_added = models.DateTimeField(default=timezone.now)
 
     def outbox_region_names(self) -> Collection[str]:
-        return find_regions_for_orgs([self.auth_provider.organization_id])
+        return find_cells_for_orgs([self.auth_provider.organization_id])
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_identity

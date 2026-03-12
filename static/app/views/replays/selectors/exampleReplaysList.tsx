@@ -8,8 +8,8 @@ import {Link} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayBadge from 'sentry/components/replays/replayBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,7 +21,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-export default function ExampleReplaysList({
+export function ExampleReplaysList({
   location,
   clickType,
   selectorQuery,

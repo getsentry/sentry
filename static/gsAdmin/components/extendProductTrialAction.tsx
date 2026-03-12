@@ -19,7 +19,7 @@ type Props = AdminConfirmRenderProps & {
 /**
  * Rendered as part of an openAdminConfirmModal call for extending product trials
  */
-function ExtendProductTrialAction({
+export function ExtendProductTrialAction({
   activeProductTrial,
   apiName,
   trialName,
@@ -83,5 +83,3 @@ function ExtendProductTrialAction({
     </Fragment>
   );
 }
-
-export default ExtendProductTrialAction;

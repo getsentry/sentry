@@ -1528,7 +1528,7 @@ const SECTIONS: TSection[] = [
   },
 ];
 
-export default function IconsStories() {
+export function IconsStories() {
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')

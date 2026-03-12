@@ -18,7 +18,7 @@ interface AnomalyDetectionFeedbackProps {
   selectedIncident: Incident;
 }
 
-export default function AnomalyDetectionFeedbackBanner({
+export function AnomalyDetectionFeedbackBanner({
   id,
   organization,
   selectedIncident,

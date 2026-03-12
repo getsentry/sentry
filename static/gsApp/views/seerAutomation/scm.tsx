@@ -3,13 +3,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {ScmIntegrationTree} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTree';
-import ScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
+import {ScmTreeFilters} from 'sentry/components/repositories/scmIntegrationTree/scmTreeFilters';
 import useScmTreeFilters from 'sentry/components/repositories/scmIntegrationTree/useScmTreeFilters';
 import {t, tct} from 'sentry/locale';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import SeerSettingsPageContent from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
-import SeerSettingsPageWrapper from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
+import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
+import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 
 export default function SeerAutomationSCM() {
   const {repoFilter, setRepoFilter, searchTerm, setSearchTerm} = useScmTreeFilters();

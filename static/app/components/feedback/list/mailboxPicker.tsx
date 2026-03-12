@@ -17,7 +17,7 @@ interface Props {
   value: Mailbox;
 }
 
-export default function MailboxPicker({onChange, value}: Props) {
+export function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
   const {isSelfHosted} = useLegacyStore(ConfigStore);

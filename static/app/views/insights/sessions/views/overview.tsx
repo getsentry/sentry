@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -18,9 +18,9 @@ import {
   type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
-import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
-import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
+import {FilterReleaseDropdown} from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import {ReleaseTableSearch} from 'sentry/views/insights/sessions/components/releaseTableSearch';
+import {ReleaseHealth} from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {PlatformizedMobileSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedMobileOverview';
 import {PlatformizedSessionsOverview} from 'sentry/views/insights/sessions/views/platformizedOverview';

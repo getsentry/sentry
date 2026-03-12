@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import {Count} from 'sentry/components/count';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
-import GroupChart from 'sentry/components/stream/groupChart';
+import {GroupChart} from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -124,7 +124,7 @@ function useInsightIssues(
   return {isLoading: isPending, issues};
 }
 
-export default function InsightIssuesList({
+export function InsightIssuesList({
   issueTypes,
   message,
 }: {

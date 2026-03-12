@@ -20,7 +20,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import Pagination from 'sentry/components/pagination';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -64,7 +64,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {
   DashboardFilters,
@@ -82,6 +82,7 @@ import {
   getWidgetReleasesUrl,
   isUsingPerformanceScore,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {
@@ -98,10 +99,10 @@ import {
   useDashboardsMEPContext,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
@@ -603,6 +604,12 @@ function WidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.TABLE &&
     widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
 
+  const shouldRenderTable =
+    // At the moment, issue tables do not support aggregates, so we should never render the table in full screen for timeseries widgets
+    !(widget.widgetType === WidgetType.ISSUE && usesTimeSeriesData(widget.displayType)) &&
+    widget.displayType !== DisplayType.RAGE_AND_DEAD_CLICKS &&
+    widget.displayType !== DisplayType.SERVER_TREE;
+
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -736,7 +743,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </QueryContainer>
         )}
-        {renderWidgetViewerTable()}
+        {shouldRenderTable && renderWidgetViewerTable()}
       </Fragment>
     );
   }

@@ -1,6 +1,6 @@
 import {Outlet} from 'react-router-dom';
 
-import Redirect from 'sentry/components/redirect';
+import {Redirect} from 'sentry/components/redirect';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 // Wraps all routes under /stats/ to redirect to /settings/stats/

@@ -8,7 +8,7 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import Relocation from 'sentry/views/relocation/relocation';
+import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
 

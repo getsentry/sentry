@@ -1,6 +1,6 @@
 import {TeamAvatar} from '@sentry/scraps/avatar';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -9,10 +9,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
+import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {CrumbLink} from '.';
 
-function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
+export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
@@ -59,5 +59,3 @@ function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     />
   );
 }
-
-export default TeamCrumb;

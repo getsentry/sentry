@@ -13,7 +13,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import type {Group} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 const SECOND_TO_MILLISECOND = 1000;
 const MILLISECOND_TO_DAY = SECOND_TO_MILLISECOND * 60 * 60 * 24;

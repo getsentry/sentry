@@ -17,7 +17,7 @@ interface Props {
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({group}: Props) {
+export function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
   const count = getReplayCountForIssue(group.id, group.issueCategory);
@@ -60,5 +60,3 @@ const ReplayCountLink = styled(Link)`
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
-
-export default IssueReplayCount;

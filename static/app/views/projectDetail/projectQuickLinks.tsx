@@ -30,7 +30,7 @@ type Props = {
   project?: Project;
 };
 
-function ProjectQuickLinks({organization, project}: Props) {
+export function ProjectQuickLinks({organization, project}: Props) {
   const domainView = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
@@ -158,5 +158,3 @@ const QuickLinkText = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default ProjectQuickLinks;

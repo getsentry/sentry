@@ -1,6 +1,6 @@
 import {Outlet} from 'react-router-dom';
 
-import Redirect from 'sentry/components/redirect';
+import {Redirect} from 'sentry/components/redirect';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
 import useOrganization from 'sentry/utils/useOrganization';

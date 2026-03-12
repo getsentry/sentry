@@ -4,7 +4,7 @@ import {useProfiler} from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';

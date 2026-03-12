@@ -24,7 +24,7 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -250,7 +250,7 @@ function HighlightsData({
   );
 }
 
-export default function HighlightsDataSection({
+export function HighlightsDataSection({
   viewAllRef,
   event,
   project,

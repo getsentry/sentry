@@ -5,7 +5,7 @@ import {
   hasFlamegraphData,
   StacktraceFlamegraph,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';

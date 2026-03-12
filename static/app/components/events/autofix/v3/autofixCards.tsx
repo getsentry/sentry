@@ -1,7 +1,8 @@
-import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useMemo, type ReactNode} from 'react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {
@@ -9,7 +10,6 @@ import type {
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
@@ -28,11 +28,8 @@ interface RootCauseCardProps {
 
 export function RootCauseCard({artifact}: RootCauseCardProps) {
   return (
-    <ArtifactCard
-      icon={<IconBug />}
-      title={t('Root Cause')}
-      summary={artifact.data?.one_line_description}
-    >
+    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+      <Text>{artifact.data?.one_line_description}</Text>
       {artifact.data?.five_whys?.length ? (
         <Fragment>
           <ArtifactDetails>
@@ -71,11 +68,8 @@ interface SolutionCardProps {
 
 export function SolutionCard({artifact}: SolutionCardProps) {
   return (
-    <ArtifactCard
-      icon={<IconList />}
-      title={t('Implementation Plan')}
-      summary={artifact?.data?.one_line_summary}
-    >
+    <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
+      <Text>{artifact?.data?.one_line_summary}</Text>
       {artifact.data?.steps ? (
         <ArtifactDetails>
           <Text bold>{t('Steps to Resolve')}</Text>
@@ -137,7 +131,8 @@ export function CodeChangesCard({artifact}: CodeChangesCardProps) {
   }, [patchesForRepos]);
 
   return (
-    <ArtifactCard icon={<IconCode />} title={t('Code Changes')} summary={summary}>
+    <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
+      <Text>{summary}</Text>
       {patchesForRepos.size ? (
         [...patchesForRepos.entries()].map(([repo, patches]) => {
           return (
@@ -171,7 +166,7 @@ interface PullRequestsCardProps {
 
 export function PullRequestsCard({artifact}: PullRequestsCardProps) {
   return (
-    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')} summary={null}>
+    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {
         if (!pullRequest.pr_url || !pullRequest.pr_number) {
           return null;
@@ -195,43 +190,26 @@ export function PullRequestsCard({artifact}: PullRequestsCardProps) {
 interface ArtifactCardProps {
   children: ReactNode;
   icon: ReactNode;
-  summary: ReactNode;
   title: ReactNode;
 }
 
-function ArtifactCard({children, icon, summary, title}: ArtifactCardProps) {
-  const [expanded, setExpanded] = useState(true);
+function ArtifactCard({children, icon, title}: ArtifactCardProps) {
   return (
-    <Grid
-      areas={`"chevron header padding" "empty main padding"`}
-      columns="28px auto 28px"
-      rows="28px auto"
-      border="primary"
-      radius="md"
-      gap="md"
-      padding="md"
-      paddingBottom="xl"
-      background="primary"
-    >
-      <Flex area="chevron" gap="md" align="center">
-        <Button
-          size="xs"
-          icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
-          onClick={() => setExpanded((isExpanded: boolean) => !isExpanded)}
-          tooltipProps={{title: expanded ? t('Collapse') : t('Expand')}}
-          aria-label={expanded ? t('Collapse') : t('Expand')}
-          priority="transparent"
-        />
-      </Flex>
-      <Flex area="header" gap="md" align="center">
-        {icon}
-        <Text bold>{title}</Text>
-      </Flex>
-      <Flex area="main" direction="column" gap="md">
-        <Text>{summary}</Text>
-        {expanded && children}
-      </Flex>
-    </Grid>
+    <Container border="primary" radius="md" padding="md" background="primary">
+      <Disclosure defaultExpanded>
+        <Disclosure.Title>
+          <Flex gap="md" align="center">
+            {icon}
+            <Text bold>{title}</Text>
+          </Flex>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Flex direction="column" gap="md">
+            {children}
+          </Flex>
+        </Disclosure.Content>
+      </Disclosure>
+    </Container>
   );
 }
 

@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -18,14 +18,14 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 type Props = {
   integration: Integration;
 };
 
-function IntegrationExternalUserMappings(props: Props) {
+export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -160,5 +160,3 @@ function IntegrationExternalUserMappings(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationExternalUserMappings;

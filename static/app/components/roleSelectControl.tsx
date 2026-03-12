@@ -23,7 +23,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
   value?: string | null;
 };
 
-function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
+export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   const organization = useOrganization();
   const isMemberInvite =
     organization.allowMemberInvite && organization.access?.includes('member:invite');
@@ -49,8 +49,6 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
     />
   );
 }
-
-export default RoleSelectControl;
 
 const Details = styled('span')`
   display: inline-block;

@@ -26,7 +26,7 @@ function buildRouter() {
   return router;
 }
 
-export default function Main() {
+export function Main() {
   const [router] = useState(buildRouter);
 
   useEffect(() => {

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer
@@ -39,7 +39,7 @@ class RepositorySettingsSerializer(serializers.Serializer):
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing repository settings."""
 

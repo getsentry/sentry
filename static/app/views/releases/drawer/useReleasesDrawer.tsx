@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

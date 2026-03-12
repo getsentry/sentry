@@ -29,8 +29,8 @@ import {
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-import DashboardCard from './dashboardCard';
-import GridPreview from './gridPreview';
+import {DashboardCard} from './dashboardCard';
+import {GridPreview} from './gridPreview';
 
 type Props = {
   api: Client;

@@ -23,9 +23,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';

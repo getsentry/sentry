@@ -5,9 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
-import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
-import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
+import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
+import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,11 +33,7 @@ function dimensionsToSize({width}: Dimensions) {
   return 'large';
 }
 
-export default function FeedbackItemHeader({
-  eventData,
-  feedbackItem,
-  onBackToList,
-}: Props) {
+export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: wrapperRef});
 

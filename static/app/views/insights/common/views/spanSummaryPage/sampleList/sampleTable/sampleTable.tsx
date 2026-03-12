@@ -47,7 +47,7 @@ type Props = {
   transactionMethod?: string;
 };
 
-function SampleTable({
+export function SampleTable({
   groupId,
   moduleName,
   transactionName,
@@ -214,5 +214,3 @@ function SampleTable({
     </SpanSamplesTableContainer>
   );
 }
-
-export default SampleTable;

@@ -18,7 +18,7 @@ import {
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 

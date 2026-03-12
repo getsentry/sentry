@@ -200,4 +200,9 @@ export const MOBILE_SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
     CRASH_RATE_TABLE,
     RELEASE_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasSessions'],
+    description: 'Get started with mobile session health',
+  },
 };

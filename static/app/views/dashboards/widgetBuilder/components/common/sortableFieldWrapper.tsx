@@ -8,7 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-function SortableVisualizeFieldWrapper({
+export function SortableVisualizeFieldWrapper({
   dragId,
   canDrag,
   children,
@@ -61,8 +61,6 @@ function SortableVisualizeFieldWrapper({
     </div>
   );
 }
-
-export default SortableVisualizeFieldWrapper;
 
 const DragAndReorderButton = styled(Button)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height};

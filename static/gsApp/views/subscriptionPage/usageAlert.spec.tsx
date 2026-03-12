@@ -13,7 +13,7 @@ import {DataCategory} from 'sentry/types/core';
 import {GIGABYTE} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
-import UsageAlert from 'getsentry/views/subscriptionPage/usageAlert';
+import {UsageAlert} from 'getsentry/views/subscriptionPage/usageAlert';
 
 describe('Subscription > UsageAlert', () => {
   const emptyUsage = CustomerUsageFixture();

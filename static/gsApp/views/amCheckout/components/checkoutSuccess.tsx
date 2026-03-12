@@ -12,7 +12,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -498,7 +498,7 @@ function Receipt({
   );
 }
 
-function CheckoutSuccess({
+export function CheckoutSuccess({
   invoice,
   basePlan,
   nextQueryParams,
@@ -640,8 +640,6 @@ function CheckoutSuccess({
     </Flex>
   );
 }
-
-export default CheckoutSuccess;
 
 const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {

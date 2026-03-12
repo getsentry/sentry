@@ -5,8 +5,8 @@ import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -14,7 +14,7 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 type StaticReplayPreviewProps = {

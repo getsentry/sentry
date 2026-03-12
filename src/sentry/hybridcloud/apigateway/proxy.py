@@ -27,7 +27,7 @@ from sentry.silo.util import (
 )
 from sentry.types.region import (
     Cell,
-    RegionResolutionError,
+    CellResolutionError,
     get_cell_by_name,
     get_cell_for_organization,
 )
@@ -81,7 +81,7 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
 
     try:
         cell = get_cell_for_organization(org_id_or_slug)
-    except RegionResolutionError as e:
+    except CellResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 

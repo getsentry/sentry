@@ -5,9 +5,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import IdBadge from 'sentry/components/idBadge';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';

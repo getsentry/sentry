@@ -55,7 +55,7 @@ interface Props {
   searchOptions?: Fuse.IFuseOptions<NavigationItem>;
 }
 
-function RouteSource({searchOptions, query, children}: Props) {
+export function RouteSource({searchOptions, query, children}: Props) {
   const params = useParams();
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: params.projectId});
@@ -116,5 +116,3 @@ function RouteSource({searchOptions, query, children}: Props) {
 
   return children({isLoading: fuzzy === undefined, results});
 }
-
-export default RouteSource;

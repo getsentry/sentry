@@ -17,7 +17,7 @@ import {
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
@@ -42,7 +42,7 @@ import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnR
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
@@ -81,7 +81,7 @@ function ReplayFilterMessage() {
   );
 }
 
-export default function GroupReplays({group}: Props) {
+export function GroupReplays({group}: Props) {
   return (
     <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
       <GroupReplaysContent group={group} />

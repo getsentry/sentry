@@ -46,7 +46,7 @@ interface Props {
 // the (smaller) browser window.
 const MAX_ZOOM = 1.5;
 
-export default function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
+export function ReplayPlayerMeasurer({children, measure = 'both'}: Props) {
   const elementRef = useRef<HTMLDivElement>(null);
   const measuredDimensions = useDimensions({elementRef});
   const playerState = useReplayPlayerState();

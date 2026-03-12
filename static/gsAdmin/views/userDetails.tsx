@@ -6,8 +6,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
@@ -24,15 +24,15 @@ import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import DetailsPage from 'admin/components/detailsPage';
-import MergeAccountsModal from 'admin/components/mergeAccounts';
+import {MergeAccountsModal} from 'admin/components/mergeAccounts';
 import SelectableContainer from 'admin/components/selectableContainer';
-import UserCustomers from 'admin/components/users/userCustomers';
-import UserEmailLog from 'admin/components/users/userEmailLog';
-import UserEmails from 'admin/components/users/userEmails';
-import UserOverview from 'admin/components/users/userOverview';
-import UserPermissionsModal from 'admin/components/users/userPermissionsModal';
+import {UserCustomers} from 'admin/components/users/userCustomers';
+import {UserEmailLog} from 'admin/components/users/userEmailLog';
+import {UserEmails} from 'admin/components/users/userEmails';
+import {UserOverview} from 'admin/components/users/userOverview';
+import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
-function UserDetails() {
+export function UserDetails() {
   const api = useApi({persistInFlight: true});
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();
@@ -294,5 +294,3 @@ function UserDetails() {
     />
   );
 }
-
-export default UserDetails;

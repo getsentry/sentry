@@ -19,7 +19,7 @@ type Props = {
   value: string; // project ID
 };
 
-function ProjectSelectControl({
+export function ProjectSelectControl({
   disabled,
   onChange,
   value: valueProp,
@@ -68,5 +68,3 @@ function ProjectSelectControl({
     />
   );
 }
-
-export default ProjectSelectControl;

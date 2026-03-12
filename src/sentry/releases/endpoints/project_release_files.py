@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import BaseEndpointMixin, region_silo_endpoint
+from sentry.api.base import BaseEndpointMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
@@ -231,7 +231,7 @@ def pseudo_releasefile(url, info, dist):
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

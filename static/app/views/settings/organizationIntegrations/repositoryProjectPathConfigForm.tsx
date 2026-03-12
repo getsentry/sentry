@@ -8,7 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -45,7 +45,7 @@ const integrationReposOptions = (
     }
   );
 
-export default function RepositoryProjectPathConfigModal({
+export function RepositoryProjectPathConfigModal({
   Body,
   Footer,
   Header,

@@ -25,7 +25,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import StacktraceLinkModal from './stacktraceLinkModal';
+import {StacktraceLinkModal} from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];

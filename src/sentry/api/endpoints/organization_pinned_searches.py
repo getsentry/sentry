@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
@@ -31,7 +31,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
         return value
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {

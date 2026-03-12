@@ -5,8 +5,8 @@ import {z} from 'zod';
 import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
@@ -16,8 +16,8 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {
   DefaultSettings,
@@ -33,9 +33,9 @@ import {
   QUOTA_FIELDS,
   SPEND_FIELDS,
 } from './fields';
-import NotificationSettingsByEntity from './notificationSettingsByEntity';
+import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
-import UnlinkedAlert from './unlinkedAlert';
+import {UnlinkedAlert} from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 
 type Props = {

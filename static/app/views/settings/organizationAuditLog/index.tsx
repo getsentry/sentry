@@ -16,7 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import AuditLogList from './auditLogList';
+import {AuditLogList} from './auditLogList';
 
 type State = {
   entryList: AuditLog[] | null;

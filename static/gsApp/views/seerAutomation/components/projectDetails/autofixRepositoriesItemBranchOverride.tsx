@@ -20,7 +20,7 @@ interface Props {
   override: BranchOverride;
 }
 
-export default function AutofixRepositoriesItemBranchOverride({
+export function AutofixRepositoriesItemBranchOverride({
   canWrite,
   onRemoveOverride,
   onUpdateOverride,
