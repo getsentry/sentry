@@ -58,11 +58,11 @@ export default function ReplayOnboardingPanel() {
   const hasSelectedProjects = selectedProjects.length > 0;
 
   const allProjectsUnsupported = projects.projects.every(
-    p => !supportedPlatforms.includes(p.platform)
+    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
   );
 
   const allSelectedProjectsUnsupported = selectedProjects.every(
-    p => !supportedPlatforms.includes(p.platform)
+    p => !supportedPlatforms.includes(p.platform as (typeof supportedPlatforms)[number])
   );
 
   // if all projects are unsupported we should prompt the user to create a project
