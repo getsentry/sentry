@@ -31,6 +31,26 @@ import {
 
 export const NONE_UNIT = 'none';
 
+function MetricOptionTrailingItems({
+  metricType,
+  metricUnit,
+  hasMetricUnitsUI,
+}: {
+  hasMetricUnitsUI: boolean;
+  metricType: TraceMetricTypeValue;
+  metricUnit?: string;
+}) {
+  return (
+    <Fragment>
+      <MetricTypeBadge metricType={metricType} />
+      {hasMetricUnitsUI &&
+        metricUnit &&
+        metricUnit !== '-' &&
+        metricUnit !== NONE_UNIT && <Tag variant="promotion">{metricUnit}</Tag>}
+    </Fragment>
+  );
+}
+
 interface MetricSelectOption {
   label: string;
   metricName: string;
@@ -86,6 +106,13 @@ export function MetricSelector({
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricUnit: hasMetricUnitsUI ? (traceMetric.unit ?? '-') : undefined,
       metricName: traceMetric.name,
+      trailingItems: () => (
+        <MetricOptionTrailingItems
+          metricType={traceMetric.type as TraceMetricTypeValue}
+          metricUnit={traceMetric.unit ?? '-'}
+          hasMetricUnitsUI={hasMetricUnitsUI}
+        />
+      ),
     }),
     [
       metricSelectValue,
@@ -126,16 +153,11 @@ export function MetricSelector({
           ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
           : undefined,
         trailingItems: () => (
-          <Fragment>
-            <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
-              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
-                <Tag variant="promotion">
-                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-                </Tag>
-              )}
-          </Fragment>
+          <MetricOptionTrailingItems
+            hasMetricUnitsUI={hasMetricUnitsUI}
+            metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]}
+            metricUnit={option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT}
+          />
         ),
       })) ?? []),
     ];
@@ -337,19 +359,7 @@ export function MetricSelector({
                               </LeadWrap>
                             </Fragment>
                           }
-                          trailingItems={
-                            <Flex gap="xs" align="center" flexShrink={0}>
-                              <MetricTypeBadge metricType={longestOption.metricType} />
-                              {hasMetricUnitsUI &&
-                                longestOption.metricUnit &&
-                                longestOption.metricUnit !== '-' &&
-                                longestOption.metricUnit !== NONE_UNIT && (
-                                  <Tag variant="promotion">
-                                    {longestOption.metricUnit}
-                                  </Tag>
-                                )}
-                            </Flex>
-                          }
+                          trailingItems={longestOption.trailingItems}
                         />
                       </div>
                     )}
@@ -376,11 +386,11 @@ export function MetricSelector({
                         >
                           {itemsToRender.map(virtualRow => {
                             const option = displayedOptions[virtualRow.index];
-                            if (!option) {
-                              return null;
-                            }
+                            if (!option) return null;
+
                             const isSelected = option.value === traceMetricSelectValue;
                             const isFocused = virtualRow.index === focusedIndex;
+
                             return (
                               <div
                                 key={option.value}
