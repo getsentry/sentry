@@ -82,6 +82,7 @@ import {
   getWidgetReleasesUrl,
   isUsingPerformanceScore,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {
@@ -603,10 +604,11 @@ function WidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.TABLE &&
     widget.displayType !== DisplayType.AGENTS_TRACES_TABLE;
 
-  // At the moment, issue tables do not support aggregates, so we should never render the table in full screen for timeseries widgets
-  const shouldRenderTable = !(
-    widget.widgetType === WidgetType.ISSUE && shouldRenderChartVisualization
-  );
+  const shouldRenderTable =
+    // At the moment, issue tables do not support aggregates, so we should never render the table in full screen for timeseries widgets
+    !(widget.widgetType === WidgetType.ISSUE && usesTimeSeriesData(widget.displayType)) &&
+    widget.displayType !== DisplayType.RAGE_AND_DEAD_CLICKS &&
+    widget.displayType !== DisplayType.SERVER_TREE;
 
   function renderWidgetViewer() {
     return (
