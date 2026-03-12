@@ -1,47 +1,25 @@
-import {t} from 'sentry/locale';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+enum PrimaryNavigationGroup {
+  ISSUES = 'issues',
+  DASHBOARDS = 'dashboards',
+  EXPLORE = 'explore',
+  INSIGHTS = 'insights',
+  MONITORS = 'monitors',
+  SETTINGS = 'settings',
+  PREVENT = 'prevent',
+  ADMIN = 'admin',
+}
 
-type PrimaryNavigationGroupConfig = Record<
-  PrimaryNavigationGroup,
-  {
-    basePaths: string[];
-    label: string;
-  }
->;
+type PrimaryNavigationGroupConfig = Record<PrimaryNavigationGroup, string[]>;
 
 export const PRIMARY_NAVIGATION_GROUP_CONFIG: PrimaryNavigationGroupConfig = {
-  [PrimaryNavigationGroup.ISSUES]: {
-    basePaths: ['issues'],
-    label: t('Issues'),
-  },
-  [PrimaryNavigationGroup.EXPLORE]: {
-    basePaths: ['explore'],
-    label: t('Explore'),
-  },
-  [PrimaryNavigationGroup.DASHBOARDS]: {
-    // XXX: Dashboard uses the singular `dashboard` path for details pages
-    // but the plural `dashboards` path for the list of dashboards.
-    basePaths: ['dashboards', 'dashboard'],
-    label: t('Dashboards'),
-  },
-  [PrimaryNavigationGroup.INSIGHTS]: {
-    basePaths: ['insights'],
-    label: t('Insights'),
-  },
-  [PrimaryNavigationGroup.MONITORS]: {
-    basePaths: ['monitors'],
-    label: t('Monitors'),
-  },
-  [PrimaryNavigationGroup.SETTINGS]: {
-    basePaths: ['settings'],
-    label: t('Settings'),
-  },
-  [PrimaryNavigationGroup.PREVENT]: {
-    basePaths: ['prevent'],
-    label: t('Prevent'),
-  },
-  [PrimaryNavigationGroup.ADMIN]: {
-    basePaths: ['manage'],
-    label: t('Admin'),
-  },
+  [PrimaryNavigationGroup.ISSUES]: ['issues'],
+  [PrimaryNavigationGroup.EXPLORE]: ['explore'],
+  // XXX: Dashboard uses the singular `dashboard` path for details pages
+  // but the plural `dashboards` path for the list of dashboards
+  [PrimaryNavigationGroup.DASHBOARDS]: ['dashboards', 'dashboard'],
+  [PrimaryNavigationGroup.INSIGHTS]: ['insights'],
+  [PrimaryNavigationGroup.MONITORS]: ['monitors'],
+  [PrimaryNavigationGroup.SETTINGS]: ['settings'],
+  [PrimaryNavigationGroup.PREVENT]: ['prevent'],
+  [PrimaryNavigationGroup.ADMIN]: ['manage'],
 };
