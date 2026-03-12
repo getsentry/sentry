@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {RenderBlockingSelector} from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import {ResourceTable} from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {

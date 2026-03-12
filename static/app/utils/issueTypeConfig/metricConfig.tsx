@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const metricConfig: IssueCategoryConfigMapping = {
+export const metricConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -134,5 +134,3 @@ const metricConfig: IssueCategoryConfigMapping = {
     groupingInfo: {enabled: false},
   },
 };
-
-export default metricConfig;

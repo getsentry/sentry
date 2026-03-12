@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import OrganizationAuthList from './organizationAuthList';
 

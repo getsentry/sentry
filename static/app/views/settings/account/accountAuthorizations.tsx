@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiApplication} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 type Authorization = {

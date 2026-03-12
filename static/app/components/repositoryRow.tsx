@@ -11,12 +11,12 @@ import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   orgSlug: string;

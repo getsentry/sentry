@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {PinnedPageFilter} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 import {getStateFromQuery} from './parse';
 
@@ -92,7 +92,7 @@ export function setPageFiltersStorage(
   );
 
   try {
-    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+    localStorageWrapper.setItem(localStorageKey, JSON.stringify(dataToSave));
   } catch (ex) {
     // Do nothing
   }
@@ -127,7 +127,7 @@ export function getPageFilterStorage(orgSlug: string, storageNamespace = '') {
 function decodePageFilter(key: string): StoredObject | null {
   const storageKey = makeLocalStorageKey(key);
 
-  const value = localStorage.getItem(storageKey);
+  const value = localStorageWrapper.getItem(storageKey);
   if (!value) {
     return null;
   }
@@ -147,5 +147,5 @@ function decodePageFilter(key: string): StoredObject | null {
  * Removes page filters from localstorage
  */
 export function removePageFiltersStorage(orgSlug: string) {
-  localStorage.removeItem(makeLocalStorageKey(orgSlug));
+  localStorageWrapper.removeItem(makeLocalStorageKey(orgSlug));
 }

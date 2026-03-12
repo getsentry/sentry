@@ -10,8 +10,8 @@ import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {GraphicsVariant} from 'sentry/utils/theme';
 

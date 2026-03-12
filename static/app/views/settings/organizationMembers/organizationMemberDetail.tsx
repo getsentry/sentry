@@ -31,7 +31,7 @@ import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {
   setApiQueryData,
   useApiQuery,
@@ -41,14 +41,14 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
-import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
+import {OrganizationRoleSelect} from './inviteMember/orgRoleSelect';
 
 const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');

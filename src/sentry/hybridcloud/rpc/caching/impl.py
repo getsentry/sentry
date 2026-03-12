@@ -41,7 +41,7 @@ def _versioned_key(key: str, version: int) -> str:
 
 
 def _version_model(mode: SiloMode) -> type[CacheVersionBase]:
-    if mode == SiloMode.REGION:
+    if mode == SiloMode.CELL:
         return RegionCacheVersion
     if mode == SiloMode.CONTROL:
         return ControlCacheVersion
@@ -83,7 +83,7 @@ class CacheBackend:
 
 class LocalRegionCachingService(RegionCachingService):
     def clear_key(self, *, region_name: str, key: str) -> int:
-        return _consume_generator(_delete_cache(key, SiloMode.REGION))
+        return _consume_generator(_delete_cache(key, SiloMode.CELL))
 
 
 class LocalControlCachingService(ControlCachingService):

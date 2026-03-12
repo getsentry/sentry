@@ -3,7 +3,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';

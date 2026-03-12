@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {NotificationSettingsByEntity} from 'sentry/views/settings/account/notifications/notificationSettingsByEntity';
 
 describe('NotificationSettingsByEntity', () => {

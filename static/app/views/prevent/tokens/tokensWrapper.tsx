@@ -8,7 +8,7 @@ import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/pr
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function TokensPageWrapper() {
   const organization = useOrganization();

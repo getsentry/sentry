@@ -38,7 +38,7 @@ def find_relocation_transfer_control() -> None:
 @instrumented_task(
     name="sentry.relocation.transfer.find_relocation_transfer_region",
     namespace=relocation_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def find_relocation_transfer_region() -> None:
     _find_relocation_transfer(RegionRelocationTransfer, process_relocation_transfer_region)
@@ -179,7 +179,7 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
 @instrumented_task(
     name="sentry.relocation.transfer.process_relocation_transfer_region",
     namespace=relocation_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     processing_deadline_duration=60,
 )
 def process_relocation_transfer_region(transfer_id: int) -> None:

@@ -6,8 +6,8 @@ import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useProjects} from 'sentry/utils/useProjects';
 
 function fetchFlamegraphs(
   api: Client,

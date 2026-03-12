@@ -6,7 +6,7 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff> {
   project: Project;

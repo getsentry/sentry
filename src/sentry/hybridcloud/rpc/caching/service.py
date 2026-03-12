@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class RegionCachingService(RpcService):
     key = "region_caching"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

@@ -6,7 +6,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {EventSamples} from 'sentry/views/insights/mobile/appStarts/components/eventSamples';

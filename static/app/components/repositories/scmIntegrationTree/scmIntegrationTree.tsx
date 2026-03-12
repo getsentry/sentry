@@ -27,8 +27,8 @@ import type {
 } from 'sentry/types/integrations';
 import type {InfiniteData} from 'sentry/utils/queryClient';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ROW_HEIGHT = 56;
 const BOTTOM_PADDING = 24;

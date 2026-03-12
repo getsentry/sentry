@@ -7,11 +7,11 @@ import {Text} from '@sentry/scraps/text';
 import {Overlay} from 'sentry/components/overlay';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
 import formatDuration from 'sentry/utils/duration/formatDuration';
-import divide from 'sentry/utils/number/divide';
-import toPercent from 'sentry/utils/number/toPercent';
+import {divide} from 'sentry/utils/number/divide';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
   container: HTMLElement;

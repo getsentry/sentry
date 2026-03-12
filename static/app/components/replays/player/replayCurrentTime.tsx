@@ -3,10 +3,10 @@ import {useState} from 'react';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
+import {useReplayCurrentTime} from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function ReplayCurrentTime() {
   const organization = useOrganization();

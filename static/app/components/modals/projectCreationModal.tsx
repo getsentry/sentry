@@ -26,14 +26,14 @@ import PlatformPicker, {
 import type {TeamOption} from 'sentry/components/teamSelector';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import slugify from 'sentry/utils/slugify';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {slugify} from 'sentry/utils/slugify';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
   getRequestDataFragment,

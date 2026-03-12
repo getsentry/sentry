@@ -5,7 +5,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   EditExistingCronDetectorForm,
   NewCronDetectorForm,
