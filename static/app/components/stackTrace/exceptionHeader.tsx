@@ -5,6 +5,7 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
@@ -53,7 +54,7 @@ export function ExceptionDescription({
           <AnnotatedText value={value} meta={valueMeta} />
         </ExceptionValue>
       ) : value ? (
-        <ExceptionValue>{value}</ExceptionValue>
+        <ExceptionValue>{renderLinksInText({exceptionText: value})}</ExceptionValue>
       ) : null}
       {mechanism && <Mechanism data={mechanism} meta={meta?.mechanism} />}
     </Flex>
