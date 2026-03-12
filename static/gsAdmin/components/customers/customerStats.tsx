@@ -5,8 +5,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {Legend} from 'sentry/components/charts/components/legend';
@@ -567,7 +565,8 @@ export const CustomerStats = memo(
         // Get the total series count from the current chart option so we can
         // pad the update array to the full length, preventing ECharts from
         // accidentally merging markArea config into bar series
-        const totalSeries = instance.getOption?.()?.series?.length ?? 0;
+        const seriesOption = instance.getOption?.()?.series;
+        const totalSeries = Array.isArray(seriesOption) ? seriesOption.length : 0;
         if (totalSeries === 0) {
           return;
         }
@@ -729,15 +728,7 @@ export const CustomerStats = memo(
                       grid={{top: 30, bottom: 0, left: 0, right: 0}}
                       {...zoomRenderProps}
                     />
-                    <AbuseTooltip
-                      ref={abuseTooltipRef}
-                      align="center"
-                      gap="xs"
-                      padding="xs md"
-                      // Inline style is toggled imperatively between 'none' and 'flex'
-                      // by handleBarHighlight/dismissAbuseTooltip via direct DOM access
-                      style={{display: 'none'}}
-                    >
+                    <AbuseTooltip ref={abuseTooltipRef}>
                       <AbuseDot />
                       <span data-abuse-text />
                     </AbuseTooltip>
@@ -769,10 +760,14 @@ const AbuseDot = styled('span')`
   flex-shrink: 0;
 `;
 
-const AbuseTooltip = styled(Flex)`
+const AbuseTooltip = styled('div')`
+  display: none;
   position: absolute;
   bottom: -${p => p.theme.space.md};
   transform: translateX(-50%);
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
