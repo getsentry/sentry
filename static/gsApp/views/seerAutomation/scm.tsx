@@ -18,10 +18,13 @@ export default function SeerAutomationSCM() {
     <AnalyticsArea name="scm">
       <SeerSettingsPageWrapper>
         <SettingsPageHeader
-          title={t('Seer SCM Config')}
+          title={t('Souce Code Management')}
           subtitle={tct(
-            `Integrate with a Seer compatible Source Code Management provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
+            `Integrate with a Seer compatible [scm:Source Code Management] provider and then connect repositories with Sentry. Seer needs read access to your source code to perform code review, and analyze your issues. [read_the_docs:Read the docs] and our [privacy:AI Privacy Principles] to learn more.`,
             {
+              scm: (
+                <ExternalLink href="https://docs.sentry.io/organization/getting-started/#source-code-management" />
+              ),
               privacy: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
               ),

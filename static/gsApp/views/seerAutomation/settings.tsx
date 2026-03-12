@@ -5,6 +5,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -21,18 +22,19 @@ export function SeerAutomationSettings() {
 
   return (
     <SeerSettingsPageWrapper>
+      <SentryDocumentTitle title={t('Seer Overview')} />
       <SettingsPageHeader
         title={t('Seer Overview')}
         subtitle={tct(
-          `Configure how Seer works with your codebase. Seer includes [rca:Issue Autofix] and [code_review:AI Code Review]. Issue Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [read_the_docs:Read the docs] to learn what Seer can do.`,
+          `Configure how Seer works with your codebase. Seer includes [autofix:Autofix] and [code_review:Code Review]. Autofix will triage your Issues as they are created, and can automatically send them to a coding agent for Root Cause Analysis, Solution generation, and PR creation. Code Review will review your pull requests to detect issues before they happen. [docs:Read the docs] to learn what Seer can do.`,
           {
-            rca: (
+            autofix: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#root-cause-analysis" />
             ),
             code_review: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
             ),
-            read_the_docs: (
+            docs: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
             ),
           }
