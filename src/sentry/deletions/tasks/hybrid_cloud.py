@@ -165,7 +165,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[A
                     app_name=app,
                     model_name=model.__name__,
                     field_name=field.name,
-                    silo_mode=silo_mode.name,
+                    silo_mode=silo_mode.value,
                 )
 
 
@@ -242,7 +242,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
                 app_name=app_name,
                 model_name=model_name,
                 field_name=field_name,
-                silo_mode=silo_mode.name,
+                silo_mode=silo_mode.value,
             )
     except Exception as err:
         sentry_sdk.set_context(
