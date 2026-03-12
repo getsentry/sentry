@@ -18,7 +18,7 @@ import {
   getCurrentTrendParameter,
   getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
 type TrendsRequest = {
   eventView: Partial<TrendView>;

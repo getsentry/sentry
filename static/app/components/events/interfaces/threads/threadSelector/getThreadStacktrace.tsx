@@ -1,7 +1,10 @@
 import type {Thread} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
-function getThreadStacktrace(raw: boolean, thread?: Thread): StacktraceType | undefined {
+export function getThreadStacktrace(
+  raw: boolean,
+  thread?: Thread
+): StacktraceType | undefined {
   if (!thread) {
     return undefined;
   }
@@ -16,5 +19,3 @@ function getThreadStacktrace(raw: boolean, thread?: Thread): StacktraceType | un
 
   return undefined;
 }
-
-export default getThreadStacktrace;

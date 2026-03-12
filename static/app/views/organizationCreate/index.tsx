@@ -13,12 +13,12 @@ import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 export const DATA_STORAGE_DOCS_LINK =

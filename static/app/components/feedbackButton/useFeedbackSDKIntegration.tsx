@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import type * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useAsyncSDKIntegrationStore} from 'sentry/views/app/asyncSDKIntegrationProvider';
 

@@ -46,8 +46,8 @@ import {
   RETRY_COUNT_OPTIONS,
   TRACE_STATUS_OPTIONS,
 } from 'sentry/views/insights/queues/settings';
-import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
-import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
+import {decodeRetryCount} from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
+import {decodeTraceStatus} from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 interface MessageSpanSamplesPanelSearchQueryBuilderProps {

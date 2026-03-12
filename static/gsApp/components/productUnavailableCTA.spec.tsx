@@ -18,7 +18,7 @@ import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 jest.mock('getsentry/components/upgradeNowModal/usePreviewData');

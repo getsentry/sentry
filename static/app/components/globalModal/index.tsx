@@ -12,9 +12,9 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
-import ModalStore from 'sentry/stores/modalStore';
-import getModalPortal from 'sentry/utils/getModalPortal';
-import testableTransition from 'sentry/utils/testableTransition';
+import {ModalStore} from 'sentry/stores/modalStore';
+import {getModalPortal} from 'sentry/utils/getModalPortal';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 

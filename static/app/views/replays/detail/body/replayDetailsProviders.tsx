@@ -16,7 +16,7 @@ import {ReplayPlaylistProvider} from 'sentry/utils/replays/playback/providers/re
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';

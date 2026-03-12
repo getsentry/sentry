@@ -22,7 +22,7 @@ import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {useReplayCountForTransactions} from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';

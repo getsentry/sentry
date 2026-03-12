@@ -20,7 +20,7 @@ import {
   loadAsyncThenFetchAllFields,
 } from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';

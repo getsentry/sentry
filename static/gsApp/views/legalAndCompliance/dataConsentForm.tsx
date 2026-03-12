@@ -10,7 +10,7 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {useGenAiConsentButtonAccess} from 'getsentry/hooks/genAiAccess';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import DataConsentFields from 'getsentry/views/legalAndCompliance/dataConsent';
+import {formGroups as dataConsentFields} from 'getsentry/views/legalAndCompliance/dataConsent';
 
 function DataConsentForm({subscription}: {subscription: Subscription}) {
   const organization = useOrganization();
@@ -60,7 +60,7 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
           isSuperuser,
           isTouchCustomerAndNeedsMsaUpdate,
         }}
-        forms={DataConsentFields}
+        forms={dataConsentFields}
       />
     </Form>
   );

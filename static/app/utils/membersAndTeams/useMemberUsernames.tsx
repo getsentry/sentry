@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 

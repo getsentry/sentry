@@ -11,7 +11,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 

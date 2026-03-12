@@ -1,5 +1,5 @@
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {getDetectorTypePath} from './utils/detectorTypeConfig';
 

@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ModalBody} from 'sentry/components/globalModal/components';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';
 
 // Stripe mocks handled by global setup.ts

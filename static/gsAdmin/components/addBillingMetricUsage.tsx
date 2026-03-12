@@ -254,9 +254,7 @@ function AddBillingMetricUsageModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization'>;
 
-const addBillingMetricUsage = (opts: Options) =>
+export const addBillingMetricUsage = (opts: Options) =>
   openModal(deps => <AddBillingMetricUsageModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default addBillingMetricUsage;

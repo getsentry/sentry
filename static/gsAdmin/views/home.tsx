@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {DebounceSearch} from 'admin/components/debounceSearch';

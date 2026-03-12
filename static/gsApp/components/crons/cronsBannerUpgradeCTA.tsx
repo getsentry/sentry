@@ -2,7 +2,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

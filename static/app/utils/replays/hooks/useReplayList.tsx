@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
+import {fetchReplayList} from 'sentry/utils/replays/fetchReplayList';
 import {useApi} from 'sentry/utils/useApi';
 import type {
   ReplayListLocationQuery,

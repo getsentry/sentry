@@ -26,12 +26,12 @@ import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import slugify from 'sentry/utils/slugify';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {slugify} from 'sentry/utils/slugify';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

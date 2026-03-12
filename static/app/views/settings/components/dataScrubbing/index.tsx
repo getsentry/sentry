@@ -25,7 +25,7 @@ import {Edit} from './modals/edit';
 import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {OrganizationRules} from './organizationRules';
 import {Rules} from './rules';
-import submitRules from './submitRules';
+import {submitRules} from './submitRules';
 import {type Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =

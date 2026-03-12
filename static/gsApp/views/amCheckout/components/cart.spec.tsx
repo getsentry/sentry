@@ -17,7 +17,7 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   AddOnCategory,
   OnDemandBudgetMode,

@@ -191,13 +191,11 @@ function AddGiftBudgetModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization' | 'subscription'>;
 
-const addGiftBudgetAction = (opts: Options) => {
+export const addGiftBudgetAction = (opts: Options) => {
   return openModal(deps => <AddGiftBudgetModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
 };
-
-export default addGiftBudgetAction;
 
 const BudgetCard = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.xl};

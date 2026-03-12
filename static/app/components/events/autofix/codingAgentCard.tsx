@@ -20,7 +20,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},

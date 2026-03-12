@@ -13,7 +13,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';

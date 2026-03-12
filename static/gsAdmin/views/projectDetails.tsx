@@ -7,7 +7,7 @@ import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -22,7 +22,7 @@ import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilt
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
 import {EventUsers} from 'admin/components/eventUsers';
 import {getLogQuery} from 'admin/utils';
 

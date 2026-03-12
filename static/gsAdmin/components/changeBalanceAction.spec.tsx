@@ -8,9 +8,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 
-import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
+import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 
 describe('BalanceChangeAction', () => {
   const onSuccess = jest.fn();

@@ -7,9 +7,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
+import {getCurrentUrl} from 'sentry/utils/replays/getCurrentUrl';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 

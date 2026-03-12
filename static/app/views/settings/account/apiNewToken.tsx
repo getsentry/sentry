@@ -16,7 +16,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

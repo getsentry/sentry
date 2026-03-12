@@ -185,9 +185,7 @@ function UpdateRetentionSettingsModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization' | 'subscription'>;
 
-const openUpdateRetentionSettingsModal = (opts: Options) =>
+export const openUpdateRetentionSettingsModal = (opts: Options) =>
   openModal(deps => <UpdateRetentionSettingsModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default openUpdateRetentionSettingsModal;

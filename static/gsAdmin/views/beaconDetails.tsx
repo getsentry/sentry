@@ -8,7 +8,7 @@ import {BeaconCheckins} from 'admin/components/beacons/beaconCheckins';
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
 import BeaconOverview from 'admin/components/beacons/beaconOverview';
 import {RelatedBeacons} from 'admin/components/beacons/relatedBeacons';
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
 
 export function BeaconDetails() {
   const params = useParams<{beaconId: string}>();
