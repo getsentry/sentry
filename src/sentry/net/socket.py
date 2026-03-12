@@ -6,6 +6,7 @@ import socket
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
@@ -104,6 +105,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 
 # Modifed version of urllib3.util.connection.create_connection.
+@sentry_sdk.trace
 def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
@@ -133,42 +135,52 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
-        af, socktype, proto, canonname, sa = res
+    addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
+    sentry_sdk.set_context("addresses", addresses)
 
-        # Begin custom code.
-        ip = sa[0]
-        assert isinstance(ip, str), ip  # we aren't running ipv6-disabled python
-        if not is_ipaddress_permitted(ip):
-            # I am explicitly choosing to be overly aggressive here. This means
-            # the first IP that matches that hits our restricted set of IP networks,
-            # we reject all records. In theory, there might be IP addresses that
-            # are safe, but if one record is straddling safe and unsafe IPs, it's
-            # suspicious.
-            if host == ip:
-                raise RestrictedIPAddress(f"({ip}) matches the URL blocklist")
-            raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blocklist")
-        # End custom code.
+    for res in addresses:
+        with sentry_sdk.start_span(
+            op="socket.getaddrinfo.loop", description="socket.getaddrinfo.loop"
+        ) as span:
+            af, socktype, proto, canonname, sa = res
+            span.set_context(
+                "res",
+                {"af": af, "socktype": socktype, "proto": proto, "canonname": canonname, "sa": sa},
+            )
 
-        sock = None
-        try:
-            sock = socket.socket(af, socktype, proto)
+            # Begin custom code.
+            ip = sa[0]
+            assert isinstance(ip, str), ip  # we aren't running ipv6-disabled python
+            if not is_ipaddress_permitted(ip):
+                # I am explicitly choosing to be overly aggressive here. This means
+                # the first IP that matches that hits our restricted set of IP networks,
+                # we reject all records. In theory, there might be IP addresses that
+                # are safe, but if one record is straddling safe and unsafe IPs, it's
+                # suspicious.
+                if host == ip:
+                    raise RestrictedIPAddress(f"({ip}) matches the URL blocklist")
+                raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blocklist")
+            # End custom code.
 
-            # If provided, set socket level options before connecting.
-            _set_socket_options(sock, socket_options)
+            sock = None
+            try:
+                sock = socket.socket(af, socktype, proto)
 
-            if timeout is not _DEFAULT_TIMEOUT:
-                sock.settimeout(timeout)
-            if source_address:
-                sock.bind(source_address)
-            sock.connect(sa)
-            return sock
+                # If provided, set socket level options before connecting.
+                _set_socket_options(sock, socket_options)
 
-        except OSError as e:
-            err = e
-            if sock is not None:
-                sock.close()
-                sock = None
+                if timeout is not _DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+                sock.connect(sa)
+                return sock
+
+            except OSError as e:
+                err = e
+                if sock is not None:
+                    sock.close()
+                    sock = None
 
     if err is not None:
         raise err
