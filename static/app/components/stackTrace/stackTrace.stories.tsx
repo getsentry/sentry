@@ -28,6 +28,7 @@ import {IconCopy, IconGithub, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
+  EntryType,
   EventOrGroupType,
   type Event,
   type ExceptionValue,
@@ -892,6 +893,30 @@ export default Storybook.story('StackTrace', story => {
           exceptions tree and toggle controls.
         </p>
         <IssueStackTrace event={makeEvent({platform: 'python'})} values={values} />
+      </Fragment>
+    );
+  });
+
+  story('IssueStackTrace - Standalone', () => {
+    const {stacktrace} = makeStackTraceData();
+    const standaloneEvent = makeEvent({
+      platform: 'python',
+      entries: [{type: EntryType.STACKTRACE, data: stacktrace}],
+    });
+
+    return (
+      <Fragment>
+        <p>
+          A standalone stack trace with no exception metadata. This is the typical shape
+          for log/message events that include a bare <code>EntryType.STACKTRACE</code>{' '}
+          entry. Uses the same <code>IssueStackTrace</code> component with the{' '}
+          <code>stacktrace</code> prop instead of <code>values</code>.
+        </p>
+        <IssueStackTrace
+          event={standaloneEvent}
+          stacktrace={stacktrace}
+          projectSlug="project-slug"
+        />
       </Fragment>
     );
   });

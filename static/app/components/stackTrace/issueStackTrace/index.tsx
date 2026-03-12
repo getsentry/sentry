@@ -46,16 +46,44 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 
-interface IssueStackTraceProps {
+interface IssueStackTraceBaseProps {
   event: Event;
-  values: ExceptionValue[];
   group?: Group;
   projectSlug?: Project['slug'];
+}
+
+/** Exception stack traces with chaining, type/value metadata, and minified variants. */
+interface ExceptionStackTraceProps extends IssueStackTraceBaseProps {
+  values: ExceptionValue[];
+  stacktrace?: never;
+}
+
+/** Bare stack trace with no exception metadata (e.g. log/message events). */
+interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
+  stacktrace: StacktraceType;
+  values?: never;
+}
+
+type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
+
+function isStandaloneProps(
+  props: Pick<IssueStackTraceProps, 'values' | 'stacktrace'>
+): props is Pick<StandaloneStackTraceProps, 'values' | 'stacktrace'> {
+  return 'stacktrace' in props && !!props.stacktrace;
 }
 
 interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
   stacktrace: StacktraceType;
+}
+
+/** Resolves symbolicated vs raw (minified) exception fields. */
+function resolveExceptionFields(exc: IndexedExceptionValue, isMinified: boolean) {
+  return {
+    type: isMinified ? (exc.rawType ?? exc.type) : exc.type,
+    module: isMinified ? (exc.rawModule ?? exc.module) : exc.module,
+    value: isMinified ? (exc.rawValue ?? exc.value) : exc.value,
+  };
 }
 
 function IssueStackTraceLineCoverageLegend() {
@@ -74,18 +102,37 @@ function IssueStackTraceLineCoverageLegend() {
 
 export function IssueStackTrace({
   event,
-  values,
   group,
   projectSlug,
+  ...dataProps
 }: IssueStackTraceProps) {
-  // Events with thread data are rendered by the Threads section, so IssueStackTrace
-  // should bail out in that case.
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
   if (eventHasThreads) {
     return null;
   }
 
-  const hasMinifiedStacktrace = values.some(v => v.rawStacktrace !== null);
+  const isStandalone = isStandaloneProps(dataProps);
+
+  if (isStandalone && !(dataProps.stacktrace.frames ?? []).length) {
+    return null;
+  }
+
+  const values = isStandalone
+    ? [
+        {
+          stacktrace: dataProps.stacktrace,
+          type: '',
+          value: null,
+          module: null,
+          mechanism: null,
+          threadId: null,
+          rawStacktrace: null,
+        },
+      ]
+    : dataProps.values;
+
+  const hasMinifiedStacktrace =
+    !isStandalone && values.some(v => v.rawStacktrace !== null);
 
   return (
     <LineCoverageProvider>
@@ -98,6 +145,7 @@ export function IssueStackTrace({
           values={values}
           group={group}
           projectSlug={projectSlug}
+          isStandalone={isStandalone}
         />
       </StackTraceViewStateProvider>
     </LineCoverageProvider>
@@ -109,20 +157,16 @@ function IssueStackTraceContent({
   values,
   group,
   projectSlug,
-}: {
-  event: Event;
-  values: ExceptionValue[];
-  group?: Group;
-  projectSlug?: Project['slug'];
-}) {
+  isStandalone,
+}: IssueStackTraceBaseProps & {isStandalone: boolean; values: ExceptionValue[]}) {
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
-  const exceptionEntryIndex = event.entries?.findIndex(
-    entry => entry.type === EntryType.EXCEPTION
-  );
-  const meta = event._meta?.entries?.[exceptionEntryIndex ?? -1]?.data?.values;
+  const entryType = isStandalone ? EntryType.STACKTRACE : EntryType.EXCEPTION;
+  const entryIndex = event.entries?.findIndex(entry => entry.type === entryType);
+  const rawEntryMeta = event._meta?.entries?.[entryIndex ?? -1]?.data;
+  const exceptionValuesMeta = isStandalone ? undefined : rawEntryMeta?.values;
 
   const exceptions = useMemo(() => {
     const indexed = values
@@ -140,21 +184,25 @@ function IssueStackTraceContent({
     return null;
   }
 
+  const sectionKey = isStandalone ? SectionKey.STACKTRACE : SectionKey.EXCEPTION;
+
   if (exceptions.length === 1) {
     const exc = exceptions[0]!;
-    const type = isMinified ? (exc.rawType ?? exc.type) : exc.type;
-    const module = isMinified ? (exc.rawModule ?? exc.module) : exc.module;
-    const value = isMinified ? (exc.rawValue ?? exc.value) : exc.value;
+    const {type, module, value} = resolveExceptionFields(exc, isMinified);
+    const hasExceptionInfo = Boolean(type || value);
+
+    const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
+
     return (
       <StackTraceProvider
-        exceptionIndex={exc.exceptionIndex}
+        exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
         event={event}
         stacktrace={exc.stacktrace}
         minifiedStacktrace={exc.rawStacktrace ?? undefined}
-        meta={meta?.[exc.exceptionIndex]?.stacktrace}
+        meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
       >
         <InterimSection
-          type={SectionKey.EXCEPTION}
+          type={sectionKey}
           title="Stack Trace"
           actions={
             <Flex align="center" gap="sm">
@@ -163,14 +211,16 @@ function IssueStackTraceContent({
             </Flex>
           }
         >
-          <Flex direction="column" gap="sm">
-            <ExceptionHeader type={type} module={module} />
-            <ExceptionDescription
-              value={value}
-              mechanism={exc.mechanism}
-              meta={meta?.[exc.exceptionIndex]}
-            />
-          </Flex>
+          {hasExceptionInfo && (
+            <Flex direction="column" gap="sm">
+              <ExceptionHeader type={type} module={module} />
+              <ExceptionDescription
+                value={value}
+                mechanism={exc.mechanism}
+                meta={excMeta}
+              />
+            </Flex>
+          )}
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
@@ -191,7 +241,7 @@ function IssueStackTraceContent({
 
   return (
     <InterimSection
-      type={SectionKey.EXCEPTION}
+      type={sectionKey}
       title="Stack Trace"
       actions={
         <Flex align="center" gap="sm">
@@ -212,16 +262,6 @@ function IssueStackTraceContent({
       }
     >
       <Flex direction="column" gap="lg">
-        {view !== 'raw' && (
-          <Text variant="muted">
-            {tn(
-              'There is %s chained exception in this event.',
-              'There are %s chained exceptions in this event.',
-              exceptions.length
-            )}
-          </Text>
-        )}
-        {view !== 'raw' && <Separator orientation="horizontal" border="primary" />}
         {view === 'raw' ? (
           <Panel>
             <RawStackTraceText>
@@ -239,7 +279,16 @@ function IssueStackTraceContent({
                 .join('\n\n')}
             </RawStackTraceText>
           </Panel>
-        ) : null}
+        ) : (
+          <Text variant="muted">
+            {tn(
+              'There is %s chained exception in this event.',
+              'There are %s chained exceptions in this event.',
+              exceptions.length
+            )}
+          </Text>
+        )}
+        {view !== 'raw' && <Separator orientation="horizontal" border="primary" />}
         {view !== 'raw' &&
           exceptions.map((exc, idx) => {
             if (
@@ -250,9 +299,11 @@ function IssueStackTraceContent({
             }
 
             const exceptionId = exc.mechanism?.exception_id;
-            const excType = isMinified ? (exc.rawType ?? exc.type) : exc.type;
-            const excModule = isMinified ? (exc.rawModule ?? exc.module) : exc.module;
-            const excValue = isMinified ? (exc.rawValue ?? exc.value) : exc.value;
+            const {
+              type: excType,
+              module: excModule,
+              value: excValue,
+            } = resolveExceptionFields(exc, isMinified);
 
             return (
               <Disclosure
@@ -277,7 +328,7 @@ function IssueStackTraceContent({
                     <ExceptionDescription
                       value={excValue}
                       mechanism={exc.mechanism}
-                      meta={meta?.[exc.exceptionIndex]}
+                      meta={exceptionValuesMeta?.[exc.exceptionIndex]}
                       gap="lg"
                     />
                     <RelatedExceptionsTree
@@ -296,7 +347,7 @@ function IssueStackTraceContent({
                       event={event}
                       stacktrace={exc.stacktrace}
                       minifiedStacktrace={exc.rawStacktrace ?? undefined}
-                      meta={meta?.[exc.exceptionIndex]?.stacktrace}
+                      meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
                     >
                       <StackTraceFrames
                         frameContextComponent={IssueStackTraceFrameContext}
@@ -323,17 +374,13 @@ function IssueStackTraceSuspectCommits({
   event,
   group,
   projectSlug,
-}: {
-  event: Event;
-  group?: Group;
-  projectSlug?: Project['slug'];
-}) {
+}: IssueStackTraceBaseProps) {
   if (!group || !projectSlug) {
     return null;
   }
 
   return (
-    <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+    <ErrorBoundary mini message={t('There was an error loading suspect commits')}>
       <SuspectCommits
         projectSlug={projectSlug}
         eventId={event.id}
