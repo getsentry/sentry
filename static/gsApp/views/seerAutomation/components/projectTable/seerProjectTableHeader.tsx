@@ -12,9 +12,9 @@ import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/eve
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -64,7 +64,7 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,

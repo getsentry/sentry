@@ -10,7 +10,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', () => {
   const membersEndpoint = '/organizations/org-slug/members/';

@@ -540,7 +540,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       if (op === ModuleName.DB || op === ModuleName.RESOURCE) {
         return (
           <SpanDescriptionCell
-            description={value}
+            description={value ?? ''}
             moduleName={op}
             projectId={projectId}
             group={spanGroup}

@@ -21,7 +21,7 @@ type Props = DefaultProps & {
   permissions: Permissions;
 };
 
-export default class Subscriptions extends Component<Props> {
+export class Subscriptions extends Component<Props> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };

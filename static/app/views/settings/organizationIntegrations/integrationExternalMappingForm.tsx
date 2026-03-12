@@ -372,7 +372,7 @@ function ModalMappingForm({
   );
 }
 
-export default function IntegrationExternalMappingForm(props: Props) {
+export function IntegrationExternalMappingForm(props: Props) {
   if (props.isInline) {
     return <InlineMappingForm {...props} />;
   }

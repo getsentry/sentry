@@ -5,7 +5,7 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {SettingsNavItem} from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
-function SettingsNavigationGroup(props: NavigationGroupProps) {
+export function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
   const params = useParams();
 
@@ -54,5 +54,3 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
     </SecondaryNavigation.Section>
   );
 }
-
-export default SettingsNavigationGroup;
