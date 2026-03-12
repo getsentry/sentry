@@ -47,19 +47,28 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode
+from sentry.snuba.models import (
+    ExtrapolationMode,
+    QuerySubscription,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_dual_written_resolution_threshold_equals,
@@ -213,6 +222,80 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
+    def assert_alert_detail_results_match(self, old_data: dict, new_data: dict) -> None:
+        """Compare old and new alert rule serializer outputs field-by-field.
+
+        Provides detailed diff messages for any mismatches between the legacy
+        DetailedAlertRuleSerializer and the new DetailedWorkflowEngineDetectorSerializer.
+        """
+        # Collect all differences rather than failing on the first one
+        mismatches: list[str] = []
+        missing_from_new: list[str] = []
+        value_diffs: list[str] = []
+
+        # Check every field in the old response
+        for field in old_data:
+            if field == "triggers":
+                continue  # checked separately below
+            if field not in new_data:
+                missing_from_new.append(field)
+            elif new_data[field] != old_data[field]:
+                value_diffs.append(f"  {field}: old={old_data[field]!r}, new={new_data[field]!r}")
+
+        extra_in_new = [f for f in new_data if f not in old_data and f != "triggers"]
+
+        # Triggers comparison
+        old_triggers = sorted(old_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        new_triggers = sorted(new_data.get("triggers", []), key=lambda t: t.get("label", ""))
+        trigger_diffs: list[str] = []
+        if len(old_triggers) != len(new_triggers):
+            trigger_diffs.append(f"  count: old={len(old_triggers)}, new={len(new_triggers)}")
+        for old_t, new_t in zip(old_triggers, new_triggers):
+            for tfield in set(list(old_t.keys()) + list(new_t.keys())):
+                if tfield == "actions":
+                    continue  # checked below
+                if tfield not in new_t:
+                    trigger_diffs.append(f"  trigger[{old_t.get('label')}] missing field: {tfield}")
+                elif tfield not in old_t:
+                    trigger_diffs.append(f"  trigger[{new_t.get('label')}] extra field: {tfield}")
+                elif old_t[tfield] != new_t[tfield]:
+                    trigger_diffs.append(
+                        f"  trigger[{old_t.get('label')}].{tfield}: old={old_t[tfield]!r}, new={new_t[tfield]!r}"
+                    )
+            # Actions comparison
+            old_actions = old_t.get("actions", [])
+            new_actions = new_t.get("actions", [])
+            if len(old_actions) != len(new_actions):
+                trigger_diffs.append(
+                    f"  trigger[{old_t.get('label')}] action count: old={len(old_actions)}, new={len(new_actions)}"
+                )
+            for ai, (oa, na) in enumerate(zip(old_actions, new_actions)):
+                for afield in set(list(oa.keys()) + list(na.keys())):
+                    if afield not in na:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] missing: {afield}"
+                        )
+                    elif afield not in oa:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}] extra: {afield}"
+                        )
+                    elif oa[afield] != na[afield]:
+                        trigger_diffs.append(
+                            f"  trigger[{old_t.get('label')}].actions[{ai}].{afield}: old={oa[afield]!r}, new={na[afield]!r}"
+                        )
+
+        # Build failure message
+        if missing_from_new:
+            mismatches.append(f"Missing from new: {missing_from_new}")
+        if extra_in_new:
+            mismatches.append(f"Extra in new: {extra_in_new}")
+        if value_diffs:
+            mismatches.append("Value mismatches:\n" + "\n".join(value_diffs))
+        if trigger_diffs:
+            mismatches.append("Trigger mismatches:\n" + "\n".join(trigger_diffs))
+
+        assert not mismatches, "Old vs new serializer differences:\n" + "\n".join(mismatches)
+
     def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -231,7 +314,145 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.detector = Detector.objects.get(id=ard.detector_id)
         fake_detector_id = get_fake_id_from_object_id(self.detector.id)
 
-        self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
+        # Fake detector IDs can be successfully resolved to detectors.
+        # For dual-written detectors, the serializer returns the alert_rule_id;
+        # for single-written detectors, it returns the fake detector ID.
+        resp = self.get_success_response(self.organization.slug, fake_detector_id)
+        assert resp.data["id"] == str(self.alert_rule.id)
+        assert resp.data["name"] == self.detector.name
+
+    @with_feature("organizations:incidents")
+    @freeze_time("2024-12-11 03:21:34")
+    def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
+        """Verify the new WorkflowEngineDetectorSerializer output matches the old
+        DetailedAlertRuleSerializer output for the same alert rule, so we can
+        turn on the feature flag without breaking clients."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Get old serializer response (without workflow-engine flag)
+        old_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        old_data = old_resp.data
+
+        # Get new serializer response (with workflow-engine flag)
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        new_data = new_resp.data
+
+        self.assert_alert_detail_results_match(old_data, new_data)
+
+    @with_feature("organizations:incidents")
+    @freeze_time("2024-12-11 03:21:34")
+    def test_workflow_engine_serializer_snoozed_alert_rule(self) -> None:
+        """Delta test comparing snoozed alert rule between old and new serializers.
+
+        Tests the migration from RuleSnooze model to Detector.enabled for snooze state.
+
+        Known differences:
+        - Old serializer: Queries RuleSnooze and includes 'snoozeCreatedBy' field
+        - New serializer: Derives snooze from Detector.enabled, omits 'snoozeCreatedBy'
+        """
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Snooze the alert rule (snooze for all)
+        # The post_save signal in src/sentry/receivers/rule_snooze.py automatically
+        # sets Detector.enabled = False when user_id is None
+        RuleSnooze.objects.create(
+            alert_rule=self.alert_rule,
+            user_id=None,  # None means snoozed for everyone
+        )
+
+        # Get old serializer response (without workflow-engine flag)
+        old_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+        old_data = old_resp.data
+
+        # Get new serializer response (with workflow-engine flag)
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug, self.alert_rule.id)
+            new_data = new_resp.data
+
+        # Both should show snooze=True
+        assert old_data["snooze"] is True
+        assert new_data["snooze"] is True
+        assert old_data["snoozeForEveryone"] is True
+        assert new_data["snoozeForEveryone"] is True
+
+        # Compare all fields
+        self.assert_alert_detail_results_match(old_data, new_data)
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @freeze_time("2024-12-11 03:21:34")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_workflow_engine_serializer_anomaly_detection(self, mock_seer_request) -> None:
+        """Verify anomaly detection alert rules serialize correctly with workflow engine.
+
+        Tests that dynamic detection type, sensitivity, seasonality, and thresholdType
+        fields match between old and new serializers for anomaly detection rules.
+
+        Known breaking change:
+        - Old serializer: status=NOT_ENOUGH_DATA (6) for newly created anomaly detection rules
+        - New serializer: status=PENDING (0) derived from Detector.enabled
+        - The Detector model lacks granular status values like NOT_ENOUGH_DATA
+        - This is an intentional simplification in the workflow engine data model
+        """
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Create anomaly detection alert rule using serializer (ensures dual-write)
+        anomaly_data = deepcopy(self.alert_rule_dict)
+        anomaly_data.update(
+            {
+                "detectionType": AlertRuleDetectionType.DYNAMIC.value,
+                "seasonality": AlertRuleSeasonality.AUTO.value,
+                "sensitivity": AlertRuleSensitivity.HIGH.value,
+                "thresholdType": AlertRuleThresholdType.ABOVE_AND_BELOW.value,
+                "timeWindow": 30,
+                "resolveThreshold": None,  # Anomaly detection doesn't use resolve threshold
+                "triggers": [
+                    {
+                        "label": "critical",
+                        "alertThreshold": 0,  # Anomaly detection uses 0
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "user",
+                                "targetIdentifier": self.user.id,
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+        anomaly_rule = self.new_alert_rule(data=anomaly_data)
+
+        # Get old serializer response (without workflow-engine flag)
+        old_resp = self.get_success_response(self.organization.slug, anomaly_rule.id)
+        old_data = old_resp.data
+
+        # Get new serializer response (with workflow-engine flag)
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            new_resp = self.get_success_response(self.organization.slug, anomaly_rule.id)
+        new_data = new_resp.data
+
+        # Known difference: status field differs between old and new data models
+        # Old: AlertRule.status = NOT_ENOUGH_DATA (6) for new anomaly rules
+        # New: Derived from Detector.enabled = PENDING (0)
+        # This is expected - the Detector model doesn't have granular status like NOT_ENOUGH_DATA.
+        # The workflow engine serializer cannot depend on AlertRule to preserve this.
+        assert old_data["status"] == AlertRuleStatus.NOT_ENOUGH_DATA.value
+        assert new_data["status"] == AlertRuleStatus.PENDING.value
+
+        # Compare all fields except status
+        old_data_no_status = {k: v for k, v in old_data.items() if k != "status"}
+        new_data_no_status = {k: v for k, v in new_data.items() if k != "status"}
+        self.assert_alert_detail_results_match(old_data_no_status, new_data_no_status)
 
     def test_aggregate_translation(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
@@ -649,6 +870,108 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert response.data["snooze"]
         assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:incidents")
+    def test_non_dual_written_detector_serialization(self) -> None:
+        """A detector created directly (not via dual-write from AlertRule) is
+        serialized into the AlertRule-compatible format by the detail endpoint."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Build the data chain: SnubaQuery → QuerySubscription → DataSource
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            query="is:unresolved",
+            aggregate="count()",
+            time_window=600,
+            resolution=60,
+        )
+        SnubaQueryEventType.objects.create(
+            snuba_query=snuba_query,
+            type=SnubaQueryEventType.EventType.ERROR.value,
+        )
+        subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id="non-dual-write-test",
+            type="metrics_alerts",
+        )
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(subscription.id),
+        )
+
+        # Create detector with a workflow_condition_group for triggers
+        dcg = self.create_data_condition_group()
+        detector = self.create_detector(
+            project=self.project,
+            name="Non-Dual-Written Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=dcg,
+            created_by_id=self.user.id,
+            owner_user_id=self.user.id,
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+
+        # Add a critical trigger and resolve condition on the condition group
+        self.create_data_condition(
+            comparison=100,
+            type=Condition.GREATER,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=dcg,
+        )
+        self.create_data_condition(
+            comparison=50,
+            type=Condition.LESS_OR_EQUAL,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=dcg,
+        )
+
+        # No AlertRuleDetector exists — the endpoint must resolve via fake ID
+        assert not AlertRuleDetector.objects.filter(detector=detector).exists()
+
+        fake_id = get_fake_id_from_object_id(detector.id)
+        resp = self.get_success_response(self.organization.slug, fake_id)
+
+        # Core identity fields
+        assert resp.data["id"] == str(fake_id)
+        assert resp.data["name"] == "Non-Dual-Written Detector"
+        assert resp.data["organizationId"] == str(self.organization.id)
+        assert resp.data["status"] == AlertRuleStatus.PENDING.value
+
+        # Query fields from SnubaQuery
+        assert resp.data["query"] == "is:unresolved"
+        assert resp.data["aggregate"] == "count()"
+        assert resp.data["timeWindow"] == 10  # 600s / 60
+        assert resp.data["dataset"] == "events"
+        assert resp.data["eventTypes"] == ["error"]
+
+        # Trigger data
+        assert len(resp.data["triggers"]) == 1
+        trigger = resp.data["triggers"][0]
+        assert trigger["label"] == "critical"
+        assert trigger["alertThreshold"] == 100
+        assert trigger["resolveThreshold"] == 50
+        assert trigger["thresholdType"] == AlertRuleThresholdType.ABOVE.value
+
+        # Project
+        assert resp.data["projects"] == [self.project.slug]
+
+        # Ownership
+        assert resp.data["owner"] is not None
+        assert resp.data["createdBy"]["id"] == self.user.id
+
+        # Snooze defaults for enabled detector
+        assert resp.data["snooze"] is False
+
+        # Static detection type from config
+        assert resp.data["detectionType"] == "static"
+        assert resp.data["sensitivity"] is None
+        assert resp.data["seasonality"] is None
+        assert resp.data["comparisonDelta"] is None
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_get_shows_count_when_stored_as_upsampled_count(
