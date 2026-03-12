@@ -315,10 +315,14 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             GitLabApiClientPath.merge_request.format(project_id=project_id, pr_key=pr_key)
         )
 
-    def get_merge_requests(self, project_id: str) -> Any:
+    def get_merge_requests(self, project_id: str, state: str | None = None) -> Any:
+        if state is None:
+            params = None
+        else:
+            params = {"state": state}
         return self.get(
             GitLabApiClientPath.merge_requests.format(project_id=project_id),
-            params={"state": "opened"},
+            params=params,
         )
 
     def create_merge_request(self, project_id: str, data: dict[str, Any]) -> Any:

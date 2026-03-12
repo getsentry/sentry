@@ -35,6 +35,7 @@ def provider(client: GitLabApiClient) -> GitLabProvider:
 class ClientForwardedCall(NamedTuple):
     client_method: str
     client_args: tuple
+    client_kwds: dict
     client_return_value: Any
 
 
@@ -61,6 +62,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_requests",
                     client_args=("79787061",),
+                    client_kwds={"state": "opened"},
                     client_return_value=[
                         {
                             "id": 459277081,
@@ -237,6 +239,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value={
                         "id": 459277081,
                         "iid": 1,
@@ -451,6 +454,7 @@ class ForwardToClientTest(NamedTuple):
                             "target_branch": "main",
                         },
                     ),
+                    client_kwds={},
                     client_return_value={
                         "id": 463099183,
                         "iid": 26,
@@ -646,6 +650,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_requests",
                     client_args=("79787061",),
+                    client_kwds={"state": "opened"},
                     client_return_value=[
                         {
                             "id": 463099183,
@@ -978,6 +983,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="update_merge_request",
                     client_args=("79787061", "26", {"state_event": "close"}),
+                    client_kwds={},
                     client_return_value={
                         "id": 463099183,
                         "iid": 26,
@@ -1199,6 +1205,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_requests",
                     client_args=("79787061",),
+                    client_kwds={"state": "opened"},
                     client_return_value=[
                         {
                             "id": 459277081,
@@ -1380,6 +1387,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_last_commits",
                     client_args=("79787061", "1403774c82d64068af027d0b5d0cc4f52473b6f2"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": "1403774c82d64068af027d0b5d0cc4f52473b6f2",
@@ -1452,6 +1460,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3123861269,
@@ -1537,6 +1546,7 @@ class ForwardToClientTest(NamedTuple):
                         "1",
                         {"body": "Another comment, made through the API."},
                     ),
+                    client_kwds={},
                     client_return_value={
                         "id": 3149925511,
                         "type": None,
@@ -1612,6 +1622,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3149925511,
@@ -1754,6 +1765,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_issue_note",
                     client_args=("79787061", "1", "3149925511"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -1766,6 +1778,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3123861269,
@@ -1852,6 +1865,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_note_awards",
                     client_args=("79787061", "1", "3123861269"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43909506,
@@ -2211,6 +2225,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="create_issue_note_award",
                     client_args=("79787061", "1", "3123861269", "rocket"),
+                    client_kwds={},
                     client_return_value={
                         "id": 44362880,
                         "name": "rocket",
@@ -2273,6 +2288,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_note_awards",
                     client_args=("79787061", "1", "3123861269"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43909506,
@@ -2675,6 +2691,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_issue_note_award",
                     client_args=("79787061", "1", "3123861269", "44362880"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -2692,6 +2709,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_note_awards",
                     client_args=("79787061", "1", "3123861269"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43909506,
@@ -3051,6 +3069,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3149884824,
@@ -4907,6 +4926,7 @@ class ForwardToClientTest(NamedTuple):
                         "1",
                         {"body": "Another comment, made through the API."},
                     ),
+                    client_kwds={},
                     client_return_value={
                         "id": 3149931216,
                         "type": None,
@@ -4982,6 +5002,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3149931216,
@@ -6792,6 +6813,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_merge_request_note",
                     client_args=("79787061", "1", "3149931216"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -6804,6 +6826,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_notes",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 3149884824,
@@ -8658,6 +8681,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_note_awards",
                     client_args=("79787061", "1", "3124015530"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43921665,
@@ -8763,6 +8787,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="create_merge_request_note_award",
                     client_args=("79787061", "1", "3124015530", "rocket"),
+                    client_kwds={},
                     client_return_value={
                         "id": 44362951,
                         "name": "rocket",
@@ -8825,6 +8850,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_note_awards",
                     client_args=("79787061", "1", "3124015530"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43921665,
@@ -8973,6 +8999,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_merge_request_note_award",
                     client_args=("79787061", "1", "3124015530", "44362951"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -8990,6 +9017,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_note_awards",
                     client_args=("79787061", "1", "3124015530"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43921665,
@@ -9091,6 +9119,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43923647,
@@ -9235,6 +9264,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="create_issue_award",
                     client_args=("79787061", "1", "rocket"),
+                    client_kwds={},
                     client_return_value={
                         "id": 44362995,
                         "name": "rocket",
@@ -9292,6 +9322,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43923647,
@@ -9479,6 +9510,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_issue_award",
                     client_args=("79787061", "1", "44362995"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -9491,6 +9523,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_issue_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43923647,
@@ -9635,6 +9668,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43924243,
@@ -9736,6 +9770,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="create_merge_request_award",
                     client_args=("79787061", "1", "rocket"),
+                    client_kwds={},
                     client_return_value={
                         "id": 44363033,
                         "name": "rocket",
@@ -9793,6 +9828,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43924243,
@@ -9937,6 +9973,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="delete_merge_request_award",
                     client_args=("79787061", "1", "44363033"),
+                    client_kwds={},
                     client_return_value={},
                 ),
             ],
@@ -9949,6 +9986,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_awards",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 43924243,
@@ -10050,6 +10088,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_branch",
                     client_args=("79787061", "topics/blah"),
+                    client_kwds={},
                     client_return_value={
                         "name": "topics/blah",
                         "commit": {
@@ -10126,6 +10165,7 @@ class ForwardToClientTest(NamedTuple):
                         "tests/20260311-110504",
                         "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
                     ),
+                    client_kwds={},
                     client_return_value={
                         "name": "tests/20260311-110504",
                         "commit": {
@@ -10198,6 +10238,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_branch",
                     client_args=("79787061", "tests/20260311-110504"),
+                    client_kwds={},
                     client_return_value={
                         "name": "tests/20260311-110504",
                         "commit": {
@@ -10270,6 +10311,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_file_content",
                     client_args=("79787061", "README.md", "main"),
+                    client_kwds={},
                     client_return_value={
                         "file_name": "README.md",
                         "file_path": "README.md",
@@ -10326,6 +10368,7 @@ class ForwardToClientTest(NamedTuple):
                         "0941ee0a9eac9914cfddf5adec7a9558a2f1c447",
                         "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
                     ),
+                    client_kwds={},
                     client_return_value={
                         "commit": {
                             "id": "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
@@ -10475,6 +10518,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_commit",
                     client_args=("79787061", "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c"),
+                    client_kwds={},
                     client_return_value={
                         "id": "6d8ca33dae268d3c5835e721e5702ef9dcb43c8c",
                         "short_id": "6d8ca33d",
@@ -10549,6 +10593,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_diffs",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "diff": "@@ -0,0 +1,9 @@\n+1\n+2\n+3\n+4\n+5\n+6\n+7\n+8\n+9\n",
@@ -10603,6 +10648,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_commits",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": "7497e018d01503b6abc3053b7896266115e631f6",
@@ -10731,6 +10777,7 @@ class ForwardToClientTest(NamedTuple):
                 ClientForwardedCall(
                     client_method="get_merge_request_versions",
                     client_args=("79787061", "1"),
+                    client_kwds={},
                     client_return_value=[
                         {
                             "id": 1692137080,
@@ -10773,6 +10820,7 @@ class ForwardToClientTest(NamedTuple):
                             },
                         },
                     ),
+                    client_kwds={},
                     client_return_value={
                         "id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86",
                         "individual_note": False,
@@ -10898,6 +10946,7 @@ class ForwardToClientTest(NamedTuple):
                             "body": "A reply to the previous comment, made by the API on 2026-03-11 11:06:21.487947."
                         },
                     ),
+                    client_kwds={},
                     client_return_value={
                         "id": 3149949479,
                         "type": "DiffNote",
@@ -11009,4 +11058,4 @@ def test_forward_to_client(client, provider: GitLabProvider, param: ForwardToCli
     for client_call, mock_call in zip(param.client_calls, client.mock_calls):
         assert mock_call[0] == client_call.client_method
         assert mock_call[1] == client_call.client_args
-        assert mock_call[2] == {}
+        assert mock_call[2] == client_call.client_kwds

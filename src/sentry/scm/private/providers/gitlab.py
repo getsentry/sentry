@@ -78,7 +78,7 @@ class GitLabProvider:
         self._repo_id = external_id[len(prefix) :]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
-        return False
+        return False  # Rate-limits temporarily disabled.
 
     @catch_provider_exception
     def get_issue_comments(
@@ -312,6 +312,7 @@ class GitLabProvider:
     def get_commits(
         self,
         sha: SHA | None = None,
+        # The 'path' parameter is not supported by GitLab's API, so it's ignored
         path: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
@@ -363,12 +364,19 @@ class GitLabProvider:
     @catch_provider_exception
     def get_pull_requests(
         self,
-        state: PullRequestState | None = "open",  # @todo
-        head: BranchName | None = None,  # @todo
+        state: PullRequestState | None = "open",
+        # @todo The 'head' parameter has very ad-hoc behavior on GitHub; we should consider removing it entirely.
+        head: BranchName | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]:
-        raw = self.client.get_merge_requests(self._repo_id)
+        if state is None:
+            gitlab_state = None
+        elif state == "open":
+            gitlab_state = "opened"
+        else:
+            gitlab_state = "closed"
+        raw = self.client.get_merge_requests(self._repo_id, state=gitlab_state)
         return make_paginated_result(map_pull_request, raw)
 
     @catch_provider_exception
@@ -378,6 +386,7 @@ class GitLabProvider:
         body: str,
         head: str,
         base: str,
+        # GitLab doesn't have a concept of draft PRs, so the 'draft' parameter is ignored
         draft: bool = False,
     ) -> ActionResult[PullRequest]:
         data = {
@@ -385,7 +394,6 @@ class GitLabProvider:
             "description": body,
             "source_branch": head,
             "target_branch": base,
-            # GitLab doesn't have a concept of draft PRs
         }
         raw = self.client.create_merge_request(self._repo_id, data)
         return make_result(map_pull_request, raw)
@@ -585,9 +593,9 @@ def map_pull_request_file(raw: dict[str, Any]) -> PullRequestFile:
         filename=raw["new_path"],
         previous_filename=(raw["old_path"] if raw["old_path"] != raw["new_path"] else None),
         status=("added" if raw["new_file"] else "removed" if raw["deleted_file"] else "modified"),
-        changes=0,  # @todo
+        changes=0,
         patch=raw.get("diff"),
-        sha="",  # @todo
+        sha="",
     )
 
 
