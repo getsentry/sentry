@@ -12,7 +12,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider} from './organizationContext';
 

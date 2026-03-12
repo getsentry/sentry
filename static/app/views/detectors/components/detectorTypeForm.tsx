@@ -11,7 +11,7 @@ import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeAutomationBasePathname,
   makeAutomationCreatePathname,

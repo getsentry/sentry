@@ -12,7 +12,7 @@ import {
   THIRTY_DAYS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';

@@ -18,7 +18,7 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {

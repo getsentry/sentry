@@ -6,14 +6,14 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {

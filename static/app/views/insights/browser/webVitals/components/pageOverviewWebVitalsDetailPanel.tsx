@@ -18,11 +18,11 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
@@ -38,7 +38,7 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
+import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';

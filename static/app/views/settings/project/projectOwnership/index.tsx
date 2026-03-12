@@ -25,7 +25,7 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';

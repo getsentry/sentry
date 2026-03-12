@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 import {
   NavigationTourReminder,

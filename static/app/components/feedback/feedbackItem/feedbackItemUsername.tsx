@@ -11,8 +11,8 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackIssue: FeedbackIssue;

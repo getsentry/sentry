@@ -42,7 +42,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const filterDescriptions = {
   'browser-extensions': {

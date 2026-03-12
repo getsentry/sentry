@@ -6,7 +6,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 
 interface Props {
   listHeadTime: number;
@@ -16,7 +16,7 @@ interface Props {
 
 const PER_PAGE = 25;
 
-export default function useFeedbackListQueryKey({
+export function useFeedbackListQueryKey({
   listHeadTime,
   organization,
   prefetch,

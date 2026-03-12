@@ -26,7 +26,7 @@ import {
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 import {DateRange} from './dateRange';

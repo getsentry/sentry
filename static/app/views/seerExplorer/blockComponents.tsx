@@ -14,10 +14,10 @@ import {IconChevron, IconCopy, IconLink, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 

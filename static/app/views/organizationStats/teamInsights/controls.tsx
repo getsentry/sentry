@@ -20,8 +20,8 @@ import type {TeamWithProjects} from 'sentry/types/project';
 import {uniq} from 'sentry/utils/array/uniq';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {dataDatetime} from './utils';
 

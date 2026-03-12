@@ -15,7 +15,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {PageHeader} from 'admin/components/pageHeader';

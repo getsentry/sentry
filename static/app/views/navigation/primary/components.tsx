@@ -18,8 +18,8 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,

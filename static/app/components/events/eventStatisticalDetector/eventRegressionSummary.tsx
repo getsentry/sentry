@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {

@@ -20,7 +20,7 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import {TwoFactorRequired} from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';

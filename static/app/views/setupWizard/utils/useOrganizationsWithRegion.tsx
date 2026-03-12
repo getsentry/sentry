@@ -3,7 +3,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
 import {useQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationsWithRegion() {

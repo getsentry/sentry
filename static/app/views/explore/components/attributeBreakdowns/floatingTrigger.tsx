@@ -6,8 +6,8 @@ import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRouter} from 'sentry/utils/useRouter';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 

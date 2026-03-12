@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';

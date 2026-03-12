@@ -20,7 +20,7 @@ import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

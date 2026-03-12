@@ -11,7 +11,7 @@ import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAn
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';

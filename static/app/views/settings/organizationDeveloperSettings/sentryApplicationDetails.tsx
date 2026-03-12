@@ -48,10 +48,10 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';

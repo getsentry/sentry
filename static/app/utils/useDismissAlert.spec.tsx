@@ -2,7 +2,7 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setMockDate} from 'sentry-test/utils';
 
 import localStorage from 'sentry/utils/localStorage';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 jest.mock('sentry/utils/localStorage');
 

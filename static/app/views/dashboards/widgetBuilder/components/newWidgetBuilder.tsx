@@ -14,7 +14,7 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -23,8 +23,8 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
   type DashboardDetails,

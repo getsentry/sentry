@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,7 +47,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {

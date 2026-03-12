@@ -6,7 +6,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 

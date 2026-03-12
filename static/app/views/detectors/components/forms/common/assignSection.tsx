@@ -6,7 +6,7 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 function AssigneeField({projectId}: {projectId?: string}) {
   const {projects} = useProjects();

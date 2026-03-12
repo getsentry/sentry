@@ -14,7 +14,7 @@ import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuer
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

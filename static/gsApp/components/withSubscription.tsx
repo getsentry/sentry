@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import getDisplayName from 'sentry/utils/getDisplayName';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';

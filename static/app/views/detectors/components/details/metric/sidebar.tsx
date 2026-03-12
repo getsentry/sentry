@@ -8,7 +8,7 @@ import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';

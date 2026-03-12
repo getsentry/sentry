@@ -8,12 +8,12 @@ import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';

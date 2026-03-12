@@ -17,9 +17,9 @@ import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import {useFinalizeRelease} from 'sentry/views/releases/components/useFinalizeRelease';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {

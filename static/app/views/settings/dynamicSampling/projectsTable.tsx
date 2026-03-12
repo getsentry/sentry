@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';

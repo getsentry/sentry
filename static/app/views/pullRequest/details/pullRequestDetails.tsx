@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PullRequestDetailsHeaderContent} from 'sentry/views/pullRequest/details/header/pullRequestDetailsHeaderContent';
 import {PullRequestDetailsMainContent} from 'sentry/views/pullRequest/details/main/pullRequestDetailsMainContent';

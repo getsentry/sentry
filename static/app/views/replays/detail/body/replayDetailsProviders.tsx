@@ -5,10 +5,10 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
-import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
-import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
+import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import {useLogReplayDataLoaded} from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerSizeContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
@@ -17,8 +17,8 @@ import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/pr
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {
   type ReplayListQueryReferrer,

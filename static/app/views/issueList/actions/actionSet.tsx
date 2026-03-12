@@ -14,7 +14,7 @@ import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 

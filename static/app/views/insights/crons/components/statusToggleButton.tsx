@@ -5,7 +5,7 @@ import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {ObjectStatus} from 'sentry/types/core';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
 interface StatusToggleButtonProps extends Omit<ButtonProps, 'onClick'> {

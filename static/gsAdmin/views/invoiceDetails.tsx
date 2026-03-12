@@ -15,7 +15,7 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import openChangeEffectiveAtModal from 'admin/components/changeEffectiveAtAction';

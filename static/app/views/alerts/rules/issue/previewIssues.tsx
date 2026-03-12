@@ -14,9 +14,9 @@ import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {PreviewTable} from './previewTable';
 

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
 import {MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';

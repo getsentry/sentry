@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -21,7 +21,7 @@ import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
