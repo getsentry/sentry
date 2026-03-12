@@ -36,7 +36,9 @@ describe('UnmaskAlert', () => {
   });
 
   it('should not render the alert when the local storage key is set', () => {
-    mockGetItem.mockImplementationOnce(() => now.getTime().toString());
+    mockGetItem.mockImplementation(key =>
+      key === 'replay-unmask-alert-dismissed' ? now.getTime().toString() : null
+    );
     render(<UnmaskAlert />);
 
     expect(screen.queryByTestId('unmask-alert')).not.toBeInTheDocument();
