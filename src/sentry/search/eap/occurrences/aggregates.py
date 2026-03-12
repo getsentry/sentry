@@ -124,4 +124,43 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
             )
         ],
     ),
+    # Same shape as spans: uniq over one attribute (e.g. count_unique(level), count_unique(group_id)).
+    "count_unique": AggregateDefinition(
+        internal_function=Function.FUNCTION_UNIQ,
+        default_search_type="integer",
+        infer_search_type_from_arguments=False,
+        processor=count_processor,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    # Errors/Discover last_seen(): max(timestamp). Parity: search/events/fields.py last_seen aggregate.
+    "last_seen": AggregateDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        default_search_type="date",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="timestamp",
+            )
+        ],
+    ),
 }

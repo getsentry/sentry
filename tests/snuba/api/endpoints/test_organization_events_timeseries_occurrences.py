@@ -145,8 +145,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             )
 
     def test_eps_timeseries(self) -> None:
-        """Rate aggregate eps() on /events-timeseries: events/sec per bucket, meta rate/1/second.
-        eps() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        """Rate aggregate eps() on /events-timeseries: events/sec per bucket, meta rate/1/second."""
         self._run_rate_timeseries_test(
             "eps()",
             "1/second",
@@ -155,6 +154,50 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         )
 
     def test_epm_timeseries(self) -> None:
-        """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute.
-        epm() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute."""
         self._run_rate_timeseries_test("epm()", "1/minute", 60.0)
+
+    def test_count_unique_timeseries(self) -> None:
+        """Reference: test_organization_events_timeseries_spans.test_count_unique (spans).
+        count_unique(attr) per bucket = distinct count of attr; use title so each occurrence has unique value per bucket."""
+        group = self.create_group(project=self.project)
+        event_counts = [6, 0, 6, 3, 0, 3]
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                timestamp=self.start + timedelta(hours=hour, minutes=minute),
+                title=f"foo-{minute}",
+                attributes={"fingerprint": ["g1"]},
+            )
+            for hour, count in enumerate(event_counts)
+            for minute in range(count)
+        ]
+        self.store_eap_items(occurrences)
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": "count_unique(title)",
+                    "project": self.project.id,
+                    "dataset": "occurrences",
+                },
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["dataset"] == "occurrences"
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == "count_unique(title)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }
