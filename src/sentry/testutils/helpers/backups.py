@@ -106,6 +106,10 @@ from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.models.organization_settings import SeerOrganizationSettings
+from sentry.seer.models.project_repository import (
+    SeerProjectRepository,
+    SeerProjectRepositoryBranchOverride,
+)
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -647,6 +651,13 @@ class ExhaustiveFixtures(Fixtures):
                 CodeReviewTrigger.ON_NEW_COMMIT,
                 CodeReviewTrigger.ON_READY_FOR_REVIEW,
             ],
+        )
+        seer_project_repo = SeerProjectRepository.objects.create(project=project, repository=repo)
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=seer_project_repo,
+            tag_name="environment",
+            tag_value="production",
+            branch_name="release",
         )
 
         CodeReviewEvent.objects.create(
