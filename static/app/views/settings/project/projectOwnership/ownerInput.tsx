@@ -46,7 +46,7 @@ function parseError(error: InputError | null) {
   return <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />;
 }
 
-function OwnerInput({
+export function OwnerInput({
   dateUpdated,
   disabled = false,
   initialText,
@@ -226,5 +226,3 @@ const SyncDate = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
-
-export default OwnerInput;
