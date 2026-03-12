@@ -266,6 +266,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             for rule in ownership.schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
+                    if "id" in rule_owner:
+                        rule_owner["id"] = str(rule_owner["id"])
 
     @extend_schema(
         operation_id="Retrieve Ownership Configuration for a Project",

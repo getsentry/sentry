@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
@@ -7,7 +6,7 @@ from sentry.integrations.api.serializers.models.repository_project_path_config i
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.issues.ownership.grammar import convert_schema_to_rules_text
+from sentry.issues.ownership.grammar import OwnershipSchema, convert_schema_to_rules_text
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 logger = logging.getLogger(__name__)
@@ -62,7 +61,7 @@ class ProjectCodeOwnersSerializer(Serializer):
 
         return attrs
 
-    def rename_schema_identifier_for_parsing(self, schema: dict[str, Any]) -> None:
+    def rename_schema_identifier_for_parsing(self, schema: OwnershipSchema) -> None:
         """
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend
@@ -73,6 +72,8 @@ class ProjectCodeOwnersSerializer(Serializer):
             for rule in schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
+                    if "id" in rule_owner:
+                        rule_owner["id"] = str(rule_owner["id"])
 
     def serialize(self, obj, attrs, user, **kwargs):
         from sentry.api.validators.project_codeowners import build_codeowners_associations

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -29,6 +29,35 @@ else:
     NodeVisitor = BaseNodeVisitor
 
 VERSION = 1
+
+
+class OwnershipRuleOwner(TypedDict):
+    """Owner entry within a parsed ownership rule schema.
+
+    Always has `type` and `identifier` from the grammar.
+    `id` is added by `add_owner_ids_to_schema` (always a string).
+    `name` replaces `identifier` in API responses via `rename_schema_identifier_for_parsing`.
+    """
+
+    type: str
+    identifier: NotRequired[str]
+    id: NotRequired[str]
+    name: NotRequired[str]
+
+
+class OwnershipRuleMatcher(TypedDict):
+    type: str
+    pattern: str
+
+
+class OwnershipRule(TypedDict):
+    matcher: OwnershipRuleMatcher
+    owners: list[OwnershipRuleOwner]
+
+
+# $version is not a valid Python identifier, so we use the functional form.
+OwnershipSchema = TypedDict("OwnershipSchema", {"$version": int, "rules": list[OwnershipRule]})
+
 
 URL = "url"
 PATH = "path"
@@ -86,11 +115,11 @@ class Rule(namedtuple("Rule", "matcher owners")):
         )
         return f"{self.matcher} {owners_str}"
 
-    def dump(self) -> dict[str, Sequence[Owner]]:
+    def dump(self) -> OwnershipRule:
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
-    def load(cls, data: Mapping[str, Any]) -> Rule:
+    def load(cls, data: OwnershipRule) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
     def test(
@@ -119,11 +148,11 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def __str__(self) -> str:
         return f"{self.type}:{self.pattern}"
 
-    def dump(self) -> dict[str, str]:
+    def dump(self) -> OwnershipRuleMatcher:
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Matcher:
+    def load(cls, data: OwnershipRuleMatcher) -> Matcher:
         return cls(data["type"], data["pattern"])
 
     @staticmethod
@@ -238,11 +267,11 @@ class Owner(NamedTuple):
     type: str
     identifier: str
 
-    def dump(self) -> dict[str, str]:
+    def dump(self) -> OwnershipRuleOwner:
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Owner:
+    def load(cls, data: OwnershipRuleOwner) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
@@ -308,19 +337,19 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
-def dump_schema(rules: Sequence[Rule]) -> dict[str, Any]:
+def dump_schema(rules: Sequence[Rule]) -> OwnershipSchema:
     """Convert a Rule tree into a JSON schema"""
     return {"$version": VERSION, "rules": [r.dump() for r in rules]}
 
 
-def load_schema(schema: Mapping[str, Any]) -> list[Rule]:
+def load_schema(schema: OwnershipSchema) -> list[Rule]:
     """Convert a JSON schema into a Rule tree"""
     if schema["$version"] != VERSION:
         raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
     return [Rule.load(r) for r in schema["rules"]]
 
 
-def convert_schema_to_rules_text(schema: Mapping[str, Any]) -> str:
+def convert_schema_to_rules_text(schema: OwnershipSchema) -> str:
     rules = load_schema(schema)
     text = ""
 
@@ -505,7 +534,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Acto
 
 
 def remove_deleted_owners_from_schema(
-    rules: list[dict[str, Any]], owners_id: dict[str, int]
+    rules: list[OwnershipRule], owners_id: dict[str, int]
 ) -> None:
     valid_rules = rules
 
@@ -523,18 +552,18 @@ def remove_deleted_owners_from_schema(
     rules = valid_rules
 
 
-def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, int]) -> None:
+def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int]) -> None:
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():
-                rule_owner["id"] = owners_id[rule_owner["identifier"]]
+                rule_owner["id"] = str(owners_id[rule_owner["identifier"]])
 
 
 def create_schema_from_issue_owners(
     project_id: int,
     issue_owners: str | None,
     remove_deleted_owners: bool = False,
-) -> dict[str, Any] | None:
+) -> OwnershipSchema | None:
     if issue_owners is None:
         return None
 

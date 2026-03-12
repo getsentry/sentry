@@ -2,12 +2,13 @@ from datetime import datetime
 from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.issues.ownership.grammar import OwnershipSchema
 from sentry.models.projectownership import ProjectOwnership
 
 
 # JSON object representing optional part of API response
 class ProjectOwnershipResponseOptional(TypedDict, total=False):
-    schema: dict
+    schema: OwnershipSchema | None
 
 
 # JSON object representing this serializer in API response
