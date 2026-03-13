@@ -1409,7 +1409,7 @@ def assert_clean_distributed(client: StrictRedis[bytes]):
 
 
 def test_distributed_basic(distributed_buffer: SpansBuffer) -> None:
-    """Single segment with root span works in all phases."""
+    """Single segment with root span works across all option combos."""
     buf = distributed_buffer
     process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
     assert_ttls(buf.client)
@@ -1469,7 +1469,7 @@ def test_distributed_multiple_segments(distributed_buffer: SpansBuffer) -> None:
 
 
 def test_distributed_phase1_dual_write() -> None:
-    """Phase 1: both merged and distributed keys are populated."""
+    """Both merged and distributed keys are populated during dual-write."""
     with override_options(DISTRIBUTED_PHASE_OPTIONS["phase1"]):
         buf = SpansBuffer(assigned_shards=list(range(32)))
         buf.client.flushdb()
@@ -1488,7 +1488,7 @@ def test_distributed_phase1_dual_write() -> None:
 
 
 def test_distributed_phase3_no_merged_write() -> None:
-    """Phase 3: merged key is not populated."""
+    """Merged key is not populated when write-merged-payloads is off."""
     with override_options(DISTRIBUTED_PHASE_OPTIONS["phase3"]):
         buf = SpansBuffer(assigned_shards=list(range(32)))
         buf.client.flushdb()
@@ -1498,7 +1498,7 @@ def test_distributed_phase3_no_merged_write() -> None:
 
 
 def test_distributed_transition_write_then_read() -> None:
-    """Write in phase 1, flush in phase 2 — no data loss."""
+    """Write with dual-write on, flush with read-distributed on — no data loss."""
     with override_options(DISTRIBUTED_PHASE_OPTIONS["phase1"]):
         buf = SpansBuffer(assigned_shards=list(range(32)))
         buf.client.flushdb()

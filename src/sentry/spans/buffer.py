@@ -733,8 +733,8 @@ class SpansBuffer:
                 mk_results = p.execute()
 
             for key, sub_span_ids in zip(segment_keys, mk_results):
-                pid, tid, _ = parse_segment_key(key)
-                pat = f"{pid.decode('ascii')}:{tid.decode('ascii')}"
+                project_id, trace_id, _ = parse_segment_key(key)
+                pat = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
                 distributed_keys: list[bytes] = []
                 for sub_span_id in sub_span_ids:
                     distributed_key = self._get_distributed_payload_key(
