@@ -25,6 +25,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
@@ -523,8 +524,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
 
-    const compare = (a: OptionType['value'], b: OptionType['value']) => {
-      if (props.isValueEqual) {
+    const compare = (
+      a: OptionType['value'] | null | undefined,
+      b: OptionType['value'] | null | undefined
+    ) => {
+      if (props.isValueEqual && defined(a) && defined(b)) {
         return props.isValueEqual(a, b);
       }
       return a === b;
