@@ -42,6 +42,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
+from sentry.types.actor import parse_and_validate_actor
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
@@ -738,6 +739,7 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
+    project: Project,
 ) -> dict[str, Any]:
     workflow_payload = {
         "name": data.get("name"),
@@ -745,18 +747,14 @@ def format_request_data(
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
-
     owner = data.get("owner")
-    if isinstance(owner, int):
-        workflow_payload["owner_user_id"] = owner
-    elif isinstance(owner, str):
-        split_owner = owner.split(":")
-        identifier, owner_id = split_owner[0], split_owner[1]
+    if owner:
+        actor = parse_and_validate_actor(owner, project.organization_id)
 
-        if identifier == "team":
-            workflow_payload["owner_team_id"] = owner_id
-        else:
-            workflow_payload["owner_user_id"] = owner_id
+        if actor and actor.is_team:
+            workflow_payload["owner_team_id"] = actor.id
+        elif actor:
+            workflow_payload["owner_user_id"] = actor.id
 
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_filter_list = []
@@ -906,7 +904,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},
