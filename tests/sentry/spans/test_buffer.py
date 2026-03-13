@@ -32,9 +32,9 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
     "spans.buffer.max-flush-segments-per-trace": 0,
-    "spans.buffer.distribute-payload-keys": False,
-    "spans.buffer.distribute-payload-keys-read": False,
-    "spans.buffer.distribute-payload-keys-stop-colocated": False,
+    "spans.buffer.write-distributed-payloads": False,
+    "spans.buffer.read-distributed-payloads": False,
+    "spans.buffer.write-merged-payloads": True,
 }
 
 
@@ -1360,18 +1360,18 @@ def test_per_trace_flush_limit_disabled(buffer: SpansBuffer) -> None:
 DISTRIBUTED_PHASE_OPTIONS = {
     "phase1": {
         **DEFAULT_OPTIONS,
-        "spans.buffer.distribute-payload-keys": True,
+        "spans.buffer.write-distributed-payloads": True,
     },
     "phase2": {
         **DEFAULT_OPTIONS,
-        "spans.buffer.distribute-payload-keys": True,
-        "spans.buffer.distribute-payload-keys-read": True,
+        "spans.buffer.write-distributed-payloads": True,
+        "spans.buffer.read-distributed-payloads": True,
     },
     "phase3": {
         **DEFAULT_OPTIONS,
-        "spans.buffer.distribute-payload-keys": True,
-        "spans.buffer.distribute-payload-keys-read": True,
-        "spans.buffer.distribute-payload-keys-stop-colocated": True,
+        "spans.buffer.write-distributed-payloads": True,
+        "spans.buffer.read-distributed-payloads": True,
+        "spans.buffer.write-merged-payloads": False,
     },
 }
 

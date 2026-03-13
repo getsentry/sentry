@@ -217,8 +217,8 @@ class SpansBuffer:
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
         zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
-        distribute_write = options.get("spans.buffer.distribute-payload-keys")
-        stop_colocated = options.get("spans.buffer.distribute-payload-keys-stop-colocated")
+        write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
+        write_merged_payloads = options.get("spans.buffer.write-merged-payloads")
 
         result_meta = []
         is_root_span_count = 0
@@ -247,7 +247,7 @@ class SpansBuffer:
                 with self.client.pipeline(transaction=False) as p:
                     for (project_and_trace, parent_span_id), subsegment in batch:
                         set_members = self._prepare_payloads(subsegment)
-                        if distribute_write:
+                        if write_distributed_payloads:
                             # Write to distributed key.
                             dist_key = self._get_distributed_payload_key(
                                 project_and_trace, parent_span_id
@@ -255,12 +255,9 @@ class SpansBuffer:
                             p.sadd(dist_key, *set_members.keys())
                             p.expire(dist_key, redis_ttl)
 
-                        if not stop_colocated:
-                            # Write to colocated key. Runs in phases 1-2
-                            # (dual-write) so distribute_read can be safely
-                            # rolled back. Stopped in phase 3.
-                            coloc_key = self._get_span_key(project_and_trace, parent_span_id)
-                            p.sadd(coloc_key, *set_members.keys())
+                        if write_merged_payloads:
+                            set_key = self._get_span_key(project_and_trace, parent_span_id)
+                            p.sadd(set_key, *set_members.keys())
 
                     p.execute()
 
@@ -302,8 +299,8 @@ class SpansBuffer:
                             max_segment_bytes,
                             byte_count,
                             zero_copy_threshold,
-                            "true" if distribute_write else "false",
-                            "true" if stop_colocated else "false",
+                            "true" if write_distributed_payloads else "false",
+                            "false" if write_merged_payloads else "true",
                             *span_ids,
                         )
 
@@ -707,8 +704,8 @@ class SpansBuffer:
 
         page_size = options.get("spans.buffer.segment-page-size")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
-        distribute_read = options.get("spans.buffer.distribute-payload-keys-read")
-        distribute_write = options.get("spans.buffer.distribute-payload-keys")
+        read_distributed_payloads = options.get("spans.buffer.read-distributed-payloads")
+        write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
 
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         sizes: dict[SegmentKey, int] = {key: 0 for key in segment_keys}
@@ -719,17 +716,17 @@ class SpansBuffer:
         # keys these are the same; for distributed keys many map to one segment.
         scan_key_to_segment: dict[SegmentKey | DistributedPayloadKey, SegmentKey] = {}
 
-        # When distribute_read is off, scan colocated segment keys directly.
+        # When read_distributed_payloads is off, scan colocated segment keys directly.
         # When on, skip them — all data lives in distributed keys.
         cursors: dict[bytes, int] = {}
-        if not distribute_read:
+        if not read_distributed_payloads:
             for key in segment_keys:
                 scan_key_to_segment[key] = key
                 cursors[key] = 0
 
         self._distributed_sub_keys_map = {}
 
-        if distribute_write or distribute_read:
+        if write_distributed_payloads:
             with self.client.pipeline(transaction=False) as p:
                 for key in segment_keys:
                     p.smembers(self._get_payload_key_index(key))
@@ -744,7 +741,7 @@ class SpansBuffer:
                         pat, sub_span_id.decode("ascii")
                     )
                     distributed_keys.append(distributed_key)
-                    if distribute_read:
+                    if read_distributed_payloads:
                         scan_key_to_segment[distributed_key] = key
                         cursors[distributed_key] = 0
                 self._distributed_sub_keys_map[key] = distributed_keys
@@ -837,18 +834,18 @@ class SpansBuffer:
                     continue
 
                 project_id_bytes, _, _ = parse_segment_key(key)
-                project_id = int(project_id_bytes)
+                project_id_int = int(project_id_bytes)
                 try:
-                    project = Project.objects.get_from_cache(id=project_id)
+                    project = Project.objects.get_from_cache(id=project_id_int)
                 except Project.DoesNotExist:
                     logger.warning(
                         "Project does not exist for segment with dropped spans",
-                        extra={"project_id": project_id},
+                        extra={"project_id": project_id_int},
                     )
                 else:
                     track_outcome(
                         org_id=project.organization_id,
-                        project_id=project_id,
+                        project_id=project_id_int,
                         key_id=None,
                         outcome=Outcome.INVALID,
                         reason="segment_too_large",

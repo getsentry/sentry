@@ -3299,24 +3299,25 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Phase 1: Write payload sets to per-span distributed keys AND colocated keys.
-# Flusher reads colocated keys as before.
+# Phase 1: Write payload sets to per-span distributed keys AND merged keys.
+# Flusher reads merged keys as before.
 register(
-    "spans.buffer.distribute-payload-keys",
+    "spans.buffer.write-distributed-payloads",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Phase 2: Switch flusher to read from distributed keys instead of colocated.
+# Phase 2: Switch flusher to read from distributed keys instead of merged.
 register(
-    "spans.buffer.distribute-payload-keys-read",
+    "spans.buffer.read-distributed-payloads",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Phase 3: Stop colocated writes and merges. Enable after distribute-payload-keys-read
-# is stable.
+# Phase 3: Set to False to stop writing merged keys and skip set merges.
+# Disable after read-distributed-payloads is stable. Rollback: re-enable
+# this flag to resume merged writes before reverting read-distributed-payloads.
 register(
-    "spans.buffer.distribute-payload-keys-stop-colocated",
-    default=False,
+    "spans.buffer.write-merged-payloads",
+    default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # List of trace_ids to enable debug logging for. Empty = debug off.
