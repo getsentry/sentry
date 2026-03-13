@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
+import {computeSeekBuffering} from 'sentry/components/replays/computeSeekBuffering';
 import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -579,15 +580,11 @@ export function Provider({
 
   const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
-  const SEEK_THRESHOLD_MS = 200;
-  const isStillSeeking =
-    buffer.target > buffer.previous
-      ? currentPlayerTime < buffer.target - SEEK_THRESHOLD_MS
-      : currentPlayerTime > buffer.target + SEEK_THRESHOLD_MS;
-  const [isBuffering, currentBufferedPlayerTime] =
-    buffer.target !== -1 && isStillSeeking && buffer.target !== buffer.previous
-      ? [true, buffer.target]
-      : [false, currentPlayerTime];
+  const {
+    isBuffering,
+    displayTime: currentBufferedPlayerTime,
+    hasPassed,
+  } = computeSeekBuffering(buffer, currentPlayerTime);
 
   const currentTime = currentBufferedPlayerTime - startTimeOffsetMs;
 
@@ -598,10 +595,10 @@ export function Provider({
   }, [isBuffering, events, applyInitialOffset]);
 
   useEffect(() => {
-    if (!isBuffering && buffer.target !== -1) {
+    if (buffer.target !== -1 && hasPassed) {
       setBufferTime({target: -1, previous: -1});
     }
-  }, [isBuffering, buffer.target]);
+  }, [buffer.target, hasPassed]);
 
   return (
     <ReplayCurrentTimeContextProvider>
