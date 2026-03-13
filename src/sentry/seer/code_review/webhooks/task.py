@@ -49,6 +49,7 @@ def schedule_task(
     repo: Repository,
     target_commit_sha: str,
     tags: Mapping[str, object],
+    handler_started_at: float | None = None,
 ) -> None:
     """Transform and forward a webhook event to Seer for processing."""
     from .task import process_github_webhook_event
@@ -99,7 +100,9 @@ def schedule_task(
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
     )
-    record_webhook_enqueued(github_event, github_event_action)
+    record_webhook_enqueued(
+        github_event, github_event_action, handler_started_at=handler_started_at
+    )
 
 
 @instrumented_task(

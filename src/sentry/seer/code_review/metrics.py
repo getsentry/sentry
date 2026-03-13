@@ -1,3 +1,4 @@
+import time
 from enum import StrEnum
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -99,6 +100,7 @@ def record_webhook_filtered(
 def record_webhook_enqueued(
     github_event: GithubWebhookType,
     github_event_action: str,
+    handler_started_at: float | None = None,
 ) -> None:
     """
     Record that a task was successfully enqueued for processing.
@@ -109,12 +111,24 @@ def record_webhook_enqueued(
     Args:
         github_event: The GitHub webhook event type
         github_event_action: The webhook action (e.g., created, rerequested, synchronize)
+        handler_started_at: Monotonic timestamp from time.monotonic() captured at the start of
+            handle_webhook_event(), after the integration guards. When provided, emits a
+            handler_duration_ms timing metric measuring synchronous region silo processing time.
     """
+    tags = _build_webhook_tags(github_event, github_event_action)
     metrics.incr(
         f"{METRICS_PREFIX}.webhook.enqueued",
-        tags=_build_webhook_tags(github_event, github_event_action),
+        tags=tags,
         sample_rate=1.0,
     )
+    if handler_started_at is not None:
+        duration_ms = (time.monotonic() - handler_started_at) * 1000
+        metrics.timing(
+            f"{METRICS_PREFIX}.webhook.handler_duration_ms",
+            duration_ms,
+            tags=tags,
+            sample_rate=1.0,
+        )
 
 
 def record_webhook_handler_error(

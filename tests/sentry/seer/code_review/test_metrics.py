@@ -81,6 +81,42 @@ class TestCodeReviewMetrics:
             tags={"github_event": "check_run", "github_event_action": "rerequested"},
             sample_rate=1.0,
         )
+        mock_metrics.timing.assert_not_called()
+
+    @patch("sentry.seer.code_review.metrics.metrics")
+    @patch("sentry.seer.code_review.metrics.time")
+    def test_record_webhook_enqueued_emits_timing_when_started_at_provided(
+        self, mock_time: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_time.monotonic.return_value = 1.5
+        started_at = 1.0  # 500 ms ago
+
+        record_webhook_enqueued(
+            GithubWebhookType.CHECK_RUN,
+            "rerequested",
+            handler_started_at=started_at,
+        )
+
+        mock_metrics.incr.assert_called_once_with(
+            f"{METRICS_PREFIX}.webhook.enqueued",
+            tags={"github_event": "check_run", "github_event_action": "rerequested"},
+            sample_rate=1.0,
+        )
+        mock_metrics.timing.assert_called_once_with(
+            f"{METRICS_PREFIX}.webhook.handler_duration_ms",
+            500.0,
+            tags={"github_event": "check_run", "github_event_action": "rerequested"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.seer.code_review.metrics.metrics")
+    def test_record_webhook_enqueued_no_timing_without_started_at(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        record_webhook_enqueued(GithubWebhookType.CHECK_RUN, "rerequested")
+
+        mock_metrics.incr.assert_called_once()
+        mock_metrics.timing.assert_not_called()
 
     @patch("sentry.seer.code_review.metrics.metrics")
     def test_record_webhook_handler_error(self, mock_metrics: MagicMock) -> None:

@@ -95,6 +95,7 @@ def handle_pull_request_event(
     tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
+    handler_started_at: float | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -184,4 +185,5 @@ def handle_pull_request_event(
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
         tags=tags,
+        handler_started_at=handler_started_at,
     )

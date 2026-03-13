@@ -52,6 +52,7 @@ def handle_issue_comment_event(
     repo: Repository,
     tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
+    handler_started_at: float | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -118,4 +119,5 @@ def handle_issue_comment_event(
         repo=repo,
         target_commit_sha=target_commit_sha,
         tags=tags,
+        handler_started_at=handler_started_at,
     )

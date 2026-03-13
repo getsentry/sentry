@@ -71,6 +71,7 @@ def handle_check_run_event(
     github_event: GithubWebhookType,
     event: Mapping[str, Any],
     tags: Mapping[str, Any],
+    handler_started_at: float | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -130,7 +131,7 @@ def handle_check_run_event(
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
     )
-    record_webhook_enqueued(github_event, action)
+    record_webhook_enqueued(github_event, action, handler_started_at=handler_started_at)
 
 
 def _validate_github_check_run_event(event: Mapping[str, Any]) -> GitHubCheckRunEvent:

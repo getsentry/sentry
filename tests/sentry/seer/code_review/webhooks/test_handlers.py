@@ -195,3 +195,21 @@ class TestHandleWebhookEvent(TestCase):
         )
 
         self.mock_pull_request_handler.assert_called_once()
+
+    def test_handler_called_with_handler_started_at(self) -> None:
+        """handle_webhook_event passes a float handler_started_at to the downstream handler."""
+        integration = MagicMock()
+        integration.provider = IntegrationProviderSlug.GITHUB
+        integration.id = 123
+
+        handle_webhook_event(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": "opened", "pull_request": {"number": 1, "draft": False}},
+            organization=self.organization,
+            repo=MagicMock(),
+            integration=integration,
+        )
+
+        call_kwargs = self.mock_pull_request_handler.call_args.kwargs
+        assert "handler_started_at" in call_kwargs
+        assert isinstance(call_kwargs["handler_started_at"], float)

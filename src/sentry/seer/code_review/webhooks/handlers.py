@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -68,6 +69,8 @@ def handle_webhook_event(
     if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
         return
 
+    handler_started_at = time.monotonic()
+
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
     tags = {}
     try:
@@ -131,4 +134,5 @@ def handle_webhook_event(
         integration=integration,
         org_code_review_settings=preflight.settings,
         tags=tags,
+        handler_started_at=handler_started_at,
     )
