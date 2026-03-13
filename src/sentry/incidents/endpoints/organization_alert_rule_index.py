@@ -222,11 +222,18 @@ class AlertRuleFetchMixin(Endpoint):
         )
 
         if use_workflow_engine:
-            detectors = Detector.objects.filter(
-                Q(alertruledetector__isnull=False)  # Dual-written
-                | Q(alertruledetector__isnull=True, type="metric_issue"),  # Single-written
-                project__in=projects,
-            ).distinct()  # Deduplicate after JOIN
+            # Filter to metric alerts only, then check if dual-written or single-written
+            detectors = (
+                Detector.objects.filter(
+                    type="metric_issue",
+                    project__in=projects,
+                )
+                .filter(
+                    Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
+                    | Q(alertruledetector__isnull=True)  # Single-written
+                )
+                .distinct()
+            )  # Deduplicate after JOIN
             if not features.has("organizations:performance-view", organization):
                 detectors = filter_detectors_by_dataset(detectors, Dataset.Events)
             response = self.paginate(
