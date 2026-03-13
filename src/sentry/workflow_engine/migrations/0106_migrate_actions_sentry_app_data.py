@@ -12,14 +12,14 @@ def migrate_action_sentry_app_data(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
     Action = apps.get_model("workflow_engine", "Action")
-    CellOutbox = apps.get_model("sentry", "CellOutbox")
+    RegionOutbox = apps.get_model("sentry", "RegionOutbox")
 
     for action in RangeQuerySetWrapper(
         Action.objects.filter(
             type="sentry_app", config__sentry_app_identifier="sentry_app_installation_uuid"
         )
     ):
-        CellOutbox(
+        RegionOutbox(
             shard_scope=12,  # OutboxScope.ACTION_SCOPE
             shard_identifier=action.id,
             object_identifier=action.id,
@@ -43,7 +43,6 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1052_rename_regionoutbox_to_celloutbox"),
         ("workflow_engine", "0105_add_incident_identifer_index"),
     ]
 
