@@ -133,7 +133,9 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         override_ce_enable = validated_data["override_ce_enable"]
 
         try:
-            enable_coding = validated_data.get("enable_coding", False)
+            enable_coding = validated_data.get("enable_coding", False) and organization.get_option(
+                "sentry:enable_seer_coding", False
+            )
             client = SeerExplorerClient(
                 organization,
                 request.user,
