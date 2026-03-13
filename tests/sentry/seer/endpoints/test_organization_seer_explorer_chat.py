@@ -79,6 +79,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
+            override_ce_enable=True,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -103,6 +104,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             mock_client.start_run.assert_called_once_with(
                 prompt="What is this error about?",
                 on_page_context=None,
+                override_ce_enable=True,
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
