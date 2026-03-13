@@ -36,24 +36,23 @@ export function PrebuiltDashboardRenderer({
   const organization = useOrganization();
   const prebuiltConfig = PREBUILT_DASHBOARDS[prebuiltId];
 
-  // Construct a full DashboardDetails so the hook can resolve linked dashboard IDs.
-  const dashboardForResolution: DashboardDetails = {
+  // Pass a minimal DashboardDetails with just the prebuiltId — the hook
+  // looks up widgets from PREBUILT_DASHBOARDS internally.
+  const shellDashboard: DashboardDetails = {
     id: `prebuilt-dashboard-${prebuiltId}`,
     prebuiltId,
     title: prebuiltConfig.title,
-    widgets: prebuiltConfig.widgets,
+    widgets: [],
     dateCreated: '',
     filters: prebuiltConfig.filters,
     projects: undefined,
   };
 
   const {dashboard: resolvedDashboard, isLoading: isResolvingLinks} =
-    useResolveLinkedDashboardIds(dashboardForResolution);
+    useResolveLinkedDashboardIds(shellDashboard);
 
   // Separately fetch the real DB ID for this prebuilt dashboard (for the alert link).
   const dashboardId = usePrebuiltDashboardId(prebuiltId);
-
-  const widgets = resolvedDashboard?.widgets ?? prebuiltConfig.widgets;
 
   // Merge the dashboard's built-in filters with any additional global filters.
   // Overrides replace matching filters in-place (by tag key + dataset) to preserve order.
@@ -83,15 +82,12 @@ export function PrebuiltDashboardRenderer({
     }
   }
 
+  // Build the final dashboard using resolved widgets (which include both the
+  // prebuilt config widgets and resolved linked dashboard IDs).
   const dashboard: DashboardDetails = {
-    id: `prebuilt-dashboard-${prebuiltId}`,
-    prebuiltId,
-    title: prebuiltConfig.title,
-    widgets,
-    dateCreated: '',
+    ...resolvedDashboard,
     filters: mergedFilters,
-    projects: undefined,
-  };
+  } as DashboardDetails;
 
   const pageFilters = usePageFilters();
   const isSentryEmployee = useIsSentryEmployee();

@@ -14,7 +14,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useResolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';
 
 import {assignTempId} from './layoutUtils';
@@ -80,28 +79,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     }
   );
 
-  let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
+  const selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
-  // If the dashboard is a prebuilt dashboard, merge the prebuilt widget config
-  // into the selected dashboard. Preserve user-saved state (filters and page
-  // filters) from the DB record so changes persist.
-  if (selectedDashboard?.prebuiltId) {
-    const prebuiltConfig = PREBUILT_DASHBOARDS[selectedDashboard.prebuiltId];
-    selectedDashboard = {
-      ...selectedDashboard,
-      ...prebuiltConfig,
-      id: selectedDashboard.id,
-      filters: selectedDashboard.filters,
-      projects: selectedDashboard.projects,
-      environment: selectedDashboard.environment,
-      period: selectedDashboard.period,
-      start: selectedDashboard.start,
-      end: selectedDashboard.end,
-      utc: selectedDashboard.utc,
-    };
-  }
-
-  // Resolve placeholder linked dashboard IDs in widgets after merging prebuilt config.
+  // Resolve placeholder linked dashboard IDs in widgets. For prebuilt
+  // dashboards, the hook also merges the frontend widget config automatically.
   const {dashboard: resolvedDashboard, isLoading: isPrebuiltDashboardLoading} =
     useResolveLinkedDashboardIds(selectedDashboard ?? undefined);
 
