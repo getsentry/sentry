@@ -59,16 +59,10 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
     {
       match: 'right',
       callback: () => {
-        if (isLoading || !replay) {
+        if (isLoading) {
           return;
         }
-        const next = getNextReplayFrame({
-          frames: replay.getChapterFrames(),
-          targetOffsetMs: currentTime,
-        });
-        if (next) {
-          setCurrentTime(next.offsetMs);
-        }
+        setCurrentTime(currentTime + 10 * SECOND);
       },
     },
   ]);
