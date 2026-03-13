@@ -172,7 +172,9 @@ export function PrimaryNavigationItems() {
           </NavigationTourElement>
         </Feature>
 
-        <PrimaryNavigation.Separator />
+        <PrimaryNavigation.ListItem padding="0 md">
+          <PrimaryNavigation.Separator />
+        </PrimaryNavigation.ListItem>
 
         <Feature features={['workflow-engine-ui']}>
           <PrimaryNavigation.ListItem>
