@@ -433,7 +433,7 @@ class CellOutboxBase(OutboxBase):
 
 
 # TODO(cells): remove once getsentry updated
-RegionOuboxBase = CellOutboxBase
+RegionOutboxBase = CellOutboxBase
 
 
 @cell_silo_model
