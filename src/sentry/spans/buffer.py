@@ -666,6 +666,33 @@ class SpansBuffer:
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
+        # Read ingested counts BEFORE SSCAN to prevent race condition.
+        #
+        # Race condition: If process_spans() adds spans between SSCAN and GET, the
+        # count will include those new spans but SSCAN won't have seen them. This
+        # causes inflated drop counts: dropped = (old + new spans) - (only old spans).
+        #
+        # Fix: Read count before SSCAN. This gives us the count at the start of the
+        # scan, matching what SSCAN will see. Drop calculation is now accurate:
+        # dropped = (spans at scan start) - (spans loaded by scan).
+        #
+        # KNOWN LIMITATION: Spans added during SSCAN will be deleted by
+        # done_flush_segments() without being flushed to Kafka. This is a separate
+        # data loss bug that requires a more substantial fix (selective deletion,
+        # write locks, or data model changes). For now, we focus on accurate outcome
+        # tracking to avoid inflated billing/metrics.
+        initial_counts: dict[SegmentKey, int | None] = {}
+        with self.client.pipeline(transaction=False) as p:
+            for key in segment_keys:
+                ingested_count_key = b"span-buf:ic:" + key
+                p.get(ingested_count_key)
+
+            initial_count_results = p.execute()
+
+        for i, key in enumerate(segment_keys):
+            count = initial_count_results[i]
+            initial_counts[key] = int(count) if count else None
+
         def _add_spans(key: SegmentKey, raw_data: bytes) -> bool:
             """
             Decompress and add spans to the segment. Returns False if the
@@ -711,20 +738,18 @@ class SpansBuffer:
                 else:
                     cursors[key] = cursor
 
-        # Fetch ingested counts for all segments to calculate dropped spans
+        # Fetch ingested byte counts for metrics
         with self.client.pipeline(transaction=False) as p:
             for key in segment_keys:
-                ingested_count_key = b"span-buf:ic:" + key
-                p.get(ingested_count_key)
                 ingested_byte_count_key = b"span-buf:ibc:" + key
                 p.get(ingested_byte_count_key)
 
-            ingested_results = p.execute()
+            byte_count_results = p.execute()
 
-        # Calculate dropped counts: total ingested - successfully loaded
+        # Calculate dropped counts using initial_counts (read before SSCAN)
+        # This prevents inflated drop counts from concurrent writes during SSCAN
         for i, key in enumerate(segment_keys):
-            ingested_count = ingested_results[i * 2]
-            ingested_byte_count = ingested_results[i * 2 + 1]
+            ingested_byte_count = byte_count_results[i]
 
             if ingested_byte_count:
                 metrics.timing(
@@ -732,13 +757,13 @@ class SpansBuffer:
                     int(ingested_byte_count),
                 )
 
-            if ingested_count:
-                total_ingested = int(ingested_count)
+            ingested_count = initial_counts.get(key)
+            if ingested_count is not None:
                 metrics.timing(
-                    "spans.buffer.flush_segments.ingested_spans_per_segment", total_ingested
+                    "spans.buffer.flush_segments.ingested_spans_per_segment", ingested_count
                 )
                 successfully_loaded = len(payloads.get(key, []))
-                dropped = total_ingested - successfully_loaded
+                dropped = ingested_count - successfully_loaded
                 if dropped <= 0:
                     continue
 
