@@ -4200,25 +4200,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
             attributes=attributes_proto,
         )
 
-    def store_uptime_results(self, uptime_results):
-        """Store uptime results in the EAP dataset."""
-        import requests
-        from django.conf import settings
-
-        files = {
-            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for result in uptime_results:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            result.item_id = result.item_id[::-1]
-
 
 class ProcessingErrorTestCase(BaseTestCase):
     """Test case for creating and storing EAP processing error items."""
