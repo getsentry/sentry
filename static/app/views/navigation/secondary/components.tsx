@@ -160,18 +160,26 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   }
 `;
 
-function SecondaryNavigationList({children}: {children: ReactNode}) {
+interface SecondaryNavigationListProps {
+  children: ReactNode;
+}
+
+function SecondaryNavigationList(props: SecondaryNavigationListProps) {
   return (
     <Stack as="ul" margin="0" padding="0" width="100%">
-      {children}
+      {props.children}
     </Stack>
   );
 }
 
-function SecondaryNavigationListItem({children}: {children: ReactNode}) {
+interface SecondaryNavigationListItemProps {
+  children: ReactNode;
+}
+
+function SecondaryNavigationListItem(props: SecondaryNavigationListItemProps) {
   return (
     <Container as="li" style={{listStyleType: 'none'}}>
-      {children}
+      {props.children}
     </Container>
   );
 }
@@ -195,7 +203,11 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
+interface SecondaryNavigationHeaderProps {
+  children?: ReactNode;
+}
+
+function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = useNavigation();
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
@@ -210,7 +222,7 @@ function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
     >
       <div>
         <Text size="md" bold>
-          {children}
+          {props.children}
         </Text>
       </div>
       <div>
@@ -233,7 +245,11 @@ function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
   );
 }
 
-function SecondaryNavigationBody({children}: {children: ReactNode}) {
+interface SecondaryNavigationBodyProps {
+  children: ReactNode;
+}
+
+function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = useNavigation();
 
   return (
@@ -242,45 +258,41 @@ function SecondaryNavigationBody({children}: {children: ReactNode}) {
       overscrollBehavior="contain"
       padding={layout === 'mobile' ? '0 0 md 0' : undefined}
     >
-      {children}
+      {props.children}
     </Container>
   );
 }
 
-function SectionTitle({
-  title,
-  trailingItems,
-  canCollapse,
-  isCollapsed,
-  setIsCollapsed,
-}: {
+interface SectionTitleProps {
   canCollapse: boolean;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
   title: ReactNode;
   trailingItems?: ReactNode;
-}) {
+}
+
+function SectionTitle(props: SectionTitleProps) {
   const {layout} = useNavigation();
 
-  if (canCollapse) {
+  if (props.canCollapse) {
     return (
       <SectionTitleCollapsible
         size="sm"
         priority="transparent"
         isMobile={layout === 'mobile'}
         onClick={() => {
-          setIsCollapsed(!isCollapsed);
+          props.setIsCollapsed(!props.isCollapsed);
         }}
-        isCollapsed={isCollapsed}
+        isCollapsed={props.isCollapsed}
       >
-        <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
+        <SectionTitleLabelWrap>{props.title}</SectionTitleLabelWrap>
         <Flex align="center" flexShrink={0}>
-          {trailingItems ? (
-            <div onClick={e => e.stopPropagation()}>{trailingItems}</div>
+          {props.trailingItems ? (
+            <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
           ) : (
-            canCollapse && (
+            props.canCollapse && (
               <IconChevron
-                direction={isCollapsed ? 'down' : 'up'}
+                direction={props.isCollapsed ? 'down' : 'up'}
                 size="xs"
                 variant="muted"
               />
@@ -293,48 +305,44 @@ function SectionTitle({
 
   return (
     <SectionTitleUnCollapsible isMobile={layout === 'mobile'}>
-      {title}
-      {trailingItems}
+      {props.title}
+      {props.trailingItems}
     </SectionTitleUnCollapsible>
   );
 }
 
-function SecondaryNavigationSection({
-  id,
-  title,
-  children,
-  className,
-  trailingItems,
-  collapsible = true,
-}: {
+interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
   className?: string;
   collapsible?: boolean;
   title?: ReactNode;
   trailingItems?: ReactNode;
-}) {
+}
+
+function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
+  const collapsible = props.collapsible ?? true;
   const {layout} = useNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
-    `secondary-nav-section-${id}-collapsed`,
+    `secondary-nav-section-${props.id}-collapsed`,
     false
   );
   const canCollapse = collapsible && layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Section className={className} layout={layout} data-nav-section>
-      {title ? (
+    <Section className={props.className} layout={layout} data-nav-section>
+      {props.title ? (
         <SectionTitle
-          title={title}
-          trailingItems={trailingItems}
+          title={props.title}
+          trailingItems={props.trailingItems}
           canCollapse={canCollapse}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}
         />
       ) : null}
       <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
-        {children}
+        {props.children}
       </Collapsible>
     </Section>
   );
@@ -394,9 +402,13 @@ function SecondaryNavigationLink({
   );
 }
 
-function SecondaryNavigationFooter({children}: {children: ReactNode}) {
+interface SecondaryNavigationFooterProps {
+  children: ReactNode;
+}
+
+function SecondaryNavigationFooter(props: SecondaryNavigationFooterProps) {
   const {layout} = useNavigation();
-  return <Footer layout={layout}>{children}</Footer>;
+  return <Footer layout={layout}>{props.children}</Footer>;
 }
 
 function SecondaryNavigationSeparator() {
@@ -410,19 +422,14 @@ function SecondaryNavigationSeparator() {
 interface SecondaryNavigationProjectIconProps {
   projectPlatforms: string[];
   allProjects?: boolean;
-  className?: string;
 }
 
-function SecondaryNavigationProjectIcon({
-  projectPlatforms,
-  allProjects,
-  className,
-}: SecondaryNavigationProjectIconProps) {
+function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
-  switch (projectPlatforms.length) {
+  switch (props.projectPlatforms.length) {
     case 0:
-      renderedIcons = allProjects ? (
+      renderedIcons = props.allProjects ? (
         <IconAllProjects size="md" />
       ) : (
         <IconMyProjects size="md" />
@@ -431,7 +438,7 @@ function SecondaryNavigationProjectIcon({
     case 1:
       renderedIcons = (
         <IconContainer>
-          <StyledPlatformIcon platform={projectPlatforms[0]!} size={18} />
+          <StyledPlatformIcon platform={props.projectPlatforms[0]!} size={18} />
           <BorderOverlay />
         </IconContainer>
       );
@@ -439,7 +446,7 @@ function SecondaryNavigationProjectIcon({
     default:
       renderedIcons = (
         <IconContainer>
-          {projectPlatforms.slice(0, 2).map((platform, index) => (
+          {props.projectPlatforms.slice(0, 2).map((platform, index) => (
             <PlatformIconWrapper key={platform} index={index}>
               <StyledPlatformIcon platform={platform} size={14} />
               <BorderOverlay />
@@ -450,13 +457,7 @@ function SecondaryNavigationProjectIcon({
   }
 
   return (
-    <Stack
-      justify="center"
-      align="center"
-      flexShrink={0}
-      className={className}
-      data-project-icon
-    >
+    <Stack justify="center" align="center" flexShrink={0} data-project-icon>
       {renderedIcons}
     </Stack>
   );
