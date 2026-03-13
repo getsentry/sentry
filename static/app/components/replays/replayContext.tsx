@@ -579,9 +579,10 @@ export function Provider({
 
   const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
+  const SEEK_THRESHOLD_MS = 200;
   const [isBuffering, currentBufferedPlayerTime] =
     buffer.target !== -1 &&
-    buffer.previous === currentPlayerTime &&
+    Math.abs(currentPlayerTime - buffer.target) > SEEK_THRESHOLD_MS &&
     buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
