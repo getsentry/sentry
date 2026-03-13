@@ -77,7 +77,7 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useSecondaryNavigation();
+  const {interaction, setInteraction} = useSecondaryNavigation();
 
   return (
     <StyledReorderItem
@@ -88,12 +88,12 @@ export function IssueViewItem({
       value={view}
       onDragStart={() => {
         setIsDragging(view.id);
-        startInteraction();
+        setInteraction('dragging');
       }}
       onDragEnd={() => {
         setIsDragging(null);
         onReorderComplete();
-        endInteraction();
+        setInteraction(null);
       }}
       dragListener={false}
       dragControls={controls}
@@ -145,7 +145,7 @@ export function IssueViewItem({
           e.preventDefault();
         }}
         onClick={e => {
-          if (isInteractingRef.current) {
+          if (interaction.current) {
             e.preventDefault();
           } else {
             trackAnalytics('issue_views.switched_views', {

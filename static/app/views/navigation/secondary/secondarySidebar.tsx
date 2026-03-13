@@ -21,7 +21,6 @@ import {
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export function SecondarySidebar() {
   const {currentStepId} = useNavigationTour();
@@ -44,11 +43,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavigationGroup} = useNavigation();
-  const defaultActiveNavigationGroup = useActiveNavigationGroup();
-
-  const activeNavigationGroup =
-    activePrimaryNavigationGroup ?? defaultActiveNavigationGroup;
+  const {activeGroup} = useNavigation();
 
   return (
     <SecondarySidebarWrapper
@@ -66,7 +61,7 @@ export function SecondarySidebar() {
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <MotionDiv
-              key={activeNavigationGroup}
+              key={activeGroup}
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
@@ -78,7 +73,7 @@ export function SecondarySidebar() {
                 aria-label="Secondary Navigation"
                 height="100%"
               >
-                <SecondaryNavigationContent group={activeNavigationGroup} />
+                <SecondaryNavigationContent />
               </Grid>
               <ResizeHandle
                 ref={resizeHandleRef}

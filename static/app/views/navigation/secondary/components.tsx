@@ -1,15 +1,15 @@
 import type {ReactNode} from 'react';
 import type {To} from 'react-router-dom';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
@@ -106,30 +106,39 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 function SecondaryNavigationHeader({children}: {children?: ReactNode}) {
   const {layout} = useNavigation();
-  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
-
-  if (layout === 'mobile') {
-    return null;
-  }
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   return (
-    <Header>
-      <div>{children}</div>
+    <Grid
+      columns="1fr auto"
+      align="center"
+      borderBottom="muted"
+      height={layout === 'mobile' ? undefined : '44px'}
+      padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
+    >
       <div>
-        <Button
-          size="xs"
-          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-          aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : 'transparent'}
-          analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-          analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-          analyticsParams={{
-            is_collapsed: isCollapsed,
-          }}
-        />
+        <Text size="md" bold>
+          {children}
+        </Text>
       </div>
-    </Header>
+      <div>
+        {layout === 'mobile' ? null : (
+          <Button
+            size="xs"
+            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+            priority={isCollapsed ? 'primary' : 'transparent'}
+            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+            analyticsParams={{
+              is_collapsed: isCollapsed,
+            }}
+          />
+        )}
+      </div>
+    </Grid>
   );
 }
 
@@ -411,19 +420,6 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
       bottom: 0;
       right: 0;
     `}
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
-
-  /* This is used in detail pages to match the height of sidebar header. */
-  height: 44px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
