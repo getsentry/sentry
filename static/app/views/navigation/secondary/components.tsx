@@ -246,7 +246,9 @@ function SecondaryNavigationSection({
 
   return (
     <Section className={className} layout={layout} data-nav-section>
-      <SectionSeparator />
+      <Container padding="md lg">
+        <SectionSeparator />
+      </Container>
       {title ? (
         <SectionTitle
           title={title}
@@ -324,7 +326,7 @@ function SecondaryNavigationFooter({children}: {children: ReactNode}) {
 }
 
 function SectionSeparator() {
-  return <Separator data-separator orientation="horizontal" border="muted" />;
+  return <Separator orientation="horizontal" border="muted" />;
 }
 
 interface SecondaryNavigationProjectIconProps {
@@ -432,13 +434,6 @@ const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
 
   &:last-child {
     padding-bottom: ${p => p.theme.space.md};
-  }
-
-  /* Hide separators if there is not a previous section */
-  [data-nav-section] + & {
-    > [data-separator] {
-      display: block;
-    }
   }
 `;
 
