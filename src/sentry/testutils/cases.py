@@ -3555,7 +3555,6 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         environment: str | None = None,
         title: str = "some error",
         transaction: str | None = None,
-        occurrence_type: str = "error",
         issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
@@ -3578,7 +3577,6 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         data: dict[str, Any] = {
             "level": level,
             "title": title,
-            "type": occurrence_type,
         }
         preprocessed: dict[str, Any] = {}
         if group_id is not None:

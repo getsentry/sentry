@@ -1,6 +1,7 @@
 import zoneinfo
 from datetime import timedelta
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 from django.core import mail
@@ -391,7 +392,7 @@ class WeeklyReportsTest(
                     group_id=perf_group_1.id,
                     project=self.project,
                     timestamp=self.now - timedelta(minutes=i + 1),
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 )
                 for i in range(3)
             ]
@@ -400,7 +401,7 @@ class WeeklyReportsTest(
                     group_id=perf_group_2.id,
                     project=self.project,
                     timestamp=self.now - timedelta(minutes=1),
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )
