@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -96,6 +96,8 @@ class HistoricGroupCounts(
     @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
+        from django.utils import timezone
+
         timestamp = timezone.now() - timedelta(minutes=1)
         # This builds an error group and a profiling group
         profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
