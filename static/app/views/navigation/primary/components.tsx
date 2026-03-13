@@ -136,7 +136,6 @@ function PrimaryNavigationButton({
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavigationButton
         {...buttonProps}
-        isMobile={layout === 'mobile'}
         analyticsParams={analyticsParams}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -212,7 +211,7 @@ function PrimaryNavigationMenu({
                 isMobile={layout === 'mobile'}
                 aria-label={showLabel ? undefined : label}
                 size={size}
-                onClick={event => {
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   if (organization) {
                     trackAnalytics('navigation.primary_item_clicked', {
                       item: analyticsKey,
@@ -225,8 +224,14 @@ function PrimaryNavigationMenu({
                 }}
                 icon={icon}
               >
-                {showLabel ? label : null}
-                {children}
+                {showLabel ? (
+                  <Fragment>
+                    {label}
+                    {children}
+                  </Fragment>
+                ) : (
+                  {children}
+                )}
               </NavigationButton>
             </Tooltip>
           </TriggerWrap>
@@ -342,55 +347,28 @@ const NavigationLink = styled(Link, {
   }
 `;
 
-const NavigationButton = styled(
-  ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
-    const {layout} = useNavigation();
+const NavigationButton = styled((props: ButtonProps) => {
+  const {layout} = useNavigation();
 
-    return (
-      <Button
-        {...props}
-        size={layout === 'mobile' ? 'zero' : props.size}
-        priority={layout === 'mobile' ? 'transparent' : props.priority}
-      />
-    );
-  }
-)<{isMobile: boolean}>`
-  display: flex;
-  align-items: center;
-
-  /* On mobile, the buttons are full width and have a gap between the icon and label */
-  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  height: ${p => (p.isMobile ? 'auto' : p.size === undefined ? '44px' : undefined)};
-  width: ${p => (p.isMobile ? '100%' : p.size === undefined ? '44px' : undefined)};
-  padding: ${p =>
-    p.isMobile
-      ? `${p.theme.space.md} ${p.theme.space['2xl']}`
-      : p.size === undefined
-        ? p.theme.space.xs
-        : undefined};
-
-  /* Disable interactionstatelayer hover */
-  [data-isl] {
-    display: none;
-  }
-
-  /* Navigation buttons are icon-only; allow icon content to overflow the inner span */
-  > span:last-child {
-    overflow: visible;
-  }
-
-  /* The indicator (PrimaryNavigationUnreadIndicator) is passed as children, which causes
-   * Button's internal logic to set hasChildren=true and add margin-right to the icon
-   * wrapper. On desktop buttons are icon-only so we override to zero; on mobile the
-   * margin-right provides the gap between the icon and label text. */
-  ${p =>
-    !p.isMobile &&
-    css`
-      > span:last-child > span:first-child {
-        margin-right: 0;
-      }
-    `}
-`;
+  return (
+    <Flex
+      height={layout === 'mobile' ? 'auto' : '44px'}
+      width={layout === 'mobile' ? '100%' : '44px'}
+      padding={layout === 'mobile' ? 'md 2xl' : 'xs'}
+      justify={layout === 'mobile' ? 'start' : 'center'}
+      align="center"
+    >
+      {p => (
+        <Button
+          {...p}
+          {...props}
+          size={layout === 'mobile' ? 'zero' : props.size}
+          priority={layout === 'mobile' ? 'transparent' : props.priority}
+        />
+      )}
+    </Flex>
+  );
+});
 
 const PrimaryNavigationUnreadIndicator = styled('span')<{
   isMobile: boolean;
