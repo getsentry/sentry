@@ -25,7 +25,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
           {t('Back')}
         </Button>
       </GroupHeader>
-      <Stack justify="between" align="stretch" overflowY="auto" area="content">
+      <Stack justify="start" align="stretch" overflowY="auto" area="content">
         <SecondaryNavigationContent />
       </Stack>
     </SecondaryMobileWrapper>
@@ -51,7 +51,7 @@ const GroupHeader = styled('h2')`
   background: ${p => p.theme.tokens.background.tertiary};
   display: flex;
   align-items: center;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.sm};
   gap: ${p => p.theme.space.md};
   margin: 0;
 `;
