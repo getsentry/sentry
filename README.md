@@ -102,7 +102,6 @@ Configuration lives in **`config.yml`** (system‑wide) and **`sentry.conf.py`**
   system.url-prefix: "https://sentry.example.com"
   ```  
 
-  (also adjust `system.url-prefix` in `config.yml`).  
 
 * Enable/disable the optional beacon (anonymous usage stats) in `sentry.conf.py`:  
 
