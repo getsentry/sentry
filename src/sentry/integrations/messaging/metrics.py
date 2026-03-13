@@ -114,8 +114,8 @@ class MessageInteractionFailureReason(StrEnum):
 class AppMentionHaltReason(StrEnum):
     """Reasons why an app mention event may halt without processing."""
 
-    NO_ORGANIZATION = "no-organization"
-    ORGANIZATION_NOT_FOUND = "organization-not-found"
-    ORGANIZATION_NOT_ACTIVE = "organization-not-active"
-    FEATURE_NOT_ENABLED = "feature-not-enabled"
-    MISSING_CHANNEL_OR_TEXT = "missing-channel-or-text"
+    NO_ORGANIZATION = "no_organization"
+    ORGANIZATION_NOT_FOUND = "organization_not_found"
+    ORGANIZATION_NOT_ACTIVE = "organization_not_active"
+    FEATURE_NOT_ENABLED = "feature_not_enabled"
+    MISSING_CHANNEL_OR_TEXT = "missing_channel_or_text"
