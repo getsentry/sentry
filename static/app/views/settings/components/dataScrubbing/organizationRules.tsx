@@ -47,7 +47,7 @@ export function OrganizationRules({organization}: Props) {
   }, []);
 
   const measureRulesRef = useCallback(
-    (node: HTMLUListElement) => {
+    (node: HTMLUListElement | null) => {
       if (!contentHeight && node) {
         setContentHeight(`${node.offsetHeight}px`);
       }
