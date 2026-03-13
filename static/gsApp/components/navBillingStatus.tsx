@@ -16,10 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
@@ -435,7 +433,7 @@ export function PrimaryNavigationQuotaExceeded({
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryButtonOverlay({});
+  } = usePrimaryNavigationButtonOverlay({});
   const {layout} = useNavigation();
 
   const hasSnoozedAllPrompts = useCallback(() => {
@@ -527,7 +525,7 @@ export function PrimaryNavigationQuotaExceeded({
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         buttonProps={{
@@ -535,10 +533,13 @@ export function PrimaryNavigationQuotaExceeded({
           icon: <IconWarning />,
         }}
       >
-        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="warning" />
-      </SidebarButton>
+        <PrimaryNavigation.UnreadIndicator
+          isMobile={layout === 'mobile'}
+          variant="warning"
+        />
+      </PrimaryNavigation.Button>
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -546,7 +547,7 @@ export function PrimaryNavigationQuotaExceeded({
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

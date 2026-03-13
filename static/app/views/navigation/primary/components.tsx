@@ -7,7 +7,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -27,68 +27,169 @@ import {
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
-interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
-  children: React.ReactNode;
-  label: string;
-  disableTooltip?: boolean;
-  ref?: React.Ref<HTMLLIElement>;
-}
+interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
-function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
+function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
   const {layout} = useNavigation();
+
   return (
-    <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
-      <Flex
-        as="li"
-        ref={ref}
-        justify="center"
-        align="center"
-        width={layout === 'mobile' ? '100%' : undefined}
-        {...props}
-      >
-        <Tooltip
-          title={label}
-          disabled={layout === 'mobile' || disableTooltip}
-          position="right"
-          skipWrapper
-          delay={600}
-        >
-          {children}
-        </Tooltip>
-      </Flex>
-    </IconDefaultsProvider>
+    <Stack
+      as="ul"
+      position="relative"
+      margin="0"
+      padding="0"
+      width="100%"
+      gap="xs"
+      align={layout === 'mobile' ? 'stretch' : 'center'}
+      paddingTop="md"
+      {...props}
+    >
+      {children}
+    </Stack>
   );
 }
 
-interface SidebarMenuProps {
+interface PrimaryNavigationItemBaseProps {
   analyticsKey: string;
+  analyticsParams?: Record<string, unknown>;
+}
+
+function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
+  const {layout} = useNavigation();
+  return (
+    <Flex as="li" justify="center" align="center" width="100%" {...props}>
+      <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
+        {children}
+      </IconDefaultsProvider>
+    </Flex>
+  );
+}
+
+interface PrimaryNavigationLinkProps extends PrimaryNavigationItemBaseProps {
+  group: NavigationGroup;
+  label: string;
+  to: string;
+  activeTo?: string;
+  children?: React.ReactNode;
+}
+
+function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
+  const organization = useOrganization();
+  const {layout, activeGroup} = useNavigation();
+  const location = useLocation();
+  const isActive = isPrimaryNavigationLinkActive(
+    normalizeUrl(props.activeTo ?? props.to, location),
+    location.pathname
+  );
+
+  // Reload the page when the frontend is stale to ensure users get the latest version
+  const {state: appState} = useFrontendVersion();
+
+  return (
+    <NavigationLink
+      to={props.to}
+      reloadDocument={appState === 'stale'}
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
+      aria-selected={activeGroup === props.group ? true : isActive}
+      aria-current={isActive ? 'page' : undefined}
+      isMobile={layout === 'mobile'}
+      onClick={() => {
+        trackAnalytics('navigation.primary_item_clicked', {
+          item: props.analyticsKey,
+          organization,
+          ...props.analyticsParams,
+        });
+      }}
+      {...{
+        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+      }}
+    >
+      {layout === 'mobile' ? (
+        <Fragment>
+          {props.children}
+          {props.label}
+        </Fragment>
+      ) : (
+        <Fragment>
+          <NavigationLinkIconContainer>{props.children}</NavigationLinkIconContainer>
+          <NavigationLinkLabel>{props.label}</NavigationLinkLabel>
+        </Fragment>
+      )}
+    </NavigationLink>
+  );
+}
+
+interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
+  label: string;
+  buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+}
+
+function PrimaryNavigationButton({
+  analyticsKey,
+  analyticsParams,
+  children,
+  buttonProps = {},
+  className,
+  onClick,
+  label,
+}: PrimaryNavigationButtonProps) {
+  const organization = useOrganization();
+  const {layout} = useNavigation();
+  const showLabel = layout === 'mobile';
+
+  return (
+    <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
+      <NavigationButton
+        {...buttonProps}
+        isMobile={layout === 'mobile'}
+        analyticsParams={analyticsParams}
+        className={className}
+        aria-label={showLabel ? undefined : label}
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+          trackAnalytics('navigation.primary_item_clicked', {
+            item: analyticsKey,
+            organization,
+            ...analyticsParams,
+          });
+          buttonProps.onClick?.(e);
+          onClick?.(e);
+        }}
+        icon={buttonProps.icon}
+      >
+        {showLabel ? label : null}
+        {children}
+      </NavigationButton>
+    </Tooltip>
+  );
+}
+
+interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   items: MenuItemProps[];
   label: string;
-  analyticsParams?: Record<string, unknown>;
   children?: React.ReactNode;
-  disableTooltip?: boolean;
   icon?: React.ReactNode;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
   size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
-export function SidebarMenu({
+function PrimaryNavigationMenu({
   items,
   children,
   analyticsKey,
   analyticsParams,
   label,
   onOpen,
-  disableTooltip,
   icon,
   size,
   triggerWrap: TriggerWrap = Fragment,
-}: SidebarMenuProps) {
-  // This component can be rendered without an organization in some cases
+}: PrimaryNavigationMenuProps) {
+  const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavigation();
-  const theme = useTheme();
 
   const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
@@ -111,7 +212,7 @@ export function SidebarMenu({
           <TriggerWrap>
             <Tooltip
               title={label}
-              disabled={showLabel || disableTooltip}
+              disabled={showLabel}
               position="right"
               skipWrapper
               delay={600}
@@ -146,168 +247,18 @@ export function SidebarMenu({
   );
 }
 
-interface SidebarItemLinkProps {
-  analyticsKey: string;
-  group: NavigationGroup;
-  label: string;
-  to: string;
-  activeTo?: string;
-  analyticsParams?: Record<string, unknown>;
-  children?: React.ReactNode;
-}
-
-export function SidebarLink({
-  children,
-  to,
-  activeTo = to,
-  analyticsKey,
-  analyticsParams,
-  label,
-  group,
-  ...props
-}: SidebarItemLinkProps) {
+function PrimaryNavigationSeparator({className}: {className?: string}) {
   return (
-    <SidebarItem label={label} {...props}>
-      <SidebarNavigationLink
-        to={to}
-        activeTo={activeTo}
-        analyticsKey={analyticsKey}
-        analyticsParams={analyticsParams}
-        label={label}
-        group={group}
-      >
-        {children}
-      </SidebarNavigationLink>
-    </SidebarItem>
-  );
-}
-
-function SidebarNavigationLink({
-  children,
-  to,
-  activeTo = to,
-  analyticsKey,
-  analyticsParams,
-  label,
-  group,
-}: SidebarItemLinkProps) {
-  const organization = useOrganization();
-  const {layout, activeGroup} = useNavigation();
-  const location = useLocation();
-  const isActive = isSidebarLinkActive(
-    normalizeUrl(activeTo, location),
-    location.pathname
-  );
-
-  // Reload the page when the frontend is stale to ensure users get the latest version
-  const {state: appState} = useFrontendVersion();
-
-  return (
-    <NavigationLink
-      to={to}
-      reloadDocument={appState === 'stale'}
-      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activeGroup === group ? true : isActive}
-      aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === 'mobile'}
-      onClick={() => {
-        trackAnalytics('navigation.primary_item_clicked', {
-          item: analyticsKey,
-          organization,
-          ...analyticsParams,
-        });
-      }}
-      {...{
-        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
-      }}
-    >
-      {layout === 'mobile' ? (
-        <Fragment>
-          {children}
-          {label}
-        </Fragment>
-      ) : (
-        <Fragment>
-          <NavigationLinkIconContainer>{children}</NavigationLinkIconContainer>
-          <NavigationLinkLabel>{label}</NavigationLinkLabel>
-        </Fragment>
-      )}
-    </NavigationLink>
-  );
-}
-
-interface SidebarButtonProps {
-  analyticsKey: string;
-  label: string;
-  analyticsParams?: Record<string, unknown>;
-  buttonProps?: Omit<ButtonProps, 'aria-label'>;
-  children?: React.ReactNode;
-  className?: string;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
-}
-
-export function SidebarButton({
-  className,
-  analyticsKey,
-  analyticsParams,
-  children,
-  buttonProps = {},
-  onClick,
-  label,
-}: SidebarButtonProps) {
-  const organization = useOrganization();
-  const {layout} = useNavigation();
-  const showLabel = layout === 'mobile';
-
-  return (
-    <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
-      <NavigationButton
-        {...buttonProps}
-        isMobile={layout === 'mobile'}
-        analyticsParams={analyticsParams}
-        className={className}
-        aria-label={showLabel ? undefined : label}
-        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-          trackAnalytics('navigation.primary_item_clicked', {
-            item: analyticsKey,
-            organization,
-            ...analyticsParams,
-          });
-          buttonProps.onClick?.(e);
-          onClick?.(e);
-        }}
-        icon={buttonProps.icon}
-      >
-        {showLabel ? label : null}
-        {children}
-      </NavigationButton>
-    </Tooltip>
-  );
-}
-
-export function SeparatorItem({
-  className,
-  hasMargin,
-}: {
-  className?: string;
-  hasMargin?: boolean;
-}) {
-  return (
-    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
+    <SeparatorListItem aria-hidden className={className}>
       <Separator />
     </SeparatorListItem>
   );
 }
 
-const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
+const SeparatorListItem = styled('li')`
   list-style: none;
   width: 100%;
   padding: 0 ${p => p.theme.space.lg};
-  ${p =>
-    p.hasMargin &&
-    css`
-      margin: ${p.theme.space.xs} 0;
-    `}
 `;
 
 const Separator = styled('hr')`
@@ -457,7 +408,7 @@ const NavigationButton = styled(
     overflow: visible;
   }
 
-  /* The indicator (SidebarItemUnreadIndicator) is passed as children, which causes
+  /* The indicator (PrimaryNavigationUnreadIndicator) is passed as children, which causes
    * Button's internal logic to set hasChildren=true and add margin-right to the icon
    * wrapper. On desktop buttons are icon-only so we override to zero; on mobile the
    * margin-right provides the gap between the icon and label text. */
@@ -470,7 +421,7 @@ const NavigationButton = styled(
     `}
 `;
 
-export const SidebarItemUnreadIndicator = styled('span')<{
+const PrimaryNavigationUnreadIndicator = styled('span')<{
   isMobile: boolean;
   variant?: 'accent' | 'danger' | 'warning';
 }>`
@@ -496,51 +447,12 @@ export const SidebarItemUnreadIndicator = styled('span')<{
     `}
 `;
 
-export const SidebarList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  padding-top: ${p => p.theme.space.md};
-  display: flex;
-  flex-direction: column;
-  align-items: ${p => (p.isMobile ? 'stretch' : 'center')};
-  gap: ${p => p.theme.space.xs};
-  width: 100%;
-
-  /* TriggerWrap div is getting in the way here */
-  > div,
-  > div > li,
-  > li {
-    width: 100%;
-  }
-`;
-
-export function isSidebarLinkActive(
-  to: LocationDescriptor | string,
-  pathname: string,
-  options: {end?: boolean} = {end: false}
-): boolean {
-  const toPathname = normalizeUrl(typeof to === 'string' ? to : (to.pathname ?? '/'));
-
-  if (options.end) {
-    return pathname === toPathname;
-  }
-
-  return pathname.startsWith(toPathname);
-}
-
-// Stable module-level component to avoid remounts when used as `renderWrapAs`
-function PassthroughWrapper({children}: {children: React.ReactNode}) {
-  return children;
-}
-
-type PrimaryButtonOverlayProps = {
+type PrimaryNavigationButtonOverlayProps = {
   children: React.ReactNode;
   overlayProps: React.HTMLAttributes<HTMLDivElement>;
 };
 
-export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
+export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
   const {layout} = useNavigation();
 
   return useOverlay({
@@ -558,10 +470,10 @@ export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
  * on desktop and a modified overlay in mobile to match the design of
  * the mobile topbar.
  */
-export function PrimaryButtonOverlay({
+function PrimaryNavigationButtonOverlay({
   children,
   overlayProps,
-}: PrimaryButtonOverlayProps) {
+}: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
   const {layout} = useNavigation();
 
@@ -586,3 +498,33 @@ const ScrollableOverlay = styled(Overlay, {
   overflow-y: auto;
   width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
 `;
+
+export function isPrimaryNavigationLinkActive(
+  to: LocationDescriptor | string,
+  pathname: string,
+  options: {end?: boolean} = {end: false}
+): boolean {
+  const toPathname = normalizeUrl(typeof to === 'string' ? to : (to.pathname ?? '/'));
+
+  if (options.end) {
+    return pathname === toPathname;
+  }
+
+  return pathname.startsWith(toPathname);
+}
+
+// Stable module-level component to avoid remounts when used as `renderWrapAs`
+function PassthroughWrapper({children}: {children: React.ReactNode}) {
+  return children;
+}
+
+export const PrimaryNavigation = {
+  List: PrimaryNavigationList,
+  ListItem: PrimaryNavigationListItem,
+  Link: PrimaryNavigationLink,
+  Button: PrimaryNavigationButton,
+  Menu: PrimaryNavigationMenu,
+  Separator: PrimaryNavigationSeparator,
+  UnreadIndicator: PrimaryNavigationUnreadIndicator,
+  ButtonOverlay: PrimaryNavigationButtonOverlay,
+};
