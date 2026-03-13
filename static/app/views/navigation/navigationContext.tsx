@@ -34,15 +34,15 @@ export function NavigationContextProvider(props: NavigationContextProviderProps)
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
-  const routeGroup = useActiveNavigationGroup();
+  const activeRouteGroup = useActiveNavigationGroup();
 
   const value = useMemo(
     () => ({
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
-      activeGroup: activeGroupOverride ?? routeGroup,
+      activeGroup: activeGroupOverride ?? activeRouteGroup,
       setActiveGroup,
     }),
-    [isMobile, activeGroupOverride, routeGroup]
+    [isMobile, activeGroupOverride, activeRouteGroup]
   );
 
   return (
