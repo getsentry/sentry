@@ -587,6 +587,39 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
     });
 
+    // TODO: Unskip this test once exact match boosting is implemented (GH-110680)
+    // Currently all options score identically, but exact matches should be prioritized
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('prioritizes exact matches over partial matches in search results', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'binary_path', label: 'binary_path'},
+            {value: 'code.file.path', label: 'code.file.path'},
+            {value: 'path', label: 'path'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+
+      // Search for 'path' - should match all three options
+      await userEvent.keyboard('path');
+
+      // All options should be visible
+      expect(screen.getByRole('option', {name: 'binary_path'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'code.file.path'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'path'})).toBeInTheDocument();
+
+      // Exact match 'path' should be sorted first
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveTextContent('path');
+    });
+
     it('shows fzf matches even when gap penalties make the raw score negative', async () => {
       // fzf can return a negative score when matched characters are spread far apart
       // (gap penalties accumulate). The option must still be shown, not hidden.
