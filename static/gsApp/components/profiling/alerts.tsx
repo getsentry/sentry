@@ -10,7 +10,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -303,7 +302,7 @@ function ContinuousProfilingBetaAlertBannerInner({
           buttonProps={{
             priority: 'default',
             size: 'xs',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {marginBlock: '-2px'},
           }}
           eventTypes={eventTypes}
           notificationType="overage_critical"

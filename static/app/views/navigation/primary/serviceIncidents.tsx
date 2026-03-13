@@ -6,14 +6,13 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
   SidebarButton,
   SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
   const {
@@ -22,7 +21,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     overlayProps,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>
@@ -35,10 +34,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           size: 'sm',
         }}
       >
-        <SidebarItemUnreadIndicator
-          isMobile={layout === NavigationLayout.MOBILE}
-          variant="danger"
-        />
+        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="danger" />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>

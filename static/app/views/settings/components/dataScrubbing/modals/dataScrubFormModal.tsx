@@ -21,7 +21,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submitRules';
@@ -448,7 +447,7 @@ export function DataScrubFormModal({
                             </sourceField.Base>
                           </sourceField.Layout.Stack>
                           {containsRootDeepWildcard(sourceValue) && (
-                            <Alert variant="warning" style={{marginTop: space(1)}}>
+                            <Alert variant="warning" style={{marginTop: '8px'}}>
                               {t(
                                 `Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)`
                               )}

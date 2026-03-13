@@ -16,7 +16,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
@@ -376,10 +375,10 @@ export function useMetricDetectorChart({
 
   const grid = useMemo(() => {
     return {
-      left: space(0.25),
-      right: space(0.25),
-      top: space(1.5),
-      bottom: space(1),
+      left: '2px',
+      right: '2px',
+      top: '12px',
+      bottom: '8px',
       ...openPeriodMarkerResult.incidentMarkerGrid,
     };
   }, [openPeriodMarkerResult.incidentMarkerGrid]);

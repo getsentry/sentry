@@ -8,14 +8,12 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.grouping.parameterization import experimental_parameterizer
-from sentry.grouping.parameterization import parameterizer as default_parameterizer
-from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -57,31 +55,23 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, reason: str, trim_message: bool
+    message: str, context: GroupingContext, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-    parameterizer = (
-        experimental_parameterizer
-        if in_rollout_group("grouping.experimental_parameterization", event.project_id)
-        else default_parameterizer
-    )
-
-    if trim_message:
-        # If there are multiple lines, grab the first two non-empty ones
-        trimmed = _trim_extra_lines(message)
-        normalized = parameterizer.parameterize(trimmed)
-        message_parameterized = normalized != trimmed
+    if message == context.canonical_event_message:
+        parameterized = context.canonical_message_parameterized
     else:
-        normalized = parameterizer.parameterize(message)
-        message_parameterized = normalized != message
+        parameterized = context.parameterizer.parameterize(message)
+
+    message_parameterized = parameterized != message
 
     if message_parameterized:
         metrics.incr("grouping.message_parameterized", tags={"source": reason})
 
-    return normalized
+    return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
 def _trim_extra_lines(input_str: str) -> str:

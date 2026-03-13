@@ -1,15 +1,15 @@
 import type {ReactNode} from 'react';
 import type {To} from 'react-router-dom';
-import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
@@ -21,9 +21,9 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 function Collapsible({
   children,
@@ -125,30 +125,40 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
 }: {
   children?: ReactNode;
 }) {
-  const {isCollapsed, setIsCollapsed, layout} = useNavigationContext();
-
-  if (layout === NavigationLayout.MOBILE) {
-    return null;
-  }
+  const {layout} = useNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   return (
-    <Header>
-      <div>{children}</div>
+    <Grid
+      columns="1fr auto"
+      align="center"
+      borderBottom="muted"
+      height={layout === 'mobile' ? undefined : '44px'}
+      padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
+    >
       <div>
-        <Button
-          size="xs"
-          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-          aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          priority={isCollapsed ? 'primary' : 'transparent'}
-          analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-          analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-          analyticsParams={{
-            is_collapsed: isCollapsed,
-          }}
-        />
+        <Text size="md" bold>
+          {children}
+        </Text>
       </div>
-    </Header>
+      <div>
+        {layout === 'mobile' ? null : (
+          <Button
+            size="xs"
+            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+            priority={isCollapsed ? 'primary' : 'transparent'}
+            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+            analyticsParams={{
+              is_collapsed: isCollapsed,
+            }}
+          />
+        )}
+      </div>
+    </Grid>
   );
 };
 
@@ -157,7 +167,7 @@ SecondaryNavigation.Body = function SecondaryNavigationBody({
 }: {
   children: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return <Body layout={layout}>{children}</Body>;
 };
@@ -175,14 +185,14 @@ function SectionTitle({
   title: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   if (canCollapse) {
     return (
       <SectionTitleCollapsible
         size="sm"
         priority="transparent"
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         onClick={() => {
           setIsCollapsed(!isCollapsed);
         }}
@@ -213,7 +223,7 @@ function SectionTitle({
   }
 
   return (
-    <SectionTitleUnCollapsible isMobile={layout === NavigationLayout.MOBILE}>
+    <SectionTitleUnCollapsible isMobile={layout === 'mobile'}>
       {title}
       {trailingItems}
     </SectionTitleUnCollapsible>
@@ -235,12 +245,12 @@ SecondaryNavigation.Section = function SecondaryNavigationSection({
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === NavigationLayout.SIDEBAR;
+  const canCollapse = collapsible && layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
@@ -280,7 +290,7 @@ SecondaryNavigation.Item = function SecondaryNavigationItem({
   const isActive =
     incomingIsActive ?? isSidebarLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
@@ -321,7 +331,7 @@ SecondaryNavigation.Footer = function SecondaryNavigationFooter({
 }: {
   children: ReactNode;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return <Footer layout={layout}>{children}</Footer>;
 };
@@ -431,33 +441,20 @@ const Wrapper = styled('div')`
   grid-template-rows: auto 1fr auto;
 `;
 
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
-
-  /* This is used in detail pages to match the height of sidebar header. */
-  height: 44px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const Body = styled('div')<{layout: NavigationLayout}>`
+const Body = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   overflow-y: auto;
   overscroll-behavior: contain;
 
   ${p =>
-    p.layout === NavigationLayout.MOBILE &&
+    p.layout === 'mobile' &&
     css`
       padding: 0 0 ${p.theme.space.md} 0;
     `}
 `;
 
-const Section = styled('div')<{layout: NavigationLayout}>`
+const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   ${p =>
-    p.layout === NavigationLayout.SIDEBAR &&
+    p.layout === 'sidebar' &&
     css`
       padding: 0 ${p.theme.space.md};
     `}
@@ -533,7 +530,7 @@ const Separator = styled('hr')`
 `;
 
 interface ItemProps extends LinkProps {
-  layout: NavigationLayout;
+  layout: 'mobile' | 'sidebar';
 }
 
 const Item = styled(Link)<ItemProps>`
@@ -544,11 +541,10 @@ const Item = styled(Link)<ItemProps>`
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
-    p.layout === NavigationLayout.MOBILE
+    p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
       : `${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-radius: ${p =>
-    p.theme.radius[p.layout === NavigationLayout.MOBILE ? '0' : 'md']};
+  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -601,12 +597,12 @@ const ItemText = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const Footer = styled('div')<{layout: NavigationLayout}>`
+const Footer = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 
   ${p =>
-    p.layout === NavigationLayout.MOBILE &&
+    p.layout === 'mobile' &&
     css`
       padding: ${p.theme.space.md} 0;
     `}

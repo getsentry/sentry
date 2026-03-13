@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
+import {css, type Interpolation, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
@@ -54,7 +54,7 @@ type ModalOptions = {
    * component. You may use the `[role="document"]` selector to target the
    * actual modal content to style the visual element of the modal.
    */
-  modalCss?: ReturnType<typeof css>;
+  modalCss?: Interpolation<Theme>;
   /**
    * Callback for when the modal is closed
    */
