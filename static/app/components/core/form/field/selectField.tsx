@@ -149,7 +149,9 @@ export function SelectField<TValue>({
                 fieldProps.onBlur();
               }
             }}
-            onChange={option => {
+            onChange={(
+              option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
+            ) => {
               if (multiple) {
                 // For multi-select, option is an array
                 (onChange as (value: TValue[]) => void)(
