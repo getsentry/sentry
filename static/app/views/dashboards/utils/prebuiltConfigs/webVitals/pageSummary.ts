@@ -6,6 +6,7 @@ import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/sett
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const WEB_VITALS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   projects: [],
   title: 'Web Vitals Page Summary',

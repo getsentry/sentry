@@ -15,6 +15,13 @@ import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 jest.mock('sentry/utils/localStorage');
 
+jest.mock('sentry/views/dashboards/utils/prebuiltConfigs', () => ({
+  PREBUILT_DASHBOARDS: {
+    1: {title: 'Visible Prebuilt Config', widgets: []},
+    2: {title: 'Hidden Prebuilt Config', widgets: [], hidden: true},
+  },
+}));
+
 const FEATURES = ['dashboards-basic', 'dashboards-edit', 'discover-query'];
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -297,6 +304,39 @@ describe('Dashboards > Detail', () => {
         expect.objectContaining({query: {sort: 'mydashboards'}})
       );
     });
+  });
+
+  it('shows prebuilt dashboards in the list', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        DashboardListItemFixture({
+          title: 'Visible Prebuilt Config',
+          prebuiltId: 1,
+        }),
+      ],
+    });
+
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
+
+    expect(await screen.findByText('Visible Prebuilt Config')).toBeInTheDocument();
+  });
+
+  it('hides prebuilt dashboards with hidden: true from the list', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [
+        DashboardListItemFixture({
+          title: 'Hidden Prebuilt Config',
+          prebuiltId: 2,
+        }),
+      ],
+    });
+
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
+
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
+    expect(screen.queryByText('Hidden Prebuilt Config')).not.toBeInTheDocument();
   });
 
   it('shows the most favorited sort option for the %s view type', async () => {

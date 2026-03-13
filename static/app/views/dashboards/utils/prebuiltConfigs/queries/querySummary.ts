@@ -13,6 +13,7 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
 export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   projects: [],
   title: 'Query Details',

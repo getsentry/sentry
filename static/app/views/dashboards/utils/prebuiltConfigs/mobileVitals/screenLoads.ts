@@ -297,6 +297,7 @@ const SECOND_ROW_WIDGETS: Widget[] = [
 const THIRD_ROW_WIDGETS: Widget[] = [TTID_BAR_CHART_WIDGET, TTFD_BAR_CHART_WIDGET];
 
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   title: t('Mobile Vitals Screen Loads'),
   projects: [],

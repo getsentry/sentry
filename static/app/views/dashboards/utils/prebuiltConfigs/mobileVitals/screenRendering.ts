@@ -58,6 +58,7 @@ const SPAN_OPERATIONS_TABLE: Widget = {
 };
 
 export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   title: t('Mobile Vitals Screen Rendering'),
   projects: [],

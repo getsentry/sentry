@@ -221,24 +221,31 @@ function ManageDashboards() {
 
   const dashboards = useMemo(
     () =>
-      dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
-        if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
-          return {
-            ...dashboard,
-            widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-              widget => widget.displayType
-            ),
-            widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-              widget => ({
-                displayType: widget.displayType,
-                layout: widget.layout ?? null,
-              })
-            ),
-            projects: [],
-          };
-        }
-        return dashboard;
-      }),
+      dashboardsWithoutPrebuiltConfigs
+        ?.map(dashboard => {
+          if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+            return {
+              ...dashboard,
+              widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+                widget => widget.displayType
+              ),
+              widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
+                widget => ({
+                  displayType: widget.displayType,
+                  layout: widget.layout ?? null,
+                })
+              ),
+              projects: [],
+            };
+          }
+          return dashboard;
+        })
+        .filter(dashboard => {
+          if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+            return !PREBUILT_DASHBOARDS[dashboard.prebuiltId].hidden;
+          }
+          return true;
+        }),
     [dashboardsWithoutPrebuiltConfigs]
   );
 

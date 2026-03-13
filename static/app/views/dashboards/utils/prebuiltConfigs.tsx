@@ -89,6 +89,7 @@ export type OnboardingConfig =
     };
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id'> & {
+  hidden?: boolean;
   onboarding?: OnboardingConfig;
 };
 

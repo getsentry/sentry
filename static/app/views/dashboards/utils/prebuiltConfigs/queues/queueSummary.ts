@@ -219,6 +219,7 @@ const CONSUMER_TABLE: Widget = {
 };
 
 export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   projects: [],
   title: SUMMARY_DASHBOARD_TITLE,

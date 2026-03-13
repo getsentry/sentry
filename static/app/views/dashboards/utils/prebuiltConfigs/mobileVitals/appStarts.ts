@@ -313,6 +313,7 @@ const SECOND_ROW_WIDGETS: Widget[] = [
 ];
 
 export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   title: t('Mobile Vitals App Starts'),
   projects: [],

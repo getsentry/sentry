@@ -308,6 +308,7 @@ const TRANSACTIONS_TABLE: Widget = {
 };
 
 export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,

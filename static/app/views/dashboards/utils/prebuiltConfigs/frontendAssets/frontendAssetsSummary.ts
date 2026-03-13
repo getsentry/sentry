@@ -271,6 +271,7 @@ const ASSETS_TABLE_WIDGET: Widget = {
 };
 
 export const FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
+  hidden: true,
   dateCreated: '',
   projects: [],
   filters: {
