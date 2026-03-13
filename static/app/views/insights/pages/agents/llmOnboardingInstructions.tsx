@@ -110,6 +110,7 @@ Check in this order - **use the highest-level framework found** (e.g., if using 
 | LiteLLM | - | - | \`LiteLLMIntegration()\` |
 | OpenAI | Auto-enabled | \`instrumentOpenAiClient()\` | Auto-enabled |
 | Anthropic | Auto-enabled | \`instrumentAnthropicAiClient()\` | Auto-enabled |
+| Cohere | - | - | Auto-enabled |
 | Google GenAI | Auto-enabled | \`instrumentGoogleGenAiClient()\` | Auto-enabled |
 
 **If supported library found → Step 3A** (Enable Automatic Integration: Node.js, Browser and Python)

@@ -113,6 +113,33 @@ sentry_sdk.init(
       ],
     };
 
+    const cohereSdkStep: OnboardingStep = {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK - the Cohere integration will be enabled automatically:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="${params.dsn.public}",
+    traces_sample_rate=1.0,
+    # Add data like inputs and responses to/from LLMs and tools;
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)`,
+        },
+      ],
+    };
+
     const googleGenAIStep: OnboardingStep = {
       type: StepType.CONFIGURE,
       content: [
@@ -298,6 +325,9 @@ sentry_sdk.init(
     if (selected === 'anthropic') {
       return [anthropicSdkStep];
     }
+    if (selected === 'cohere') {
+      return [cohereSdkStep];
+    }
     if (selected === 'langchain') {
       return [langchainStep];
     }
@@ -406,6 +436,32 @@ message = client.messages.create(
     ]
 )
 print(message.content)
+`,
+        },
+      ],
+    };
+
+    const cohereSdkVerifyStep: OnboardingStep = {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that agent monitoring is working correctly by making a simple Cohere API call:'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import cohere
+
+client = cohere.Client(api_key="(your Cohere key)")
+response = client.chat(
+    model="command-a-03-2025",
+    message="Tell me a joke",
+)
+print(response.text)
 `,
         },
       ],
@@ -617,6 +673,9 @@ print(result.data)
     }
     if (selected === 'anthropic') {
       return [anthropicSdkVerifyStep];
+    }
+    if (selected === 'cohere') {
+      return [cohereSdkVerifyStep];
     }
     if (selected === 'langchain') {
       return [langchainVerifyStep];
