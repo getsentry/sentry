@@ -508,12 +508,13 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     options;
 
   // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
-  // For primitive values (string, number), react-select can handle the raw
-  // value directly. For object values, react-select would call callbacks like
-  // getOptionValue on them expecting a full option shape, so we must fall back
-  // to null instead of passing the raw object through.
-  const noMatchFallback =
-    value !== null && typeof value === 'object' ? (props.multiple ? [] : null) : value;
+  // When isValueEqual is provided, the value is a raw domain object (e.g.
+  // {id, name}) that react-select can't handle directly — it would call
+  // callbacks like getOptionValue on it expecting a full option shape. In that
+  // case, fall back to null instead of passing the raw object through.
+  // Otherwise the value is a primitive or option-shaped object that
+  // react-select can handle directly.
+  const noMatchFallback = props.isValueEqual ? (props.multiple ? [] : null) : value;
   let mappedValue = noMatchFallback;
 
   if (choicesOrOptions) {
