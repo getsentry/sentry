@@ -62,10 +62,10 @@ importers:
         version: 11.14.0(@emotion/react@11.14.0(@types/react@19.2.1)(react@19.2.3))(@types/react@19.2.1)(react@19.2.3)
       '@mdx-js/loader':
         specifier: ^3.1.0
-        version: 3.1.0(acorn@8.15.0)(webpack@5.99.6(esbuild@0.25.10))
+        version: 3.1.0(acorn@8.16.0)(webpack@5.99.6(esbuild@0.25.10))
       '@mdx-js/mdx':
         specifier: ^3.1.0
-        version: 3.1.0(acorn@8.15.0)
+        version: 3.1.0(acorn@8.16.0)
       '@popperjs/core':
         specifier: ^2.11.5
         version: 2.11.5
@@ -593,11 +593,11 @@ importers:
         specifier: 10.4.0
         version: 10.4.0
       '@testing-library/jest-dom':
-        specifier: 6.6.3
-        version: 6.6.3
+        specifier: 6.9.1
+        version: 6.9.1
       '@testing-library/react':
-        specifier: 16.2.0
-        version: 16.2.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        specifier: 16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@testing-library/user-event':
         specifier: 14.6.1
         version: 14.6.1(@testing-library/dom@10.4.0)
@@ -731,8 +731,8 @@ importers:
 
 packages:
 
-  '@adobe/css-tools@4.4.2':
-    resolution: {integrity: sha512-baYZExFpsdkBNuvGKTKWCwKH57HRZLVtycZS05WTQNVOiXVSeAki3nU35zlRbToeMW8aHlJfyS+1C4BOv27q0A==}
+  '@adobe/css-tools@4.4.4':
+    resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
   '@algolia/cache-browser-local-storage@4.13.1':
     resolution: {integrity: sha512-UAUVG2PEfwd/FfudsZtYnidJ9eSCpS+LW9cQiesePQLz41NAcddKxBak6eP2GErqyFagSlnVXe/w2E9h2m2ttg==}
@@ -1437,6 +1437,10 @@ packages:
 
   '@babel/runtime@7.27.6':
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.28.6':
+    resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.27.2':
@@ -3606,12 +3610,12 @@ packages:
     resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
     engines: {node: '>=18'}
 
-  '@testing-library/jest-dom@6.6.3':
-    resolution: {integrity: sha512-IteBhl4XqYNkM54f4ejhLRJiZNqcSCoXUOG2CPK7qbD322KjQozM4kHQOfkG2oln9b9HTYqs+Sae8vBATubxxA==}
+  '@testing-library/jest-dom@6.9.1':
+    resolution: {integrity: sha512-zIcONa+hVtVSSep9UT3jZ5rizo2BsxgyDYU7WFD5eICBE7no3881HGeb/QkGfsJs6JTkY1aQhT7rIPC7e+0nnA==}
     engines: {node: '>=14', npm: '>=6', yarn: '>=1'}
 
-  '@testing-library/react@16.2.0':
-    resolution: {integrity: sha512-2cSskAvA1QNtKc8Y9VJQRv0tm3hLVgxRGDB+KYhIaPQJ1I+RHbhIXcM+zClKXzMes/wshsMVzf4B9vS4IZpqDQ==}
+  '@testing-library/react@16.3.2':
+    resolution: {integrity: sha512-XU5/SytQM+ykqMnAnvB2umaJNIOsLF3PVv//1Ew4CTcpz0/BRyy/af40qqrt7SjKpDdT1saBMc42CUok5gaw+g==}
     engines: {node: '>=18'}
     peerDependencies:
       '@testing-library/dom': ^10.0.0
@@ -3807,6 +3811,9 @@ packages:
 
   '@types/node@22.15.21':
     resolution: {integrity: sha512-EV/37Td6c+MgKAbkcLG6vqZ2zEYHD7bvSrzqqs2RIhbA6w3x+Dqz8MZM3sP6kGTeLrdoOgKZe+Xja7tUB2DNkQ==}
+
+  '@types/node@22.19.15':
+    resolution: {integrity: sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg==}
 
   '@types/node@22.19.2':
     resolution: {integrity: sha512-LPM2G3Syo1GLzXLGJAKdqoU35XvrWzGJ21/7sgZTUpbkBaOasTj8tjwn6w+hCkqaa1TfJ/w67rJSwYItlJ2mYw==}
@@ -4273,6 +4280,10 @@ packages:
     resolution: {integrity: sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==}
     engines: {node: '>=0.4.0'}
 
+  acorn-walk@8.3.5:
+    resolution: {integrity: sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw==}
+    engines: {node: '>=0.4.0'}
+
   acorn@8.14.1:
     resolution: {integrity: sha512-OvQ/2pUDKmgfCg++xsTX1wGxfTaszcHVcTctW4UJB4hibJx2HXxxO5UmVgyjMa+ZDsiaf5wWLXYpRWMmBI0QHg==}
     engines: {node: '>=0.4.0'}
@@ -4280,6 +4291,11 @@ packages:
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
+  acorn@8.16.0:
+    resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -4636,10 +4652,6 @@ packages:
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
-
-  chalk@3.0.0:
-    resolution: {integrity: sha512-4D3B6Wf41KOYRFdszmDqMCGq5VV/uMAB273JILmO+3jAlh8X4qDtdtgCR3fxtbLEMzSx22QdhnDcJvu2u1fVwg==}
-    engines: {node: '>=8'}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -5313,8 +5325,8 @@ packages:
     resolution: {integrity: sha512-ZSW3ma5GkcQBIpwZTSRAI8N71Uuwgs93IezB7mf7R60tC8ZbJideoDNKjHn2O9KIlx6rkGTTEk1xUCK2E1Y2Yg==}
     engines: {node: '>=10.13.0'}
 
-  enhanced-resolve@5.18.4:
-    resolution: {integrity: sha512-LgQMM4WXU3QI+SYgEc2liRgznaD5ojbmY3sb8LxyguVkIg5FxdpTkvk72te2R38/TGKxH634oLxXRGY6d7AP+Q==}
+  enhanced-resolve@5.20.0:
+    resolution: {integrity: sha512-/ce7+jQ1PQ6rVXwe+jKEg5hW5ciicHwIQUagZkp6IufBoY3YDgdTTY1azVs0qoRgVmvsNB+rbjLJxDAeHHtwsQ==}
     engines: {node: '>=10.13.0'}
 
   entities@2.0.0:
@@ -5997,10 +6009,12 @@ packages:
 
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@10.5.0:
     resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.1.0:
@@ -6011,7 +6025,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-modules@2.0.0:
     resolution: {integrity: sha512-NGbfmJBp9x8IxyJSd1P+otYK8vonoJactOogrVfFRIAEY1ukil8RSKDz2Yo7wh1oihl51l/r6W4epkeKJHqL8A==}
@@ -8722,8 +8736,8 @@ packages:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
 
-  terser-webpack-plugin@5.3.16:
-    resolution: {integrity: sha512-h9oBFCWrq78NyWWVcSwZarJkZ01c2AyGrzs1crmHZO3QUg9D61Wu4NPjBy69n7JqylFF5y+CsUZYmYEIZ3mR+Q==}
+  terser-webpack-plugin@5.4.0:
+    resolution: {integrity: sha512-Bn5vxm48flOIfkdl5CaD2+1CiUVbonWQ3KQPyP7/EuIl9Gbzq/gQFOzaMFUEgVjB1396tcK0SG8XcNJ/2kDH8g==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
       '@swc/core': '*'
@@ -9238,6 +9252,10 @@ packages:
     resolution: {integrity: sha512-yd1RBzSGanHkitROoPFd6qsrxt+oFhg/129YzheDGqeustzX0vTZJZsSsQjVQC4yzBQ56K55XU8gaNCtIzOnTg==}
     engines: {node: '>=10.13.0'}
 
+  webpack-sources@3.3.4:
+    resolution: {integrity: sha512-7tP1PdV4vF+lYPnkMR0jMY5/la2ub5Fc/8VQrrU+lXkiM6C4TjVfGw7iKfyhnTQOsD+6Q/iKw0eFciziRgD58Q==}
+    engines: {node: '>=10.13.0'}
+
   webpack-virtual-modules@0.5.0:
     resolution: {integrity: sha512-kyDivFZ7ZM0BVOUteVbDFhlRt7Ah/CSPwJdi8hBpkK7QLumUqdLtVfm/PX/hkcnrvr0i77fO5+TjZ94Pe+C9iw==}
 
@@ -9262,6 +9280,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
@@ -9462,7 +9481,7 @@ packages:
 
 snapshots:
 
-  '@adobe/css-tools@4.4.2': {}
+  '@adobe/css-tools@4.4.4': {}
 
   '@algolia/cache-browser-local-storage@4.13.1':
     dependencies:
@@ -10385,6 +10404,8 @@ snapshots:
 
   '@babel/runtime@7.27.6': {}
 
+  '@babel/runtime@7.28.6': {}
+
   '@babel/template@7.27.2':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -11275,9 +11296,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mdx-js/loader@3.1.0(acorn@8.15.0)(webpack@5.99.6(esbuild@0.25.10))':
+  '@mdx-js/loader@3.1.0(acorn@8.16.0)(webpack@5.99.6(esbuild@0.25.10))':
     dependencies:
-      '@mdx-js/mdx': 3.1.0(acorn@8.15.0)
+      '@mdx-js/mdx': 3.1.0(acorn@8.16.0)
       source-map: 0.7.4
     optionalDependencies:
       webpack: 5.99.6(esbuild@0.25.10)
@@ -11285,7 +11306,7 @@ snapshots:
       - acorn
       - supports-color
 
-  '@mdx-js/mdx@3.1.0(acorn@8.15.0)':
+  '@mdx-js/mdx@3.1.0(acorn@8.16.0)':
     dependencies:
       '@types/estree': 1.0.7
       '@types/estree-jsx': 1.0.5
@@ -11299,7 +11320,7 @@ snapshots:
       hast-util-to-jsx-runtime: 2.3.6
       markdown-extensions: 2.0.0
       recma-build-jsx: 1.0.0
-      recma-jsx: 1.0.0(acorn@8.15.0)
+      recma-jsx: 1.0.0(acorn@8.16.0)
       recma-stringify: 1.0.0
       rehype-recma: 1.0.0
       remark-mdx: 3.1.0
@@ -13155,19 +13176,18 @@ snapshots:
       lz-string: 1.5.0
       pretty-format: 27.5.1
 
-  '@testing-library/jest-dom@6.6.3':
+  '@testing-library/jest-dom@6.9.1':
     dependencies:
-      '@adobe/css-tools': 4.4.2
+      '@adobe/css-tools': 4.4.4
       aria-query: 5.3.2
-      chalk: 3.0.0
       css.escape: 1.5.1
       dom-accessibility-api: 0.6.3
-      lodash: 4.17.23
+      picocolors: 1.1.1
       redent: 3.0.0
 
-  '@testing-library/react@16.2.0(@testing-library/dom@10.4.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.0)(@types/react-dom@19.2.1(@types/react@19.2.1))(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.28.6
       '@testing-library/dom': 10.4.0
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -13386,6 +13406,10 @@ snapshots:
       '@types/node': 22.19.7
 
   '@types/node@22.15.21':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.19.15':
     dependencies:
       undici-types: 6.21.0
 
@@ -13908,13 +13932,24 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
+  acorn-jsx@5.3.2(acorn@8.16.0):
+    dependencies:
+      acorn: 8.16.0
+
   acorn-walk@8.3.4:
     dependencies:
       acorn: 8.15.0
 
+  acorn-walk@8.3.5:
+    dependencies:
+      acorn: 8.16.0
+    optional: true
+
   acorn@8.14.1: {}
 
   acorn@8.15.0: {}
+
+  acorn@8.16.0: {}
 
   agent-base@6.0.2:
     dependencies:
@@ -14359,11 +14394,6 @@ snapshots:
   cbor2@1.12.0: {}
 
   ccount@2.0.1: {}
-
-  chalk@3.0.0:
-    dependencies:
-      ansi-styles: 4.3.0
-      supports-color: 7.2.0
 
   chalk@4.1.2:
     dependencies:
@@ -14976,7 +15006,7 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.2.1
 
-  enhanced-resolve@5.18.4:
+  enhanced-resolve@5.20.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.0
@@ -17026,7 +17056,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.19.7
+      '@types/node': 22.19.15
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -18687,9 +18717,9 @@ snapshots:
       estree-util-build-jsx: 3.0.1
       vfile: 6.0.3
 
-  recma-jsx@1.0.0(acorn@8.15.0):
+  recma-jsx@1.0.0(acorn@8.16.0):
     dependencies:
-      acorn-jsx: 5.3.2(acorn@8.15.0)
+      acorn-jsx: 5.3.2(acorn@8.16.0)
       estree-util-to-js: 2.0.0
       recma-parse: 1.0.0
       recma-stringify: 1.0.0
@@ -19445,7 +19475,7 @@ snapshots:
 
   substyle@9.4.1(react@19.2.3):
     dependencies:
-      '@babel/runtime': 7.27.6
+      '@babel/runtime': 7.26.10
       invariant: 2.2.4
       react: 19.2.3
 
@@ -19494,12 +19524,11 @@ snapshots:
 
   tapable@2.3.0: {}
 
-  terser-webpack-plugin@5.3.16(esbuild@0.25.10)(webpack@5.99.6(esbuild@0.25.10)):
+  terser-webpack-plugin@5.4.0(esbuild@0.25.10)(webpack@5.99.6(esbuild@0.25.10)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
-      serialize-javascript: 6.0.2
       terser: 5.40.0
       webpack: 5.99.6(esbuild@0.25.10)
     optionalDependencies:
@@ -19620,8 +19649,8 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 22.15.21
-      acorn: 8.15.0
-      acorn-walk: 8.3.4
+      acorn: 8.16.0
+      acorn-walk: 8.3.5
       arg: 4.1.3
       create-require: 1.1.1
       diff: 4.0.4
@@ -20119,6 +20148,8 @@ snapshots:
 
   webpack-sources@3.3.3: {}
 
+  webpack-sources@3.3.4: {}
+
   webpack-virtual-modules@0.5.0: {}
 
   webpack@5.99.6(esbuild@0.25.10):
@@ -20128,10 +20159,10 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.15.0
+      acorn: 8.16.0
       browserslist: 4.27.0
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.18.4
+      enhanced-resolve: 5.20.0
       es-module-lexer: 1.7.0
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -20143,9 +20174,9 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.0
-      terser-webpack-plugin: 5.3.16(esbuild@0.25.10)(webpack@5.99.6(esbuild@0.25.10))
+      terser-webpack-plugin: 5.4.0(esbuild@0.25.10)(webpack@5.99.6(esbuild@0.25.10))
       watchpack: 2.5.1
-      webpack-sources: 3.3.3
+      webpack-sources: 3.3.4
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
