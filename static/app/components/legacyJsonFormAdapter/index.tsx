@@ -117,7 +117,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
                 baseProps.onBlur();
               };
               return (
-                <Stack flexGrow={1}>
+                <Stack flexGrow={1} gap="xl">
                   <ProjectMapperTable
                     config={field}
                     value={fieldApi.state.value}

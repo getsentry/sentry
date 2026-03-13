@@ -107,7 +107,7 @@ export function ProjectMapperAddRow({
   };
 
   return (
-    <Flex align="center" gap="md" padding="lg 0">
+    <Flex align="center" gap="md">
       <Container flex={1} minWidth={0}>
         <Select
           placeholder={config.mappedDropdown?.placeholder ?? t('Select\u2026')}
@@ -180,7 +180,7 @@ export function ProjectMapperTable({
 
         return (
           <div key={index}>
-            <Flex align="center" gap="md" padding="lg 0">
+            <Flex align="center" gap="md">
               <Flex flex="1 1 0" align="center" gap="md">
                 {mappedItem ? (
                   <Flex align="center" gap="md">
