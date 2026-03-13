@@ -28,7 +28,6 @@ from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
-from sentry.integrations.slack.utils.errors import ALREADY_REACTED, NO_REACTION
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.provider import IntegrationNotificationClient
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -222,33 +221,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
             return []
 
-    @requires_scope(SlackScope.REACTIONS_WRITE)
-    def add_reaction(
-        self,
-        *,
-        channel_id: str,
-        message_ts: str,
-        emoji: str,
-    ) -> None:
-        """
-        Add an emoji reaction to a message.
-        Idempotent: does not raise if the reaction already exists.
-        """
-        client = self.get_client()
-        try:
-            client.reactions_add(
-                channel=channel_id,
-                timestamp=message_ts,
-                name=emoji,
-            )
-        except SlackApiError as e:
-            if e.response.get("error") == ALREADY_REACTED.message:
-                return
-            _logger.warning(
-                "slack.add_reaction.error",
-                extra={"channel_id": channel_id, "message_ts": message_ts, "error": str(e)},
-            )
-
     def start_stream(
         self,
         *,
@@ -297,33 +269,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             client.chat_stopStream(**kwargs)
         except SlackApiError as e:
             translate_slack_api_error(e)
-
-    @requires_scope(SlackScope.REACTIONS_WRITE)
-    def remove_reaction(
-        self,
-        *,
-        channel_id: str,
-        message_ts: str,
-        emoji: str,
-    ) -> None:
-        """
-        Remove an emoji reaction from a message.
-        Idempotent: does not raise if the reaction does not exist.
-        """
-        client = self.get_client()
-        try:
-            client.reactions_remove(
-                channel=channel_id,
-                timestamp=message_ts,
-                name=emoji,
-            )
-        except SlackApiError as e:
-            if e.response.get("error") == NO_REACTION.message:
-                return
-            _logger.warning(
-                "slack.remove_reaction.error",
-                extra={"channel_id": channel_id, "message_ts": message_ts, "error": str(e)},
-            )
 
 
 class SlackIntegrationProvider(IntegrationProvider):
