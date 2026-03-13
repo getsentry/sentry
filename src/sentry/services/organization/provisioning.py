@@ -55,7 +55,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                region_name=region_name, org_provision_args=provisioning_options
+                cell_name=region_name, org_provision_args=provisioning_options
             )
         )
 
@@ -106,7 +106,7 @@ class OrganizationProvisioningService:
                 organization_id=organization_id,
                 desired_slug=slug,
                 require_exact=True,
-                region_name=destination_region_name,
+                cell_name=destination_region_name,
             )
         )
 
