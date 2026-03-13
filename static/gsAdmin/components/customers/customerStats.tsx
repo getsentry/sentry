@@ -569,7 +569,10 @@ export const CustomerStats = memo(
         if (totalSeries === 0) {
           return;
         }
-        const seriesUpdate: Array<Record<string, any>> = new Array(totalSeries).fill({});
+        const seriesUpdate: Array<Record<string, any>> = Array.from(
+          {length: totalSeries},
+          () => ({})
+        );
         regions.forEach((_, i) => {
           seriesUpdate[i] = {
             markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
