@@ -27,7 +27,7 @@
 
 ## Overview  
 
-Sentry is a **developer‑first error tracking and performance‑monitoring platform** that helps developers see what actually matters, fix issues faster, and learn continuously from their applications【54†L648-L652】.  
+Sentry is a **developer‑first error tracking and performance‑monitoring platform** that helps developers see what actually matters, fix issues faster, and learn continuously from their applications.  
 
 It powers the hosted service at **sentry.io** and the open‑source self‑hosted distribution.
 
@@ -38,9 +38,9 @@ It powers the hosted service at **sentry.io** and the open‑source self‑hoste
 - **Error Tracking** – real‑time crash reports with full stack traces.  
 - **Performance Monitoring (APM)** – detailed transaction tracing and latency breakdowns.  
 - **Session Replay** – replay exactly what users saw when the error happened.  
-- **Logs Integration** – collect and analyze logs in context with events【33†L34-L38】.  
-- **Cron & Job Monitoring** – detect failures in scheduled jobs【33†L34-L38】.  
-- **Profiling** – CPU‑time profiling for hot‑path analysis【33†L34-L38】.  
+- **Logs Integration** – collect and analyze logs in context with events.  
+- **Cron & Job Monitoring** – detect failures in scheduled jobs.  
+- **Profiling** – CPU‑time profiling for hot‑path analysis.  
 - **Uptime & Heartbeat Checks** – monitor service availability.  
 - **AI‑assisted insights** (Seer) – intelligent anomaly detection (SaaS only).  
 
@@ -72,9 +72,9 @@ git checkout ${VERSION}
 docker compose up --wait
 ```
 
-After the installer finishes you can reach the UI at <http://127.0.0.1:9000>【52†L99-L104】【52†L109-L118】.  
+After the installer finishes you can reach the UI at <http://127.0.0.1:9000>.  
 
-> **Minimum hardware** – 20 GB free disk, 16 GB RAM + 16 GB swap, 4 CPU cores【52†L53-L57】.  
+> **Minimum hardware** – 20 GB free disk, 16 GB RAM + 16 GB swap, 4 CPU cores.  
 
 ---  
 
@@ -102,7 +102,7 @@ Configuration lives in **`config.yml`** (system‑wide) and **`sentry.conf.py`**
   system.url-prefix: "https://sentry.example.com"
   ```  
 
-  (also adjust `system.url-prefix` in `config.yml`【16†L270-L274】).  
+  (also adjust `system.url-prefix` in `config.yml`).  
 
 * Enable/disable the optional beacon (anonymous usage stats) in `sentry.conf.py`:  
 
@@ -110,9 +110,9 @@ Configuration lives in **`config.yml`** (system‑wide) and **`sentry.conf.py`**
   SENTRY_BEACON = False
   ```  
 
-* For high‑traffic deployments you’ll want dedicated databases (PostgreSQL, ClickHouse), a Kafka cluster, and caching (Redis, Memcached). See the **Reference Architectures** section for multi‑node diagrams【55†L101-L113】.  
+* For high‑traffic deployments you’ll want dedicated databases (PostgreSQL, ClickHouse), a Kafka cluster, and caching (Redis, Memcached). See the **Reference Architectures** section for multi‑node diagrams.  
 
-* Proxy support – set Docker daemon proxy variables and re‑load Docker if your network requires an HTTP proxy【12†L208-L224】.  
+* Proxy support – set Docker daemon proxy variables and re‑load Docker if your network requires an HTTP proxy.  
 
 ---  
 
@@ -144,7 +144,7 @@ Sentry provides first‑party SDKs for every major language and framework. Each 
 | Godot Engine | <https://github.com/getsentry/sentry-godot> |
 | PowerShell | <https://github.com/getsentry/sentry-powershell> |
 
-A full list of supported platforms lives on the **Platforms** page: <https://docs.sentry.io/platforms/>【38†L47-L89】.  
+A full list of supported platforms lives on the **Platforms** page: <https://docs.sentry.io/platforms/>.  
 
 ---  
 
@@ -165,7 +165,7 @@ A full list of supported platforms lives on the **Platforms** page: <https://doc
 
 ## Community & Support  
 
-- **Discord** – the primary place for real‑time help and community chat【9†L9-L10】.  
+- **Discord** – the primary place for real‑time help and community chat.  
 - **GitHub Discussions** – for feature ideas, usage questions, and troubleshooting.  
 - **GitHub Issues** – report bugs or request enhancements.  
 - **Sentry Cloud (saas)** – commercial support plans are available at <https://sentry.io/pricing/>.  
@@ -176,7 +176,7 @@ A full list of supported platforms lives on the **Platforms** page: <https://doc
 
 We welcome contributions!  
 
-- **Read the contribution guidelines** – see the internal docs page for policies and recommended workflow【47†L3-L11】.  
+- **Read the contribution guidelines** – see the internal docs page for policies and recommended workflow.  
 - Follow the **code of conduct** when interacting with the community【54†L743-L749】 (full text in the global repo: <https://github.com/getsentry/.github/blob/main/CODE_OF_CONDUCT.md>).  
 - Fork the repository, make your changes, and submit a Pull Request.  
 - For large changes, open a discussion first on the issues tracker.  
@@ -185,7 +185,7 @@ We welcome contributions!
 
 ## License  
 
-Sentry is released under the **Fair Source License (FSL)** – a source‑available license that becomes Apache 2.0 after two years and restricts commercial competition with Sentry itself【16†L285-L292】.  
+Sentry is released under the **Fair Source License (FSL)** – a source‑available license that becomes Apache 2.0 after two years and restricts commercial competition with Sentry itself.  
 
 ---  
 
@@ -202,9 +202,3 @@ A quick visual tour of the UI:
 | Issue Details | Session Replay | Trace Explorer |
 |---|---|---|
 | <img src="https://raw.githubusercontent.com/getsentry/sentry/master/.github/screenshots/issue-details.png" alt="Issue details" width="300"/> | <img src="https://raw.githubusercontent.com/getsentry/sentry/master/.github/screenshots/replays.png" alt="Session replay" width="300"/> | <img src="https://raw.githubusercontent.com/getsentry/sentry/master/.github/screenshots/traces.png" alt="Traces" width="300"/> |
-
----  
-
-*Happy debugging!*   🚀   🛠️   💡   🧭   🖥️   📈   🕵️‍♂️   🧪   🔧   🤝   🧩   🗂️   ⚙️   ✅   🔍   💥   📊   📁   🔐   🚧   🤖   🧱   🧭   📉   🏗️   🧊   🛰️   ⚡   🎯   📚   🧱   🧩   🔎   🧪   💿   🖱️   🧠   🔧   🛎️   ⚙️   💬   🗂️   🧪   🏁   🥇   ✨   🧭   📃   🗺️   🔁   ⚔️   ⚙️   📋   🏆   💎   🔎   🧭   🛠️   🗂️   👾   🤖   🚀   🧙.   
-
----  
