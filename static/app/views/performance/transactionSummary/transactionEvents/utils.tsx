@@ -113,6 +113,10 @@ export function eventsRouteWithQuery({
   view?: DomainView;
 }) {
   const pathname = `${getTransactionSummaryBaseUrl(organization, view)}/events/`;
+  const showTransactions = getEventsDisplayFilterName(
+    decodeScalar(query.showTransactions, TransactionFilterOptions.SLOW)
+  );
+
   return {
     pathname,
     query: {
@@ -123,6 +127,7 @@ export function eventsRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      showTransactions,
     },
   };
 }
@@ -134,11 +139,23 @@ function stringToFilter(option: string) {
     return option as EventsDisplayFilterName;
   }
 
-  return EventsDisplayFilterName.P100;
+  return undefined;
 }
+
+function getEventsDisplayFilterName(
+  showTransactions: string | undefined
+): EventsDisplayFilterName | undefined {
+  return (
+    stringToFilter(showTransactions ?? '') ??
+    mapShowTransactionToPercentile(showTransactions)
+  );
+}
+
 export function decodeEventsDisplayFilterFromLocation(location: Location) {
-  return stringToFilter(
-    decodeScalar(location.query.showTransactions, EventsDisplayFilterName.P100)
+  return (
+    getEventsDisplayFilterName(
+      decodeScalar(location.query.showTransactions, undefined)
+    ) ?? EventsDisplayFilterName.P100
   );
 }
 
