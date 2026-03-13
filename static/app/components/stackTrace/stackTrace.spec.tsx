@@ -197,10 +197,10 @@ describe('Core StackTrace', () => {
     expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
 
     await userEvent.click(screen.getAllByTestId('core-stacktrace-frame-title')[0]!);
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).not.toBeVisible();
 
     await userEvent.click(screen.getAllByTestId('core-stacktrace-frame-title')[0]!);
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
   it('toggles frame expansion when clicking the right trailing area', async () => {
@@ -208,9 +208,9 @@ describe('Core StackTrace', () => {
 
     const firstTrailingArea = screen.getAllByTestId('core-stacktrace-frame-trailing')[0]!;
 
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
     await userEvent.click(firstTrailingArea);
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).not.toBeVisible();
   });
 
   it('toggles frame expansion when clicking reserved actions slot space', async () => {
@@ -229,9 +229,9 @@ describe('Core StackTrace', () => {
       'core-stacktrace-frame-actions-slot'
     )[0]!;
 
-    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).toBeVisible();
     await userEvent.click(firstActionsSlot);
-    expect(screen.queryByTestId('core-stacktrace-frame-context')).not.toBeInTheDocument();
+    expect(screen.getByTestId('core-stacktrace-frame-context')).not.toBeVisible();
   });
 
   it('shows and hides collapsed system frames', async () => {

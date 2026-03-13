@@ -1,3 +1,4 @@
+import {Activity, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -38,6 +39,13 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
     useStackTraceFrameContext();
   const {frames, lastFrameIndex, meta, stacktrace} = useStackTraceContext();
 
+  // Lazy: don't mount until first expanded, then preserve via Activity.
+  // A ref is sufficient — the re-render is already triggered by isExpanded changing.
+  const hasBeenExpandedRef = useRef(isExpanded);
+  if (isExpanded) {
+    hasBeenExpandedRef.current = true;
+  }
+
   const contextLines = isExpanded ? (frame.context ?? []) : [];
   const maxLineNumber = contextLines.reduce(
     (max, [lineNo]) => Math.max(max, lineNo ?? 0),
@@ -63,85 +71,89 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
   const shouldShowNoDetails =
     frameIndex === lastFrameIndex && frameIndex === 0 && !hasAnyFrameDetails;
 
-  if (!isExpanded) {
+  if (!hasBeenExpandedRef.current) {
     return null;
   }
 
   return (
-    <Container
-      id={frameContextId}
-      borderTop="primary"
-      background="primary"
-      overflowX="hidden"
-      data-test-id="core-stacktrace-frame-context"
-    >
-      {hasSourceContext ? (
-        <FrameSourceGrid>
-          {contextLines.map(([lineNumber, lineValue], lineIndex) => (
-            <FrameSourceRow
-              key={`${lineNumber}-${lineIndex}`}
-              isActive={lineNumber === frame.lineNo}
-              lineNumberDigits={lineNumberDigits}
-            >
-              <Tooltip
-                skipWrapper
-                title={
-                  COVERAGE_TEXT[sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE]
-                }
+    <Activity mode={isExpanded ? 'visible' : 'hidden'}>
+      <Container
+        id={frameContextId}
+        borderTop="primary"
+        background="primary"
+        overflowX="hidden"
+        data-test-id="core-stacktrace-frame-context"
+      >
+        {hasSourceContext ? (
+          <FrameSourceGrid>
+            {contextLines.map(([lineNumber, lineValue], lineIndex) => (
+              <FrameSourceRow
+                key={`${lineNumber}-${lineIndex}`}
+                isActive={lineNumber === frame.lineNo}
+                lineNumberDigits={lineNumberDigits}
               >
-                <FrameSourceLineNumber
-                  aria-label={`Line ${lineNumber}`}
-                  isActive={lineNumber === frame.lineNo}
-                  coverage={sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE}
+                <Tooltip
+                  skipWrapper
+                  title={
+                    COVERAGE_TEXT[
+                      sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE
+                    ]
+                  }
                 >
-                  {lineNumber}
-                </FrameSourceLineNumber>
-              </Tooltip>
-              <FrameSourceCode
-                className={fileExtension ? `language-${fileExtension}` : undefined}
-              >
-                {(
-                  prismLines[lineIndex] ?? [
-                    {children: lineValue ?? '', className: 'token'},
-                  ]
-                ).map((token, tokenIndex) => (
-                  <span key={tokenIndex} className={token.className}>
-                    {token.children}
-                  </span>
-                ))}
-              </FrameSourceCode>
-            </FrameSourceRow>
-          ))}
-        </FrameSourceGrid>
-      ) : shouldShowNoDetails ? (
-        <Container padding="sm md">
-          <Text size="xs" variant="muted">
-            {t('No additional details are available for this frame.')}
-          </Text>
-        </Container>
-      ) : null}
-      {hasFrameVariables ? (
-        <FrameVariablesGrid
-          platform={platform}
-          data={frameVariables}
-          meta={meta?.frames?.[frameIndex]?.vars}
-        />
-      ) : null}
-      {hasFrameRegisters ? (
-        <Container borderTop="primary">
-          <FrameRegisters
-            registers={expandedFrameRegisters}
-            meta={meta?.registers}
-            deviceArch={event.contexts?.device?.arch}
+                  <FrameSourceLineNumber
+                    aria-label={`Line ${lineNumber}`}
+                    isActive={lineNumber === frame.lineNo}
+                    coverage={sourceLineCoverage[lineIndex] ?? Coverage.NOT_APPLICABLE}
+                  >
+                    {lineNumber}
+                  </FrameSourceLineNumber>
+                </Tooltip>
+                <FrameSourceCode
+                  className={fileExtension ? `language-${fileExtension}` : undefined}
+                >
+                  {(
+                    prismLines[lineIndex] ?? [
+                      {children: lineValue ?? '', className: 'token'},
+                    ]
+                  ).map((token, tokenIndex) => (
+                    <span key={tokenIndex} className={token.className}>
+                      {token.children}
+                    </span>
+                  ))}
+                </FrameSourceCode>
+              </FrameSourceRow>
+            ))}
+          </FrameSourceGrid>
+        ) : shouldShowNoDetails ? (
+          <Container padding="sm md">
+            <Text size="xs" variant="muted">
+              {t('No additional details are available for this frame.')}
+            </Text>
+          </Container>
+        ) : null}
+        {hasFrameVariables ? (
+          <FrameVariablesGrid
+            platform={platform}
+            data={frameVariables}
+            meta={meta?.frames?.[frameIndex]?.vars}
           />
-        </Container>
-      ) : null}
-      {hasFrameAssembly ? (
-        <Container borderTop="primary">
-          <Assembly {...parseAssembly(frame.package ?? null)} />
-        </Container>
-      ) : null}
-    </Container>
+        ) : null}
+        {hasFrameRegisters ? (
+          <Container borderTop="primary">
+            <FrameRegisters
+              registers={expandedFrameRegisters}
+              meta={meta?.registers}
+              deviceArch={event.contexts?.device?.arch}
+            />
+          </Container>
+        ) : null}
+        {hasFrameAssembly ? (
+          <Container borderTop="primary">
+            <Assembly {...parseAssembly(frame.package ?? null)} />
+          </Container>
+        ) : null}
+      </Container>
+    </Activity>
   );
 }
 

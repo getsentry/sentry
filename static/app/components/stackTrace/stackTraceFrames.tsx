@@ -1,4 +1,4 @@
-import type {ComponentType} from 'react';
+import {Activity, useMemo, useRef, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -31,8 +31,28 @@ export function StackTraceFrames({
   frameContextComponent: FrameContextComponent,
   frameActionsComponent: FrameActionsComponent = StackTraceFrameRow.Actions.Default,
 }: StackTraceFramesProps) {
-  const {rows, stacktrace, event} = useStackTraceContext();
+  const {rows, allRows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
+
+  // Visible frame indices + current row data from a single pass over rows
+  const {visibleIndices, rowByIndex} = useMemo(() => {
+    const indices = new Set<number>();
+    const map = new Map<number, (typeof rows)[number] & {kind: 'frame'}>();
+    for (const row of rows) {
+      if (row.kind === 'frame') {
+        indices.add(row.frameIndex);
+        map.set(row.frameIndex, row);
+      }
+    }
+    return {visibleIndices: indices, rowByIndex: map};
+  }, [rows]);
+
+  // Lazy: track frames that have ever been visible so we only mount on first appearance.
+  // A ref is sufficient — the component already re-renders when `rows` changes.
+  const everVisibleRef = useRef(new Set<number>());
+  for (const idx of visibleIndices) {
+    everVisibleRef.current.add(idx);
+  }
 
   if (view === 'raw') {
     return (
@@ -44,7 +64,7 @@ export function StackTraceFrames({
     );
   }
 
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     return (
       <Container border="primary" radius="md" padding="md">
         <Text variant="muted">{t('No stack trace available')}</Text>
@@ -55,22 +75,31 @@ export function StackTraceFrames({
   return (
     <FramesPanel>
       <div>
-        {rows.map(row => {
+        {allRows.map(row => {
           if (row.kind === 'omitted') {
             return (
               <OmittedFramesBanner key={row.rowKey} omittedFrames={row.omittedFrames} />
             );
           }
 
+          if (!everVisibleRef.current.has(row.frameIndex)) {
+            return null;
+          }
+
+          const isVisible = visibleIndices.has(row.frameIndex);
+          const activeRow = rowByIndex.get(row.frameIndex) ?? row;
+
           return (
-            <StackTraceFrameRow key={row.frameIndex} row={row}>
-              <StackTraceFrameRow.Header
-                actions={({isHovering}) => (
-                  <FrameActionsComponent isHovering={isHovering} />
-                )}
-              />
-              <FrameContextComponent />
-            </StackTraceFrameRow>
+            <Activity key={row.frameIndex} mode={isVisible ? 'visible' : 'hidden'}>
+              <StackTraceFrameRow row={activeRow}>
+                <StackTraceFrameRow.Header
+                  actions={({isHovering}) => (
+                    <FrameActionsComponent isHovering={isHovering} />
+                  )}
+                />
+                <FrameContextComponent />
+              </StackTraceFrameRow>
+            </Activity>
           );
         })}
       </div>

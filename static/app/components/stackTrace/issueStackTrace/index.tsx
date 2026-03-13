@@ -360,12 +360,12 @@ function IssueStackTraceContent({
             );
           })}
         {view !== 'raw' && <IssueStackTraceLineCoverageLegend />}
+        <IssueStackTraceSuspectCommits
+          event={event}
+          group={group}
+          projectSlug={projectSlug}
+        />
       </Flex>
-      <IssueStackTraceSuspectCommits
-        event={event}
-        group={group}
-        projectSlug={projectSlug}
-      />
     </InterimSection>
   );
 }

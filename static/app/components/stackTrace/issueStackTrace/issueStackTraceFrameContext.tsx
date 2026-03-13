@@ -66,9 +66,5 @@ export function IssueStackTraceFrameContext() {
     }
   }, [coverageData, hasCoverageData, isLoadingCoverage, setHasCoverageData]);
 
-  if (!isExpanded) {
-    return null;
-  }
-
   return <FrameContent sourceLineCoverage={sourceLineCoverage} />;
 }
