@@ -137,10 +137,17 @@ def process_github_webhook_event(
         if tags and (org_id := tags.get("sentry_organization_id")):
             viewer_context = SeerViewerContext(organization_id=int(org_id))
 
-        # Temporary check for backwards compatibility
+        # Temporary check for backwards compatibility (pre-seer_path tasks).
+        # event_payload is the Seer-shaped body {external_owner_id, data}; it never
+        # includes GitHub's "action". Old tasks used request_type "pr-closed" instead.
         if seer_path is None and github_event is not None:
             assert isinstance(github_event, str)
-            path = get_seer_path_for_request(github_event, event_payload.get("action"))
+            action = event_payload.get("action")
+            if action is None and event_payload.get("request_type") == "pr-closed":
+                action = "closed"
+            if action is None and tags:
+                action = tags.get("github_event_action")
+            path = get_seer_path_for_request(github_event, action)
         else:
             assert isinstance(seer_path, str)
             path = seer_path

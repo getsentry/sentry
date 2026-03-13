@@ -533,15 +533,30 @@ class ProcessGitHubWebhookEventTest(TestCase):
         assert mock_request.call_args[1]["path"] == "/v1/code_review/review-request"
 
         mock_request.reset_mock()
-        pr_closed_payload = {**pr_review_payload}
-        pr_closed_payload["action"] = "closed"
+        # In-flight tasks before seer_path: payload had request_type, not GitHub action.
+        pr_closed_payload = {**pr_review_payload, "request_type": "pr-closed"}
 
         process_github_webhook_event._func(
             github_event=GithubWebhookType.PULL_REQUEST.value,
             event_payload=pr_closed_payload,
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
+        )
+
+        assert mock_request.call_count == 1
+        assert mock_request.call_args[1]["path"] == "/v1/code_review/pr-closed"
+
+        mock_request.reset_mock()
+        # Tags fallback when payload has neither action nor request_type (edge case).
+        process_github_webhook_event._func(
+            github_event=GithubWebhookType.PULL_REQUEST.value,
+            event_payload={**pr_review_payload},
+            enqueued_at_str=self.enqueued_at_str,
             tags={"github_event_action": "closed"},
         )
+
+        assert mock_request.call_count == 1
+        assert mock_request.call_args[1]["path"] == "/v1/code_review/pr-closed"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
