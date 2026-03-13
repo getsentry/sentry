@@ -157,6 +157,17 @@ export function getFormatter({
     return true;
   };
 
+  // Build index once at formatter creation time, not on every hover
+  const subLabelsByParent = new Map<string, TooltipSubLabel[]>();
+  for (const subLabel of subLabels) {
+    const existing = subLabelsByParent.get(subLabel.parentLabel);
+    if (existing) {
+      existing.push(subLabel);
+    } else {
+      subLabelsByParent.set(subLabel.parentLabel, [subLabel]);
+    }
+  }
+
   return seriesParamsOrParam => {
     // If this is a tooltip for the axis, it will include all series for that axis item.
     // In this case seriesParamsOrParam will be of type `Object[]`
@@ -248,9 +259,7 @@ export function getFormatter({
 
         const marker = markerFormatter(serie.marker ?? '', serie.seriesName);
 
-        const filteredSubLabels = subLabels.filter(
-          subLabel => subLabel.parentLabel === serie.seriesName
-        );
+        const filteredSubLabels = subLabelsByParent.get(serie.seriesName ?? '') ?? [];
 
         if (filteredSubLabels.length) {
           const labelWithSubLabels = [
@@ -388,60 +397,82 @@ export function computeChartTooltip(
      * @param _rec graphic elements
      * @param _size The size of dom echarts container.
      */
-    position(pos, _params, dom, _rec, size) {
-      // Types seem to be broken on dom
-      dom = dom as HTMLDivElement;
-      // Center the tooltip slightly above the cursor.
-      const [tipWidth, tipHeight] = size.contentSize;
+    position: (() => {
+      let cachedChartLeft: number | null = null;
+      let cachedArrow: HTMLDivElement | null = null;
+      let cachedChartElement: Element | null = null;
 
-      let parentNode: Element = document.body;
-      if (dom?.parentNode instanceof Element) {
-        parentNode = dom.parentNode;
-      }
+      return (
+        pos: number[],
+        _params: any,
+        domOrEl: any,
+        _rec: any,
+        size: {contentSize: number[]}
+      ) => {
+        // Types seem to be broken on dom
+        const dom = domOrEl as HTMLDivElement;
+        // Center the tooltip slightly above the cursor.
+        const [tipWidth, tipHeight = 0] = size.contentSize;
 
-      const chartElement =
-        props.appendToBody && chartId
-          ? (document.getElementById(chartId) ?? parentNode)
-          : parentNode;
+        let parentNode: Element = document.body;
+        if (dom?.parentNode instanceof Element) {
+          parentNode = dom.parentNode;
+        }
 
-      // Get the left offset of the tip container (the chart)
-      // so that we can estimate overflows
-      const chartBoundingRect = chartElement.getBoundingClientRect();
-      const chartLeft = chartBoundingRect.left ?? 0;
+        const chartElement =
+          props.appendToBody && chartId
+            ? (document.getElementById(chartId) ?? parentNode)
+            : parentNode;
 
-      // Determine the new left edge.
-      let leftPos = Number(pos[0]) - tipWidth / 2;
-      // And the right edge taking into account the chart left offset
-      const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
+        // Cache only the horizontal offset — it doesn't change during a hover.
+        // We intentionally do NOT cache the full rect because `top` changes on
+        // scroll and is needed fresh for vertical positioning below.
+        if (cachedChartElement !== chartElement) {
+          cachedChartElement = chartElement;
+          cachedChartLeft = null;
+        }
+        if (cachedChartLeft === null) {
+          cachedChartLeft = chartElement.getBoundingClientRect().left ?? 0;
+        }
+        const chartLeft = cachedChartLeft;
 
-      let arrowPosition: string | undefined;
-      if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
-        // If the tooltip would leave viewport on the right, pin it.
-        leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
-        // If the tooltip would leave viewport on the left, pin it.
-        leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else {
-        // Tooltip not near the window edge, reset position
-        arrowPosition = '50%';
-      }
+        // Determine the new left edge.
+        let leftPos = Number(pos[0]) - tipWidth / 2;
+        // And the right edge taking into account the chart left offset
+        const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
-      const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
-      if (arrow) {
-        arrow.style.left = arrowPosition;
-      }
+        let arrowPosition: string | undefined;
+        if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
+          // If the tooltip would leave viewport on the right, pin it.
+          leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
+          arrowPosition = `${Number(pos[0]) - leftPos}px`;
+        } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
+          // If the tooltip would leave viewport on the left, pin it.
+          leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
+          arrowPosition = `${Number(pos[0]) - leftPos}px`;
+        } else {
+          // Tooltip not near the window edge, reset position
+          arrowPosition = '50%';
+        }
 
-      return {
-        left: leftPos,
-        top: Math.max(
-          Number(pos[1]) - tipHeight - 20,
-          // avoid tooltip from being cut off by the top edge of the window
-          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
-        ),
+        // Cache the arrow element — it's the same DOM node across hover movements
+        if (!cachedArrow || !dom?.contains(cachedArrow)) {
+          cachedArrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow') ?? null;
+        }
+        if (cachedArrow) {
+          cachedArrow.style.left = arrowPosition;
+        }
+
+        return {
+          left: leftPos,
+          top: Math.max(
+            Number(pos[1]) - tipHeight - 20,
+            // avoid tooltip from being cut off by the top edge of the window
+            CHART_TOOLTIP_VIEWPORT_OFFSET - chartElement.getBoundingClientRect().top
+          ),
+        };
       };
-    },
+    })(),
     formatter,
     ...props,
   };

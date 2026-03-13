@@ -14,8 +14,8 @@ import sum from 'lodash/sum';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,

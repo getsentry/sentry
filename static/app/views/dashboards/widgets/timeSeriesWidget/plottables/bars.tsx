@@ -70,6 +70,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           opacity: 1.0,
         },
         data: scaledTimeSeries.values.map(timeSeriesItemToEChartsDataPoint),
+        large: true,
       }),
     ];
   }

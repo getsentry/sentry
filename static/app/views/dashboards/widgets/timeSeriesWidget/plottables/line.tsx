@@ -73,6 +73,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
               type: 'dotted',
             },
             silent: true,
+            sampling: 'lttb',
           })
         );
       }

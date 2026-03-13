@@ -78,6 +78,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
               opacity: 0.8,
             },
             silent: true,
+            sampling: 'lttb',
           })
         );
       }

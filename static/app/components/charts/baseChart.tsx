@@ -1,11 +1,11 @@
-import 'echarts/lib/component/grid';
-import 'echarts/lib/component/graphic';
-import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/lib/component/graphic';
+import 'echarts/lib/component/grid';
+import 'echarts/lib/component/toolbox';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
-import {useId, useMemo} from 'react';
+import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -420,12 +420,14 @@ function BaseChart({
             barWidth: 40,
             barGap: 0,
             itemStyle: {...s.areaStyle},
+            sampling: 'lttb',
           }))
         : hasSinglePoints && transformSinglePointToLine
           ? (series as LineSeriesOption[] | undefined)?.map(s => ({
               ...s,
               type: 'line' as const,
               itemStyle: {...s.lineStyle},
+              sampling: 'lttb',
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
                   ? undefined
@@ -488,7 +490,15 @@ function BaseChart({
   const isTooltipPortalled = tooltip?.appendToBody;
   const chartId = useId();
 
+  const prevColor = useRef(color);
+  useEffect(() => {
+    if (prevColor.current !== color) {
+      console.log('color changed', color);
+      prevColor.current = color;
+    }
+  }, [color]);
   const chartOption = useMemo(() => {
+    console.log('recalculating chart option');
     const seriesData =
       Array.isArray(series?.[0]?.data) && series[0].data.length > 1
         ? series[0].data
@@ -572,7 +582,7 @@ function BaseChart({
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
       toolbox: toolBox,
-      axisPointer,
+      // axisPointer,
       dataZoom,
       graphic,
       aria,
@@ -595,7 +605,7 @@ function BaseChart({
     legend,
     toolBox,
     brush,
-    axisPointer,
+    // axisPointer,
     dataZoom,
     graphic,
     isGroupedByDate,
