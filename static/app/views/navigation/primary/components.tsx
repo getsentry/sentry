@@ -119,7 +119,6 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
   children?: React.ReactNode;
   className?: string;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function PrimaryNavigationButton({
@@ -127,8 +126,6 @@ function PrimaryNavigationButton({
   analyticsParams,
   children,
   buttonProps = {},
-  className,
-  onClick,
   label,
 }: PrimaryNavigationButtonProps) {
   const organization = useOrganization();
@@ -141,7 +138,6 @@ function PrimaryNavigationButton({
         {...buttonProps}
         isMobile={layout === 'mobile'}
         analyticsParams={analyticsParams}
-        className={className}
         aria-label={showLabel ? undefined : label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
@@ -150,7 +146,6 @@ function PrimaryNavigationButton({
             ...analyticsParams,
           });
           buttonProps.onClick?.(e);
-          onClick?.(e);
         }}
         icon={buttonProps.icon}
       >
@@ -242,28 +237,9 @@ function PrimaryNavigationMenu({
   );
 }
 
-function PrimaryNavigationSeparator({className}: {className?: string}) {
-  return (
-    <SeparatorListItem aria-hidden className={className}>
-      <Separator />
-    </SeparatorListItem>
-  );
+function PrimaryNavigationSeparator() {
+  return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
-
-const SeparatorListItem = styled('li')`
-  list-style: none;
-  width: 100%;
-  padding: 0 ${p => p.theme.space.lg};
-`;
-
-const Separator = styled('hr')`
-  outline: 0;
-  border: 0;
-  height: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.secondary};
-  margin: 0;
-`;
 
 const NavigationLinkIconContainer = styled('span')`
   display: flex;

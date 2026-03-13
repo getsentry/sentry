@@ -46,14 +46,14 @@ function TryBusinessNavigationItem({
     <TrialStartedSidebarItem {...{organization, subscription}}>
       <PrimaryNavigation.Button
         label={t('Try Business')}
-        onClick={() => {
-          setTryBusinessSeen(true);
-          onClick();
-        }}
         analyticsKey="try-business"
         buttonProps={{
           size: layout === 'mobile' ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
+          onClick: () => {
+            setTryBusinessSeen(true);
+            onClick();
+          },
         }}
       >
         {showIsNew && (

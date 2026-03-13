@@ -6,7 +6,6 @@ import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout';
 
 export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
   orientation: 'horizontal' | 'vertical';
-  children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
 
 const omitSeparatorProps = new Set<keyof SeparatorProps>(['border']);

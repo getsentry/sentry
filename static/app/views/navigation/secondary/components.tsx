@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
@@ -24,23 +25,35 @@ import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
-function Collapsible({
-  children,
-  collapsed,
-  disabled = false,
-}: {
+function SecondaryNavigationList({children}: {children: ReactNode}) {
+  return (
+    <Stack as="ul" margin="0" padding="0" width="100%">
+      {children}
+    </Stack>
+  );
+}
+
+function SecondaryNavigationListItem({children}: {children: ReactNode}) {
+  return (
+    <Container as="li" style={{listStyleType: 'none'}}>
+      {children}
+    </Container>
+  );
+}
+
+interface CollapsibleProps {
   children: React.ReactNode;
   collapsed: boolean;
   disabled?: boolean;
-}) {
-  if (disabled) {
-    return children;
+}
+function Collapsible(props: CollapsibleProps) {
+  if (props.disabled) {
+    return props.children;
   }
-  const visualDuration = 0.4;
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {!collapsed && (
+      {!props.collapsed && (
         <CollapsibleWrapper
           key="collapsible-content"
           variants={{
@@ -61,14 +74,14 @@ function Collapsible({
             damping: 50,
             stiffness: 600,
             bounce: 0,
-            visualDuration,
+            visualDuration: 0.4,
           })}
         >
           {/*
             We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
             from applying to the children, which may cause the children's order to be reversed
           */}
-          <div>{children}</div>
+          <div>{props.children}</div>
         </CollapsibleWrapper>
       )}
     </AnimatePresence>
@@ -250,18 +263,6 @@ function SecondaryNavigationSection({
   );
 }
 
-function SecondaryNavigationList({children}: {children: ReactNode}) {
-  return (
-    <Stack as="ul" margin="0" padding="0" width="100%">
-      {children}
-    </Stack>
-  );
-}
-
-function SecondaryNavigationListItem({children}: {children: ReactNode}) {
-  return <li>{children}</li>;
-}
-
 function SecondaryNavigationLink({
   analyticsItemName,
   children,
@@ -323,11 +324,7 @@ function SecondaryNavigationFooter({children}: {children: ReactNode}) {
 }
 
 function SectionSeparator() {
-  return (
-    <SeparatorWrapper data-separator>
-      <Separator />
-    </SeparatorWrapper>
-  );
+  return <Separator data-separator orientation="horizontal" border="muted" />;
 }
 
 interface SecondaryNavigationProjectIconProps {
@@ -484,19 +481,6 @@ const SectionTitleLabelWrap = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
-`;
-
-const SeparatorWrapper = styled('div')`
-  margin: ${p => p.theme.space.lg} 0;
-  display: none;
-`;
-
-const Separator = styled('hr')`
-  height: 1px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.secondary};
-  margin: 0 ${p => p.theme.space.md};
-  border: none;
 `;
 
 interface ItemProps extends LinkProps {
