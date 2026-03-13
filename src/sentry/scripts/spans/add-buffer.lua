@@ -132,7 +132,7 @@ table.insert(latency_table, {"sunionstore_args_step_latency_ms", sunionstore_arg
 -- Merge spans into the parent span set.
 -- Used outside the if statement
 local arg_cleanup_end_time_ms = sunionstore_args_end_time_ms
--- Phase 1: Maintain member-keys (span-buf:mk) tracking sets so the flusher
+-- Maintain member-keys (span-buf:mk) tracking sets so the flusher
 -- knows which distributed keys to fetch. This runs in both write-only and
 -- full distributed mode.
 if distribute_write then

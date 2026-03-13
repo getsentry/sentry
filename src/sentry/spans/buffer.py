@@ -727,10 +727,7 @@ class SpansBuffer:
                 scan_key_to_segment[key] = key
                 cursors[key] = 0
 
-        # Distributed sub-keys per segment, for cleanup in done_flush_segments.
-        # Always fetch when distribute_write is on so keys are cleaned up even
-        # when distribute_read is still off (phase 1).
-        self._distributed_sub_keys_map: dict[SegmentKey, list[bytes]] = {}
+        self._distributed_sub_keys_map = {}
 
         if distribute_write or distribute_read:
             with self.client.pipeline(transaction=False) as p:
