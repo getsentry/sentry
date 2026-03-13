@@ -106,7 +106,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_feedback: str | None) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_feedback: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
