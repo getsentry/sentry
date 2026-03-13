@@ -285,7 +285,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 with outbox_context(flush=False):
     MyModel(id=10).outbox_for_update().save()
 
-assert RegionOutbox.objects.count() == 1
+assert CellOutbox.objects.count() == 1
 ```
 
 **`assume_test_silo_mode` / `assume_test_silo_mode_of`** — switch silo context within a test to query cross-silo models:
@@ -307,7 +307,7 @@ def test_outbox_created_on_save(self):
         obj = MyModel(id=10, organization_id=1)
         obj.outbox_for_update().save()
 
-    outbox = RegionOutbox.objects.first()
+    outbox = CellOutbox.objects.first()
     assert outbox.category == OutboxCategory.MY_MODEL_UPDATE.value
     assert outbox.shard_scope == OutboxScope.ORGANIZATION_SCOPE.value
     assert outbox.shard_identifier == 1
