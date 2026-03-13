@@ -32,10 +32,11 @@ import {
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
-function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label'>) {
+function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label' | 'as'>) {
   const theme = useTheme();
   return (
     <Flex
+      as="nav"
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="lg 0 md 0"
       borderRight="primary"
@@ -51,7 +52,7 @@ function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label'>) {
   );
 }
 
-function PrimaryNavigationSidebarHeader(props: FlexProps<'header'>) {
+function PrimaryNavigationSidebarHeader(props: Omit<FlexProps<'header'>, 'as'>) {
   const theme = useTheme();
   const organization = useOrganization();
   const showSuperuserWarning =
