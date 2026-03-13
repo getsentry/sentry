@@ -1,6 +1,4 @@
 from datetime import datetime, timezone
-from typing import Any
-from unittest.mock import patch
 
 from django.urls import reverse
 from rest_framework import status
@@ -8,6 +6,7 @@ from rest_framework import status
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
 
@@ -463,25 +462,13 @@ class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
             date_last_used=None,
         )
 
-    def _simulate_impersonation(self) -> Any:
-        from sentry.api.base import Endpoint
-
-        original = Endpoint.initialize_request
-
-        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
-            drf_request = original(endpoint_self, request, *args, **kwargs)
-            drf_request.actual_user = self.impersonator  # type: ignore[attr-defined]
-            return drf_request
-
-        return patch.object(Endpoint, "initialize_request", patched)
-
     def test_impersonated_put_blocked(self) -> None:
         url = reverse(
             "sentry-api-0-org-auth-token-details",
             args=[self.organization.slug, self.token.id],
         )
         self.login_as(self.user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.put(url, data={"name": "renamed"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         self.token.refresh_from_db()
@@ -493,7 +480,7 @@ class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
             args=[self.organization.slug, self.token.id],
         )
         self.login_as(self.user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
         self.token.refresh_from_db()
@@ -505,6 +492,6 @@ class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
             args=[self.organization.slug, self.token.id],
         )
         self.login_as(self.user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK

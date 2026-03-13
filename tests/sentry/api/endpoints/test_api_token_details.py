@@ -1,11 +1,9 @@
-from typing import Any
-from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
 
@@ -186,23 +184,11 @@ class ApiTokenDetailsImpersonationTest(APITestCase):
         self.impersonator = self.create_user(is_superuser=True)
         self.target_user = self.create_user()
 
-    def _simulate_impersonation(self) -> Any:
-        from sentry.api.base import Endpoint
-
-        original = Endpoint.initialize_request
-
-        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
-            drf_request = original(endpoint_self, request, *args, **kwargs)
-            drf_request.actual_user = self.impersonator  # type: ignore[attr-defined]
-            return drf_request
-
-        return patch.object(Endpoint, "initialize_request", patched)
-
     def test_impersonated_put_blocked(self) -> None:
         token = ApiToken.objects.create(user=self.target_user, name="token 1")
         url = reverse("sentry-api-0-api-token-details", args=[token.id])
         self.login_as(self.target_user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.put(url, data={"name": "renamed"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         token.refresh_from_db()
@@ -212,7 +198,7 @@ class ApiTokenDetailsImpersonationTest(APITestCase):
         token = ApiToken.objects.create(user=self.target_user, name="token 1")
         url = reverse("sentry-api-0-api-token-details", args=[token.id])
         self.login_as(self.target_user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.delete(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert ApiToken.objects.filter(id=token.id).exists()
@@ -221,6 +207,6 @@ class ApiTokenDetailsImpersonationTest(APITestCase):
         token = ApiToken.objects.create(user=self.target_user, name="token 1")
         url = reverse("sentry-api-0-api-token-details", args=[token.id])
         self.login_as(self.target_user)
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK

@@ -1,6 +1,3 @@
-from typing import Any
-from unittest.mock import patch
-
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -10,6 +7,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -180,19 +178,6 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
 @control_silo_test
 class SentryInternalAppTokenImpersonationTest(SentryInternalAppTokenTest):
-    def _simulate_impersonation(self) -> Any:
-        from sentry.api.base import Endpoint
-
-        original = Endpoint.initialize_request
-        impersonator = self.superuser
-
-        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
-            drf_request = original(endpoint_self, request, *args, **kwargs)
-            drf_request.actual_user = impersonator  # type: ignore[attr-defined]
-            return drf_request
-
-        return patch.object(Endpoint, "initialize_request", patched)
-
     def test_impersonated_post_blocked(self) -> None:
         self.login_as(self.user)
         token_count = ApiToken.objects.filter(
@@ -201,7 +186,7 @@ class SentryInternalAppTokenImpersonationTest(SentryInternalAppTokenTest):
         url = reverse(
             "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
         )
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.superuser):
             response = self.client.post(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert (
@@ -214,6 +199,6 @@ class SentryInternalAppTokenImpersonationTest(SentryInternalAppTokenTest):
         url = reverse(
             "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
         )
-        with self._simulate_impersonation():
+        with simulate_impersonation(self.superuser):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
