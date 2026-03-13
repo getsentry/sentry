@@ -23,7 +23,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.hybridcloud.services.replica.service import (
     ControlReplicaService,
     RegionReplicaService,
@@ -377,7 +377,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
 
         handle_replication(Team, destination)
 
-    def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> None:
         try:
             ProjectKeyMapping.objects.update_or_create(
                 project_key_id=project_key.id,
