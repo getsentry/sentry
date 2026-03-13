@@ -1,4 +1,6 @@
 from collections.abc import Generator
+from typing import Any
+from unittest.mock import patch
 
 from django.urls import reverse
 from pytest import fixture
@@ -313,3 +315,52 @@ class ApiTokensStaffTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert ApiToken.objects.filter(id=self.user_token.id).exists()
         assert ApiToken.objects.filter(id=self.staff_token.id).exists()
+
+
+@control_silo_test
+class ApiTokensImpersonationTest(APITestCase):
+    url = reverse("sentry-api-0-api-tokens")
+
+    def setUp(self) -> None:
+        self.impersonator = self.create_user(is_superuser=True)
+        self.target_user = self.create_user()
+
+    def _simulate_impersonation(self) -> Any:
+        """Patch Endpoint.initialize_request to set actual_user, simulating ViewAs middleware."""
+        from sentry.api.base import Endpoint
+
+        original = Endpoint.initialize_request
+
+        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
+            drf_request = original(endpoint_self, request, *args, **kwargs)
+            drf_request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            return drf_request
+
+        return patch.object(Endpoint, "initialize_request", patched)
+
+    def test_impersonated_post_blocked(self) -> None:
+        self.login_as(self.target_user)
+        with self._simulate_impersonation():
+            response = self.client.post(self.url, data={"scopes": ["event:read"]})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert not ApiToken.objects.filter(user=self.target_user).exists()
+
+    def test_impersonated_delete_blocked(self) -> None:
+        token = ApiToken.objects.create(user=self.target_user)
+        self.login_as(self.target_user)
+        with self._simulate_impersonation():
+            response = self.client.delete(self.url, data={"tokenId": token.id})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+    def test_impersonated_get_allowed(self) -> None:
+        ApiToken.objects.create(user=self.target_user)
+        self.login_as(self.target_user)
+        with self._simulate_impersonation():
+            response = self.client.get(self.url)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_non_impersonated_post_allowed(self) -> None:
+        self.login_as(self.target_user)
+        response = self.client.post(self.url, data={"scopes": ["event:read"]})
+        assert response.status_code == status.HTTP_201_CREATED

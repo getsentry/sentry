@@ -1,4 +1,8 @@
+from typing import Any
+from unittest.mock import patch
+
 from django.test import override_settings
+from django.urls import reverse
 from rest_framework import status
 
 from sentry import audit_log
@@ -172,3 +176,44 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         self.add_user_permission(self.superuser, "superuser.write")
         self.get_success_response(self.internal_sentry_app.slug)
+
+
+@control_silo_test
+class SentryInternalAppTokenImpersonationTest(SentryInternalAppTokenTest):
+    def _simulate_impersonation(self) -> Any:
+        from sentry.api.base import Endpoint
+
+        original = Endpoint.initialize_request
+        impersonator = self.superuser
+
+        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
+            drf_request = original(endpoint_self, request, *args, **kwargs)
+            drf_request.actual_user = impersonator  # type: ignore[attr-defined]
+            return drf_request
+
+        return patch.object(Endpoint, "initialize_request", patched)
+
+    def test_impersonated_post_blocked(self) -> None:
+        self.login_as(self.user)
+        token_count = ApiToken.objects.filter(
+            application_id=self.internal_sentry_app.application_id
+        ).count()
+        url = reverse(
+            "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
+        )
+        with self._simulate_impersonation():
+            response = self.client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert (
+            ApiToken.objects.filter(application_id=self.internal_sentry_app.application_id).count()
+            == token_count
+        )
+
+    def test_impersonated_get_allowed(self) -> None:
+        self.login_as(self.user)
+        url = reverse(
+            "sentry-api-0-sentry-internal-app-tokens", args=[self.internal_sentry_app.slug]
+        )
+        with self._simulate_impersonation():
+            response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK

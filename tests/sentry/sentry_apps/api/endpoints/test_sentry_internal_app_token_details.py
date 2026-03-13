@@ -1,3 +1,6 @@
+from typing import Any
+from unittest.mock import patch
+
 from django.test import override_settings
 from rest_framework import status
 
@@ -132,3 +135,44 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             status_code=status.HTTP_204_NO_CONTENT,
         )
         assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
+
+
+@control_silo_test
+class SentryInternalAppTokenDetailsImpersonationTest(APITestCase):
+    endpoint = "sentry-api-0-sentry-internal-app-token-details"
+    method = "delete"
+
+    def setUp(self) -> None:
+        self.user = self.create_user(email="boop@example.com")
+        self.org = self.create_organization(owner=self.user, name="My Org")
+        self.project = self.create_project(organization=self.org)
+        self.internal_sentry_app = self.create_internal_integration(
+            name="My Internal App", organization=self.org
+        )
+        self.api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_sentry_app
+        )
+        self.impersonator = self.create_user(is_superuser=True)
+
+    def _simulate_impersonation(self) -> Any:
+        from sentry.api.base import Endpoint
+
+        original = Endpoint.initialize_request
+
+        def patched(endpoint_self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
+            drf_request = original(endpoint_self, request, *args, **kwargs)
+            drf_request.actual_user = self.impersonator  # type: ignore[attr-defined]
+            return drf_request
+
+        return patch.object(Endpoint, "initialize_request", patched)
+
+    def test_impersonated_delete_blocked(self) -> None:
+        self.login_as(self.user)
+        with self._simulate_impersonation():
+            response = self.get_error_response(
+                self.internal_sentry_app.slug,
+                self.api_token.id,
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ApiToken.objects.filter(pk=self.api_token.id).exists()
