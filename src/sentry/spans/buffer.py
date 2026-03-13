@@ -722,6 +722,9 @@ class SpansBuffer:
             ingested_results = p.execute()
 
         # Calculate dropped counts: total ingested - successfully loaded
+        # Track expired segments to avoid double-counting in empty_segments metric
+        expired_keys = set()
+
         for i, key in enumerate(segment_keys):
             ingested_count = ingested_results[i * 2]
             ingested_byte_count = ingested_results[i * 2 + 1]
@@ -761,16 +764,17 @@ class SpansBuffer:
                         category=DataCategory.SPAN_INDEXED,
                         quantity=dropped,
                     )
-            elif key not in payloads:
+            elif not payloads.get(key):
                 # BUG DETECTION: Segment was in the flush queue but both the data
                 # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
                 # This means the Redis keys expired before the flusher could process
                 # them, resulting in silent data loss. The spans were already committed
                 # from the ingest Kafka topic, so they cannot be recovered.
                 metrics.incr("spans.buffer.segment_expired_before_flush")
+                expired_keys.add(key)
 
         for key, spans in payloads.items():
-            if not spans:
+            if not spans and key not in expired_keys:
                 # This is a bug, most likely the input topic is not
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
