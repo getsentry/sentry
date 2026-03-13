@@ -27,6 +27,7 @@ interface CategoryInfo {
   name: string;
   tally_type: string;
   seat_costs?: SeatCosts;
+  unit_size?: number;
 }
 
 export interface BillingPlansResponse {
@@ -60,6 +61,7 @@ interface PriceTier {
   reserved_ppe: number;
   tier: number;
   volume: number;
+  raw_volume?: number;
 }
 
 function BillingPlans() {
@@ -467,13 +469,14 @@ interface TierGroup {
   tierNumber: number;
   categoryCode?: string;
   tallyType?: string;
+  unitSize?: number;
 }
 
 function getCategoryInfo(
   categories: Record<string, CategoryInfo | string> | undefined,
   dataCategory: string,
   dataCategoryFormatted: string
-): {categoryCode?: string; seatCosts?: SeatCosts; tallyType?: string} {
+): {categoryCode?: string; seatCosts?: SeatCosts; tallyType?: string; unitSize?: number} {
   if (!categories) return {};
   const entry =
     categories[dataCategory] ??
@@ -487,6 +490,7 @@ function getCategoryInfo(
     categoryCode: entry.billed_category?.toLowerCase(),
     seatCosts: entry.seat_costs,
     tallyType: entry.tally_type,
+    unitSize: entry.unit_size,
   };
 }
 
@@ -516,7 +520,7 @@ function MergedPriceTiersTable({
     const categoryLabel = disabled
       ? `${dataCategoryFormatted} (DISABLED)`
       : dataCategoryFormatted;
-    const {categoryCode, tallyType} = getCategoryInfo(
+    const {categoryCode, tallyType, unitSize} = getCategoryInfo(
       categories,
       dataCategory,
       dataCategoryFormatted
@@ -547,6 +551,7 @@ function MergedPriceTiersTable({
           groupKey: `${dataCategory}-${tierNumber}-vol${band.volume}`,
           categoryCode,
           tallyType,
+          unitSize,
           dataCategoryFormatted,
           dataCategoryId,
           categoryLabel,
@@ -563,6 +568,7 @@ function MergedPriceTiersTable({
           groupKey: `${dataCategory}-${tierNumber}`,
           categoryCode,
           tallyType,
+          unitSize,
           dataCategoryFormatted,
           dataCategoryId,
           categoryLabel,
@@ -610,9 +616,13 @@ function MergedPriceTiersTable({
     });
   };
 
-  const renderBandCells = (tier: PriceTier) => (
+  const renderBandCells = (tier: PriceTier, unitSize?: number) => (
     <Fragment>
       <td>{renderVolume(tier.volume)}</td>
+      <td>
+        {tier.raw_volume === undefined ? '—' : tier.raw_volume.toLocaleString('en-US')}
+      </td>
+      <td>{unitSize ?? '—'}</td>
       <td>{formatCurrency(tier.monthly)}</td>
       <td>{formatCurrency(tier.annual)}</td>
       <td>
@@ -641,6 +651,8 @@ function MergedPriceTiersTable({
             <th>Category</th>
             <th>Tier</th>
             <th>Volume</th>
+            <th>Raw Volume</th>
+            <th>Unit Size</th>
             <th>Monthly</th>
             <th>Annual</th>
             <th>Reserved PPE</th>
@@ -673,7 +685,7 @@ function MergedPriceTiersTable({
                     )}
                   </td>
                   <td>{tierNumber}</td>
-                  {renderBandCells(tier)}
+                  {renderBandCells(tier, group.unitSize)}
                 </tr>
               );
             }
@@ -723,11 +735,11 @@ function MergedPriceTiersTable({
                   </td>
                   <td>{tierNumber}</td>
                   {isExpanded && first ? (
-                    renderBandCells(first)
+                    renderBandCells(first, group.unitSize)
                   ) : isExpanded ? null : (
                     <Fragment>
                       <td>{volumeRange}</td>
-                      <td colSpan={5} style={{color: 'var(--gray400)'}}>
+                      <td colSpan={6} style={{color: 'var(--gray400)'}}>
                         {bands.length} bands — click to expand
                       </td>
                     </Fragment>
@@ -743,7 +755,7 @@ function MergedPriceTiersTable({
                       <td />
                       <td />
                       <td />
-                      {renderBandCells(tier)}
+                      {renderBandCells(tier, group.unitSize)}
                     </tr>
                   ))}
               </Fragment>
