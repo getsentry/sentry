@@ -25,18 +25,23 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {setActivePrimaryNavigationGroup} = useNavigation();
-  const {isCollapsed, isOpen, setIsOpen, isInteractingRef, endInteraction} =
-    useSecondaryNavigation();
+  const {setActiveGroup} = useNavigation();
+  const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
+
+  const isCollapsed = view !== 'expanded';
+  // Keep a ref so event handlers can read the latest isCollapsed value during
+  // React's commit phase (e.g. focusout fires while React is unmounting elements).
+  const isCollapsedRef = useRef(isCollapsed);
+  isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);
 
   const closeNavigation = useCallback(() => {
     isHoveredRef.current = false;
-    endInteraction();
-    setIsOpen(false);
-    setActivePrimaryNavigationGroup(null);
-  }, [endInteraction, setActivePrimaryNavigationGroup, setIsOpen]);
+    setInteraction(null);
+    setView('collapsed');
+    setActiveGroup(null);
+  }, [setActiveGroup, setInteraction, setView]);
 
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
@@ -56,10 +61,8 @@ export function useCollapsedNavigation() {
       '[aria-expanded="true"]'
     );
 
-    return (
-      isHoveredRef.current || isInteractingRef.current || hasKeyboardFocus || hasOpenMenu
-    );
-  }, [isInteractingRef, navigationParentRef]);
+    return isHoveredRef.current || interaction.current || hasKeyboardFocus || hasOpenMenu;
+  }, [interaction, navigationParentRef]);
 
   const tryCloseNavigation = useCallback(() => {
     if (shouldNavigationStayOpen()) {
@@ -68,14 +71,6 @@ export function useCollapsedNavigation() {
 
     closeNavigation();
   }, [closeNavigation, shouldNavigationStayOpen]);
-
-  // Resets hover state if nav is disabled
-  // Without this the menu will pop back open when collapsing
-  useEffect(() => {
-    if (!isCollapsed && isOpen) {
-      closeNavigation();
-    }
-  });
 
   // Sets up event listeners hover and focus changes
   useEffect(() => {
@@ -95,7 +90,7 @@ export function useCollapsedNavigation() {
       isHoveredRef.current = true;
 
       openTimer = setTimeout(() => {
-        setIsOpen(true);
+        setView('peek');
       }, NAVIGATION_SIDEBAR_OPEN_DELAY_MS);
     };
 
@@ -134,11 +129,14 @@ export function useCollapsedNavigation() {
     const handleFocusIn = (e: FocusEvent) => {
       if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
         clearTimeout(closeTimer);
-        setIsOpen(true);
+        setView('peek');
       }
     };
 
     const handleFocusOut = () => {
+      if (!isCollapsedRef.current) {
+        return;
+      }
       tryCloseNavigation();
     };
 
@@ -158,15 +156,15 @@ export function useCollapsedNavigation() {
       navigationParentEl.removeEventListener('focusin', handleFocusIn);
       navigationParentEl.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(openTimer);
       clearTimeout(closeTimer);
     };
   }, [
     closeNavigation,
-    endInteraction,
+    interaction,
     isCollapsed,
-    isInteractingRef,
     navigationParentRef,
-    setIsOpen,
+    setView,
     shouldNavigationStayOpen,
     tryCloseNavigation,
   ]);
@@ -187,8 +185,8 @@ export function useCollapsedNavigation() {
 
       closeNavigation();
     },
-    isDisabled: !isCollapsed || !isOpen,
+    isDisabled: view !== 'peek',
   });
 
-  return {isOpen};
+  return {view};
 }

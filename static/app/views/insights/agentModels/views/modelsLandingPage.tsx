@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -103,7 +104,9 @@ function AgentModelsLandingPage({datePageFilterProps}: AgentModelsLandingPagePro
                         <TokenTypesWidget />
                       </WidgetGrid.Position3>
                     </WidgetGrid>
-                    <ModelsTable />
+                    <ErrorBoundary mini>
+                      <ModelsTable />
+                    </ErrorBoundary>
                   </Fragment>
                 )}
               </ModuleLayout.Full>

@@ -437,7 +437,7 @@ RegionOutboxBase = CellOutboxBase
 
 
 @cell_silo_model
-class RegionOutbox(CellOutboxBase):
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -461,11 +461,11 @@ class RegionOutbox(CellOutboxBase):
         )
 
 
-# TODO(cells): tmp alias, RegionOutbox is being renamed soon
-CellOutbox = RegionOutbox
+# TODO(cells): remove once all usage is updated
+RegionOutbox = CellOutbox
 
 
-# Outboxes bound from control silo -> cell silo
+# Outboxes bound from control silo -> region silo
 class ControlOutboxBase(OutboxBase):
     sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (

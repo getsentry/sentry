@@ -288,7 +288,8 @@ function useNavigationActions(): CommandPaletteAction[] {
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
-  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   return {
     type: 'callback',
@@ -299,7 +300,7 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
       icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
-      setIsCollapsed(!isCollapsed);
+      setView(view === 'expanded' ? 'collapsed' : 'expanded');
     },
   };
 }

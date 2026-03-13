@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -24,17 +23,17 @@ import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetAct
 
 function UserAndOrganizationNavigation() {
   const theme = useTheme();
+  const organization = useOrganization();
   const {layout} = useNavigation();
-  const {currentStepId, endTour} = useNavigationTour();
-  const tourIsActive = currentStepId !== null;
+  const {visible} = useGlobalModal();
+
+  const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
 
-  const organization = useOrganization();
-  const {visible: isModalOpen} = useGlobalModal();
   useGlobalCommandPaletteActions();
 
   useHotkeys(
-    isModalOpen
+    visible
       ? []
       : [
           {
@@ -50,22 +49,14 @@ function UserAndOrganizationNavigation() {
         ]
   );
 
-  // The tour only works with the sidebar layout, so if we change to the mobile
-  // layout in the middle of the tour, it needs to end.
-  useEffect(() => {
-    if (tourIsActive && layout === 'mobile') {
-      endTour();
-    }
-  }, [endTour, layout, tourIsActive]);
-
   return (
     <Flex
       top={0}
-      position={tourIsActive ? undefined : 'sticky'}
+      position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
       height={layout === 'mobile' ? undefined : '100dvh'}
       style={{
-        zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
+        zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
       {...hoverProps}

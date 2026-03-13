@@ -1,14 +1,12 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {
+  AutofixArtifact,
+  AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {
-  Artifact,
-  ExplorerFilePatch,
-  RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {
   CodeChangesCard,
@@ -20,6 +18,14 @@ import {
 jest.mock('sentry/views/seerExplorer/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
+
+function makeSection(
+  step: string,
+  status: AutofixSection['status'],
+  artifacts: AutofixArtifact[]
+): AutofixSection {
+  return {step, artifacts, messages: [], status};
+}
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
@@ -52,35 +58,47 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
+function makeRootCauseArtifact(data: RootCauseArtifact | null) {
+  return {
+    key: 'root-cause',
+    reason: 'Found root cause',
+    data,
+  };
+}
+
+function makeSolutionArtifact(data: SolutionArtifact | null) {
+  return {
+    key: 'solution',
+    reason: 'Found solution',
+    data,
+  };
+}
+
 describe('RootCauseCard', () => {
   it('renders title and one_line_description summary', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Null pointer in user handler',
-        five_whys: ['why1', 'why2'],
-        reproduction_steps: ['step1'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Null pointer in user handler',
+      five_whys: ['why1', 'why2'],
+      reproduction_steps: ['step1'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
   });
 
   it('renders five_whys list items and heading', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: ['First why', 'Second why', 'Third why'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: ['First why', 'Second why', 'Third why'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Why did this happen?')).toBeInTheDocument();
     expect(screen.getByText('First why')).toBeInTheDocument();
@@ -89,46 +107,40 @@ describe('RootCauseCard', () => {
   });
 
   it('renders reproduction_steps when present', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: ['why1'],
-        reproduction_steps: ['Open the page', 'Click button'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: ['why1'],
+      reproduction_steps: ['Open the page', 'Click button'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
     expect(screen.getByText('Open the page')).toBeInTheDocument();
     expect(screen.getByText('Click button')).toBeInTheDocument();
   });
 
-  it('handles null data with placeholder', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'No data',
-      data: null,
-    };
+  it('returns null when artifact data is null', () => {
+    const artifact = makeRootCauseArtifact(null);
 
-    render(<RootCauseCard artifact={artifact} />);
+    const {container} = render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
-    expect(screen.getByText('Root Cause')).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('handles empty five_whys with placeholder', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: [],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: [],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(screen.queryByText('Why did this happen?')).not.toBeInTheDocument();
@@ -137,35 +149,27 @@ describe('RootCauseCard', () => {
 
 describe('SolutionCard', () => {
   it('renders title and one_line_summary', () => {
-    const artifact: Artifact<SolutionArtifact> = {
-      key: 'solution',
-      reason: 'Found solution',
-      data: {
-        one_line_summary: 'Add null check before accessing user',
-        steps: [{title: 'Step 1', description: 'Add guard'}],
-      },
-    };
+    const artifact = makeSolutionArtifact({
+      one_line_summary: 'Add null check before accessing user',
+      steps: [{title: 'Step 1', description: 'Add guard'}],
+    });
 
-    render(<SolutionCard artifact={artifact} />);
+    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
   });
 
   it('renders steps with title and description', () => {
-    const artifact: Artifact<SolutionArtifact> = {
-      key: 'solution',
-      reason: 'Found solution',
-      data: {
-        one_line_summary: 'Fix the bug',
-        steps: [
-          {title: 'Add validation', description: 'Check input is not null'},
-          {title: 'Update handler', description: 'Handle edge case'},
-        ],
-      },
-    };
+    const artifact = makeSolutionArtifact({
+      one_line_summary: 'Fix the bug',
+      steps: [
+        {title: 'Add validation', description: 'Check input is not null'},
+        {title: 'Update handler', description: 'Handle edge case'},
+      ],
+    });
 
-    render(<SolutionCard artifact={artifact} />);
+    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
 
     expect(screen.getByText('Steps to Resolve')).toBeInTheDocument();
     expect(screen.getByText('Add validation')).toBeInTheDocument();
@@ -174,28 +178,26 @@ describe('SolutionCard', () => {
     expect(screen.getByText('Handle edge case')).toBeInTheDocument();
   });
 
-  it('handles null data with placeholder', () => {
-    const artifact: Artifact<SolutionArtifact> = {
-      key: 'solution',
-      reason: 'No data',
-      data: null,
-    };
+  it('returns null when artifact data is null', () => {
+    const artifact = makeSolutionArtifact(null);
 
-    render(<SolutionCard artifact={artifact} />);
+    const {container} = render(
+      <SolutionCard section={makeSection('solution', 'completed', [artifact])} />
+    );
 
-    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });
 
 describe('CodeChangesCard', () => {
-  // The component uses Map.entries().map() which returns an iterator —
-  // React warns about this. Suppress until the component is fixed.
-  beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation();
-  });
-
   it('renders single file in single repo', () => {
-    render(<CodeChangesCard artifact={[makePatch('org/repo', 'src/app.py')]} />);
+    render(
+      <CodeChangesCard
+        section={makeSection('code_changes', 'completed', [
+          [makePatch('org/repo', 'src/app.py')],
+        ])}
+      />
+    );
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
@@ -204,11 +206,13 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in single repo', () => {
     render(
       <CodeChangesCard
-        artifact={[
-          makePatch('org/repo', 'src/app.py'),
-          makePatch('org/repo', 'src/utils.py'),
-          makePatch('org/repo', 'src/models.py'),
-        ]}
+        section={makeSection('code_changes', 'completed', [
+          [
+            makePatch('org/repo', 'src/app.py'),
+            makePatch('org/repo', 'src/utils.py'),
+            makePatch('org/repo', 'src/models.py'),
+          ],
+        ])}
       />
     );
 
@@ -218,11 +222,13 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in multiple repos', () => {
     render(
       <CodeChangesCard
-        artifact={[
-          makePatch('org/repo-a', 'src/app.py'),
-          makePatch('org/repo-a', 'src/utils.py'),
-          makePatch('org/repo-b', 'src/index.ts'),
-        ]}
+        section={makeSection('code_changes', 'completed', [
+          [
+            makePatch('org/repo-a', 'src/app.py'),
+            makePatch('org/repo-a', 'src/utils.py'),
+            makePatch('org/repo-b', 'src/index.ts'),
+          ],
+        ])}
       />
     );
 
@@ -232,10 +238,12 @@ describe('CodeChangesCard', () => {
   it('renders repository name labels', () => {
     render(
       <CodeChangesCard
-        artifact={[
-          makePatch('org/repo-a', 'src/app.py'),
-          makePatch('org/repo-b', 'src/index.ts'),
-        ]}
+        section={makeSection('code_changes', 'completed', [
+          [
+            makePatch('org/repo-a', 'src/app.py'),
+            makePatch('org/repo-b', 'src/index.ts'),
+          ],
+        ])}
       />
     );
 
@@ -243,16 +251,22 @@ describe('CodeChangesCard', () => {
     expect(screen.getByText('org/repo-b')).toBeInTheDocument();
   });
 
-  it('handles empty array with placeholder', () => {
-    render(<CodeChangesCard artifact={[]} />);
+  it('returns null when no code changes artifact found', () => {
+    const {container} = render(
+      <CodeChangesCard section={makeSection('code_changes', 'completed', [])} />
+    );
 
-    expect(screen.getByText('Code Changes')).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });
 
 describe('PullRequestsCard', () => {
   it('renders PR link buttons with correct text and href', () => {
-    render(<PullRequestsCard artifact={[makePR()]} />);
+    render(
+      <PullRequestsCard
+        section={makeSection('pull_request', 'completed', [[makePR()]])}
+      />
+    );
 
     expect(screen.getByText('Pull Requests')).toBeInTheDocument();
     const button = screen.getByRole('button', {
@@ -264,10 +278,12 @@ describe('PullRequestsCard', () => {
   it('renders multiple PR buttons', () => {
     render(
       <PullRequestsCard
-        artifact={[
-          makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
-          makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
-        ]}
+        section={makeSection('pull_request', 'completed', [
+          [
+            makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
+            makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
+          ],
+        ])}
       />
     );
 
@@ -282,15 +298,17 @@ describe('PullRequestsCard', () => {
   it('skips PRs with missing pr_url or pr_number', () => {
     render(
       <PullRequestsCard
-        artifact={[
-          makePR({pr_url: null}),
-          makePR({pr_number: null}),
-          makePR({
-            repo_name: 'org/valid',
-            pr_number: 55,
-            pr_url: 'https://pr/55',
-          }),
-        ]}
+        section={makeSection('pull_request', 'completed', [
+          [
+            makePR({pr_url: null}),
+            makePR({pr_number: null}),
+            makePR({
+              repo_name: 'org/valid',
+              pr_number: 55,
+              pr_url: 'https://pr/55',
+            }),
+          ],
+        ])}
       />
     );
 
@@ -303,31 +321,27 @@ describe('PullRequestsCard', () => {
 
 describe('ArtifactCard expand/collapse', () => {
   it('children are visible by default', () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: ['Visible why'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: ['Visible why'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Visible why')).toBeInTheDocument();
   });
 
   it('clicking collapse button hides children', async () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: ['Hidden why'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: ['Hidden why'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
 
@@ -336,16 +350,14 @@ describe('ArtifactCard expand/collapse', () => {
   });
 
   it('clicking again re-shows children', async () => {
-    const artifact: Artifact<RootCauseArtifact> = {
-      key: 'root-cause',
-      reason: 'Found root cause',
-      data: {
-        one_line_description: 'Bug',
-        five_whys: ['Toggle why'],
-      },
-    };
+    const artifact = makeRootCauseArtifact({
+      one_line_description: 'Bug',
+      five_whys: ['Toggle why'],
+    });
 
-    render(<RootCauseCard artifact={artifact} />);
+    render(
+      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+    );
 
     expect(screen.getByText('Bug')).toBeVisible();
     expect(screen.getByText('Toggle why')).toBeVisible();
