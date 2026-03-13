@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
@@ -168,6 +169,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const filters = usePageFilters();
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
+  const maxPickableDays = useDefaultMaxPickableDays();
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
@@ -200,10 +202,12 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
       );
 
       const hasStatsPeriodTrace = replayTraces.some(t => !t.timestamp);
+      const defaultStatsDays = parseInt(DEFAULT_STATS_PERIOD, 10);
       if (
         result.apiErrors.length === 0 &&
         isEmptyMeta(result.meta) &&
-        hasStatsPeriodTrace
+        hasStatsPeriodTrace &&
+        maxPickableDays > defaultStatsDays
       ) {
         return fetchTraceMetaInBatches(
           isEAP ? 'eap' : 'non-eap',
@@ -212,7 +216,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
           replayTraces,
           normalizedParams,
           filters.selection,
-          '90d'
+          `${maxPickableDays}d`
         );
       }
 
