@@ -916,6 +916,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             run_id=None,
             intelligence_level="low",
+            user_feedback=None,
         )
 
     @patch("sentry.seer.autofix.autofix._call_autofix")
