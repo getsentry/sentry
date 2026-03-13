@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const SECOND = 1000;
 
@@ -29,7 +30,48 @@ interface Props {
 
 function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const replay = useReplayReader();
-  const {currentTime, setCurrentTime} = useReplayContext();
+  const {currentTime, setCurrentTime, isPlaying, isFinished, togglePlayPause, restart} =
+    useReplayContext();
+
+  useHotkeys([
+    {
+      match: 'space',
+      callback: () => {
+        if (isLoading) {
+          return;
+        }
+        if (isFinished) {
+          restart();
+        } else {
+          togglePlayPause(!isPlaying);
+        }
+      },
+    },
+    {
+      match: 'left',
+      callback: () => {
+        if (isLoading) {
+          return;
+        }
+        setCurrentTime(currentTime - 10 * SECOND);
+      },
+    },
+    {
+      match: 'right',
+      callback: () => {
+        if (isLoading || !replay) {
+          return;
+        }
+        const next = getNextReplayFrame({
+          frames: replay.getChapterFrames(),
+          targetOffsetMs: currentTime,
+        });
+        if (next) {
+          setCurrentTime(next.offsetMs);
+        }
+      },
+    },
+  ]);
 
   return (
     <Grid flow="column" align="center" gap="md">
