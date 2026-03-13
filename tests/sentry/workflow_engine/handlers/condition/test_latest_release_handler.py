@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +18,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 class TestLatestReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_RELEASE
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": LatestReleaseFilter.id,
     }
 

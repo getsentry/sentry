@@ -9,9 +9,9 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByRegionName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
@@ -22,7 +22,7 @@ from sentry.users.services.user import RpcUser
 
 class ProjectService(RpcService):
     key = "project"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -30,7 +30,7 @@ class ProjectService(RpcService):
 
         return DatabaseBackedProjectService()
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_many_by_organizations(
         self,

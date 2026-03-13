@@ -113,7 +113,7 @@ def validate_transaction_using_for_silo_mode(using: str | None) -> None:
             f"Cannot use transaction.atomic({using}) except in Control Mode"
         )
 
-    elif using == region_db and current_silo_mode != SiloMode.REGION:
+    elif using == region_db and current_silo_mode != SiloMode.CELL:
         raise MismatchedSiloTransactionError(
             f"Cannot use transaction.atomic({using}) except in Region Mode"
         )

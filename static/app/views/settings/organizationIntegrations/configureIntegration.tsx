@@ -10,14 +10,13 @@ import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -30,36 +29,30 @@ import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {unreachable} from 'sentry/utils/unreachable';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import AddIntegration from './addIntegration';
-import IntegrationAlertRules from './integrationAlertRules';
-import IntegrationCodeMappings from './integrationCodeMappings';
-import IntegrationExternalTeamMappings from './integrationExternalTeamMappings';
-import IntegrationExternalUserMappings from './integrationExternalUserMappings';
-import IntegrationItem from './integrationItem';
-import IntegrationMainSettings from './integrationMainSettings';
-import IntegrationRepos from './integrationRepos';
+import {AddIntegration} from './addIntegration';
+import {IntegrationAlertRules} from './integrationAlertRules';
+import {IntegrationCodeMappings} from './integrationCodeMappings';
+import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
+import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
+import {IntegrationItem} from './integrationItem';
+import {IntegrationRepos} from './integrationRepos';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-const TABS = [
-  'repos',
-  'codeMappings',
-  'userMappings',
-  'teamMappings',
-  'settings',
-] as const;
+const TABS = ['repos', 'codeMappings', 'userMappings', 'teamMappings'] as const;
 type Tab = (typeof TABS)[number];
 
 const makeIntegrationQuery = (
@@ -89,7 +82,7 @@ function ConfigureIntegration() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
-  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
+  const tab = tabParam && TABS.includes(tabParam) ? tabParam : 'repos';
   const {integrationId, providerKey} = useParams<{
     integrationId: string;
     providerKey: string;
@@ -179,7 +172,6 @@ function ConfigureIntegration() {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
     navigate({
-      pathname: location.pathname,
       query: {...query, tab: value},
     });
   };
@@ -455,15 +447,8 @@ function ConfigureIntegration() {
         return <IntegrationExternalUserMappings integration={integration} />;
       case 'teamMappings':
         return <IntegrationExternalTeamMappings integration={integration} />;
-      case 'settings':
-        return (
-          <IntegrationMainSettings
-            onUpdate={onUpdateIntegration}
-            organization={organization}
-            integration={integration}
-          />
-        );
       default:
+        unreachable(tab);
         return renderMainTab();
     }
   }
@@ -553,12 +538,12 @@ function ConfigureIntegration() {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 `;

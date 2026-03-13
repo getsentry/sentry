@@ -11,7 +11,7 @@ import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import {IconChevron} from 'sentry/icons';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
 

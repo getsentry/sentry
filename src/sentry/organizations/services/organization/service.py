@@ -11,10 +11,10 @@ from django.dispatch import Signal
 
 from sentry.hybridcloud.rpc import OptionValue, silo_mode_delegation
 from sentry.hybridcloud.rpc.resolvers import (
+    ByCellName,
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
-    ByRegionName,
     RequireSingleOrganization,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
@@ -41,7 +41,7 @@ from sentry.users.services.user.model import RpcUser
 
 class OrganizationService(RpcService):
     key = "organization"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -142,15 +142,19 @@ class OrganizationService(RpcService):
         :param user_id: The user to check membership with
         """
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str | None = None
+        self,
+        *,
+        cell_name: str,
+        user: RpcUser,
+        scope: str | None = None,
     ) -> list[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
 
-        :param region_name: The region to locate an organization in
+        :param cell_name: The cell to locate an organization in
         :param user: The user to filter by membership
         :param scope: The api scopes to search by
         """
@@ -479,11 +483,17 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+    def update_region_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+    ) -> None:
         """
-        Update all memberships in a region to reflect changes in user details.
+        Update all memberships in a cell to reflect changes in user details.
 
         Will sync is_active and email attributes.
         """
@@ -658,7 +668,7 @@ def _signal_from_on_commit() -> OrganizationSignalService:
 
 _organization_check_service: OrganizationCheckService = silo_mode_delegation(
     {
-        SiloMode.REGION: _region_check_organization,
+        SiloMode.CELL: _region_check_organization,
         SiloMode.CONTROL: _control_check_organization,
         SiloMode.MONOLITH: _region_check_organization,
     }
@@ -667,7 +677,7 @@ _organization_check_service: OrganizationCheckService = silo_mode_delegation(
 
 _organization_signal_service: OrganizationSignalService = silo_mode_delegation(
     {
-        SiloMode.REGION: _signal_from_on_commit,
+        SiloMode.CELL: _signal_from_on_commit,
         SiloMode.CONTROL: _signal_from_outbox,
         SiloMode.MONOLITH: _signal_from_on_commit,
     }

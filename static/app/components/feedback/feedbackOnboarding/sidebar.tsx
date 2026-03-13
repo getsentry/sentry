@@ -13,16 +13,16 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {pickPlatformOptions} from 'sentry/components/replaysOnboarding/pickPlatformOptions';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   feedbackCrashApiPlatforms,
   feedbackNpmPlatforms,
@@ -38,13 +38,12 @@ import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
@@ -396,7 +395,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 }
 
 const Header = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -411,8 +410,9 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
 `;
 
 const Heading = styled('div')`
@@ -422,7 +422,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -432,5 +432,5 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 const StyledRadioGroup = styled(RadioGroup)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;

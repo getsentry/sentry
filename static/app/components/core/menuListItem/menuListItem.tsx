@@ -120,6 +120,7 @@ const StyledContentWrap = styled('div')<{
   display: flex;
   gap: ${p => p.theme.space.md};
   justify-content: space-between;
+  align-items: center;
   padding: 0;
 `;
 

@@ -365,26 +365,6 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
-    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
-    def test_denied_when_contributor_is_bot(self) -> None:
-        self.create_repository_settings(
-            repository=self.repo,
-            enabled_code_review=True,
-        )
-
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-            alias="dependabot[bot]",
-        )
-
-        service = self._create_service()
-        result = service.check()
-
-        assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_IS_BOT
-
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_quota_check_fails(self, mock_check_quota: MagicMock) -> None:
@@ -443,6 +423,31 @@ class TestCodeReviewPreflightService(TestCase):
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW not in result.settings.triggers
 
         mock_check_quota.assert_called_once()
+
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    def test_denied_when_pr_author_is_excluded(self, mock_check_quota: MagicMock) -> None:
+        mock_check_quota.return_value = True
+
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+            alias="dependabot[bot]",
+        )
+
+        with self.options({"seer.code-review.excluded-pr-author-logins": ["dependabot[bot]"]}):
+            service = self._create_service()
+            result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.PR_AUTHOR_EXCLUDED
+        mock_check_quota.assert_not_called()
 
     def test_feature_flag_checks_are_cached(self) -> None:
         service = self._create_service()

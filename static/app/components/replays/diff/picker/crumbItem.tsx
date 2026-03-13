@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
+import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
-export default function CrumbItem({
+export function CrumbItem({
   crumb,
   startTimestampMs,
 }: {
@@ -65,12 +64,12 @@ const ErrorLabel = styled('div')`
   position: absolute;
   top: 0;
   transform: translate(-50%, -100%);
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const LeftAligned = styled('div')`
   text-align: left;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-direction: column;
 `;

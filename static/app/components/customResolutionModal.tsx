@@ -9,16 +9,16 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 function makeReleaseOption(
@@ -59,12 +59,12 @@ interface CustomResolutionModalProps extends ModalRenderProps {
   projectSlug: string | undefined;
 }
 
-function CustomResolutionModal(props: CustomResolutionModalProps) {
+export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [version, setVersion] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery);
-  const currentUser = configStore.get('user');
+  const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const releaseListUrl = props.projectSlug
@@ -115,10 +115,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     );
 
     if (exactRelease) {
-      const exactOption: (typeof baseOptions)[number] = makeReleaseOption(
-        exactRelease,
-        currentUser?.email
-      );
+      const exactOption = makeReleaseOption(exactRelease, currentUser?.email);
 
       const filtered = baseOptions.filter(opt => opt.value !== exactOption.value);
       filtered.unshift(exactOption);
@@ -151,14 +148,15 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         <StyledCompactSelect
           id="version"
           clearable
-          searchable
-          disableSearchFilter
+          search={{
+            placeholder: t('Search versions'),
+            filter: false,
+            onChange: setSearchQuery,
+          }}
           options={options}
           value={version}
           loading={isFetching}
-          searchPlaceholder={t('Search versions')}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
-          onSearch={setSearchQuery}
           onChange={option => {
             setVersion(option?.value ? String(option.value) : '');
             setSelectionError(null);
@@ -214,8 +212,6 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     </form>
   );
 }
-
-export default CustomResolutionModal;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;

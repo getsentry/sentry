@@ -1,8 +1,8 @@
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
-import BadgeDisplayName from './badgeDisplayName';
+import {BadgeDisplayName} from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface TeamBadgeProps extends BaseBadgeProps {

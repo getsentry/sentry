@@ -8,20 +8,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {Hovercard} from 'sentry/components/hovercard';
 import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
-import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
-import DiffTimestampPicker from 'sentry/components/replays/diff/picker/diffTimestampPicker';
-import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
+import {LearnMoreButton} from 'sentry/components/replays/diff/learnMoreButton';
+import {DiffTimestampPicker} from 'sentry/components/replays/diff/picker/diffTimestampPicker';
+import {ReplayDiffChooser} from 'sentry/components/replays/diff/replayDiffChooser';
 import {IconSliders} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {isHydrateCrumb, type HydrationErrorFrame} from 'sentry/utils/replays/types';
 
 interface Props extends ModalRenderProps {
@@ -134,7 +133,7 @@ const AutoWideHovercard = styled(Hovercard)`
 
 const Title = styled('h4')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Before = styled('span')`

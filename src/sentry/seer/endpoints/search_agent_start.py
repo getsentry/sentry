@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
-import requests
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,13 +11,18 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.explorer.client_utils import collect_user_org_context
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    SearchAgentStartRequest,
+    SeerViewerContext,
+    make_search_agent_start_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,47 +67,36 @@ def send_search_agent_start_request(
     user_email: str | None = None,
     timezone: str | None = None,
     model_name: str | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> dict[str, Any]:
     """
     Sends a request to Seer to start an async search agent and returns a run_id for polling.
     """
-    body_dict: dict[str, Any] = {
-        "org_id": org_id,
-        "org_slug": org_slug,
-        "project_ids": project_ids,
-        "natural_language_query": natural_language_query,
-        "strategy": strategy,
-    }
-
+    body = SearchAgentStartRequest(
+        org_id=org_id,
+        org_slug=org_slug,
+        project_ids=project_ids,
+        natural_language_query=natural_language_query,
+        strategy=strategy,
+    )
     if user_email:
-        body_dict["user_email"] = user_email
-
+        body["user_email"] = user_email
     if timezone:
-        body_dict["timezone"] = timezone
+        body["timezone"] = timezone
 
     options: dict[str, Any] = {}
     if model_name is not None:
         options["model_name"] = model_name
-
     if options:
-        body_dict["options"] = options
+        body["options"] = options
 
-    body = orjson.dumps(body_dict)
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/start",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
+    response = make_search_agent_start_request(body, timeout=30, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStartEndpoint(OrganizationEndpoint):
     """
     Endpoint to start an async search agent and return a run_id for polling.
@@ -170,6 +162,9 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         timezone = user_org_context.get("user_timezone")
 
         try:
+            viewer_context = SeerViewerContext(
+                organization_id=organization.id, user_id=request.user.id
+            )
             data = send_search_agent_start_request(
                 organization.id,
                 organization.slug,
@@ -179,6 +174,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 user_email=user_email,
                 timezone=timezone,
                 model_name=model_name,
+                viewer_context=viewer_context,
             )
 
             # Validate that run_id is present in the response
@@ -200,13 +196,13 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
             # Return the run_id for polling
             return Response({"run_id": run_id})
 
-        except requests.HTTPError as e:
+        except SeerApiError as e:
             logger.exception(
                 "search_agent.start_error",
                 extra={
                     "organization_id": organization.id,
                     "project_ids": project_ids,
-                    "status_code": e.response.status_code if e.response is not None else None,
+                    "status_code": e.status,
                 },
             )
             return Response(

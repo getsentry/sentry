@@ -1,15 +1,14 @@
 import type {ComponentProps, CSSProperties} from 'react';
-import classNames from 'classnames';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import {
   ButtonWrapper,
   Cell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
@@ -17,37 +16,30 @@ import {
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
-import type useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
 const EMPTY_CELL = '--';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   columnIndex: number;
-  currentHoverTime: number | undefined;
-  currentTime: number;
   frame: SpanFrame;
   onClickCell: (props: {dataIndex: number; rowIndex: number}) => void;
   rowIndex: number;
-  sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
   ref?: React.Ref<HTMLDivElement>;
 }
 
-export default function NetworkTableCell({
+export function NetworkTableCell({
   columnIndex,
-  currentHoverTime,
-  currentTime,
   frame,
   onMouseEnter,
   onMouseLeave,
   onClickCell,
   onClickTimestamp,
   rowIndex,
-  sortConfig,
   startTimestampMs,
   style,
   ref,
@@ -68,31 +60,7 @@ export default function NetworkTableCell({
     contentTypeHeaders.req === contentTypeHeaders.resp;
 
   const size = getResponseBodySize(frame);
-
-  const hasOccurred = currentTime >= frame.offsetMs;
-  const isBeforeHover =
-    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
-
-  const isByTimestamp = sortConfig.by === 'startTimestamp';
-  const isAsc = isByTimestamp ? sortConfig.asc : undefined;
   const columnProps = {
-    className: classNames({
-      beforeCurrentTime: isByTimestamp ? (isAsc ? hasOccurred : !hasOccurred) : undefined,
-      afterCurrentTime: isByTimestamp ? (isAsc ? !hasOccurred : hasOccurred) : undefined,
-      beforeHoverTime:
-        isByTimestamp && currentHoverTime !== undefined
-          ? isAsc
-            ? isBeforeHover
-            : !isBeforeHover
-          : undefined,
-      afterHoverTime:
-        isByTimestamp && currentHoverTime !== undefined
-          ? isAsc
-            ? !isBeforeHover
-            : isBeforeHover
-          : undefined,
-    }),
-    hasOccurred: isByTimestamp ? hasOccurred : undefined,
     isSelected,
     isStatusError: isStatus400or500,
     isStatusWarning: !isContentTypeSane,

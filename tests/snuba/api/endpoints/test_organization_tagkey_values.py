@@ -502,11 +502,14 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         )
         self.store_event(data, project_id=self.project.id)
         self.transaction = data.copy()
+        # Compute both timestamps from the same base to get an exact 5000ms duration
+        end_time = before_now(seconds=30)
+        start_time = end_time - timedelta(seconds=5)
         self.transaction.update(
             {
                 "transaction": "/city_by_code/",
-                "timestamp": before_now(seconds=30).isoformat(),
-                "start_timestamp": before_now(seconds=35).isoformat(),
+                "timestamp": end_time.isoformat(),
+                "start_timestamp": start_time.isoformat(),
             }
         )
         self.transaction["contexts"]["trace"].update(

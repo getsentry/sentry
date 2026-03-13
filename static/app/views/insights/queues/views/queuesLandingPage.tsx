@@ -9,11 +9,11 @@ import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -21,11 +21,13 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import QueuesLandingLatencyChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingLatencyChartWidget';
 import QueuesLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/queuesLandingThroughputChartWidget';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   isAValidSort,
   QueuesTable,
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
+import {PlatformizedQueuesOverview} from 'sentry/views/insights/queues/views/platformizedOverview';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT = {
@@ -107,9 +109,14 @@ function QueuesLandingPage() {
 }
 
 function PageWithProviders() {
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  if (hasPlatformizedInsights) {
+    return <PlatformizedQueuesOverview />;
+  }
 
   return (
     <ModulePageProviders

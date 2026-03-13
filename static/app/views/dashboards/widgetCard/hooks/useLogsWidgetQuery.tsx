@@ -7,7 +7,8 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -50,6 +51,7 @@ export function useLogsSeriesQuery(
     samplingMode,
     dashboardFilters,
     skipDashboardFilterParens,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -69,7 +71,8 @@ export function useLogsSeriesQuery(
         organization,
         pageFilters,
         DiscoverDatasets.OURLOGS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       if (samplingMode) {
@@ -98,7 +101,9 @@ export function useLogsSeriesQuery(
       }
 
       return [
-        `/organizations/${organization.slug}/events-stats/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events-stats/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -106,7 +111,7 @@ export function useLogsSeriesQuery(
       ] satisfies ApiQueryKey;
     });
     return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode]);
+  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
 
   const createQueryFn = useCallback(
     () =>
@@ -186,7 +191,7 @@ export function useLogsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -254,7 +259,9 @@ export function useLogsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl(`/organizations/$organizationIdOrSlug/events/`, {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -352,7 +359,7 @@ export function useLogsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

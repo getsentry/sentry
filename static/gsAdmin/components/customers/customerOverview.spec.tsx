@@ -19,7 +19,7 @@ import {
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import CustomerOverview from 'admin/components/customers/customerOverview';
+import {CustomerOverview} from 'admin/components/customers/customerOverview';
 import * as constants from 'getsentry/constants';
 import {AddOnCategory, PlanTier} from 'getsentry/types';
 
@@ -596,26 +596,38 @@ describe('CustomerOverview', () => {
           name: 'Stop Trial',
         });
         expect(stopTrialButton).toBeInTheDocument();
+        const extendTrialButton = within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        });
+        expect(extendTrialButton).toBeInTheDocument();
 
         if (category === DataCategory.REPLAYS) {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeEnabled();
-          expect(within(definition).getByText('Active')).toBeInTheDocument();
+          expect(extendTrialButton).toBeEnabled();
+          expect(
+            within(definition).getByText(/Active \(until .* UTC\)/)
+          ).toBeInTheDocument();
         } else if (category === DataCategory.SPANS) {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
-          expect(within(definition).getByText(/Active \(/)).toBeInTheDocument();
+          expect(extendTrialButton).toBeEnabled();
+          expect(
+            within(definition).getByText(/Active \(until .* UTC\)/)
+          ).toBeInTheDocument();
         } else if (category === AddOnCategory.LEGACY_SEER) {
           expect(allowTrialButton).toBeEnabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(extendTrialButton).toBeDisabled();
           expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeEnabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(extendTrialButton).toBeDisabled();
           expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {

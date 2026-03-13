@@ -53,7 +53,7 @@ describe('TwoFactorRequired', () => {
       },
     });
 
-    expect(await screen.findByText('Your current password')).toBeInTheDocument();
+    expect(await screen.findByText('Current Password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
@@ -73,7 +73,7 @@ describe('TwoFactorRequired', () => {
       },
     });
 
-    expect(await screen.findByText('Your current password')).toBeInTheDocument();
+    expect(await screen.findByText('Current Password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe('TwoFactorRequired', () => {
       },
     });
 
-    expect(await screen.findByText('Your current password')).toBeInTheDocument();
+    expect(await screen.findByText('Current Password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
@@ -133,7 +133,7 @@ describe('TwoFactorRequired', () => {
       },
     });
 
-    expect(await screen.findByText('Your current password')).toBeInTheDocument();
+    expect(await screen.findByText('Current Password')).toBeInTheDocument();
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });

@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {
   PlatformCategory,
   profiling as PROFILING_PLATFORMS,
@@ -23,7 +23,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface Props {
   excludedTags: string[];
@@ -66,7 +66,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
     enabled: isRegressionIssue,
   });
 
-  const eventView: EventView = EventView.fromLocation(location);
+  const eventView = EventView.fromLocation(location);
   if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }

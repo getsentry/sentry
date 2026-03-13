@@ -5,7 +5,10 @@ import {defined} from 'sentry/utils';
 import {
   explodeField,
   generateFieldAsString,
+  getEquationAliasIndex,
   isAggregateFieldOrEquation,
+  isEquationAlias,
+  type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
   type Sort,
@@ -24,7 +27,11 @@ import {
   WidgetType,
   type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
+import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
@@ -34,7 +41,7 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
+import {buildTraceMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -56,6 +63,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 export const MAX_NUM_Y_AXES = 3;
 
 export type WidgetBuilderStateQueryParams = {
+  axisRange?: AxisRange;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -90,6 +98,8 @@ export const BuilderStateAction = {
   // Categorical bar chart specific actions
   SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
   SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
+  DELETE_AGGREGATE: 'DELETE_AGGREGATE',
+  SET_AXIS_RANGE: 'SET_AXIS_RANGE',
 } as const;
 
 type WidgetAction =
@@ -121,12 +131,21 @@ type WidgetAction =
   | {
       payload: Column[];
       type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
+    }
+  | {
+      payload: number; // index of the field to delete within the visible fields list
+      type: typeof BuilderStateAction.DELETE_AGGREGATE;
+    }
+  | {
+      payload: AxisRange | undefined;
+      type: typeof BuilderStateAction.SET_AXIS_RANGE;
     };
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
 
 export interface WidgetBuilderState {
+  axisRange?: AxisRange;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -135,7 +154,7 @@ export interface WidgetBuilderState {
    * - Table: all columns (both plain fields and aggregates)
    * - Big Number: aggregate fields
    * - Line, Area, Bar (Time Series): grouping fields (non-aggregates)
-   * - Bar (Categorical): exactly one (FIELD kind) and exactly one (FUNCTION kind)
+   * - Bar (Categorical): one X-axis (FIELD kind) and one or more aggregates (FUNCTION/EQUATION kind)
    */
   fields?: Column[];
   legendAlias?: string[];
@@ -154,7 +173,107 @@ export interface WidgetBuilderState {
   yAxis?: Column[];
 }
 
-function useWidgetBuilderState(): {
+/**
+ * Generate the sort field string for an aggregate at the given index.
+ * Equations use the alias format (equation[N]) where N is the equation's
+ * position among all equations in the list (not its overall index).
+ * Regular aggregates use generateFieldAsString.
+ */
+function generateSortField(aggregates: Column[], aggregateIndex: number): string {
+  const target = aggregates[aggregateIndex]!;
+  const equationIndex =
+    aggregates
+      .slice(0, aggregateIndex + 1)
+      .filter(f => f.kind === FieldValueKind.EQUATION).length - 1;
+  return target.kind === FieldValueKind.EQUATION
+    ? `equation[${Math.max(0, equationIndex)}]`
+    : generateFieldAsString(target);
+}
+
+/**
+ * Validate the current sort against a new set of aggregates for categorical
+ * bar charts. Returns the corrected sort if the current sort field is invalid,
+ * or null if no change is needed. Falls back to the aggregate at
+ * `fallbackIndex` (defaults to the last aggregate). If `xAxisFields` is
+ * provided, sorting by an X-axis column is also treated as valid.
+ */
+function fixupCategoricalBarSort(
+  aggregates: Column[],
+  sort: Sort[] | undefined,
+  fallbackIndex: number | undefined,
+  xAxisFields?: Column[]
+): Sort[] | null {
+  if (aggregates.length === 0) {
+    return null;
+  }
+  // Clamp fallback to a valid index
+  const safeIdx =
+    fallbackIndex !== undefined && aggregates[fallbackIndex]
+      ? fallbackIndex
+      : aggregates.length - 1;
+  const currentSortField = sort?.[0]?.field;
+  if (currentSortField) {
+    // Sorting by the X-axis column is always valid
+    if (xAxisFields?.some(f => generateFieldAsString(f) === currentSortField)) {
+      return null;
+    }
+
+    const hasMatchingSort = aggregates.some(
+      f => generateFieldAsString(f) === currentSortField
+    );
+    const equationCount = aggregates.filter(
+      f => f.kind === FieldValueKind.EQUATION
+    ).length;
+    const isSortValid =
+      hasMatchingSort ||
+      (isEquationAlias(currentSortField) &&
+        getEquationAliasIndex(currentSortField) < equationCount);
+
+    if (!isSortValid) {
+      return [
+        {kind: sort[0]?.kind ?? 'desc', field: generateSortField(aggregates, safeIdx)},
+      ];
+    }
+    return null;
+  }
+  // No sort exists yet — set default to fallback aggregate
+  return [{kind: 'desc', field: generateSortField(aggregates, safeIdx)}];
+}
+
+/**
+ * Compute the corrected sort for a table widget after a field is removed.
+ * Returns the new sort value, or null if no change is needed. Falls back
+ * to the first valid sort option, respecting dataset-specific constraints
+ * (Issue widgets allow external sorts, Release widgets have a deny list).
+ */
+function fixupTableSortOnRemoval(
+  newFields: Column[],
+  sort: Sort[] | undefined,
+  dataset: WidgetType | undefined
+): Sort[] | null {
+  if (
+    newFields.length === 0 ||
+    newFields.some(f => generateFieldAsString(f) === sort?.[0]?.field) ||
+    dataset === WidgetType.ISSUE
+  ) {
+    return null;
+  }
+  let validSortOptions: QueryFieldValue[] = [];
+  const firstNotEquation = newFields.find(f => f.kind !== FieldValueKind.EQUATION);
+  if (dataset === WidgetType.RELEASE) {
+    validSortOptions = newFields.filter(f => {
+      const fs = generateFieldAsString(f);
+      return !DISABLED_SORT.includes(fs) && !TAG_SORT_DENY_LIST.includes(fs);
+    });
+  } else if (firstNotEquation) {
+    validSortOptions = [firstNotEquation];
+  }
+  return validSortOptions.length > 0
+    ? [{kind: 'desc', field: generateFieldAsString(validSortOptions[0]!)}]
+    : [];
+}
+
+export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
@@ -227,6 +346,11 @@ function useWidgetBuilderState(): {
     deserializer: deserializeTraceMetric,
     serializer: serializeTraceMetric,
   });
+  const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
+    fieldName: 'axisRange',
+    decoder: decodeScalar,
+    deserializer: getAxisRange,
+  });
 
   const state = useMemo(
     () => ({
@@ -243,12 +367,25 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
-      // The selected aggregate is the last aggregate for big number widgets
-      // if it hasn't been explicitly set
+      axisRange,
+      // The selected aggregate is the last aggregate for big number and categorical bar widgets
+      // if it hasn't been explicitly set.
+      // For categorical bar, only count aggregate fields (FUNCTION/EQUATION), not the X-axis FIELD column
       selectedAggregate:
         displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
           ? (selectedAggregate ?? fields.length - 1)
-          : undefined,
+          : displayType === DisplayType.CATEGORICAL_BAR && defined(fields)
+            ? (() => {
+                const aggregateCount = fields.filter(
+                  f =>
+                    f.kind === FieldValueKind.FUNCTION ||
+                    f.kind === FieldValueKind.EQUATION
+                ).length;
+                return aggregateCount > 1
+                  ? Math.min(selectedAggregate ?? aggregateCount - 1, aggregateCount - 1)
+                  : undefined;
+              })()
+            : undefined,
     }),
     [
       title,
@@ -265,6 +402,7 @@ function useWidgetBuilderState(): {
       thresholds,
       linkedDashboards,
       traceMetric,
+      axisRange,
     ]
   );
 
@@ -287,12 +425,11 @@ function useWidgetBuilderState(): {
           const columnsWithoutAlias = columns.map(column => {
             return {...column, alias: undefined};
           });
-          const aggregatesWithoutAlias = aggregates.map(aggregate => {
-            return {...aggregate, alias: undefined};
-          });
-          const yAxisWithoutAlias = yAxis?.map(axis => {
-            return {...axis, alias: undefined};
-          });
+          const aggregatesWithoutAlias = aggregates.map(aggregate => ({
+            ...aggregate,
+            alias: undefined,
+          }));
+          const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
           if (action.payload === DisplayType.TABLE) {
             setLinkedDashboards([], options);
             setLimit(undefined, options);
@@ -361,14 +498,16 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
           } else if (action.payload === DisplayType.CATEGORICAL_BAR) {
             // Categorical bar widgets store both X-axis field (FIELD kind) and
-            // aggregate (FUNCTION kind) in state.fields, not yAxis
+            // aggregates (FUNCTION/EQUATION kind) in state.fields, not yAxis.
+            // Like Big Number, categorical bar supports multiple aggregates with
+            // radio selection to choose which one to plot.
             setYAxis([], options);
             setLegendAlias([], options);
 
-            // Build the aggregate list from existing state, similar to time-series charts
+            // Keep all aggregates from both fields and yAxis (like Big Number)
             const nextAggregates = [
-              ...aggregatesWithoutAlias.slice(0, 1),
-              ...(yAxisWithoutAlias?.slice(0, 1) ?? []),
+              ...aggregatesWithoutAlias,
+              ...(yAxisWithoutAlias ?? []),
             ];
 
             // If no existing aggregate found, use the dataset's default
@@ -389,21 +528,16 @@ function useWidgetBuilderState(): {
               });
             }
 
-            const categoricalBarFields = [...nextColumns, ...nextAggregates.slice(0, 1)];
+            const categoricalBarFields = [...nextColumns, ...nextAggregates];
             setFields(categoricalBarFields, options);
 
-            // Set default sort to descending on the aggregate (like tables)
-            const aggregateField = nextAggregates[0];
-            if (aggregateField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(aggregateField),
-                  },
-                ],
-                options
+            // Set default sort to descending on the last aggregate (like Big Number)
+            if (nextAggregates.length > 0) {
+              const sortField = generateSortField(
+                nextAggregates,
+                nextAggregates.length - 1
               );
+              setSort([{kind: 'desc', field: sortField}], options);
             }
 
             setQuery(query?.slice(0, 1), options);
@@ -437,7 +571,12 @@ function useWidgetBuilderState(): {
               );
             }
           }
-          setThresholds(undefined, options);
+          if (!doesDisplayTypeSupportThresholds(action.payload)) {
+            setThresholds(undefined, options);
+          }
+          if (!usesTimeSeriesData(action.payload)) {
+            setAxisRange(undefined, options);
+          }
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
           break;
@@ -526,6 +665,7 @@ function useWidgetBuilderState(): {
           }
 
           setThresholds(undefined, options);
+          setAxisRange(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
@@ -556,39 +696,29 @@ function useWidgetBuilderState(): {
               return;
             }
 
-            const firstActionPayloadNotEquation: QueryFieldValue | undefined =
-              action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
-
-            let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
-              ? [firstActionPayloadNotEquation]
-              : [];
-            if (dataset === WidgetType.RELEASE) {
-              validSortOptions = [
-                ...action.payload.filter(field => {
-                  const fieldString = generateFieldAsString(field);
-                  return (
-                    !DISABLED_SORT.includes(fieldString) &&
-                    !TAG_SORT_DENY_LIST.includes(fieldString)
-                  );
-                }),
-              ];
-            }
-
             if (isRemoved) {
-              setSort(
-                validSortOptions.length > 0
-                  ? [
-                      {
-                        kind: 'desc',
-                        field: generateFieldAsString(
-                          validSortOptions[0] as QueryFieldValue
-                        ),
-                      },
-                    ]
-                  : [],
-                options
-              );
+              const fixedSort = fixupTableSortOnRemoval(action.payload, sort, dataset);
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
             } else {
+              const firstActionPayloadNotEquation: QueryFieldValue | undefined =
+                action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
+
+              let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
+                ? [firstActionPayloadNotEquation]
+                : [];
+              if (dataset === WidgetType.RELEASE) {
+                validSortOptions = [
+                  ...action.payload.filter(field => {
+                    const fieldString = generateFieldAsString(field);
+                    return (
+                      !DISABLED_SORT.includes(fieldString) &&
+                      !TAG_SORT_DENY_LIST.includes(fieldString)
+                    );
+                  }),
+                ];
+              }
               // Find the index of the first field that doesn't match the old fields, is not an equation, and is not a disabled release sort option.
               const changedFieldIndex = action.payload.findIndex(
                 field =>
@@ -618,7 +748,7 @@ function useWidgetBuilderState(): {
                 );
               } else {
                 // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in action.payload is safe.
+                // using the changedFieldIndex in fieldsPayload is safe.
                 setSort(
                   [
                     {
@@ -648,14 +778,7 @@ function useWidgetBuilderState(): {
 
             // Adding a grouping, so default the sort to the first aggregate if possible
             let sortField: string | undefined;
-            if (dataset === WidgetType.TRACEMETRICS) {
-              sortField = firstYAxisNotEquation
-                ? generateMetricAggregate(
-                    traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation
-                  )
-                : undefined;
-            } else if (firstYAxisNotEquation) {
+            if (firstYAxisNotEquation) {
               sortField = generateFieldAsString(firstYAxisNotEquation);
             } else if (firstActionPayloadNotEquation) {
               sortField = generateFieldAsString(firstActionPayloadNotEquation);
@@ -686,7 +809,7 @@ function useWidgetBuilderState(): {
           }
           break;
         }
-        case BuilderStateAction.SET_Y_AXIS:
+        case BuilderStateAction.SET_Y_AXIS: {
           setYAxis(action.payload, options);
 
           if (fields?.length && fields.length > 0) {
@@ -703,21 +826,21 @@ function useWidgetBuilderState(): {
           } else if (
             action.payload.length > 0 &&
             dataset === WidgetType.TRACEMETRICS &&
-            traceMetric &&
             sort?.length &&
-            !checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)
+            !checkTraceMetricSortUsed(sort, action.payload, fields)
           ) {
             setSort(
               [
                 {
                   kind: 'desc',
-                  field: generateMetricAggregate(traceMetric, action.payload[0]!),
+                  field: generateFieldAsString(action.payload[0]!),
                 },
               ],
               options
             );
           }
           break;
+        }
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
           break;
@@ -752,6 +875,29 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
+          // For categorical bar, sync sort to the selected aggregate so
+          // bars are ordered by the displayed metric.
+          if (
+            displayType === DisplayType.CATEGORICAL_BAR &&
+            action.payload !== undefined &&
+            fields
+          ) {
+            const aggregates = fields.filter(
+              f =>
+                f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+            );
+            if (aggregates[action.payload]) {
+              setSort(
+                [
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateSortField(aggregates, action.payload),
+                  },
+                ],
+                options
+              );
+            }
+          }
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
@@ -772,9 +918,13 @@ function useWidgetBuilderState(): {
           if (action.payload.traceMetric) {
             setTraceMetric(deserializeTraceMetric(action.payload.traceMetric), options);
           }
+          setAxisRange(getAxisRange(action.payload.axisRange), options);
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
+          break;
+        case BuilderStateAction.SET_AXIS_RANGE:
+          setAxisRange(action.payload, options);
           break;
         case BuilderStateAction.SET_TRACE_METRIC:
           if (dataset === WidgetType.TRACEMETRICS) {
@@ -790,6 +940,7 @@ function useWidgetBuilderState(): {
             const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
             const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
 
+            const newTraceMetric = action.payload;
             if (aggregateSource && validAggregateOptions.length > 0) {
               updatedAggregates = aggregateSource.map(field => {
                 if (field.kind === 'function' && field.function?.[0]) {
@@ -800,17 +951,14 @@ function useWidgetBuilderState(): {
 
                   if (!isValid) {
                     // Replace with first valid aggregate
-                    return {
-                      function: [
-                        validAggregateOptions[0]?.value ?? '',
-                        'value',
-                        undefined,
-                        undefined,
-                      ],
-                      alias: undefined,
-                      kind: 'function',
-                    } as QueryFieldValue;
+                    return buildTraceMetricAggregate(
+                      validAggregateOptions[0]!.value as AggregationKeyWithAlias,
+                      newTraceMetric
+                    );
                   }
+
+                  // Valid aggregate — update args with new trace metric info
+                  return buildTraceMetricAggregate(aggregate, newTraceMetric);
                 }
                 return field;
               });
@@ -830,7 +978,6 @@ function useWidgetBuilderState(): {
               sort.length > 0 &&
               !checkTraceMetricSortUsed(
                 sort,
-                action.payload,
                 // Depending on the display type, the updated aggregates can be either
                 // the yAxis or the fields
                 usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
@@ -841,10 +988,7 @@ function useWidgetBuilderState(): {
                 setSort(
                   [
                     {
-                      field: generateMetricAggregate(
-                        action.payload,
-                        updatedAggregates[0]!
-                      ),
+                      field: generateFieldAsString(updatedAggregates[0]!),
                       kind: 'desc',
                     },
                   ],
@@ -859,39 +1003,37 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
           // Only applies to categorical bar charts
           if (displayType === DisplayType.CATEGORICAL_BAR) {
-            // Preserve existing aggregates, update only the X-axis field
+            // Preserve existing aggregates (functions and equations), update only the X-axis field
             const existingAggregates =
-              fields?.filter(f => f.kind === FieldValueKind.FUNCTION) ?? [];
+              fields?.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ) ?? [];
             const newXAxisField: Column = {
               kind: FieldValueKind.FIELD,
               field: action.payload,
             };
-            setFields([newXAxisField, ...existingAggregates], options);
+            const newCategoricalFields = [newXAxisField, ...existingAggregates];
+            setFields(newCategoricalFields, options);
 
-            // If sort was on the old X-axis field, reset to first aggregate
-            // (sort options for categorical bars are columns + aggregates)
-            const currentSortField = sort?.[0]?.field;
-            const oldXAxisField = fields?.find(f => f.kind === FieldValueKind.FIELD);
-            const wasOnOldXAxis =
-              oldXAxisField && currentSortField === generateFieldAsString(oldXAxisField);
-
-            if (wasOnOldXAxis && existingAggregates.length > 0) {
-              setSort(
-                [
-                  {
-                    kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateFieldAsString(existingAggregates[0]!),
-                  },
-                ],
-                options
+            // Reset sort if it references a field no longer in the widget.
+            // Falls back to the selected aggregate (or last, matching Big Number).
+            if (existingAggregates.length > 0) {
+              const fixedSort = fixupCategoricalBarSort(
+                existingAggregates,
+                sort,
+                selectedAggregate,
+                [newXAxisField]
               );
-            } else if (wasOnOldXAxis) {
-              // No aggregates to fall back to, clear the sort
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
+            } else {
               setSort([], options);
             }
           }
           break;
-        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE:
+        case BuilderStateAction.SET_CATEGORICAL_AGGREGATE: {
           // Only applies to categorical bar charts
           if (displayType === DisplayType.CATEGORICAL_BAR) {
             // Preserve existing X-axis field, update only the aggregates
@@ -899,20 +1041,139 @@ function useWidgetBuilderState(): {
               fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
             setFields([...existingXAxisFields, ...action.payload], options);
 
-            // Update sort to use the first aggregate (if any)
-            if (action.payload.length > 0) {
+            // If the sort was on an aggregate that got edited in-place, fall
+            // back to the same index so the sort follows the edit.
+            const oldAggregates =
+              fields?.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ) ?? [];
+            const sortedOldIndex = oldAggregates.findIndex(
+              f => generateFieldAsString(f) === sort?.[0]?.field
+            );
+
+            // Recompute sort when the current sort field is no longer valid
+            // in the new aggregates (e.g., after editing or adding a field).
+            // Deletions are handled atomically by DELETE_AGGREGATE.
+            const fixedSort = fixupCategoricalBarSort(
+              action.payload,
+              sort,
+              sortedOldIndex >= 0 ? sortedOldIndex : undefined,
+              existingXAxisFields
+            );
+            if (fixedSort) {
+              setSort(fixedSort, options);
+            }
+          }
+          break;
+        }
+        case BuilderStateAction.DELETE_AGGREGATE: {
+          const deleteIndex = action.payload;
+
+          if (displayType === DisplayType.CATEGORICAL_BAR) {
+            // Categorical bar: fields = [xAxisField, ...aggregates]
+            // The payload index is relative to the aggregates-only list shown in
+            // the Visualize section, so split out X-axis fields before filtering.
+            const xAxisFields =
+              fields?.filter(f => f.kind === FieldValueKind.FIELD) ?? [];
+            const aggregates =
+              fields?.filter(
+                f =>
+                  f.kind === FieldValueKind.FUNCTION || f.kind === FieldValueKind.EQUATION
+              ) ?? [];
+            const newAggregates = aggregates.filter((_, i) => i !== deleteIndex);
+            setFields([...xAxisFields, ...newAggregates], options);
+
+            // Recompute sort if the deleted aggregate was the current sort target
+            const fixedSort = fixupCategoricalBarSort(
+              newAggregates,
+              sort,
+              undefined,
+              xAxisFields
+            );
+            if (fixedSort) {
+              setSort(fixedSort, options);
+            }
+          } else if (displayType === DisplayType.BIG_NUMBER) {
+            // Big Number: fields list is flat (no X-axis separation), delete by index
+            const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
+            setFields(newFields, options);
+          } else if (
+            displayType === DisplayType.LINE ||
+            displayType === DisplayType.AREA ||
+            displayType === DisplayType.BAR ||
+            displayType === DisplayType.TOP_N
+          ) {
+            // Time series: aggregates are in yAxis
+            const newYAxis = yAxis?.filter((_, i) => i !== deleteIndex) ?? [];
+            setYAxis(newYAxis, options);
+
+            // Replicate SET_Y_AXIS limit check
+            if (fields?.length && fields.length > 0) {
+              const maxLimit = getResultsLimit(query?.length ?? 1, newYAxis.length);
+              if (limit && limit > maxLimit) {
+                setLimit(maxLimit, options);
+              }
+            }
+
+            // Replicate SET_Y_AXIS sort reconciliation
+            if (newYAxis.length > 0 && (!fields || fields.length === 0)) {
+              setSort([], options);
+            } else if (
+              newYAxis.length > 0 &&
+              dataset === WidgetType.TRACEMETRICS &&
+              sort?.length &&
+              !checkTraceMetricSortUsed(sort, newYAxis, fields)
+            ) {
               setSort(
                 [
                   {
                     kind: 'desc',
-                    field: generateFieldAsString(action.payload[0]!),
+                    field: generateFieldAsString(newYAxis[0]!),
                   },
                 ],
                 options
               );
             }
+          } else {
+            // Table / other: fields list is flat, delete by index
+            const newFields = fields?.filter((_, i) => i !== deleteIndex) ?? [];
+            setFields(newFields, options);
+
+            // Clean up linked dashboards
+            const remainingKindFields = newFields.filter(
+              f => f.kind === FieldValueKind.FIELD
+            );
+            const remainingLinkedDashboards = linkedDashboards?.filter(ld =>
+              remainingKindFields.some(f => f.field === ld.field)
+            );
+            setLinkedDashboards(remainingLinkedDashboards, options);
+
+            // Table sort fixup: fall back to a valid sort field when the
+            // current sort target was the deleted field
+            if (displayType === DisplayType.TABLE) {
+              const fixedSort = fixupTableSortOnRemoval(newFields, sort, dataset);
+              if (fixedSort) {
+                setSort(fixedSort, options);
+              }
+            }
+          }
+
+          // Adjust selectedAggregate index for Big Number and Categorical Bar
+          // (these are the widget types that use radio selection)
+          if (
+            (displayType === DisplayType.BIG_NUMBER ||
+              displayType === DisplayType.CATEGORICAL_BAR) &&
+            selectedAggregate !== undefined
+          ) {
+            if (deleteIndex < selectedAggregate) {
+              setSelectedAggregate(selectedAggregate - 1, options);
+            } else if (deleteIndex === selectedAggregate) {
+              setSelectedAggregate(undefined, options);
+            }
           }
           break;
+        }
         default:
           break;
       }
@@ -930,6 +1191,7 @@ function useWidgetBuilderState(): {
       setLegendAlias,
       setSelectedAggregate,
       setThresholds,
+      setAxisRange,
       setLinkedDashboards,
       fields,
       yAxis,
@@ -939,8 +1201,8 @@ function useWidgetBuilderState(): {
       sort,
       dataset,
       limit,
+      selectedAggregate,
       setTraceMetric,
-      traceMetric,
     ]
   );
 
@@ -955,6 +1217,9 @@ function useWidgetBuilderState(): {
  * Returns the default display type if the value is not a valid display type
  */
 function deserializeDisplayType(value: string): DisplayType {
+  if (value === DisplayType.TOP_N) {
+    return DisplayType.AREA;
+  }
   if (Object.values(DisplayType).includes(value as DisplayType)) {
     return value as DisplayType;
   }
@@ -1105,20 +1370,11 @@ function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
 
 function checkTraceMetricSortUsed(
   sort: Sort[],
-  traceMetric: TraceMetric,
   yAxis: Column[] = [],
   fields: Column[] = []
 ): boolean {
   const sortValue = sort[0]?.field;
-  const sortInFields = fields?.some(
-    field =>
-      generateFieldAsString(field) === sortValue ||
-      generateMetricAggregate(traceMetric, field) === sortValue
-  );
-  const sortInYAxis = yAxis?.some(
-    field => generateMetricAggregate(traceMetric, field) === sortValue
-  );
+  const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
   return sortInFields || sortInYAxis;
 }
-
-export default useWidgetBuilderState;

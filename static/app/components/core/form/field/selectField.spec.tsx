@@ -5,6 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
+import type {SelectValue} from 'sentry/types/core';
+
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},
   {value: 'banana', label: 'Banana'},
@@ -39,7 +41,7 @@ function TestForm({
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="fruit">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -102,7 +104,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 <field.Select
@@ -132,7 +134,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 <field.Select
@@ -163,7 +165,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="tags">
               {field => (
                 // @ts-expect-error value should be string[] when multiple is true
@@ -189,7 +191,7 @@ describe('SelectField', () => {
         });
 
         return (
-          <form.AppForm>
+          <form.AppForm form={form}>
             <form.AppField name="fruit">
               {field => (
                 // @ts-expect-error value should be string when multiple is false
@@ -204,6 +206,123 @@ describe('SelectField', () => {
         );
       }
       void TypeTestInvalidSingle;
+    });
+
+    it('should allow null in onChange when clearable is true', () => {
+      function TypeTestClearable() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: null as string | null},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  clearable
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string | null>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 'apple', label: 'Apple'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestClearable;
+    });
+
+    it('should not allow null in onChange when clearable is false', () => {
+      function TypeTestNotClearable() {
+        const form = useScrapsForm({
+          ...defaultFormOptions,
+          defaultValues: {fruit: ''},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="fruit">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<string>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 'apple', label: 'Apple'}]}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+      void TypeTestNotClearable;
+    });
+
+    it('should allow number values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: 0},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<number>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 1, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<number>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
+    });
+
+    it('should allow objects as values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: {id: 0}},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<{id: number}>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: {id: 1}, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<{id: number}>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
     });
   });
 
@@ -247,14 +366,17 @@ describe('SelectField disabled', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Favorite Fruit" disabled="Feature not available" />);
 
     expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the select container to trigger tooltip
-    const selectContainer = screen.getByRole('textbox').closest('[class*="container"]');
-    await userEvent.hover(selectContainer!);
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();
@@ -489,7 +611,7 @@ function MultiTestForm({label, defaultValue = [], disabled}: MultiTestFormProps)
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="tags">
         {field => (
           <field.Layout.Row label={label}>
@@ -555,14 +677,17 @@ describe('SelectField multiple', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
   });
 
-  it('shows tooltip with reason when disabled is a string', async () => {
+  it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<MultiTestForm label="Tags" disabled="Feature not available" />);
 
     expect(screen.getByRole('textbox')).toBeDisabled();
 
-    // Hover on the select container to trigger tooltip
-    const selectContainer = screen.getByRole('textbox').closest('[class*="container"]');
-    await userEvent.hover(selectContainer!);
+    // Lock icon should be visible
+    const lockIcon = screen.getByRole('img', {name: 'Disabled'});
+    expect(lockIcon).toBeInTheDocument();
+
+    // Hover on the lock icon to trigger tooltip
+    await userEvent.hover(lockIcon);
 
     await waitFor(() => {
       expect(screen.getByText('Feature not available')).toBeInTheDocument();

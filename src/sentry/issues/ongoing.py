@@ -24,7 +24,7 @@ def bulk_transition_group_to_ongoing(
         # make sure we don't update the Group when its already updated by conditionally updating the Group
         groups_to_transistion = Group.objects.filter(
             id__in=group_ids, status=from_status, substatus=from_substatus
-        )
+        ).select_related("project")
         span.set_tag("group_ids", group_ids)
         span.set_tag("groups_to_transistion count", len(groups_to_transistion))
 

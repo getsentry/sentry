@@ -10,14 +10,15 @@ import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
@@ -71,9 +72,7 @@ export function MetricsGraph({
   const visualizes = useMetricVisualizes();
   const setVisualize = useSetMetricVisualize();
 
-  const hasMultiVisualize = organization.features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
   useSynchronizeCharts(
     metricQueries.length,
@@ -127,7 +126,7 @@ function Graph({
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
-    aggregate: `count(value,${traceMetric.name},${traceMetric.type},-)`,
+    aggregate: `count(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`,
     enabled: Boolean(traceMetric.name),
   });
 

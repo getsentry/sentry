@@ -676,6 +676,7 @@ SPAN_VIRTUAL_CONTEXTS = {
         filter_column="sentry.device.class",
         # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
         default_value="Unknown",
+        sort_column="sentry.device.class",
     ),
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,

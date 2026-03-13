@@ -12,11 +12,10 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -152,7 +151,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
 }
 
 const Title = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Subheader = styled('p')`
@@ -160,26 +159,26 @@ const Subheader = styled('p')`
   color: ${p => p.theme.tokens.content.promotion};
   font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Body = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ConsentHeader = styled('p')`
   font-weight: bold;
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ConsentInfo = styled('div')`
   background-color: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
+  padding-top: ${p => p.theme.space.lg};
+  padding-bottom: ${p => p.theme.space.lg};
 `;
 
 const ConsentLabelHeader = styled('div')`
@@ -193,7 +192,7 @@ const ConsentLabelBody = styled('p')`
 `;
 
 const StyledIconWrapper = styled('span')`
-  margin-left: ${space(3)};
+  margin-left: ${p => p.theme.space['2xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -209,7 +208,8 @@ const LearnMore = styled(ExternalLink)`
 `;
 
 const ImageHeader = styled('div')`
-  margin: -${space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+    0 -${p => p.theme.space['3xl']};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${missionControl});
   background-size: cover;
@@ -220,7 +220,8 @@ const ImageHeader = styled('div')`
   clip-path: polygon(100% 0%, 0% 0%, 0% 85%, 15% 75%, 80% 95%, 90% 85%, 100% 85%);
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)} -${space(3)} 0 -${space(3)};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['2xl']}
+      0 -${p => p.theme.space['2xl']};
   }
 `;
 
@@ -229,14 +230,14 @@ const Divider = styled('hr')`
   height: 1px;
   background: ${p => p.theme.colors.gray100};
   border: none;
-  margin-top: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.8);

@@ -22,8 +22,11 @@ from sentry.seer.autofix.prompts import (
     triage_prompt,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
+from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerRepoDefinition
+from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 
@@ -42,6 +45,25 @@ class AutofixStep(StrEnum):
     CODE_CHANGES = "code_changes"
     IMPACT_ASSESSMENT = "impact_assessment"
     TRIAGE = "triage"
+
+    @staticmethod
+    def from_autofix_stopping_point(
+        autofix_stopping_point: AutofixStoppingPoint,
+    ) -> AutofixStep:
+        match autofix_stopping_point:
+            case AutofixStoppingPoint.ROOT_CAUSE:
+                return AutofixStep.ROOT_CAUSE
+            case AutofixStoppingPoint.SOLUTION:
+                return AutofixStep.SOLUTION
+            case AutofixStoppingPoint.CODE_CHANGES:
+                return AutofixStep.CODE_CHANGES
+            case AutofixStoppingPoint.OPEN_PR:
+                # This depends on the last step being
+                # code changes and we should look for
+                # the PR elsewhere in the explorer results
+                return AutofixStep.CODE_CHANGES
+            case _:
+                raise ValueError(f"Unsupported AutofixStoppingPoint: {autofix_stopping_point}")
 
 
 class StepConfig:
@@ -130,6 +152,27 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
     return step_to_action_type[step][is_completed]
 
 
+def get_autofix_explorer_client(
+    group: Group,
+    intelligence_level: Literal["low", "medium", "high"] = "low",
+    enable_coding: bool = False,
+) -> SeerExplorerClient:
+    from sentry.seer.autofix.on_completion_hook import (
+        AutofixOnCompletionHook,  # nested to avoid circular import
+    )
+
+    return SeerExplorerClient(
+        organization=group.organization,
+        project=group.project,
+        user=None,  # No user personalization for autofix
+        category_key="autofix",
+        category_value=str(group.id),
+        intelligence_level=intelligence_level,
+        on_completion_hook=AutofixOnCompletionHook,
+        enable_coding=enable_coding,
+    )
+
+
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
@@ -149,19 +192,11 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
-    from sentry.seer.autofix.on_completion_hook import (
-        AutofixOnCompletionHook,  # nested to avoid circular import
-    )
 
     config = STEP_CONFIGS[step]
-    client = SeerExplorerClient(
-        organization=group.organization,
-        project=group.project,
-        user=None,  # No user personalization for autofix
-        category_key="autofix",
-        category_value=str(group.id),
+    client = get_autofix_explorer_client(
+        group,
         intelligence_level=intelligence_level,
-        on_completion_hook=AutofixOnCompletionHook,
         enable_coding=config.enable_coding,
     )
 
@@ -171,9 +206,9 @@ def trigger_autofix_explorer(
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = None
+        metadata = {"group_id": group.id}
         if stopping_point:
-            metadata = {"stopping_point": stopping_point.value, "group_id": group.id}
+            metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(
             prompt=prompt,
             prompt_metadata=prompt_metadata,
@@ -192,23 +227,48 @@ def trigger_autofix_explorer(
 
     group.update(seer_autofix_last_triggered=timezone.now())
 
-    # Send "started" webhook after we have the run_id
+    payload = {
+        "run_id": run_id,
+        "group_id": group.id,
+    }
+
     webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
+    event_name = webhook_action_type.value
+
+    event_type = f"seer.{event_name}"
+    try:
+        sentry_app_event_type = SentryAppEventType(event_type)
+        if SeerOperator.has_access(organization=group.organization):
+            process_autofix_updates.apply_async(
+                kwargs={
+                    "event_type": sentry_app_event_type,
+                    "event_payload": payload,
+                    "organization_id": group.organization.id,
+                }
+            )
+    except ValueError:
+        logger.exception(
+            "autofix.trigger.webhook_invalid_event_type",
+            extra={"event_type": event_type},
+        )
+
+    # Send "started" webhook after we have the run_id
     try:
         broadcast_webhooks_for_organization.delay(
             resource_name="seer",
-            event_name=webhook_action_type.value,
+            event_name=event_name,
             organization_id=group.organization.id,
-            payload={"run_id": run_id},
+            payload=payload,
         )
     except Exception:
         logger.exception(
-            "autofix.trigger_webhook_failed",
+            "autofix.trigger.webhook_failed",
             extra={
                 "organization_id": group.organization.id,
-                "webhook_event": webhook_action_type.value,
+                "webhook_event": event_name,
                 "step": step.value,
                 "run_id": run_id,
+                "group_id": group.id,
             },
         )
 
@@ -316,13 +376,11 @@ def trigger_coding_agent_handoff(
     """
     # Fetch project preferences for repos and auto_create_pr setting
     auto_create_pr = False
-    repos: list[str] = []
+    repo_definitions: list[SeerRepoDefinition] = []
     try:
         preference_response = get_project_seer_preferences(group.project_id)
         if preference_response and preference_response.preference:
-            repos = [
-                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
-            ]
+            repo_definitions = list(preference_response.preference.repositories)
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
@@ -335,7 +393,7 @@ def trigger_coding_agent_handoff(
             },
         )
 
-    if not repos:
+    if not repo_definitions:
         return {
             "successes": [],
             "failures": [{"error_message": "No repositories configured in project preferences"}],
@@ -359,7 +417,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repos,
+        repos=repo_definitions,
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

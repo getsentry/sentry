@@ -5,7 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import * as useMedia from 'sentry/utils/useMedia';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
@@ -70,7 +70,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the oldest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig,
@@ -92,7 +92,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('can navigate to the latest event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig,
@@ -121,7 +121,7 @@ describe('GroupEventCarousel', () => {
           pathname: `/organizations/org-slug/issues/${group.id}/events/latest/`,
         },
       };
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       const {router} = render(<GroupEventCarousel {...defaultProps} />, {
         initialRouterConfig: latestRouterConfig,
@@ -143,7 +143,7 @@ describe('GroupEventCarousel', () => {
     });
 
     it('will disable the dropdown if there is only one event', async () => {
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -152,7 +152,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is recommended, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -163,7 +163,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is latest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 
@@ -172,7 +172,7 @@ describe('GroupEventCarousel', () => {
 
     it('if user default is oldest, it will show it as default', async () => {
       ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
-      jest.spyOn(useMedia, 'default').mockReturnValue(true);
+      jest.spyOn(useMedia, 'useMedia').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />);
 

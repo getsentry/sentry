@@ -1,7 +1,8 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -10,7 +11,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -20,9 +21,11 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
@@ -43,9 +46,8 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -111,12 +113,135 @@ function LogsSearchBar({tracesItemSearchQueryBuilderProps}: LogsSearchBarProps) 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
-export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+interface LogsSearchSectionProps {
+  datePageFilterProps: DatePageFilterProps;
+  searchBarWidthOffset?: number;
+}
+
+const LogsSearchSection = memo(function LogsSearchSection({
+  datePageFilterProps,
+  searchBarWidthOffset,
+}: LogsSearchSectionProps) {
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const logsSearch = useQueryParamsSearch();
-  const fields = useQueryParamsFields();
+  const logsSearchQuery = logsSearch.formatString();
   const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
+  const [interval] = useChartInterval();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
+
+  // AI search is gated behind the gen-ai-search-agent-translate feature flag
+  const areAiFeaturesAllowed =
+    !organization?.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('gen-ai-search-agent-translate');
+
+  const saveAsItems = useSaveAsItems({
+    visualizes,
+    groupBys,
+    interval,
+    mode,
+    search: logsSearch,
+    sortBys: aggregateSortBys,
+  });
+
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useLogItemAttributes({}, 'string', HiddenLogSearchFields);
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useLogItemAttributes({}, 'number', HiddenLogSearchFields);
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+
+  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
+    useLogsSearchQueryBuilderProps({
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+    });
+
+  const supportedAggregates = useMemo<AggregationKey[]>(() => {
+    return [];
+  }, []);
+
+  return (
+    <SearchQueryBuilderProvider
+      enableAISearch={areAiFeaturesAllowed}
+      aiSearchBadgeType="alpha"
+      {...searchQueryBuilderProviderProps}
+    >
+      <ExploreBodySearch>
+        <Layout.Main width="full">
+          <LogsFilterSection>
+            <StyledPageFilterBar condensed>
+              <ProjectPageFilter />
+              <EnvironmentPageFilter />
+              <DatePageFilter
+                {...datePageFilterProps}
+                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
+              />
+            </StyledPageFilterBar>
+            <LogsSearchBar
+              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
+            />
+            {saveAsItems.length > 0 && (
+              <DropdownMenu
+                items={saveAsItems}
+                trigger={triggerProps => (
+                  <Button
+                    {...triggerProps}
+                    priority="default"
+                    aria-label={t('Save as')}
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+
+                      triggerProps.onClick?.(e);
+                    }}
+                  >
+                    {t('Save as')}
+                  </Button>
+                )}
+              />
+            )}
+          </LogsFilterSection>
+          <ExploreSchemaHintsSection>
+            <SchemaHintsList
+              supportedAggregates={supportedAggregates}
+              booleanTags={booleanAttributes}
+              numberTags={numberAttributes}
+              stringTags={stringAttributes}
+              isLoading={
+                numberAttributesLoading ||
+                stringAttributesLoading ||
+                booleanAttributesLoading
+              }
+              exploreQuery={logsSearchQuery}
+              source={SchemaHintsSources.LOGS}
+              searchBarWidthOffset={searchBarWidthOffset}
+            />
+          </ExploreSchemaHintsSection>
+        </Layout.Main>
+      </ExploreBodySearch>
+    </SearchQueryBuilderProvider>
+  );
+});
+
+export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
+  const pageFilters = usePageFilters();
+  const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
@@ -127,11 +252,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  // AI search is gated behind the gen-ai-search-agent-translate feature flag
-  const areAiFeaturesAllowed =
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('gen-ai-search-agent-translate');
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
     getMaxIngestDelayTimestamp()
   );
@@ -168,21 +288,21 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     limit: 50,
   });
 
-  const {
-    attributes: stringAttributes,
-    isLoading: stringAttributesLoading,
-    secondaryAliases: stringSecondaryAliases,
-  } = useTraceItemAttributes('string', HiddenLogSearchFields);
-  const {
-    attributes: numberAttributes,
-    isLoading: numberAttributesLoading,
-    secondaryAliases: numberSecondaryAliases,
-  } = useTraceItemAttributes('number', HiddenLogSearchFields);
-  const {
-    attributes: booleanAttributes,
-    isLoading: booleanAttributesLoading,
-    secondaryAliases: booleanSecondaryAliases,
-  } = useTraceItemAttributes('boolean', HiddenLogSearchFields);
+  const {attributes: stringAttributes} = useLogItemAttributes(
+    {},
+    'string',
+    HiddenLogSearchFields
+  );
+  const {attributes: numberAttributes} = useLogItemAttributes(
+    {},
+    'number',
+    HiddenLogSearchFields
+  );
+  const {attributes: booleanAttributes} = useLogItemAttributes(
+    {},
+    'boolean',
+    HiddenLogSearchFields
+  );
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -198,20 +318,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     sortBys,
     aggregateSortBys,
   });
-
-  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
-    useLogsSearchQueryBuilderProps({
-      booleanAttributes,
-      numberAttributes,
-      stringAttributes,
-      booleanSecondaryAliases,
-      numberSecondaryAliases,
-      stringSecondaryAliases,
-    });
-
-  const supportedAggregates = useMemo(() => {
-    return [];
-  }, []);
 
   const refreshTable = useCallback(async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
@@ -276,99 +382,55 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
     [setSidebarOpen, setMode]
   );
 
-  const saveAsItems = useSaveAsItems({
-    visualizes,
-    groupBys,
-    interval,
-    mode,
-    search: logsSearch,
-    sortBys: aggregateSortBys,
-  });
-
   /**
-   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 day.
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 hour.
    */
-  const canManuallyRefresh = useMemo(() => {
+  const {canManuallyRefresh, manualRefreshDisabledReason} = useMemo(() => {
     if (pageFilters.selection.datetime.period) {
       const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
       if (parsedPeriod <= 1) {
-        return true;
+        return {canManuallyRefresh: true, manualRefreshDisabledReason: null};
       }
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Manual refresh is only available for time ranges of 1 hour or less.'
+        ),
+      };
     }
 
     if (pageFilters.selection.datetime.start && pageFilters.selection.datetime.end) {
       const start = new Date(pageFilters.selection.datetime.start).getTime();
       const end = new Date(pageFilters.selection.datetime.end).getTime();
       const difference = end - start;
-      const oneDayInMs = HOUR;
-      return difference <= oneDayInMs;
+      const oneHourInMs = HOUR;
+      if (difference <= oneHourInMs) {
+        return {canManuallyRefresh: true, manualRefreshDisabledReason: null};
+      }
+      return {
+        canManuallyRefresh: false,
+        manualRefreshDisabledReason: t(
+          'Manual refresh is only available for time ranges of 1 hour or less.'
+        ),
+      };
     }
 
-    return false;
+    return {
+      canManuallyRefresh: false,
+      manualRefreshDisabledReason: t(
+        'Manual refresh is only available for time ranges of 1 hour or less.'
+      ),
+    };
   }, [pageFilters.selection.datetime]);
 
   const {infiniteLogsQueryResult} = useLogsPageData();
 
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={areAiFeaturesAllowed}
-      aiSearchBadgeType="alpha"
-      {...searchQueryBuilderProviderProps}
-    >
-      <ExploreBodySearch>
-        <Layout.Main width="full">
-          <LogsFilterSection>
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                {...datePageFilterProps}
-                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
-              />
-            </StyledPageFilterBar>
-            <LogsSearchBar
-              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
-            />
-            {saveAsItems.length > 0 && (
-              <DropdownMenu
-                items={saveAsItems}
-                trigger={triggerProps => (
-                  <Button
-                    {...triggerProps}
-                    priority="default"
-                    aria-label={t('Save as')}
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-
-                      triggerProps.onClick?.(e);
-                    }}
-                  >
-                    {t('Save as')}
-                  </Button>
-                )}
-              />
-            )}
-          </LogsFilterSection>
-          <ExploreSchemaHintsSection>
-            <SchemaHintsList
-              supportedAggregates={supportedAggregates}
-              booleanTags={booleanAttributes}
-              numberTags={numberAttributes}
-              stringTags={stringAttributes}
-              isLoading={
-                numberAttributesLoading ||
-                stringAttributesLoading ||
-                booleanAttributesLoading
-              }
-              exploreQuery={logsSearch.formatString()}
-              source={SchemaHintsSources.LOGS}
-              searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
-            />
-          </ExploreSchemaHintsSection>
-        </Layout.Main>
-      </ExploreBodySearch>
-
+    <Fragment>
+      <LogsSearchSection
+        datePageFilterProps={datePageFilterProps}
+        searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
+      />
       <ExploreBodyContent>
         <ExploreControlSection expanded={sidebarOpen}>
           {sidebarOpen ? <LogsToolbar /> : null}
@@ -414,13 +476,19 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             {tableTab === 'logs' && (
               <TableActionsContainer>
                 <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Button
-                  size="sm"
-                  icon={<IconRefresh />}
-                  disabled={canManuallyRefresh ? false : true}
-                  onClick={refreshTable}
-                  aria-label={t('Refresh')}
-                />
+                <Tooltip
+                  title={manualRefreshDisabledReason}
+                  disabled={!manualRefreshDisabledReason}
+                  skipWrapper
+                >
+                  <Button
+                    size="sm"
+                    icon={<IconRefresh />}
+                    disabled={!canManuallyRefresh}
+                    onClick={refreshTable}
+                    aria-label={t('Refresh')}
+                  />
+                </Tooltip>
                 <TableActionButton
                   mobile={
                     <Button
@@ -456,6 +524,6 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           </LogsItemContainer>
         </ExploreContentSection>
       </ExploreBodyContent>
-    </SearchQueryBuilderProvider>
+    </Fragment>
   );
 }

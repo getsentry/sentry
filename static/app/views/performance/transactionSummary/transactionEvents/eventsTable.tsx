@@ -10,18 +10,17 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Pagination from 'sentry/components/pagination';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toArray from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -34,11 +33,12 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -113,7 +113,7 @@ type Props = {
   }) => ReactNode;
 };
 
-export default function EventsTable({
+export function EventsTable({
   eventView,
   location,
   organization,
@@ -134,6 +134,7 @@ export default function EventsTable({
   referrer,
   renderTableHeader,
 }: Props) {
+  const navigate = useNavigate();
   const api = useApi({persistInFlight: true});
   const [lastFetchedCursor, setLastFetchedCursor] = useState('');
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
@@ -170,7 +171,7 @@ export default function EventsTable({
             newEnvs = newEnvs.filter(env => env !== value);
           }
 
-          browserHistory.push({
+          navigate({
             pathname: location.pathname,
             query: {
               ...location.query,
@@ -181,7 +182,7 @@ export default function EventsTable({
           return;
         }
 
-        browserHistory.push({
+        navigate({
           pathname: location.pathname,
           query: {
             ...location.query,
@@ -191,7 +192,7 @@ export default function EventsTable({
         });
       };
     },
-    [organization, eventView, excludedTags, applyEnvironmentFilter, location]
+    [organization, eventView, excludedTags, applyEnvironmentFilter, location, navigate]
   );
 
   const renderBodyCell = useCallback(
@@ -267,7 +268,7 @@ export default function EventsTable({
       }
 
       if (field === 'replayId') {
-        const target: LocationDescriptor | null = dataRow.replayId
+        const target = dataRow.replayId
           ? replayLinkGenerator(organization, dataRow, undefined)
           : null;
 
@@ -481,7 +482,7 @@ export default function EventsTable({
       const eventIds = tableData.data.map(value => value.id);
       const fetchOnlyMinidumps = !customColumns?.includes('attachments');
 
-      const queries: string = [
+      const queries = [
         'per_page=50',
         ...(fetchOnlyMinidumps ? ['types=event.minidump'] : []),
         ...eventIds.map(eventId => `event_id=${eventId}`),
@@ -570,7 +571,7 @@ export default function EventsTable({
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);
                 const cursor = parsedPageLinks?.next?.cursor;
-                const shouldFetchAttachments: boolean =
+                const shouldFetchAttachments =
                   organization.features.includes('event-attachments') &&
                   !!issueId &&
                   !!cursor &&

@@ -149,4 +149,4 @@ def test_update_project() -> None:
         attrs={"status": 99},
     )
     project = Project.objects.get(id=project.id)
-    assert project.external_id != 99
+    assert project.status != 99

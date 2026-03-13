@@ -6,7 +6,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Block} from 'sentry/views/seerExplorer/types';

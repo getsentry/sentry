@@ -5,10 +5,9 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
@@ -17,7 +16,7 @@ import {
 } from 'sentry/utils/onDemandMetrics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -27,9 +26,9 @@ import {
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/components/widgetOnDemandQueryWarning';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -39,7 +38,7 @@ interface WidgetBuilderQueryFilterBuilderProps {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
 }
 
-function WidgetBuilderQueryFilterBuilder({
+export function WidgetBuilderQueryFilterBuilder({
   onQueryConditionChange,
   validatedWidgetResponse,
 }: WidgetBuilderQueryFilterBuilderProps) {
@@ -288,8 +287,6 @@ function WidgetBuilderQueryFilterBuilder({
   );
 }
 
-export default WidgetBuilderQueryFilterBuilder;
-
 function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (
     <Button
@@ -308,8 +305,8 @@ function DeleteButton({onDelete}: {onDelete: () => void}) {
 const QueryFieldRowWrapper = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 

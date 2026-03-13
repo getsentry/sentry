@@ -6,7 +6,7 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -51,7 +51,7 @@ type ReadableQuery = {
 };
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
-export class SavedQueryQuery {
+class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
@@ -211,7 +211,13 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
+  const savedQueries = useMemo(
+    () =>
+      data
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data]
+  );
   return {data: savedQueries, isLoading, pageLinks, ...rest};
 }
 
@@ -243,7 +249,14 @@ export function useGetSavedQuery(id?: string) {
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 

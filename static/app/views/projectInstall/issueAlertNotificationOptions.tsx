@@ -2,19 +2,20 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
-import MessagingIntegrationAlertRule from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export const providerDetails = {
   slack: {
@@ -90,7 +91,12 @@ export function useCreateNotificationAction({
   const createProjectRules = useCreateProjectRules();
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {integrationType: 'messaging'}},
+    ],
     {staleTime: 0, refetchOnWindowFocus: true}
   );
 

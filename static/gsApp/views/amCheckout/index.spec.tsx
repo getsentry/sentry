@@ -7,7 +7,7 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
@@ -53,7 +53,7 @@ describe('Legacy Tier Checkout', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -187,7 +187,7 @@ describe('Default Tier Checkout', () => {
       body: BillingConfigFixture(PlanTier.AM3),
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

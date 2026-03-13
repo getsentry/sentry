@@ -248,6 +248,7 @@ export enum MetricsArtifactType {
   MAIN_ARTIFACT = 0,
   WATCH_ARTIFACT = 1,
   ANDROID_DYNAMIC_FEATURE = 2,
+  APP_CLIP_ARTIFACT = 3,
 }
 
 interface SizeMetricDiffItem {

@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByCellName, ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.projects.services.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.silo.base import SiloMode
@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 
 class ProjectKeyService(RpcService):
     key = "project_key"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> "RpcService":
@@ -35,14 +35,14 @@ class ProjectKeyService(RpcService):
     ) -> RpcProjectKey | None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_project_key_by_region(
         self, *, region_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         pass
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_project_keys_by_region(
         self,

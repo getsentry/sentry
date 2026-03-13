@@ -17,7 +17,7 @@ logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows"
     namespace=workflow_engine_tasks,
     processing_deadline_duration=60,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(timeouts=True)
 @log_context.root()

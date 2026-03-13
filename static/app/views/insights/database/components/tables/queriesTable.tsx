@@ -5,7 +5,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -16,7 +16,7 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -162,7 +162,7 @@ function renderBodyCell(
     return (
       <SpanDescriptionCell
         moduleName={ModuleName.DB}
-        description={row['sentry.normalized_description']}
+        description={row['sentry.normalized_description'] ?? ''}
         group={row['span.group']}
         projectId={row['project.id']}
         system={system}

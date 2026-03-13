@@ -16,19 +16,18 @@ import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import type {Subscription} from 'getsentry/types';
 
 const PLAN_CHOICES = [
@@ -42,7 +41,7 @@ const PERIOD_CHOICES = [
   ['annual', 'Annual'],
 ];
 
-function CustomerUpgradeRequest() {
+export function CustomerUpgradeRequest() {
   const {orgId} = useParams<{orgId: string}>();
   const {
     data: customer,
@@ -212,9 +211,7 @@ function CustomerUpgradeRequest() {
 
 const Divider = styled(PanelItem)`
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default CustomerUpgradeRequest;

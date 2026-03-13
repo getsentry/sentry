@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.incidents.endpoints.bases import ProjectAlertRuleEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_details import (
     fetch_alert_rule,
@@ -13,7 +13,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

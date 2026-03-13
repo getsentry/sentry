@@ -5,12 +5,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
-function SeerBadge({group}: {group: Group}) {
+export function SeerBadge({group}: {group: Group}) {
   const organization = useOrganization();
   const seerFixable = isIssueQuickFixable(group);
 
@@ -36,8 +35,6 @@ function SeerBadge({group}: {group: Group}) {
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default SeerBadge;

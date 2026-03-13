@@ -1,0 +1,250 @@
+import {Fragment, useMemo, type ReactNode} from 'react';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {
+  isCodeChangesArtifact,
+  isPullRequestArtifact,
+  isRootCauseArtifact,
+  isSolutionArtifact,
+  type AutofixSection,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
+import Placeholder from 'sentry/components/placeholder';
+import {IconBug} from 'sentry/icons/iconBug';
+import {IconCode} from 'sentry/icons/iconCode';
+import {IconList} from 'sentry/icons/iconList';
+import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {t, tn} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
+import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+interface AutofixCardProps {
+  section: AutofixSection;
+}
+
+export function RootCauseCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isRootCauseArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
+
+  return (
+    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+      <Text>{artifact.data?.one_line_description}</Text>
+      {artifact.data?.five_whys?.length ? (
+        <Fragment>
+          <ArtifactDetails>
+            <Text bold>{t('Why did this happen?')}</Text>
+            <Container as="ul" margin="0">
+              {artifact.data?.five_whys.map((why, index) => (
+                <li key={index}>
+                  <Text>{why}</Text>
+                </li>
+              ))}
+            </Container>
+          </ArtifactDetails>
+          {artifact.data?.reproduction_steps?.length ? (
+            <ArtifactDetails>
+              <Text bold>{t('Reproduction Steps')}</Text>
+              <Container as="ol" margin="0">
+                {artifact.data?.reproduction_steps.map((step, index) => (
+                  <li key={index}>
+                    <Text>{step}</Text>
+                  </li>
+                ))}
+              </Container>
+            </ArtifactDetails>
+          ) : null}
+        </Fragment>
+      ) : (
+        <Placeholder height="3rem" />
+      )}
+    </ArtifactCard>
+  );
+}
+
+export function SolutionCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isSolutionArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
+
+  return (
+    <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
+      <Text>{artifact?.data?.one_line_summary}</Text>
+      {artifact.data?.steps ? (
+        <ArtifactDetails>
+          <Text bold>{t('Steps to Resolve')}</Text>
+          <Container as="ol" margin="0">
+            {artifact.data?.steps.map((step, index) => (
+              <li key={index}>
+                <Flex direction="column">
+                  <Text>{step.title}</Text>
+                  <Text size="sm" variant="muted">
+                    {step.description}
+                  </Text>
+                </Flex>
+              </li>
+            ))}
+          </Container>
+        </ArtifactDetails>
+      ) : (
+        <Placeholder height="3rem" />
+      )}
+    </ArtifactCard>
+  );
+}
+
+export function CodeChangesCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isCodeChangesArtifact),
+    [section.artifacts]
+  );
+
+  const patchesForRepos = useMemo(() => {
+    const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
+    for (const patch of artifact ?? []) {
+      const existing = patchesByRepo.get(patch.repo_name) || [];
+      existing.push(patch);
+      patchesByRepo.set(patch.repo_name, existing);
+    }
+    return patchesByRepo;
+  }, [artifact]);
+
+  const summary = useMemo(() => {
+    const reposChanged = patchesForRepos.size;
+
+    const filesChanged = new Set<string>();
+
+    for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
+      for (const patch of patchesForRepo) {
+        filesChanged.add(`${repo}:${patch.patch.path}`);
+      }
+    }
+
+    if (reposChanged === 1) {
+      return tn(
+        '%s file changed in 1 repo',
+        '%s files changed in 1 repo',
+        filesChanged.size
+      );
+    }
+
+    return t('%s files changed in %s repos', filesChanged.size, reposChanged);
+  }, [patchesForRepos]);
+
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
+
+  return (
+    <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
+      <Text>{summary}</Text>
+      {patchesForRepos.size ? (
+        [...patchesForRepos.entries()].map(([repo, patches]) => {
+          return (
+            <ArtifactDetails key={repo}>
+              <Flex gap="lg">
+                <Text bold>{t('Repository:')}</Text>
+                <Text>{repo}</Text>
+              </Flex>
+              {patches.map((patch, index) => (
+                <FileDiffViewer
+                  key={index}
+                  patch={patch.patch}
+                  showBorder
+                  collapsible
+                  defaultExpanded={artifact.length <= 1}
+                />
+              ))}
+            </ArtifactDetails>
+          );
+        })
+      ) : (
+        <Placeholder height="3rem" />
+      )}
+    </ArtifactCard>
+  );
+}
+
+export function PullRequestsCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isPullRequestArtifact),
+    [section.artifacts]
+  );
+
+  if (!artifact) {
+    return null; // TODO
+  }
+
+  return (
+    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
+      {artifact.map(pullRequest => {
+        if (!pullRequest.pr_url || !pullRequest.pr_number) {
+          return null;
+        }
+
+        return (
+          <LinkButton
+            key={pullRequest.repo_name}
+            external
+            href={pullRequest.pr_url}
+            priority="primary"
+          >
+            {t('View PR#%s in %s', pullRequest.pr_number, pullRequest.repo_name)}
+          </LinkButton>
+        );
+      })}
+    </ArtifactCard>
+  );
+}
+
+interface ArtifactCardProps {
+  children: ReactNode;
+  icon: ReactNode;
+  title: ReactNode;
+}
+
+function ArtifactCard({children, icon, title}: ArtifactCardProps) {
+  return (
+    <Container border="primary" radius="md" padding="md" background="primary">
+      <Disclosure defaultExpanded>
+        <Disclosure.Title>
+          <Flex gap="md" align="center">
+            {icon}
+            <Text bold>{title}</Text>
+          </Flex>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Flex direction="column" gap="md">
+            {children}
+          </Flex>
+        </Disclosure.Content>
+      </Disclosure>
+    </Container>
+  );
+}
+
+interface ArtifactDetailsProps extends FlexProps {
+  children: ReactNode;
+}
+
+function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
+  return (
+    <Flex direction="column" borderTop="primary" gap="md" paddingTop="md" {...flexProps}>
+      {children}
+    </Flex>
+  );
+}

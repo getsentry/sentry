@@ -30,7 +30,7 @@ from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.silo.safety import unguarded_write
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 from sentry.types.token import AuthTokenType
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -120,6 +120,12 @@ class PlaintextSecretAlreadyRead(Exception):
 
 class NotSupported(Exception):
     """the method you called is not supported by this token type"""
+
+    pass
+
+
+class TokenRefreshError(Exception):
+    """the token refresh could not be completed (e.g. concurrent refresh or stale token)"""
 
     pass
 
@@ -323,7 +329,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return super().update(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
-        return list(find_all_region_names())
+        return list(find_all_cell_names())
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token
@@ -348,6 +354,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             apitoken_id=identifier,
             region_name=region_name,
         )
+
+    @classmethod
+    def get_lock_key(cls, token_id: int) -> str:
+        return f"api_token:{token_id}"
 
     @classmethod
     def from_grant(
@@ -407,11 +417,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
                 # Validate redirect_uri binding (RFC 6749 §4.1.3)
                 # Only validate if redirect_uri was provided in the token request (not None)
-                # This maintains backward compatibility with direct from_grant() calls
+                # This maintains backward compatibility with direct from_grant() calls.
+                # Compare normalized forms so that cosmetic differences (trailing
+                # slash, percent-encoding case) don't cause spurious mismatches.
+                normalize = grant.application.normalize_url
                 if (
                     redirect_uri is not None
                     and grant.redirect_uri
-                    and grant.redirect_uri != redirect_uri
+                    and normalize(grant.redirect_uri) != normalize(redirect_uri)
                 ):
                     # RFC 6749 §10.5: Authorization codes are single-use and must be invalidated
                     # on failed exchange attempts to prevent authorization code replay attacks
@@ -472,13 +485,34 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         if self.token_type == AuthTokenType.USER:
             raise NotSupported("User auth tokens do not support refreshing the token")
 
-        if expires_at is None:
-            expires_at = timezone.now() + DEFAULT_EXPIRATION
+        lock = locks.get(
+            self.get_lock_key(self.id),
+            duration=10,
+            name="api_token_refresh",
+        )
 
-        new_token = generate_token(token_type=self.token_type)
-        new_refresh_token = generate_token(token_type=self.token_type)
+        try:
+            with lock.acquire():
+                # Re-fetch inside lock to prevent race condition.
+                # If another request already refreshed this token, the refresh_token
+                # will have changed and this request should fail.
+                try:
+                    current = ApiToken.objects.get(id=self.id)
+                except ApiToken.DoesNotExist:
+                    raise TokenRefreshError("token no longer exists")
 
-        self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+                if current.refresh_token != self.refresh_token:
+                    raise TokenRefreshError("refresh token has already been rotated")
+
+                if expires_at is None:
+                    expires_at = timezone.now() + DEFAULT_EXPIRATION
+
+                new_token = generate_token(token_type=self.token_type)
+                new_refresh_token = generate_token(token_type=self.token_type)
+
+                self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+        except UnableToAcquireLock:
+            raise TokenRefreshError("token refresh already in progress")
 
     def get_relocation_scope(self) -> RelocationScope:
         if self.application_id is not None:

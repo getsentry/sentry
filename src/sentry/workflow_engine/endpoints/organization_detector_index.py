@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
@@ -138,12 +138,13 @@ def get_detector_validator(
             "organization": project.organization,
             "request": request,
             "access": request.access,
+            "user": request.user,
         },
         data=request.data,
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     publish_status = {

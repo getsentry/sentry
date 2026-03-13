@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer2D} from 'sentry/utils/profiling/renderers/UIFramesRenderer2D';
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
-import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
+import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -85,7 +85,7 @@ export function FlamegraphUIFrames({
     return renderer;
   }, [uiFramesCanvasRef, uiFrames, flamegraphTheme]);
 
-  const hoveredNode: UIFrameNode[] | null = useMemo(() => {
+  const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !uiFramesRenderer || !uiFramesView?.configSpace) {
       return null;
     }

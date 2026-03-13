@@ -28,11 +28,7 @@ interface Props {
   queryReferrer: ReplayListQueryReferrer;
 }
 
-export default function useReplayListQueryKey({
-  options,
-  organization,
-  queryReferrer,
-}: Props) {
+export function useReplayListQueryKey({options, organization, queryReferrer}: Props) {
   return useMemo<ApiQueryKey>(() => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/replays/', {
       path: {organizationIdOrSlug: organization.slug},

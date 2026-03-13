@@ -3,17 +3,16 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
 import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
-import PlanMigrationTable from './planMigrationTable';
+import {PlanMigrationTable} from './planMigrationTable';
 
 type Props = {
   migration: undefined | PlanMigration;
@@ -39,7 +38,7 @@ function getMigrationDate(migration: PlanMigration, subscription: Subscription) 
   return moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
 }
 
-function PlanMigrationActive({subscription, migration}: Props) {
+export function PlanMigrationActive({subscription, migration}: Props) {
   if (!migration?.cohort?.nextPlan) {
     return null;
   }
@@ -112,17 +111,15 @@ function PlanMigrationActive({subscription, migration}: Props) {
   );
 }
 
-export default PlanMigrationActive;
-
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h6 {
     font-weight: 400;
     font-size: ${p => p.theme.font.size.lg};
-    margin-bottom: ${space(0.75)};
+    margin-bottom: ${p => p.theme.space.sm};
   }
 
   table {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   p,
@@ -139,13 +136,13 @@ const MigrationDetailsWithFooter = styled('div')`
 
 const MigrationDetails = styled('div')`
   display: grid;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
 `;
 
 const Feature = styled('span')`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   align-content: center;
 `;

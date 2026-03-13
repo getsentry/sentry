@@ -34,7 +34,7 @@ class TestHookService(TestCase):
     def test_creates_service_hook(self) -> None:
         self.call_create_hook()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id,
                 actor_id=self.sentry_app.proxy_user.id,
@@ -75,7 +75,7 @@ class TestHookService(TestCase):
         installation2 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook1 = ServiceHook.objects.get(
                 installation_id=installation1.id, application_id=self.sentry_app.application.id
             )
@@ -98,7 +98,7 @@ class TestHookService(TestCase):
         assert len(result) == 2
 
         # Verify hooks were updated in database
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             updated_hook1 = ServiceHook.objects.get(id=hook1.id)
             updated_hook2 = ServiceHook.objects.get(id=hook2.id)
 
@@ -113,7 +113,7 @@ class TestHookService(TestCase):
 
     def test_update_webhook_and_events_with_many_installations(self) -> None:
         # Create 1000 webhooks
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hooks_to_create = []
             for _ in range(10000):
                 # these hooks arent accurate to actual installation hooks
@@ -144,7 +144,7 @@ class TestHookService(TestCase):
             events=self.sentry_app.events,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert len(result) == 10000
             assert (
                 ServiceHook.objects.filter(
@@ -188,7 +188,7 @@ class TestHookService(TestCase):
         assert result == []
 
         # Verify hooks were deleted
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHook.objects.filter(id=hook1.id).exists()
             assert not ServiceHook.objects.filter(id=hook2.id).exists()
 
@@ -219,7 +219,7 @@ class TestHookService(TestCase):
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -238,7 +238,7 @@ class TestHookService(TestCase):
         assert len(result) == 1
 
         # Verify hook was created in database
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -250,7 +250,7 @@ class TestHookService(TestCase):
         installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -269,23 +269,24 @@ class TestHookService(TestCase):
         # Should return one hook
         assert len(result) == 1
 
-        # Verify hook was updated (same ID, new values)
-        with assume_test_silo_mode(SiloMode.REGION):
-            updated_hook = ServiceHook.objects.get(id=hook.id)
+        # Verify hook was recreated with correct values (ID may differ
+        # because the implementation deletes and recreates for idempotency)
+        with assume_test_silo_mode(SiloMode.CELL):
+            hooks = ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            )
+            assert hooks.count() == 1
+            updated_hook = hooks.first()
+            assert updated_hook is not None
             assert updated_hook.url == self.sentry_app.webhook_url
             assert updated_hook.events == self.sentry_app.events
-
-            # Should still be only one hook for this installation
-            hooks_count = ServiceHook.objects.filter(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
-            ).count()
-            assert hooks_count == 1
 
     def test_create_or_update_webhook_and_events_for_installation_delete(self) -> None:
         installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -303,7 +304,7 @@ class TestHookService(TestCase):
         assert result == []
 
         # Verify hook was deleted
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHook.objects.filter(id=existing_hook.id).exists()
 
     def test_create_or_update_webhook_and_events_for_installation_delete_nonexistent(self) -> None:
@@ -311,7 +312,7 @@ class TestHookService(TestCase):
         installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -328,6 +329,108 @@ class TestHookService(TestCase):
 
         # Should return empty list and not raise exception
         assert result == []
+
+    def test_create_or_update_webhook_and_events_for_installation_with_duplicate_hooks(
+        self,
+    ) -> None:
+        """When duplicate ServiceHooks exist for the same installation, the function
+        should clean them up and create a single new hook."""
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Manually create a duplicate hook to simulate the concurrency bug
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 1
+            )
+            ServiceHook.objects.create(
+                application_id=self.sentry_app.application.id,
+                actor_id=installation.id,
+                installation_id=installation.id,
+                organization_id=self.org.id,
+                url="https://duplicate.example.com",
+                events=["error.created"],
+            )
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 2
+            )
+
+        # Call the function -- should succeed despite duplicates
+        result = hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
+            organization_id=self.org.id,
+            webhook_url=self.sentry_app.webhook_url,
+            events=self.sentry_app.events,
+            application_id=self.sentry_app.application.id,
+        )
+
+        assert len(result) == 1
+
+        # Verify exactly one hook exists in the database with correct values
+        with assume_test_silo_mode(SiloMode.CELL):
+            hooks = ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            )
+            assert hooks.count() == 1
+            hook = hooks.first()
+            assert hook is not None
+            assert hook.url == self.sentry_app.webhook_url
+            assert hook.events == self.sentry_app.events
+
+    def test_create_or_update_webhook_and_events_for_installation_delete_duplicates(
+        self,
+    ) -> None:
+        """When duplicate ServiceHooks exist and webhook_url is None, the function
+        should delete all of them without raising MultipleObjectsReturned."""
+        installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        # Manually create a duplicate hook to simulate the concurrency bug
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceHook.objects.create(
+                application_id=self.sentry_app.application.id,
+                actor_id=installation.id,
+                installation_id=installation.id,
+                organization_id=self.org.id,
+                url="https://duplicate.example.com",
+                events=["error.created"],
+            )
+            assert (
+                ServiceHook.objects.filter(
+                    installation_id=installation.id,
+                    application_id=self.sentry_app.application.id,
+                ).count()
+                == 2
+            )
+
+        # Call with webhook_url=None -- should delete all duplicates
+        result = hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
+            organization_id=self.org.id,
+            webhook_url=None,
+            events=["issue"],
+            application_id=self.sentry_app.application.id,
+        )
+
+        assert result == []
+
+        # Verify all hooks are deleted
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ServiceHook.objects.filter(
+                installation_id=installation.id,
+                application_id=self.sentry_app.application.id,
+            ).exists()
 
 
 @all_silo_test(regions=create_test_regions("us", "de"))
@@ -351,7 +454,7 @@ class TestHookServiceBulkCreate(TestCase):
         )
 
         # Delete existing hooks to test bulk creation
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
 
         # Prepare installation-organization pairs
@@ -373,7 +476,7 @@ class TestHookServiceBulkCreate(TestCase):
         )
 
         # Verify hooks were created in database
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hooks = ServiceHook.objects.filter(
                 application_id=self.sentry_app.application.id
             ).order_by("id")
@@ -399,7 +502,7 @@ class TestHookServiceBulkCreate(TestCase):
         )
 
         # Delete existing hook
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
 
         # Call bulk create with expandable events
@@ -418,7 +521,7 @@ class TestHookServiceBulkCreate(TestCase):
         assert len(result) == 1
 
         # Verify events were expanded
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=installation.id)
             expected_events = expand_events(["issue", "comment"])
             assert hook.events == expected_events
@@ -437,7 +540,7 @@ class TestHookServiceBulkCreate(TestCase):
         assert result == []
 
         # Verify no hooks were created
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hooks_count = ServiceHook.objects.filter(
                 application_id=self.sentry_app.application.id
             ).count()
@@ -450,7 +553,7 @@ class TestHookServiceBulkCreate(TestCase):
         )
 
         # Verify hook already exists from installation creation
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
                 installation_id=installation.id, application_id=self.sentry_app.application.id
             )
@@ -474,7 +577,7 @@ class TestHookServiceBulkCreate(TestCase):
         assert result == []
 
         # Verify no duplicate hooks were created
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             final_count = ServiceHook.objects.filter(
                 application_id=self.sentry_app.application.id
             ).count()
@@ -503,7 +606,7 @@ class TestHookServiceBulkCreate(TestCase):
             )
 
         # Delete existing hooks to test clean bulk creation
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             ServiceHook.objects.filter(
                 installation_id__in=[pair.installation_id for pair in installation_org_pairs]
             ).delete()
@@ -521,7 +624,7 @@ class TestHookServiceBulkCreate(TestCase):
         assert len(result) == 5
 
         # Verify all hooks were created correctly
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             for pair in installation_org_pairs:
                 installation_id = pair.installation_id
                 org_id = pair.organization_id

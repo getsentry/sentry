@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
@@ -82,11 +82,15 @@ from sentry.uptime.types import (
 )
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
+
+# Valid sort keys for combined rules endpoint
+VALID_COMBINED_RULE_SORT_KEYS = {"date_added", "name", "incident_status", "date_triggered"}
 
 
 def create_metric_alert(
@@ -192,10 +196,8 @@ class AlertRuleFetchMixin(Endpoint):
 
         if features.has("organizations:workflow-engine-rule-serializers", organization):
             detectors = Detector.objects.filter(
-                alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules]
+                alertruledetector__alert_rule_id__in=alert_rules.values_list("id", flat=True)
             )
-            if not len(detectors):
-                return Response(status=status.HTTP_404_NOT_FOUND)
             response = self.paginate(
                 request,
                 queryset=detectors,
@@ -220,7 +222,7 @@ class AlertRuleFetchMixin(Endpoint):
         return response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
@@ -261,7 +263,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -395,6 +397,12 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         is_asc = request.GET.get("asc", False) == "1"
         sort_key = request.GET.getlist("sort", ["date_added"])
+        invalid_keys = [key for key in sort_key if key not in VALID_COMBINED_RULE_SORT_KEYS]
+        if invalid_keys:
+            return Response(
+                {"detail": f"Invalid sort key(s): {', '.join(invalid_keys)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         rule_sort_key = [
             "label" if x == "name" else x for x in sort_key
         ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
@@ -600,7 +608,7 @@ Metric alert rule trigger actions follow the following structure:
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -819,6 +827,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             alert_count = alert_count.filter(projects__isnull=False).distinct().count()
 
             if alert_limit >= 0 and alert_count >= alert_limit:
+                log_alerting_quota_hit(
+                    object_type="metric_alert",
+                    organization=organization,
+                    actor=request.user if request.user.is_authenticated else None,
+                )
                 raise ValidationError(
                     f"You may not exceed {alert_limit} metric alerts on your current plan."
                 )

@@ -8,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {openModal} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface MissingDsymModalProps {
   binaries: string[];
@@ -58,14 +57,14 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
 const BinaryList = styled(Stack)`
   max-height: 400px;
   overflow-y: auto;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const BinaryItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
 

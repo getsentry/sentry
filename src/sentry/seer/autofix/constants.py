@@ -41,6 +41,15 @@ class AutofixStatus(str, enum.Enum):
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
+class AutofixReferrer(enum.StrEnum):
+    GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
+    ISSUE_SUMMARY_FIXABILITY = "issue_summary.fixability"
+    ISSUE_SUMMARY_ALERT_FIXABILITY = "issue_summary.alert_fixability"
+    ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
+    SLACK = "slack"
+    UNKNOWN = "unknown"
+
+
 class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     ALERT = "alert"

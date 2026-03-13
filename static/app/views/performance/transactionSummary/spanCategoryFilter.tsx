@@ -6,11 +6,10 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,7 +19,7 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {SpanFields} from 'sentry/views/insights/types';
 
 type Props = {
-  serviceEntrySpanName: string;
+  segmentSpanName: string;
 };
 
 const LIMIT = 10;
@@ -29,7 +28,7 @@ const LIMIT = 10;
 // for now, it will only allow categories that match the hardcoded list of span ops that were supported in the previous iteration
 const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
-export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
+export function SpanCategoryFilter({segmentSpanName}: Props) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -42,7 +41,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const theme = useTheme();
 
   const query = new MutableSearch('');
-  query.addFilterValue('transaction', serviceEntrySpanName);
+  query.addFilterValue('transaction', segmentSpanName);
 
   const {data, isError} = useSpans(
     {
@@ -113,8 +112,8 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space.md};
+  height: ${p => p.theme.space.md};
   border-radius: 100%;
   background-color: ${p => p.backgroundColor};
 `;

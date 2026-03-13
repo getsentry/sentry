@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {loadStripe, type Stripe} from '@stripe/stripe-js';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 /**
  * Custom hook to load and manage a Stripe instance

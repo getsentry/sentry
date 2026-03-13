@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -20,7 +20,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   Table,
@@ -34,7 +34,7 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -102,9 +102,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
-  const {tags: booleanTags} = useTraceItemTags('boolean');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 

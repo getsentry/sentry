@@ -23,11 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.typings.notification_action import (
-    ActionTarget,
-    ActionType,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
     MockActionValidatorTranslator,
@@ -338,6 +334,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"query": "Chicago"}
         )
         assert len(response3.data) == 0
+
+    def test_query_invalid_key(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"query": "invalid_key:value"}, status_code=400
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: invalid_key" in str(response.data["query"])
 
     def test_filter_by_project(self) -> None:
         self.create_detector_workflow(
@@ -711,7 +714,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -748,7 +750,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -792,7 +793,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },

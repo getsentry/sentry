@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
@@ -16,11 +15,11 @@ import {
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 import {initDemoMode} from 'sentry/utils/demoMode/utils';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const DEMO_HEADER_HEIGHT_PX = 70;
 
-export default function DemoHeader() {
+export function DemoHeader() {
   const api = useApi();
 
   useEffect(() => {
@@ -93,8 +92,8 @@ const Wrapper = styled('div')`
   justify-content: space-between;
 
   align-items: center;
-  padding-right: ${space(3)};
-  gap: ${space(4)};
+  padding-right: ${p => p.theme.space['2xl']};
+  gap: ${p => p.theme.space['3xl']};
   background-color: ${p => p.theme.tokens.background.primary};
   white-space: nowrap;
 

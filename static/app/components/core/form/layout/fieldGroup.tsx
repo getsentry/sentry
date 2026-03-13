@@ -2,19 +2,19 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
 export function FieldGroup({
   title,
   children,
 }: {
-  title: React.ReactNode;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  title?: React.ReactNode;
 }) {
   return (
     <Panel>
-      <PanelHeader>{title}</PanelHeader>
+      {title ? <PanelHeader>{title}</PanelHeader> : null}
       <PanelBody>{children}</PanelBody>
     </Panel>
   );

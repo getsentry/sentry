@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledMemberView', () => {
   it('click triggers request member', async () => {
@@ -15,7 +15,7 @@ describe('DisabledMemberView', () => {
     SubscriptionStore.set(organization.slug, sub);
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/org-slug/`,
+      url: `/customers/org-slug/`,
       body: sub,
     });
 

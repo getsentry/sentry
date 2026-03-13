@@ -27,7 +27,7 @@ interface FileChangeApprovalBlockProps {
   onMouseLeave?: () => void;
 }
 
-function FileChangeApprovalBlock({
+export function FileChangeApprovalBlock({
   currentIndex,
   isFocused,
   isLast,
@@ -37,7 +37,7 @@ function FileChangeApprovalBlock({
   pendingInput,
 }: FileChangeApprovalBlockProps) {
   const data = useMemo(() => {
-    if (!pendingInput || pendingInput.input_type !== 'file_change_approval') {
+    if (pendingInput?.input_type !== 'file_change_approval') {
       return null;
     }
     return pendingInput.data as FileChangeApprovalData;
@@ -90,8 +90,6 @@ function FileChangeApprovalBlock({
     </Block>
   );
 }
-
-export default FileChangeApprovalBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;

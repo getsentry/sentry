@@ -1,13 +1,13 @@
 import {useMemo, type ReactNode} from 'react';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * This returns the default max pickable days for the current organization.
@@ -65,7 +65,7 @@ export function getBestMaxPickableDays(
   dataCategories: readonly [DataCategory, ...DataCategory[]],
   getMaxPickableDaysFor: (dataCategory: DataCategory) => MaxPickableDaysOptions
 ) {
-  let maxPickableDays: MaxPickableDaysOptions = getMaxPickableDaysFor(dataCategories[0]);
+  let maxPickableDays = getMaxPickableDaysFor(dataCategories[0]);
 
   for (let i = 1; i < dataCategories.length; i++) {
     const dataCategory = dataCategories[i]!;

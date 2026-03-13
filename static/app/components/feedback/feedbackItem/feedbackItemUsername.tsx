@@ -11,8 +11,8 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackIssue: FeedbackIssue;
@@ -20,7 +20,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
+export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
@@ -32,8 +32,6 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
   const summary = feedbackIssue.metadata.summary;
-  const isAiSummaryEnabled =
-    areAiFeaturesAllowed && organization.features.includes('user-feedback-ai-titles');
 
   const userNodeId = useId();
 
@@ -53,7 +51,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   }
 
   const emailSubject =
-    isAiSummaryEnabled && summary
+    areAiFeaturesAllowed && summary
       ? `Following up from ${organization.name}: ${summary}`
       : `Following up from ${organization.name}`;
 
@@ -67,7 +65,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   return (
     <Flex align="center" gap="md" className={className} style={style}>
       <Flex align="center" wrap="wrap" gap="xs">
-        {isAiSummaryEnabled && summary && (
+        {areAiFeaturesAllowed && summary && (
           <Fragment>
             <AiPrivacyTooltip>
               <strong>{summary}</strong>

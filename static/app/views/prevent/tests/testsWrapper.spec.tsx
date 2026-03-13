@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TestAnalyticsPageWrapper from 'sentry/views/prevent/tests/testsWrapper';
+import {TestAnalyticsPageWrapper} from 'sentry/views/prevent/tests/testsWrapper';
 
 const COVERAGE_FEATURE = 'prevent-test-analytics';
 

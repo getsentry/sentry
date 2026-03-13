@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pydantic
 
-from sentry.hybridcloud.rpc.resolvers import ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class RegionCachingService(RpcService):
     key = "region_caching"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -28,7 +28,7 @@ class RegionCachingService(RpcService):
 
         return LocalRegionCachingService()
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def clear_key(self, *, region_name: str, key: str) -> int:
         pass

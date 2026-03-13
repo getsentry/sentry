@@ -18,11 +18,12 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
@@ -202,7 +203,7 @@ class Identity(Model):
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
-    data = models.JSONField(default=dict)
+    data = EncryptedJSONField(default=dict)
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField(models.TextField(), default=list)
     date_verified = models.DateTimeField(default=timezone.now)
@@ -218,14 +219,14 @@ class Identity(Model):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         with outbox_context(transaction.atomic(router.db_for_write(Identity))):
             # Fan out to all regions to ensure HybridCloudForeignKey cascade works even without org memberships
-            region_names = find_all_region_names()
+            region_names = find_all_cell_names()
             for region_name in region_names:
                 ControlOutbox(
                     shard_scope=OutboxScope.USER_SCOPE,
                     shard_identifier=self.user_id,
                     object_identifier=self.id,
                     category=OutboxCategory.IDENTITY_UPDATE,
-                    region_name=region_name,
+                    cell_name=region_name,
                 ).save()
             return super().delete(*args, **kwargs)
 

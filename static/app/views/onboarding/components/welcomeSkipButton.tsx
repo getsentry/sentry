@@ -4,7 +4,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ONBOARDING_WELCOME_SCREEN_SOURCE} from 'sentry/views/onboarding/consts';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 

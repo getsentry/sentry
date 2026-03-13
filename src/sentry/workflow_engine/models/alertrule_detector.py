@@ -5,11 +5,11 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
 )
 
 
-@region_silo_model
+@cell_silo_model
 class AlertRuleDetector(DefaultFieldsModel):
     """
     A lookup model for rules and detectors.

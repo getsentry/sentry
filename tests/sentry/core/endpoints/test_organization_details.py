@@ -16,7 +16,7 @@ from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
@@ -83,7 +83,10 @@ class MockAccess:
         return False
 
 
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+regions = create_test_regions("us", "de")
+
+
+@region_silo_test(regions=regions, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -97,7 +100,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -125,7 +128,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
@@ -625,7 +628,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
         assert (
             resp.data["avatar"]["avatarUrl"]
-            == generate_region_url() + "/organization-avatar/abc123/"
+            == generate_locality_url() + "/organization-avatar/abc123/"
         )
 
     def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self) -> None:
@@ -670,6 +673,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
+@region_silo_test(regions=regions)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1216,7 +1220,20 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_org_mapping_already_taken(self) -> None:
         self.create_organization(slug="taken")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        assert res.json()["slug"] == ['The slug "taken" is already in use.']
+
+    def test_org_mapping_already_taken_org_in_other_region(self) -> None:
+        de_region = regions[1]
+        assert de_region.name == "de"
+
+        # Create an org, mapping, and slug reservation. For us to reach the RPC conflict,
+        # we need to not have the org record in our database.
+        conflict = self.create_organization(slug="taken", region=de_region)
+        Organization.objects.filter(id=conflict.id).delete()
+
+        res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+        assert res.json()["slug"] == ['The slug "taken" is in use by another organization.']
 
     def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
@@ -1477,7 +1494,22 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is True
 
-    @with_feature("organizations:granular-replay-permissions")
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_disabled_when_flag_enabled(self) -> None:
+        data = {"enableSeerCoding": False}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is not False
+
+    @with_feature("organizations:seer-disable-coding-setting")
+    def test_enable_seer_coding_cannot_be_enabled_when_flag_enabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        data = {"enableSeerCoding": True}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert self.organization.get_option("sentry:enable_seer_coding") is False
+
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
@@ -1495,7 +1527,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         assert "to True" in log.data["hasGranularReplayPermissions"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_unset(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", True)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1515,7 +1546,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert "to False" in log.data["hasGranularReplayPermissions"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_no_spurious_audit_log(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", True)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1529,7 +1559,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             audit_logs = AuditLogEntry.objects.filter(organization_id=self.organization.id)
             assert audit_logs.count() == 0
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_change_logs_old_value(self) -> None:
         self.organization.update_option("sentry:granular-replay-permissions", False)
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -1548,11 +1577,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         assert log.data["hasGranularReplayPermissions"] == "from False to True"
 
-    def test_granular_replay_permissions_flag_requires_feature(self) -> None:
-        data = {"hasGranularReplayPermissions": True}
-        self.get_error_response(self.organization.slug, **data, status_code=404)
-
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_flag_requires_admin_scope(self) -> None:
         member_user = self.create_user()
         self.create_member(
@@ -1564,7 +1588,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         response = self.get_error_response(self.organization.slug, **data, status_code=403)
         assert response.status_code == 403
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_add(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1591,7 +1614,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "added 2 user(s)" in log.data["replayAccessMembers"]
         assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_remove(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1620,7 +1642,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 1 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_add_and_remove(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1652,7 +1673,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 2 user(s)" in log.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_clear_all(self) -> None:
         member1 = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1675,14 +1695,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "removed 1 user(s)" in log.data["replayAccessMembers"]
         assert "total: 0 user(s)" in log.data["replayAccessMembers"]
 
-    def test_replay_access_members_requires_feature(self) -> None:
-        member1 = self.create_member(
-            organization=self.organization, user=self.create_user(), role="member"
-        )
-        data = {"replayAccessMembers": [member1.user_id]}
-        self.get_error_response(self.organization.slug, **data, status_code=404)
-
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_requires_admin_scope(self) -> None:
         member_user = self.create_user()
         self.create_member(
@@ -1696,7 +1708,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"replayAccessMembers": [other_member.user_id]}
         self.get_error_response(self.organization.slug, **data, status_code=403)
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_invalid_user_ids(self) -> None:
         nonexistent_id = 999999999
         data = {"replayAccessMembers": [nonexistent_id]}
@@ -1704,7 +1715,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert str(nonexistent_id) in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_from_other_organization(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         other_org_member = self.create_member(
@@ -1715,7 +1725,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert str(other_org_member.user_id) in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_replay_access_members_mixed_valid_and_invalid(self) -> None:
         valid_member = self.create_member(
             organization=self.organization, user=self.create_user(), role="member"
@@ -1732,7 +1741,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         ).count()
         assert access_count == 0
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_owner_can_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1746,7 +1754,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["hasGranularReplayPermissions"] is True
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_manager_can_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1762,7 +1769,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["hasGranularReplayPermissions"] is True
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_admin_cannot_edit(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1775,7 +1781,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             org.slug, hasGranularReplayPermissions=True, replayAccessMembers=[member.user_id]
         )
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_member_cannot_edit_boolean(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1785,7 +1790,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         self.get_error_response(org.slug, hasGranularReplayPermissions=True, status_code=403)
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_member_cannot_edit_list(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1798,7 +1802,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             org.slug, replayAccessMembers=[other_member.user_id], status_code=403
         )
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_owner(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1814,7 +1817,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_manager(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1832,7 +1834,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_admin(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1850,7 +1851,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert member.user_id in response.data["replayAccessMembers"]
 
-    @with_feature("organizations:granular-replay-permissions")
     def test_granular_replay_permissions_retrieve_as_member(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
@@ -1868,10 +1868,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "replayAccessMembers" in response.data
         assert other_member.user_id in response.data["replayAccessMembers"]
 
-    def test_granular_replay_permissions_retrieve_hidden_without_feature(self) -> None:
+    def test_granular_replay_permissions_retrieve_without_option(self) -> None:
         owner = self.create_user()
         org = self.create_organization(owner=owner)
-        org.update_option("sentry:granular-replay-permissions", True)
         self.login_as(owner)
 
         response = self.get_success_response(org.slug, method="get")

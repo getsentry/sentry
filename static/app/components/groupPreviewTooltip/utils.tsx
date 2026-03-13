@@ -3,8 +3,8 @@ import {useCallback, useState} from 'react';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTimeout from 'sentry/utils/useTimeout';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {getEventSearchFromIssueQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {

@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -100,7 +100,7 @@ export function useGetTraceItemAttributeKeys({
   return getTraceItemAttributeKeys;
 }
 
-export function getTraceItemTagCollection(
+function getTraceItemTagCollection(
   result: Tag[],
   type: UseGetTraceItemAttributeKeysProps['type']
 ): TagCollection {

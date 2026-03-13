@@ -4,11 +4,11 @@ import * as Sentry from '@sentry/react';
 
 import {Grid} from '@sentry/scraps/layout';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
@@ -19,13 +19,12 @@ import {
   useMaxPickableDays,
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
   MAX_PERIOD_FOR_CROSS_EVENTS,
 } from 'sentry/views/explore/constants';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsCrossEvents,
@@ -107,7 +106,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <ExploreTagsProvider>{children}</ExploreTagsProvider>
+      {children}
     </SpansTabTourProvider>
   );
 }
@@ -142,14 +141,6 @@ function SpansTabTourProvider({children}: SpansTabContextProps) {
 function SpansTabTourTrigger() {
   useExploreSpansTourModal();
   return null;
-}
-
-function ExploreTagsProvider({children}: SpansTabContextProps) {
-  return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-      {children}
-    </TraceItemAttributeProvider>
-  );
 }
 
 function SpansTabHeader() {

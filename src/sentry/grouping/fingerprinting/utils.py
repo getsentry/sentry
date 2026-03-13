@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting.types import FingerprintInfo
-from sentry.grouping.utils import normalize_message_for_grouping
+from sentry.grouping.utils import get_canonical_message_from_event, normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
@@ -206,14 +206,26 @@ def get_fingerprint_type(
     )
 
 
-def get_custom_fingerprint_type(
-    fingerprint_info: FingerprintInfo,
-) -> Literal["built-in", "custom client", "custom server"]:
+def get_custom_fingerprint_description(
+    fingerprint_info: FingerprintInfo, pretty: bool = False
+) -> str:
+    """
+    Get a string describing the type of custom fingerprint as either built-in, from the client, or
+    from the server.
+
+    If `pretty` is true, format the result as separate words (useful for titles, etc.). Otherwise,
+    use underscores so it can be used programmatically, for things like dict keys.
+    """
     matched_server_rule = fingerprint_info.get("matched_rule")
+
     if matched_server_rule:
-        return "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+        fingerprint_type = "built-in" if matched_server_rule.get("is_builtin") else "custom server"
     else:
-        return "custom client"
+        fingerprint_type = "custom client"
+
+    description = f"{fingerprint_type} fingerprint"
+
+    return description if pretty else description.replace("-", "_").replace(" ", "_")
 
 
 def resolve_fingerprint_variable(
@@ -225,17 +237,8 @@ def resolve_fingerprint_variable(
         return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
-        message = (
-            get_path(event.data, "logentry", "formatted")
-            or get_path(event.data, "logentry", "message")
-            or get_path(event.data, "exception", "values", -1, "value")
-        )
-        normalized_message = (
-            normalize_message_for_grouping(message, event, source="fingerprint", trim_message=False)
-            if message
-            else None
-        )
-        return normalized_message or "<no-message>"
+        message = get_canonical_message_from_event(event)
+        return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -308,8 +311,7 @@ def resolve_fingerprint_values(
             return entry
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
+        # can remove `use_legacy_unknown_variable_handling`
         resolved_value = resolve_fingerprint_variable(
             variable_key, event, use_legacy_unknown_variable_handling
         )
@@ -318,6 +320,12 @@ def resolve_fingerprint_values(
         # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
+
+        if variable_key == "message" and resolved_value != "<no-message>":
+            return normalize_message_for_grouping(
+                resolved_value, event, reason="fingerprint", trim_message=False
+            )
+
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
@@ -332,7 +340,9 @@ def expand_title_template(
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`
         resolved_value = resolve_fingerprint_variable(
-            variable_key, event, use_legacy_unknown_variable_handling
+            variable_key,
+            event,
+            use_legacy_unknown_variable_handling,
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we

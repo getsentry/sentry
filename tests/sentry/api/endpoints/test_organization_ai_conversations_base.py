@@ -38,6 +38,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         output_messages=None,
         system_instructions=None,
         tool_definitions=None,
+        store=True,
     ):
         """Create and store an AI span with the given attributes.
 
@@ -114,5 +115,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             extra_data,
             start_ts=timestamp,
         )
-        self.store_spans([span])
+        if store:
+            self.store_spans([span])
         return span

@@ -2,11 +2,10 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import getOutputType, {
   Output,
 } from 'sentry/views/replays/detail/network/details/getOutputType';
@@ -26,7 +25,7 @@ import {
 
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 
-export default function NetworkDetailsContent(props: Props) {
+export function NetworkDetailsContent(props: Props) {
   const {item, isSetup, visibleTab} = props;
 
   const output = getOutputType(props);
@@ -114,5 +113,5 @@ const SectionList = styled('dl')`
   margin: 0;
 `;
 const ParseError = styled('p')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

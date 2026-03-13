@@ -6,16 +6,15 @@ import partition from 'lodash/partition';
 import {Button} from '@sentry/scraps/button';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
 import {OtherTeamsTable} from './otherTeamsTable';
@@ -29,7 +28,7 @@ type Props = {
   requestList: AccessRequest[];
 };
 
-export default function OrganizationTeams({
+export function OrganizationTeams({
   organization,
   access,
   features,
@@ -117,12 +116,12 @@ export default function OrganizationTeams({
 }
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const LoadMoreWrapper = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
   justify-content: end;
   grid-auto-flow: column;

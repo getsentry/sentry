@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -201,7 +201,7 @@ class ReleaseFileDetailsMixin:
         return Response(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,

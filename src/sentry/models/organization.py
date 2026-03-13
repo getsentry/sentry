@@ -23,7 +23,7 @@ from sentry.constants import (
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
 )
-from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, cell_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
@@ -146,7 +146,7 @@ class OrganizationManager(BaseManager["Organization"]):
 
 
 @snowflake_id_model
-@region_silo_model
+@cell_silo_model
 class Organization(ReplicatedRegionModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
@@ -280,9 +280,9 @@ class Organization(ReplicatedRegionModel):
         from sentry.hybridcloud.services.organization_mapping.service import (
             organization_mapping_service,
         )
-        from sentry.types.region import get_local_region
+        from sentry.types.region import get_local_cell
 
-        update = update_organization_mapping_from_instance(self, get_local_region())
+        update = update_organization_mapping_from_instance(self, get_local_cell())
         organization_mapping_service.upsert(organization_id=self.id, update=update)
 
     @classmethod

@@ -1,6 +1,6 @@
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app_request.model import (
     RpcSentryAppRequest,
@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 
 class SentryAppRequestService(RpcService):
     key = "sentry_app_request"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -21,7 +21,7 @@ class SentryAppRequestService(RpcService):
 
         return DatabaseBackedSentryAppRequestService()
 
-    @regional_rpc_method(resolve=ByRegionName())
+    @regional_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def get_buffer_requests_for_region(
         self,

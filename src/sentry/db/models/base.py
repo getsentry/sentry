@@ -33,7 +33,7 @@ __all__ = (
     "sane_repr",
     "get_model_if_available",
     "control_silo_model",
-    "region_silo_model",
+    "cell_silo_model",
 )
 
 
@@ -314,7 +314,7 @@ class BaseModel(models.Model):
 
 
 class Model(BaseModel):
-    id: models.Field[int, int] = BoundedBigAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
 
     class Meta:
         abstract = True
@@ -500,7 +500,7 @@ Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-region_silo_model = ModelSiloLimit(SiloMode.REGION)
+cell_silo_model = ModelSiloLimit(SiloMode.CELL)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.

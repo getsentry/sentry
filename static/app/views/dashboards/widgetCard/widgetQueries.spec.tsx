@@ -15,7 +15,7 @@ import {
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
@@ -737,7 +737,7 @@ describe('Dashboards > WidgetQueries', () => {
       {
         organization: {
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         },
       }
     );
@@ -781,7 +781,7 @@ describe('Dashboards > WidgetQueries', () => {
       {
         organization: {
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         },
       }
     );

@@ -440,3 +440,36 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
             assert_security_email_sent("mfa-removed")
+
+    def test_delete_last_authenticator_removes_recovery_codes(self) -> None:
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        assert interface.authenticator is not None
+        Authenticator.objects.auto_add_recovery_codes(self.user)
+
+        assert Authenticator.objects.filter(user=self.user).count() == 2
+
+        with self.tasks():
+            self.get_success_response(self.user.id, interface.authenticator.id, method="delete")
+
+        assert Authenticator.objects.filter(user=self.user).count() == 0
+
+    def test_delete_non_last_authenticator_keeps_recovery_codes(self) -> None:
+        totp = TotpInterface()
+        totp.enroll(self.user)
+        assert totp.authenticator is not None
+
+        with override_options({"sms.twilio-account": "twilio-account"}):
+            sms = SmsInterface()
+            sms.phone_number = "5551231234"
+            sms.enroll(self.user)
+
+            Authenticator.objects.auto_add_recovery_codes(self.user)
+
+            assert Authenticator.objects.filter(user=self.user).count() == 3
+
+            with self.tasks():
+                self.get_success_response(self.user.id, totp.authenticator.id, method="delete")
+
+            # SMS + recovery codes should remain
+            assert Authenticator.objects.filter(user=self.user).count() == 2

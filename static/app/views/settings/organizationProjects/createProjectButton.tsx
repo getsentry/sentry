@@ -3,10 +3,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-export default function CreateProjectButton() {
+export function CreateProjectButton() {
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
 

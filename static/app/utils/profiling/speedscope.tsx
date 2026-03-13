@@ -43,7 +43,7 @@ export class Rect {
   }
 
   isValid(): boolean {
-    return this.toMatrix().every(n => !isNaN(n));
+    return [...this.toMatrix()].every(n => !Number.isNaN(n));
   }
 
   isEmpty(): boolean {

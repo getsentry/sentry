@@ -33,7 +33,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class AddGiftEventsAction extends Component<Props, State> {
+export class AddGiftEventsAction extends Component<Props, State> {
   state: State = {
     freeEvents: undefined,
   };
@@ -50,18 +50,13 @@ class AddGiftEventsAction extends Component<Props, State> {
   };
 
   coerceValue(value: string) {
-    const {billedCategoryInfo} = this.props;
-
     const intValue = parseInt(value, 10);
-    const maxValue =
-      (billedCategoryInfo?.maxAdminGift ?? 0) /
-      (billedCategoryInfo?.freeEventsMultiple ?? 1); // prevent ZeroDivisionError
 
     if (isNaN(intValue) || intValue < 0) {
       return undefined;
     }
 
-    return intValue > maxValue ? maxValue : intValue;
+    return intValue;
   }
 
   handleConfirm = (params: AdminConfirmParams) => {
@@ -152,12 +147,9 @@ class AddGiftEventsAction extends Component<Props, State> {
         name={dataCategory}
         inputMode="numeric"
         pattern="[0-9]*"
-        maxLength={dataCategory === DataCategory.REPLAYS ? 7 : 5}
         value={freeEvents && !isNaN(freeEvents) ? freeEvents.toString() : ''}
         onChange={this.handleChange}
       />
     );
   }
 }
-
-export default AddGiftEventsAction;

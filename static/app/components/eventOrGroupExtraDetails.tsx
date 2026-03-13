@@ -7,26 +7,25 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import EventAnnotation from 'sentry/components/events/eventAnnotation';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
-import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
+import {EventAnnotation} from 'sentry/components/events/eventAnnotation';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
+import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
+import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
+import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   data: Event | Group;
@@ -55,7 +54,11 @@ function Lifetime({
   );
 }
 
-function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Props) {
+export function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  showLifetime = true,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -168,14 +171,14 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
 const GroupExtra = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
   line-height: 1.2;
-  min-height: ${space(2)};
+  min-height: ${p => p.theme.space.xl};
 
   & > a {
     color: ${p => p.theme.tokens.content.secondary};
@@ -207,7 +210,7 @@ const ShadowlessProjectBadge = styled(ProjectBadge)`
 
 const CommentsLink = styled(Link)`
   display: inline-grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.tokens.content.primary};
@@ -247,5 +250,3 @@ const Location = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default EventOrGroupExtraDetails;

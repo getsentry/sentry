@@ -6,18 +6,18 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from sentry.hybridcloud.rpc.resolvers import ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 
 
 @dataclass(frozen=True)
-class ByRequestingRegionName(ByRegionName):
+class ByRequestingRegionName(ByCellName):
     parameter_name: str = "requesting_region_name"
 
 
 @dataclass(frozen=True)
-class ByReplyingRegionName(ByRegionName):
+class ByReplyingRegionName(ByCellName):
     parameter_name: str = "replying_region_name"
 
 
@@ -31,7 +31,7 @@ class RegionRelocationExportService(RpcService):
     """
 
     key = "region_relocation_export"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

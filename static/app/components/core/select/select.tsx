@@ -21,12 +21,12 @@ import {
   ReactSelect,
   components as selectComponents,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
-import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
@@ -361,7 +361,7 @@ function MultiValueRemove(
 }
 
 function SelectLoadingIndicator() {
-  return <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />;
+  return <LoadingIndicator mini size={14} style={{height: 14, width: 14}} />;
 }
 
 function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {
@@ -533,14 +533,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
-  const labelOrDefaultStyles: StylesConfig = inFieldLabel
+  const labelOrDefaultStyles = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles: StylesConfig = styles
+  const mappedStyles = styles
     ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 

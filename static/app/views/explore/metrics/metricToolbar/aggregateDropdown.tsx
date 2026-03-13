@@ -2,13 +2,14 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   GROUPED_OPTIONS_BY_TYPE,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricVisualize,
   useMetricVisualizes,
@@ -42,9 +43,8 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
 
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
-  const hasMultiSelect = useOrganization().features.includes(
-    'tracemetrics-overlay-charts-ui'
-  );
+  const organization = useOrganization();
+  const hasMultiSelect = canUseMetricsMultiAggregateUI(organization);
 
   if (hasMultiSelect) {
     return (

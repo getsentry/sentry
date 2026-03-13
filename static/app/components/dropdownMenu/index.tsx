@@ -8,9 +8,9 @@ import type {LocationDescriptor} from 'history';
 
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
@@ -99,6 +99,10 @@ export interface DropdownMenuProps
    */
   isDisabled?: boolean;
   /**
+   * Maximum menu width
+   */
+  maxMenuHeight?: number;
+  /**
    * Title for the current menu.
    */
   menuTitle?: React.ReactNode;
@@ -179,6 +183,7 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
+  maxMenuHeight,
   minMenuWidth,
   // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
@@ -263,6 +268,7 @@ function DropdownMenu({
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
+            maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
           },
         }}
         overlayState={overlayState}
@@ -307,7 +313,4 @@ export {DropdownMenu};
 const DropdownMenuWrap = styled('div')`
   display: contents;
   list-style-type: none;
-  > :first-child {
-    margin-left: -1px;
-  }
 `;
