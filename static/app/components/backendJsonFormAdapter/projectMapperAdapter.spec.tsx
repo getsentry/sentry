@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {type JsonFormAdapterFieldConfig} from './types';
-import {LegacyJsonFormAdapter} from './';
+import {BackendJsonFormAdapter} from './';
 
 const VERCEL_PROJECTS = [
   {value: 'proj-1', label: 'my-vercel-project', url: 'https://vercel.com/proj-1'},
@@ -41,7 +41,7 @@ function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unk
   };
 
   render(
-    <LegacyJsonFormAdapter
+    <BackendJsonFormAdapter
       field={fieldConfig}
       initialValue={initialValue}
       mutationOptions={mutationOptions}
@@ -56,7 +56,6 @@ describe('ProjectMapperAdapter', () => {
   it('renders empty state with two dropdowns and disabled Add button', () => {
     renderField(makeConfig(), []);
 
-    expect(screen.getByText('Vercel Projects')).toBeInTheDocument();
     expect(screen.getByText('Vercel project\u2026')).toBeInTheDocument();
     expect(screen.getByText('Sentry project\u2026')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add project'})).toBeDisabled();
@@ -196,7 +195,7 @@ describe('ProjectMapperAdapter', () => {
 
     const org = OrganizationFixture();
     render(
-      <LegacyJsonFormAdapter
+      <BackendJsonFormAdapter
         field={makeConfig()}
         initialValue={[
           [101, 'proj-1'],

@@ -1,7 +1,7 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import type {Field} from 'sentry/components/forms/types';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/legacyJsonFormAdapter/types';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,

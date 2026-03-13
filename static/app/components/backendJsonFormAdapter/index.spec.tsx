@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {type JsonFormAdapterFieldConfig} from './types';
-import {LegacyJsonFormAdapter} from './';
+import {BackendJsonFormAdapter} from './';
 
 function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unknown) {
   const org = OrganizationFixture();
@@ -12,7 +12,7 @@ function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unk
   };
 
   render(
-    <LegacyJsonFormAdapter
+    <BackendJsonFormAdapter
       field={fieldConfig}
       initialValue={initialValue}
       mutationOptions={mutationOptions}
@@ -23,7 +23,7 @@ function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unk
   return {mutationOptions};
 }
 
-describe('LegacyJsonFormAdapter', () => {
+describe('BackendJsonFormAdapter', () => {
   it('renders boolean field as Switch', () => {
     renderField(
       {

@@ -63,17 +63,17 @@ function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
   }
 }
 
-interface LegacyJsonFormAdapterProps<TData, TContext> {
+interface BackendJsonFormAdapterProps<TData, TContext> {
   field: JsonFormAdapterFieldConfig;
   mutationOptions: UseMutationOptions<TData, Error, Record<string, unknown>, TContext>;
   initialValue?: unknown;
 }
 
-export function LegacyJsonFormAdapter<TData, TContext>({
+export function BackendJsonFormAdapter<TData, TContext>({
   field,
   initialValue,
   mutationOptions,
-}: LegacyJsonFormAdapterProps<TData, TContext>) {
+}: BackendJsonFormAdapterProps<TData, TContext>) {
   const fieldName = field.name;
 
   const schema = useMemo(

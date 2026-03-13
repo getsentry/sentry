@@ -9,8 +9,8 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
+import {BackendJsonFormAdapter} from 'sentry/components/backendJsonFormAdapter';
 import Confirm from 'sentry/components/confirm';
-import {LegacyJsonFormAdapter} from 'sentry/components/legacyJsonFormAdapter';
 import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -406,7 +406,7 @@ function ConfigureIntegration() {
             }
           >
             {integration.configOrganization.map(fieldConfig => (
-              <LegacyJsonFormAdapter
+              <BackendJsonFormAdapter
                 key={fieldConfig.name}
                 field={fieldConfig}
                 initialValue={
