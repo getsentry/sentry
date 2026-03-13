@@ -88,6 +88,13 @@ backend_all: &backend_all
   # dorny/paths-filter step and it runs the setup-sentry action.
   - '.github/actions/setup-sentry/action.yml'
 
+# Like backend_all, but excludes tests/acceptance/ since those have their own
+# dedicated workflow (acceptance.yml) and are already --ignored by test-python-ci.
+# Used by backend.yml to avoid triggering the full backend suite unnecessarily.
+backend_all_without_acceptance: &backend_all_without_acceptance
+  - *backend_all
+  - '!tests/acceptance/**'
+
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
   - *frontend_all
