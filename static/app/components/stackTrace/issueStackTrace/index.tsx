@@ -7,6 +7,7 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -32,7 +33,7 @@ import {
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {CopyButton, DisplayOptions} from 'sentry/components/stackTrace/toolbar';
+import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -186,6 +187,20 @@ function IssueStackTraceContent({
 
   const sectionKey = isStandalone ? SectionKey.STACKTRACE : SectionKey.EXCEPTION;
 
+  const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
+    text: () =>
+      exceptions
+        .map(exc =>
+          rawStacktraceContent({
+            data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
+            platform: event.platform,
+          })
+        )
+        .join('\n\n'),
+    json: undefined,
+    markdown: undefined,
+  });
+
   if (exceptions.length === 1) {
     const exc = exceptions[0]!;
     const {type, module, value} = resolveExceptionFields(exc, isMinified);
@@ -207,7 +222,7 @@ function IssueStackTraceContent({
           actions={
             <Flex align="center" gap="sm">
               <DisplayOptions />
-              <CopyButton />
+              <CopyAsDropdown size="xs" items={copyItems} />
             </Flex>
           }
         >
@@ -246,18 +261,7 @@ function IssueStackTraceContent({
       actions={
         <Flex align="center" gap="sm">
           <DisplayOptions />
-          <CopyButton
-            getCopyText={() =>
-              exceptions
-                .map(exc =>
-                  rawStacktraceContent({
-                    data: exc.stacktrace,
-                    platform: event.platform,
-                  })
-                )
-                .join('\n\n')
-            }
-          />
+          <CopyAsDropdown size="xs" items={copyItems} />
         </Flex>
       }
     >

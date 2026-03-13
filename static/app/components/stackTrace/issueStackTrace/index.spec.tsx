@@ -330,6 +330,56 @@ describe('IssueStackTrace', () => {
     expect(screen.getByText('original value')).toBeInTheDocument();
   });
 
+  it('copies raw stacktrace when unsymbolicated toggle is active for chained exceptions', async () => {
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+    const {event, stacktrace} = makeStackTraceData();
+    const rawStacktrace: StacktraceWithFrames = {
+      ...stacktrace,
+      frames: stacktrace.frames.map(f => ({
+        ...f,
+        filename: f.filename ? `minified_${f.filename}` : f.filename,
+      })),
+    };
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace,
+            threadId: null,
+          },
+          {
+            type: 'NestedError',
+            value: 'nested cause',
+            module: 'app.nested',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
+    expect(copiedText).toContain('minified_');
+    expect(copiedText).not.toContain('File "raven/');
+  });
+
   it('renders raw view as flat text for chained exceptions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
