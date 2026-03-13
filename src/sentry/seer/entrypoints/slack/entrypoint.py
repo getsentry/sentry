@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from urllib.parse import urlencode
 
 from sentry import features
-from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT
+from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.templates.seer import (
@@ -352,11 +352,10 @@ class SlackExplorerEntrypoint(
             integration_id=integration_id,
             organization_id=organization_id,
             provider=IntegrationProviderSlug.SLACK.value,
+            status=ObjectStatus.ACTIVE,
         )
         if not integration:
             raise ValueError(f"Slack integration {integration_id} not found")
-
-        from sentry.constants import ObjectStatus
 
         ois = integration_service.get_organization_integrations(
             integration_id=integration_id,
@@ -437,6 +436,7 @@ class SlackExplorerEntrypoint(
             integration_id=cache_payload["integration_id"],
             organization_id=organization_id,
             provider=IntegrationProviderSlug.SLACK.value,
+            status=ObjectStatus.ACTIVE,
         )
         if integration:
             install = SlackIntegration(model=integration, organization_id=organization_id)
