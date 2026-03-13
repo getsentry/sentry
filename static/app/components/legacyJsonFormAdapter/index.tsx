@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
+import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import type {JsonFormAdapterFieldConfig} from './types';
 
 function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
@@ -81,11 +82,61 @@ export function LegacyJsonFormAdapter<TData, TContext>({
   );
 
   // Unsupported field types get a placeholder
-  if (field.type === 'table' || field.type === 'project_mapper') {
+  if (field.type === 'table') {
     return (
       <Text variant="muted" as="p">
         {t('Field "%s" is not supported', field.label)}
       </Text>
+    );
+  }
+
+  if (field.type === 'project_mapper') {
+    const projectMapperSchema = z.object({
+      [fieldName]: z.any(),
+    });
+    const projectMapperValue = (
+      initialValue !== undefined && initialValue !== null
+        ? initialValue
+        : field.default === undefined
+          ? []
+          : field.default
+    ) as Array<[number, string]>;
+
+    return (
+      <AutoSaveField
+        name={fieldName}
+        schema={projectMapperSchema}
+        initialValue={projectMapperValue}
+        mutationOptions={mutationOptions}
+      >
+        {fieldApi => (
+          <fieldApi.Base>
+            {(baseProps, {indicator}) => {
+              const handleChangeAndSave = (newValue: Array<[number, string]>) => {
+                fieldApi.handleChange(newValue);
+                baseProps.onBlur();
+              };
+              return (
+                <Stack flexGrow={1}>
+                  <ProjectMapperTable
+                    config={field}
+                    value={fieldApi.state.value}
+                    onDelete={handleChangeAndSave}
+                    disabled={field.disabled || baseProps.disabled}
+                  />
+                  <ProjectMapperAddRow
+                    config={field}
+                    value={fieldApi.state.value}
+                    onAdd={handleChangeAndSave}
+                    indicator={indicator}
+                    disabled={field.disabled || baseProps.disabled}
+                  />
+                </Stack>
+              );
+            }}
+          </fieldApi.Base>
+        )}
+      </AutoSaveField>
     );
   }
 
