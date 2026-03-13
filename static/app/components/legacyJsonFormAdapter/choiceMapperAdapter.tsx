@@ -192,15 +192,16 @@ export function ChoiceMapperTable({
   onSave,
   disabled,
 }: ChoiceMapperTableProps) {
-  const {
-    addDropdown,
-    columnLabels = {},
-    mappedSelectors = {},
-    mappedColumnLabel,
-    perItemMapping = false,
-  } = config;
+  const {addDropdown, columnLabels = {}, mappedColumnLabel} = config;
 
   const mappedKeys = Object.keys(columnLabels);
+
+  const getSelector = (itemKey: string, fieldKey: string) => {
+    if (config.perItemMapping) {
+      return config.mappedSelectors?.[itemKey]?.[fieldKey];
+    }
+    return config.mappedSelectors?.[fieldKey];
+  };
 
   const valueMap =
     addDropdown?.items?.reduce<Record<string, string>>((map, item) => {
@@ -267,14 +268,8 @@ export function ChoiceMapperTable({
             <Flex align="center" flex="1 0 0" gap="md" key={fieldKey}>
               <Flex flex="1" direction="column">
                 <Select
-                  {...(perItemMapping
-                    ? mappedSelectors[itemKey]?.[fieldKey]
-                    : mappedSelectors[fieldKey])}
-                  options={transformMappedChoices(
-                    perItemMapping
-                      ? (mappedSelectors as any)[itemKey]?.[fieldKey]
-                      : mappedSelectors[fieldKey]
-                  )}
+                  {...getSelector(itemKey, fieldKey)}
+                  options={transformMappedChoices(getSelector(itemKey, fieldKey))}
                   height={30}
                   disabled={disabled}
                   onChange={(v: {value: string | number | null} | null) =>

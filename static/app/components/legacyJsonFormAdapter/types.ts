@@ -38,7 +38,9 @@ interface JsonFormAdapterNumber extends JsonFormAdapterBase {
   default?: number;
 }
 
-interface JsonFormAdapterChoiceMapper extends JsonFormAdapterBase {
+type ChoiceMapperSelector = {choices: Array<[string, string]>; placeholder?: string};
+
+interface JsonFormAdapterChoiceMapperBase extends JsonFormAdapterBase {
   type: 'choice_mapper';
   addButtonText?: string;
   addDropdown?: {
@@ -51,12 +53,21 @@ interface JsonFormAdapterChoiceMapper extends JsonFormAdapterBase {
   columnLabels?: Record<string, string>;
   formatMessageValue?: boolean;
   mappedColumnLabel?: string;
-  mappedSelectors?: Record<
-    string,
-    {choices: Array<[string, string]>; placeholder?: string}
-  >;
-  perItemMapping?: boolean;
 }
+
+interface JsonFormAdapterChoiceMapperFlat extends JsonFormAdapterChoiceMapperBase {
+  mappedSelectors?: Record<string, ChoiceMapperSelector>;
+  perItemMapping?: false;
+}
+
+interface JsonFormAdapterChoiceMapperPerItem extends JsonFormAdapterChoiceMapperBase {
+  perItemMapping: true;
+  mappedSelectors?: Record<string, Record<string, ChoiceMapperSelector>>;
+}
+
+type JsonFormAdapterChoiceMapper =
+  | JsonFormAdapterChoiceMapperFlat
+  | JsonFormAdapterChoiceMapperPerItem;
 
 interface JsonFormAdapterTable extends JsonFormAdapterBase {
   type: 'table';

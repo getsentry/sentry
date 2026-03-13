@@ -503,7 +503,7 @@ describe('LegacyJsonFormAdapter', () => {
       undefined
     );
 
-    expect(screen.getByText(/not supported in auto-save mode/i)).toBeInTheDocument();
+    expect(screen.getByText(/not supported/i)).toBeInTheDocument();
   });
 
   it('boolean toggle triggers POST', async () => {

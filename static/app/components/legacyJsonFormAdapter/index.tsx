@@ -64,7 +64,7 @@ function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
 
 interface LegacyJsonFormAdapterProps<TData, TContext> {
   field: JsonFormAdapterFieldConfig;
-  mutationOptions: UseMutationOptions<TData, Error, unknown, TContext>;
+  mutationOptions: UseMutationOptions<TData, Error, Record<string, unknown>, TContext>;
   initialValue?: unknown;
 }
 
@@ -84,7 +84,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
   if (field.type === 'table' || field.type === 'project_mapper') {
     return (
       <Text variant="muted" as="p">
-        {t('Field "%s" is not supported in auto-save mode.', field.label)}
+        {t('Field "%s" is not supported', field.label)}
       </Text>
     );
   }
