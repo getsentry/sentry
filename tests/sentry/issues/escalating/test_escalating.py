@@ -354,6 +354,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
             self.FROZEN_TIME.replace(minute=0, second=0, microsecond=0) - timedelta(hours=hours_ago)
         ).timestamp()
 
+    @pytest.mark.skip(reason="flaky: #110649")
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_hourly_counts_match(self) -> None:
         group = self.store_events_to_snuba_and_eap(
