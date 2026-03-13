@@ -35,13 +35,13 @@ class OwnershipRuleOwner(TypedDict):
     """Owner entry within a parsed ownership rule schema.
 
     Always has `type` and `identifier` from the grammar.
-    `id` is added by `add_owner_ids_to_schema` (always a string).
+    `id` is added by `add_owner_ids_to_schema` (stored as int in DB).
     `name` replaces `identifier` in API responses via `rename_schema_identifier_for_parsing`.
     """
 
     type: str
     identifier: NotRequired[str]
-    id: NotRequired[str]
+    id: NotRequired[int]
     name: NotRequired[str]
 
 
@@ -556,7 +556,7 @@ def add_owner_ids_to_schema(rules: list[OwnershipRule], owners_id: dict[str, int
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():
-                rule_owner["id"] = str(owners_id[rule_owner["identifier"]])
+                rule_owner["id"] = owners_id[rule_owner["identifier"]]
 
 
 def create_schema_from_issue_owners(

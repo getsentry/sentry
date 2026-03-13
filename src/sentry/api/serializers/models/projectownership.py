@@ -62,6 +62,13 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
-        project_ownership_data["schema"] = obj.schema
+        schema = obj.schema
+        # Stringify owner IDs for API response (stored as int in DB)
+        if schema and schema.get("rules"):
+            for rule in schema["rules"]:
+                for owner in rule["owners"]:
+                    if "id" in owner:
+                        owner["id"] = str(owner["id"])
+        project_ownership_data["schema"] = schema
 
         return project_ownership_data

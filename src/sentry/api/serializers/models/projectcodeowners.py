@@ -72,6 +72,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             for rule in schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
+                    # Stringify owner IDs for API response (stored as int in DB)
                     if "id" in rule_owner:
                         rule_owner["id"] = str(rule_owner["id"])
 
@@ -104,7 +105,15 @@ class ProjectCodeOwnersSerializer(Serializer):
             self.rename_schema_identifier_for_parsing(obj.schema)
 
         if "hasTargetingContext" in self.expand:
-            data["schema"] = obj.schema
+            schema = obj.schema
+            # Stringify owner IDs for API response (stored as int in DB).
+            # Only needed when renameIdentifier wasn't applied (it already stringifies).
+            if schema and schema.get("rules") and "renameIdentifier" not in self.expand:
+                for rule in schema["rules"]:
+                    for rule_owner in rule["owners"]:
+                        if "id" in rule_owner:
+                            rule_owner["id"] = str(rule_owner["id"])
+            data["schema"] = schema
             data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
 
         return data
