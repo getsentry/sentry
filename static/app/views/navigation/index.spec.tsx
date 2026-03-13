@@ -257,13 +257,17 @@ describe('Navigation', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
+        ).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-        expect(
-          screen.queryByTestId('collapsed-secondary-sidebar')
-        ).not.toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
       });
 
       it('remembers collapsed state', async () => {
