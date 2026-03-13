@@ -77,7 +77,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
 
         serialized = serialize_slug_reservation(self)
         region_replica_service.upsert_replicated_org_slug_reservation(
-            slug_reservation=serialized, region_name=self.cell_name
+            slug_reservation=serialized, cell_name=self.cell_name
         )
 
     @classmethod
@@ -91,6 +91,6 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.delete_replicated_org_slug_reservation(
-            region_name=region_name,
+            cell_name=region_name,
             organization_slug_reservation_id=identifier,
         )

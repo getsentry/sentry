@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 import pydantic
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
@@ -28,7 +28,7 @@ class RegionCachingService(RpcService):
 
         return LocalRegionCachingService()
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def clear_key(self, *, region_name: str, key: str) -> int:
         pass
