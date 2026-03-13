@@ -379,11 +379,12 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
 
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> None:
         try:
-            ProjectKeyMapping.objects.update_or_create(
-                project_key_id=project_key.id,
-                cell_name=project_key.cell_name,
-                defaults={"public_key": project_key.public_key},
-            )
+            with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
+                ProjectKeyMapping.objects.update_or_create(
+                    project_key_id=project_key.id,
+                    cell_name=project_key.cell_name,
+                    defaults={"public_key": project_key.public_key},
+                )
         except IntegrityError:
             logger.error(
                 "project_key_mapping.conflict",
