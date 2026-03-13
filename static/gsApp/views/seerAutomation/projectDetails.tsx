@@ -1,5 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,7 +10,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -39,22 +39,23 @@ function SeerProjectDetails() {
 
   return (
     <AnalyticsArea name="project-details">
-      <SentryDocumentTitle
-        title={t('Seer Autofix Settings')}
-        projectSlug={project.slug}
-      />
+      <SentryDocumentTitle title={t('Autofix for %s', project.slug)} />
       <SettingsPageHeader
-        title={tct('Seer Autofix for [projectName]', {
-          projectName: (
-            <Text as="span" monospace>
-              {project.slug}
-            </Text>
-          ),
-        })}
+        title={
+          <Flex align="baseline" gap="md">
+            {tct('Autofix for [projectName]', {
+              projectName: (
+                <Text as="span" monospace>
+                  {project.slug}
+                </Text>
+              ),
+            })}
+          </Flex>
+        }
         subtitle={tct(
-          'Connect repositories to projects, and choose which Agent should automatically process issues. [read_the_docs:Read the docs] to learn what Seer can do',
+          'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
           {
-            read_the_docs: (
+            docs: (
               <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
             ),
           }

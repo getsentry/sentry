@@ -1,7 +1,7 @@
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
-import replayerStepper from 'sentry/utils/replays/replayerStepper';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {replayerStepper} from 'sentry/utils/replays/replayerStepper';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
   EventType,
   IncrementalSource,

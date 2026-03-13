@@ -635,7 +635,7 @@ class ClientConfigViewTest(TestCase):
 
             expected_region_url = (
                 "http://foobar.us.testserver"
-                if SiloMode.get_current_mode() == SiloMode.REGION
+                if SiloMode.get_current_mode() == SiloMode.CELL
                 else options.get("system.url-prefix")
             )
             assert data["isAuthenticated"] is True

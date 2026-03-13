@@ -414,8 +414,8 @@ def get_local_cell() -> Cell:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        raise CellContextError("Not a region silo")
+    if SiloMode.get_current_mode() != SiloMode.CELL:
+        raise CellContextError("Not a cell silo")
 
     # In our threaded acceptance tests, we need to override the region of the current
     # context when passing through test rpc calls, but we can't rely on settings because
@@ -510,14 +510,3 @@ def find_all_multitenant_locality_names() -> list[str]:
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
     ]
-
-
-# TODO(cells): Remove aliases once getsentry import sites are updated
-RegionConfigurationError = CellConfigurationError
-RegionResolutionError = CellResolutionError
-RegionMappingNotFound = CellMappingNotFound
-RegionContextError = CellContextError
-RegionDirectory = CellDirectory
-find_regions_for_orgs = find_cells_for_orgs
-find_regions_for_user = find_cells_for_user
-find_all_multitenant_region_names = find_all_multitenant_cell_names

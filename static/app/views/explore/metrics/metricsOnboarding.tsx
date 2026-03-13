@@ -36,7 +36,7 @@ import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutMetricsSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

@@ -10,7 +10,7 @@ from sentry.utils.safe import safe_execute
 @instrumented_task(
     name="sentry.tasks.user_report",
     namespace=issues_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def user_report(
     project_id: int, report: Mapping[str, Any] | None = None, report_id: int | None = None, **kwargs

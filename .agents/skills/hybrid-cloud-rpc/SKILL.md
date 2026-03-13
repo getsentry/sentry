@@ -41,10 +41,10 @@ The service's `local_mode` determines where the database-backed implementation r
 
 | Data lives in...                                  | `local_mode`       | Decorator on methods                | Example                            |
 | ------------------------------------------------- | ------------------ | ----------------------------------- | ---------------------------------- |
-| Region silo (projects, events, issues, org data)  | `SiloMode.REGION`  | `@regional_rpc_method(resolve=...)` | `OrganizationService`              |
+| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@regional_rpc_method(resolve=...)` | `OrganizationService`              |
 | Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                       | `OrganizationMemberMappingService` |
 
-**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.REGION`. If they live in the control database, use `SiloMode.CONTROL`.
+**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 
 Region-silo services require a `RegionResolutionStrategy` on every RPC method so the framework knows which region to route remote calls to. Load `references/resolvers.md` for the full resolver table.
 
@@ -243,7 +243,7 @@ Use `assume_test_silo_mode` or `assume_test_silo_mode_of` to switch modes within
 
 ```python
 def test_cross_silo_behavior(self):
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         org = self.create_organization()
     result = my_service.get_by_id(organization_id=org.id, id=thing.id)
     assert result is not None
@@ -325,7 +325,7 @@ For triple-equality assertions (RPC result = source ORM = cross-silo replica):
 ```python
 def test_provisioning_accuracy(self):
     rpc_result = my_service.provision(organization_id=org.id, slug="test")
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         orm_obj = MyModel.objects.get(id=rpc_result.id)
     with assume_test_silo_mode(SiloMode.CONTROL):
         mapping = MyMapping.objects.get(organization_id=org.id)
@@ -375,7 +375,7 @@ Test that remote exceptions are properly wrapped:
 from sentry.hybridcloud.rpc.service import RpcRemoteException
 
 def test_remote_error_wrapping(self):
-    if SiloMode.get_current_mode() == SiloMode.REGION:
+    if SiloMode.get_current_mode() == SiloMode.CELL:
         with pytest.raises(RpcRemoteException):
             my_control_service.do_thing_that_fails(...)
 ```
@@ -386,7 +386,7 @@ Test that failed operations produce no side effects:
 def test_no_side_effects_on_failure(self):
     result = my_service.create_conflicting_thing(organization_id=org.id)
     assert not result
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         assert not MyModel.objects.filter(organization_id=org.id).exists()
 ```
 

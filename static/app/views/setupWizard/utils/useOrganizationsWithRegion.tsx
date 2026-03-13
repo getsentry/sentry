@@ -1,4 +1,4 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Region} from 'sentry/types/system';
 import {useQuery} from 'sentry/utils/queryClient';

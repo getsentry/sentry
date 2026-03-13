@@ -14,7 +14,7 @@ type InjectedPromotionProps = {
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 };
 
-const withPromotions = <P extends InjectedPromotionProps>(
+export const withPromotions = <P extends InjectedPromotionProps>(
   WrappedComponent: React.ComponentType<P> | typeof LoadingIndicator
 ) => {
   function WithPromotions(props: Omit<P, keyof InjectedPromotionProps>) {
@@ -37,5 +37,3 @@ const withPromotions = <P extends InjectedPromotionProps>(
 
   return WithPromotions;
 };
-
-export default withPromotions;

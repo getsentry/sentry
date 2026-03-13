@@ -7,7 +7,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';

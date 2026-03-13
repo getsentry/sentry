@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 export const GenericFooter = styled((props: React.ComponentProps<typeof motion.div>) => (
   <motion.div

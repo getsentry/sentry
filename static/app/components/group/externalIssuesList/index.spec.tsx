@@ -9,7 +9,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {Group} from 'sentry/types/group';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 

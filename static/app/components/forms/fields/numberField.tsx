@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Input, InputGroup} from '@sentry/scraps/input';
 
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 
 import type {InputFieldProps, OnEvent} from './inputField';
 import InputField from './inputField';

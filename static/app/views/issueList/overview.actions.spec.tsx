@@ -14,9 +14,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Indicators from 'sentry/components/indicators';
-import GroupStore from 'sentry/stores/groupStore';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import TagStore from 'sentry/stores/tagStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
 import IssueListOverview from 'sentry/views/issueList/overview';
 

@@ -16,7 +16,7 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import plugins from 'sentry/plugins';
+import {plugins} from 'sentry/plugins';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';

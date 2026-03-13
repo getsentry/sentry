@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const preprodDetectedConfig: IssueCategoryConfigMapping = {
+export const preprodConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -43,5 +43,3 @@ const preprodDetectedConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: true},
   },
 };
-
-export default preprodDetectedConfig;

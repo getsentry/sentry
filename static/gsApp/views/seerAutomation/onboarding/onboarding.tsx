@@ -1,5 +1,5 @@
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerAutomationOnboarding as SeerOnboardingLegacy} from './onboardingLegacy';

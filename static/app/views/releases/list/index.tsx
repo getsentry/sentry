@@ -25,7 +25,7 @@ import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';

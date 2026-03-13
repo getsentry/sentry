@@ -84,7 +84,7 @@ export type FormOptions = {
   transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
-class FormModel {
+export class FormModel {
   /**
    * Map of field name -> value
    */
@@ -893,5 +893,3 @@ export class MockModel {
     return false;
   }
 }
-
-export default FormModel;

@@ -183,5 +183,4 @@ const clearAll = async (
   await clear(clearAllButton, {user});
 };
 
-const selectEvent = {select, create, clearFirst, clearAll, openMenu};
-export default selectEvent;
+export const selectEvent = {select, create, clearFirst, clearAll, openMenu};

@@ -23,7 +23,7 @@ import {
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {t} from 'sentry/locale';
-import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
 import type {EntryDebugMeta, Event} from 'sentry/types/event';

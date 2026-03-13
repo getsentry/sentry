@@ -18,7 +18,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useRouter} from 'sentry/utils/useRouter';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
-import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {decodeSubregions} from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';

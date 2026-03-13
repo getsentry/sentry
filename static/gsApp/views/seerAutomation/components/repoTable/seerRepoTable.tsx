@@ -1,19 +1,22 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
+import {ScmRepoTreeModal} from 'sentry/components/repositories/scmRepoTreeModal';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -23,7 +26,7 @@ import {
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
 import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
-import parseAsSort from 'sentry/utils/url/parseAsSort';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
@@ -31,7 +34,7 @@ import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTa
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
-const GRID_COLUMNS = '40px 1fr 76px 150px';
+const GRID_COLUMNS = '40px 1fr 118px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 60;
@@ -129,46 +132,50 @@ export function SeerRepoTable() {
   );
 
   return (
-    <ListItemCheckboxProvider
-      hits={repositories?.length ?? 0}
-      knownIds={knownIds}
-      queryKey={queryOptions.queryKey}
-    >
-      <Stack gap="lg">
-        <Grid
-          minWidth="0"
-          gap="md"
-          columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
-        >
-          <InputGroup>
-            <InputGroup.LeadingItems disablePointerEvents>
-              <IconSearch />
-            </InputGroup.LeadingItems>
-            <InputGroup.Input
-              size="md"
-              placeholder={t('Search')}
-              value={searchTerm ?? ''}
-              onChange={e =>
-                setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
-              }
-            />
-          </InputGroup>
+    <Fragment>
+      <Grid
+        minWidth="0"
+        gap="md"
+        columns={isFetchingNextPage ? '1fr max-content max-content' : '1fr max-content'}
+      >
+        <InputGroup>
+          <InputGroup.LeadingItems disablePointerEvents>
+            <IconSearch />
+          </InputGroup.LeadingItems>
+          <InputGroup.Input
+            size="md"
+            placeholder={t('Search')}
+            value={searchTerm ?? ''}
+            onChange={e =>
+              setSearchTerm(e.target.value, {limitUrlUpdates: debounce(125)})
+            }
+          />
+        </InputGroup>
 
-          {isFetchingNextPage ? <LoadingIndicator mini /> : null}
+        {isFetchingNextPage ? <LoadingIndicator mini /> : null}
 
-          <LinkButton
-            priority="primary"
-            icon={<IconAdd />}
-            to={{
-              pathname: `/settings/${organization.slug}/integrations/`,
-              query: {
-                category: 'source code management',
+        <Button
+          priority="primary"
+          icon={<IconAdd />}
+          onClick={() => {
+            openModal(deps => <ScmRepoTreeModal {...deps} />, {
+              modalCss: css`
+                width: 700px;
+              `,
+              onClose: () => {
+                queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
               },
-            }}
-          >
-            {t('Add Repository')}
-          </LinkButton>
-        </Grid>
+            });
+          }}
+        >
+          {t('Add Repository')}
+        </Button>
+      </Grid>
+      <ListItemCheckboxProvider
+        hits={repositories?.length ?? 0}
+        knownIds={knownIds}
+        queryKey={queryOptions.queryKey}
+      >
         <TablePanel>
           <SeerRepoTableHeader
             gridColumns={GRID_COLUMNS}
@@ -207,8 +214,8 @@ export function SeerRepoTable() {
             />
           )}
         </TablePanel>
-      </Stack>
-    </ListItemCheckboxProvider>
+      </ListItemCheckboxProvider>
+    </Fragment>
   );
 }
 

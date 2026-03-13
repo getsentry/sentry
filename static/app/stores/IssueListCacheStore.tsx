@@ -84,5 +84,4 @@ const storeConfig: IssueListCacheStoreDefinition = {
   },
 };
 
-const IssueListCacheStore = createStore(storeConfig);
-export default IssueListCacheStore;
+export const IssueListCacheStore = createStore(storeConfig);

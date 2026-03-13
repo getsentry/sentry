@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {

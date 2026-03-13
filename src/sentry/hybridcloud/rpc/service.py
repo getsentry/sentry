@@ -100,11 +100,11 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def _extract_region_resolution(self) -> CellResolutionStrategy | None:
         region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
-        is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
+        is_region_service = self.base_service_cls.local_mode == SiloMode.CELL
         if not is_region_service and region_resolution is not None:
             raise self._setup_exception(
                 "@regional_rpc_method should be used only on a service with "
-                "`local_mode = SiloMode.REGION`"
+                "`local_mode = SiloMode.CELL`"
             )
         if is_region_service and region_resolution is None:
             raise self._setup_exception("Needs @regional_rpc_method")
@@ -342,7 +342,7 @@ class RpcService(abc.ABC):
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
                     )
 
-                if cls.local_mode == SiloMode.REGION:
+                if cls.local_mode == SiloMode.CELL:
                     result = signature.resolve_to_region(kwargs)
                     if result.is_early_halt:
                         return None
@@ -667,7 +667,7 @@ class _RemoteSiloCall:
         )
 
         if self.region:
-            target_mode = SiloMode.REGION
+            target_mode = SiloMode.CELL
         else:
             target_mode = SiloMode.CONTROL
 

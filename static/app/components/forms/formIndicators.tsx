@@ -7,8 +7,7 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type FormModel from 'sentry/components/forms/model';
-import type {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue, FormModel} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {tct} from 'sentry/locale';
 

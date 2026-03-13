@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {
   getEventTimestampInSeconds,
   getThreadById,

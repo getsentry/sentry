@@ -3,7 +3,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
 import {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 const {

@@ -7,8 +7,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 import * as useMedia from 'sentry/utils/useMedia';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 describe('UsageOverview', () => {
@@ -39,7 +40,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
@@ -54,7 +56,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
@@ -75,7 +78,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Errors'});
@@ -92,6 +96,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />,
       {
+        additionalWrapper: SecondaryNavigationContextProvider,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/subscription/usage-overview',
@@ -116,6 +121,7 @@ describe('UsageOverview', () => {
         usageData={usageData}
       />,
       {
+        additionalWrapper: SecondaryNavigationContextProvider,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/subscription/usage-overview',
@@ -138,7 +144,8 @@ describe('UsageOverview', () => {
         subscription={subscription}
         organization={organization}
         usageData={usageData}
-      />
+      />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
     );
 
     await screen.findByRole('heading', {name: 'Errors'});

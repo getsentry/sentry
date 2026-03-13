@@ -10,8 +10,8 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -20,8 +20,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -45,7 +44,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -77,7 +76,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === NavigationLayout.MOBILE ? 'xs' : 'md'}
+          size={layout === 'mobile' ? 'xs' : 'md'}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {

@@ -4,7 +4,7 @@ import {errorHandler} from 'sentry/utils/errorHandler';
 
 import {SubscriptionContext} from 'getsentry/views/subscriptionContext';
 
-const settingsRoutes = (): SentryRouteObject => ({
+export const settingsRoutes = (): SentryRouteObject => ({
   children: [
     {
       path: 'billing/history/',
@@ -116,5 +116,3 @@ const settingsRoutes = (): SentryRouteObject => ({
     },
   ],
 });
-
-export default settingsRoutes;

@@ -86,9 +86,7 @@ function RefundVercelRequestModal({
 
 type Options = Pick<Props, 'onSuccess' | 'subscription'>;
 
-const refundVercelRequest = (opts: Options) =>
+export const refundVercelRequest = (opts: Options) =>
   openModal(deps => <RefundVercelRequestModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default refundVercelRequest;

@@ -152,7 +152,7 @@ class ProcessRelocationTransferControlTest(TestCase):
     @patch("sentry.relocation.services.relocation_export.impl.uploading_complete")
     def test_transfer_reply_state(self, mock_uploading_complete: MagicMock) -> None:
         organization = self.organization
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             relocation = Relocation.objects.create(
                 creator_id=self.user.id,
                 owner_id=self.user.id,
@@ -177,7 +177,7 @@ class ProcessRelocationTransferControlTest(TestCase):
         # Should be removed on completion.
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
         # the relocation RPC call should create a file on the region
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
 
 

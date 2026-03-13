@@ -3,7 +3,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import fetchReplayClicks from 'sentry/utils/replays/fetchReplayClicks';
+import {fetchReplayClicks} from 'sentry/utils/replays/fetchReplayClicks';
 import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useLocation} from 'sentry/utils/useLocation';
 

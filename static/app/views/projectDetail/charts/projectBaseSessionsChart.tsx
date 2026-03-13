@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';

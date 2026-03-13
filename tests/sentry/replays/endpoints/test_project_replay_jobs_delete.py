@@ -188,7 +188,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         # Verify task was scheduled
         mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=False)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             RegionOutbox(
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=self.organization.id
             ).drain_shard()

@@ -9,9 +9,9 @@ import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replay
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';

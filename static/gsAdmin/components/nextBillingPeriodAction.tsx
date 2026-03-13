@@ -80,7 +80,5 @@ function EndPeriodEarlyModal({
 
 type Options = Omit<EndPeriodEarlyModalProps, keyof ModalRenderProps>;
 
-const triggerEndPeriodEarlyModal = (opts: Options) =>
+export const triggerEndPeriodEarlyModal = (opts: Options) =>
   openModal(deps => <EndPeriodEarlyModal {...deps} {...opts} />);
-
-export default triggerEndPeriodEarlyModal;

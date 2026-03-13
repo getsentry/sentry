@@ -7,7 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconGithub, IconLink} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {StorySearch} from './storySearch';

@@ -145,7 +145,11 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   return items.length > 0 ? (
     <div>
-      <ScrollCarousel gap={3} aria-label={t('Occurrence summary')} className={className}>
+      <ScrollCarousel
+        gap="2xl"
+        aria-label={t('Occurrence summary')}
+        className={className}
+      >
         {items.map((item, i) => (
           <div key={i}>{item}</div>
         ))}

@@ -17,7 +17,7 @@ import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   OnDemandBudgetMode,
   type OnDemandBudgets,
