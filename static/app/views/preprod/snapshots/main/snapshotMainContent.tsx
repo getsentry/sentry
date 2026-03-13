@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -29,7 +30,7 @@ interface SnapshotMainContentProps {
   variantIndex: number;
 }
 
-export function SnapshotMainContent({
+export const SnapshotMainContent = memo(function SnapshotMainContent({
   selectedItem,
   variantIndex,
   onVariantChange,
@@ -154,7 +155,7 @@ export function SnapshotMainContent({
       <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
     </Flex>
   );
-}
+});
 
 function OverlayControls({
   showOverlay,

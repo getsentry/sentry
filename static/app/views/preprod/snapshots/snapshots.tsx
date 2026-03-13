@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -136,14 +136,46 @@ export default function SnapshotsPage() {
       : (filteredItems[0]?.name ?? null);
   const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
 
-  useEffect(() => {
-    setVariantIndex(0);
-  }, [currentItemName]);
-
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);
     setVariantIndex(0);
   };
+
+  // Ref so the keydown handler reads current state without re-registering
+  const stateRef = useRef({filteredItems, currentItemName});
+  stateRef.current = {filteredItems, currentItemName};
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      e.preventDefault();
+
+      const {filteredItems: items, currentItemName: current} = stateRef.current;
+      const currentIndex = items.findIndex(i => i.name === current);
+      const nextIndex =
+        e.key === 'ArrowDown'
+          ? Math.min(currentIndex + 1, items.length - 1)
+          : Math.max(currentIndex - 1, 0);
+
+      if (nextIndex !== currentIndex && items[nextIndex]) {
+        setSelectedItemName(items[nextIndex].name);
+        setVariantIndex(0);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Defer the item passed to main content so the sidebar stays responsive
+  // while the expensive image rendering catches up
+  const deferredItem = useDeferredValue(currentItem);
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = data
@@ -217,7 +249,7 @@ export default function SnapshotsPage() {
           </DragHandle>
           <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
-              selectedItem={currentItem}
+              selectedItem={deferredItem}
               variantIndex={variantIndex}
               onVariantChange={setVariantIndex}
               imageBaseUrl={imageBaseUrl}
