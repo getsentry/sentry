@@ -1,14 +1,32 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.issues.ownership.grammar import OwnershipSchema
+from sentry.issues.ownership.grammar import OwnershipRuleMatcher
 from sentry.models.projectownership import ProjectOwnership
+
+
+class OwnershipRuleOwnerResponse(TypedDict):
+    """Owner as it appears in the API response (after identifier→name rename)."""
+
+    type: str
+    name: str
+    id: NotRequired[str]
+
+
+class OwnershipRuleResponse(TypedDict):
+    matcher: OwnershipRuleMatcher
+    owners: list[OwnershipRuleOwnerResponse]
+
+
+OwnershipSchemaResponse = TypedDict(
+    "OwnershipSchemaResponse", {"$version": int, "rules": list[OwnershipRuleResponse]}
+)
 
 
 # JSON object representing optional part of API response
 class ProjectOwnershipResponseOptional(TypedDict, total=False):
-    schema: OwnershipSchema | None
+    schema: OwnershipSchemaResponse | None
 
 
 # JSON object representing this serializer in API response
