@@ -60,6 +60,11 @@ class GroupingContext:
         self.canonical_event_message = event_message
         self.canonical_message_parameterized = parameterizer.parameterize(event_message)
 
+        # Track use of the cached values for metrics purposes. Any use past the first one signifies
+        # a reuse of the value, thus proving caching worthwhile.
+        self.cached_parameterizer_used = False
+        self.cached_param_result_used = False
+
         self._push_context_layer()
 
     def __setitem__(self, key: str, value: Any) -> None:
