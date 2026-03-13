@@ -2785,7 +2785,7 @@ describe('useWidgetBuilderState', () => {
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_TEXT_CONTENT,
-          playload: 'text widget content',
+          payload: 'text widget content',
         });
       });
 
@@ -2817,7 +2817,7 @@ describe('useWidgetBuilderState', () => {
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_TEXT_CONTENT,
-          playload: 'new text content',
+          payload: 'new text content',
         } as any);
       });
 

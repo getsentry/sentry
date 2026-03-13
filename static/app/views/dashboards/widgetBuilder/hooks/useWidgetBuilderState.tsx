@@ -143,7 +143,7 @@ type WidgetAction =
       payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
     }
-  | {playload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
+  | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -360,7 +360,7 @@ function useWidgetBuilderState(): {
     // when the widget builder state is initialized, this variable can't be pulled from the URL params
     // so we are going to use session storage for hacks
     const storedValue = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
-    if (storedValue) {
+    if (storedValue !== null) {
       sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
     }
     return storedValue ?? undefined;
@@ -1220,7 +1220,7 @@ function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_TEXT_CONTENT: {
-          setTextContent(action.playload);
+          setTextContent(action.payload);
           break;
         }
         default:
