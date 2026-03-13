@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,19 +9,10 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {useQuery} from 'sentry/utils/queryClient';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 import {Rules} from './rules';
-
-function useMemoTryCatch<Result, Arg>(compute: (arg: Arg) => Result, arg: Arg) {
-  return useMemo(() => {
-    try {
-      return [compute(arg)] as const;
-    } catch (error) {
-      return [undefined, error] as const;
-    }
-  }, [arg, compute]);
-}
 
 type Props = {
   organization: Organization;
@@ -31,16 +22,19 @@ export function OrganizationRules({organization}: Props) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [contentHeight, setContentHeight] = useState<string | undefined>();
 
-  const [rules, rulesError] = useMemoTryCatch(
-    convertRelayPiiConfig,
-    organization.relayPiiConfig
-  );
-
-  useEffect(() => {
-    if (rulesError) {
-      addErrorMessage(t('Unable to load data scrubbing rules'));
-    }
-  }, [rulesError]);
+  const {data: rules} = useQuery({
+    queryKey: ['convertRelayPiiConfig', organization.relayPiiConfig],
+    queryFn: () => {
+      try {
+        return convertRelayPiiConfig(organization.relayPiiConfig);
+      } catch {
+        addErrorMessage(t('Unable to load data scrubbing rules'));
+        return null;
+      }
+    },
+    networkMode: 'always',
+    retry: 0,
+  });
 
   const handleToggleCollapsed = useCallback(() => {
     setIsCollapsed(previousIsCollapsed => !previousIsCollapsed);
