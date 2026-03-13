@@ -41,7 +41,11 @@ class ControlReplicaService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> None:
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
+        """
+        Returns True if the mapping was successfully created or updated, False if there was a
+        conflict (e.g. a duplicate public_key).
+        """
         pass
 
     @rpc_method

@@ -377,7 +377,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
 
         handle_replication(Team, destination)
 
-    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> None:
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
                 ProjectKeyMapping.objects.update_or_create(
@@ -390,7 +390,8 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                 "project_key_mapping.conflict",
                 extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
             )
-            raise
+            return False
+        return True
 
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
         ProjectKeyMapping.objects.filter(
