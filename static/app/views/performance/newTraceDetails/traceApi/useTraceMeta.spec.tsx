@@ -253,6 +253,162 @@ describe('useTraceMeta', () => {
     expect(mockRequest3).toHaveBeenCalled();
   });
 
+  it('Retries with 90d when initial 14d response has no data', async () => {
+    const tracesWithoutTimestamp: ReplayTrace[] = [
+      {traceSlug: 'slug1', timestamp: undefined},
+      {traceSlug: 'slug2', timestamp: undefined},
+    ];
+
+    const emptyBody = {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: [],
+      span_count: 0,
+      span_count_map: {},
+    };
+
+    const mockSlug1_14d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '14d'})],
+      body: emptyBody,
+    });
+    const mockSlug2_14d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      match: [MockApiClient.matchData({statsPeriod: '14d'})],
+      body: emptyBody,
+    });
+
+    const realBody = {
+      errors: 1,
+      performance_issues: 1,
+      projects: 1,
+      transactions: 1,
+      transaction_child_count_map: [{'transaction.id': 'tx1', count: 1}],
+      span_count: 1,
+      span_count_map: {op1: 1},
+    };
+
+    const mockSlug1_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: realBody,
+    });
+    const mockSlug2_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: realBody,
+    });
+
+    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithoutTimestamp), {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
+
+    expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
+    expect(mockSlug2_14d).toHaveBeenCalledTimes(1);
+    expect(mockSlug1_90d).toHaveBeenCalledTimes(1);
+    expect(mockSlug2_90d).toHaveBeenCalledTimes(1);
+
+    expect(result.current.data?.span_count).toBe(2);
+    expect(result.current.data?.errors).toBe(2);
+  });
+
+  it('Does not retry when initial response has data', async () => {
+    const tracesWithoutTimestamp: ReplayTrace[] = [
+      {traceSlug: 'slug1', timestamp: undefined},
+    ];
+
+    const mockSlug1_14d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '14d'})],
+      body: {
+        errors: 1,
+        performance_issues: 1,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: [],
+        span_count: 1,
+        span_count_map: {op1: 1},
+      },
+    });
+
+    const mockSlug1_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: {
+        errors: 2,
+        performance_issues: 2,
+        projects: 1,
+        transactions: 2,
+        transaction_child_count_map: [],
+        span_count: 2,
+        span_count_map: {},
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithoutTimestamp), {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
+
+    expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
+    expect(mockSlug1_90d).not.toHaveBeenCalled();
+    expect(result.current.data?.span_count).toBe(1);
+  });
+
+  it('Does not retry when all traces have timestamps', async () => {
+    const tracesWithTimestamps: ReplayTrace[] = [{traceSlug: 'slug1', timestamp: 123}];
+
+    const mockSlug1_timestamp = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+        transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
+      },
+    });
+
+    const mockSlug1_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: {
+        errors: 1,
+        performance_issues: 1,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: [],
+        span_count: 1,
+        span_count_map: {},
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithTimestamps), {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
+
+    expect(mockSlug1_timestamp).toHaveBeenCalledTimes(1);
+    expect(mockSlug1_90d).not.toHaveBeenCalled();
+    expect(result.current.data?.span_count).toBe(0);
+  });
+
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
