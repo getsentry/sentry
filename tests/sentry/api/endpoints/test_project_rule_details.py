@@ -134,6 +134,7 @@ def assert_serializer_results_match(
     assert rule_response.get("projects") == workflow_response.get("projects")
     assert rule_response.get("status") == workflow_response.get("status")
     assert rule_response.get("snooze") == workflow_response.get("snooze")
+    assert rule_response.get("owner") == workflow_response.get("owner")
 
 
 class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
