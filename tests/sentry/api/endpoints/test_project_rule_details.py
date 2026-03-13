@@ -104,12 +104,14 @@ def assert_serializer_results_match(
 
     rule_filters = sorted(rule_response.get("filters", []), key=lambda t: t.get("id", ""))
     workflow_filters = sorted(workflow_response.get("filters", []), key=lambda t: t.get("id", ""))
+    assert len(rule_filters) == len(workflow_filters)
 
     for rule_filter_data, workflow_filter_data in zip(rule_filters, workflow_filters):
         assert rule_filter_data == workflow_filter_data
 
     rule_actions = sorted(rule_response.get("actions", []), key=lambda t: t.get("id", ""))
     workflow_actions = sorted(workflow_response.get("actions", []), key=lambda t: t.get("id", ""))
+    assert len(rule_actions) == len(workflow_actions)
 
     # this is not read by the front end
     for rule_action in rule_actions:

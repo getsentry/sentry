@@ -748,13 +748,16 @@ def format_request_data(
 
     if data.get("owner"):
         owner = data["owner"]
-        split_owner = owner.split(":")
-        identifier, owner_id = split_owner[0], split_owner[1]
-
-        if identifier == "team":
-            workflow_payload["owner_team_id"] = owner_id
+        if isinstance(owner, int):
+            workflow_payload["owner_user_id"] = owner
         else:
-            workflow_payload["owner_user_id"] = owner_id
+            split_owner = owner.split(":")
+            identifier, owner_id = split_owner[0], split_owner[1]
+
+            if identifier == "team":
+                workflow_payload["owner_team_id"] = owner_id
+            else:
+                workflow_payload["owner_user_id"] = owner_id
 
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_filter_list = []
