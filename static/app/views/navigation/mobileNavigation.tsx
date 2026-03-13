@@ -20,7 +20,6 @@ import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
@@ -28,10 +27,9 @@ export function MobileNavigation() {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
-  const {layout} = useNavigation();
+  const {layout, activeGroup} = useNavigation();
   const {currentStepId, endTour} = useNavigationTour();
 
   /** Sync menu state with `body` attributes */
