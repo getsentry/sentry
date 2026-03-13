@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.outboxes")
 
 
-class RegionOutboxProducingModel(Model):
+class CellOutboxProducingModel(Model):
     """
     overrides model save, update, and delete methods such that, within an atomic transaction,
     an outbox returned from outbox_for_update is saved. Furthermore, using this mixin causes get_protected_operations
@@ -77,7 +77,7 @@ class RegionOutboxProducingModel(Model):
         raise NotImplementedError
 
 
-_RM = TypeVar("_RM", bound=RegionOutboxProducingModel)
+_RM = TypeVar("_RM", bound=CellOutboxProducingModel)
 
 
 class RegionOutboxProducingManager(BaseManager[_RM]):
@@ -149,9 +149,9 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             return self.filter(id__in={o.id for o in tuple_of_objs}).delete()
 
 
-class ReplicatedRegionModel(RegionOutboxProducingModel):
+class ReplicatedRegionModel(CellOutboxProducingModel):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
+    An extension of CellOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category and outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_deletion based on whether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
@@ -215,7 +215,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
 
 class ControlOutboxProducingModel(Model):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
+    An extension of CellOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category nd outbox type configured as class variables.  Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.

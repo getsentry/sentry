@@ -465,7 +465,7 @@ class RegionOutbox(CellOutboxBase):
 CellOutbox = RegionOutbox
 
 
-# Outboxes bound from control silo -> region silo
+# Outboxes bound from control silo -> cell silo
 class ControlOutboxBase(OutboxBase):
     sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (

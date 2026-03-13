@@ -8,7 +8,7 @@ When a model is migrated to use outboxes (or its replication logic changes), exi
 
 ## `replication_version` Mechanism
 
-Every `RegionOutboxProducingModel` and `ControlOutboxProducingModel` has a class variable:
+Every `CellOutboxProducingModel` and `ControlOutboxProducingModel` has a class variable:
 
 ```python
 replication_version: int = 1  # Default
