@@ -83,11 +83,11 @@ interface JsonFormAdapterProjectMapper extends JsonFormAdapterBase {
   type: 'project_mapper';
   iconType?: string;
   mappedDropdown?: {
-    items: Array<{label: string; value: string; url?: string}>;
+    items: ReadonlyArray<{label: string; value: string; url?: string}>;
     placeholder?: string;
   };
   nextButton?: {allowedDomain: string; description: string; text: string};
-  sentryProjects?: Array<{
+  sentryProjects?: ReadonlyArray<{
     id: number;
     name: string;
     slug: string;

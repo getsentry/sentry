@@ -9,12 +9,12 @@ const VERCEL_PROJECTS = [
   {value: 'proj-1', label: 'my-vercel-project', url: 'https://vercel.com/proj-1'},
   {value: 'proj-2', label: 'another-project', url: 'https://vercel.com/proj-2'},
   {value: 'proj-3', label: 'third-project', url: 'https://vercel.com/proj-3'},
-];
+] as const;
 
 const SENTRY_PROJECTS = [
   {id: 101, slug: 'sentry-frontend', name: 'Sentry Frontend', platform: 'javascript'},
   {id: 102, slug: 'sentry-backend', name: 'Sentry Backend', platform: 'python'},
-];
+] as const;
 
 function makeConfig(
   overrides?: Partial<Extract<JsonFormAdapterFieldConfig, {type: 'project_mapper'}>>
