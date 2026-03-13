@@ -32,7 +32,9 @@ import {
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
-function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label' | 'as'>) {
+interface PrimaryNavigationSidebarProps extends Omit<FlexProps, 'aria-label' | 'as'> {}
+
+function PrimaryNavigationSidebar(props: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
   return (
     <Flex
@@ -52,7 +54,9 @@ function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label' | 'as'>) {
   );
 }
 
-function PrimaryNavigationSidebarHeader(props: Omit<FlexProps<'header'>, 'as'>) {
+interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 'as'> {}
+
+function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const showSuperuserWarning =
@@ -192,52 +196,50 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   label: string;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
   children?: React.ReactNode;
-  className?: string;
   indicator?: 'accent' | 'danger' | 'warning';
 }
 
-function PrimaryNavigationButton({
-  analyticsKey,
-  analyticsParams,
-  children,
-  buttonProps = {},
-  label,
-  indicator,
-}: PrimaryNavigationButtonProps) {
-  const organization = useOrganization();
+function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = useNavigation();
+  const organization = useOrganization();
   const showLabel = layout === 'mobile';
 
   return (
-    <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
+    <Tooltip
+      title={props.label}
+      disabled={showLabel}
+      position="right"
+      skipWrapper
+      delay={600}
+    >
       <NavigationButton
-        {...buttonProps}
-        analyticsParams={analyticsParams}
-        aria-label={showLabel ? undefined : label}
+        {...props.buttonProps}
+        analyticsParams={props.analyticsParams}
+        aria-label={showLabel ? undefined : props.label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
-            item: analyticsKey,
+            item: props.analyticsKey,
             organization,
-            ...analyticsParams,
+            ...props.analyticsParams,
           });
-          buttonProps.onClick?.(e);
+          props.buttonProps?.onClick?.(e);
         }}
         icon={
-          indicator ? (
+          props.indicator ? (
             <Fragment>
-              {buttonProps.icon}
+              {props.buttonProps?.icon}
               <PrimaryNavigationUnreadIndicator
                 data-unread-indicator
-                variant={indicator}
+                variant={props.indicator}
               />
             </Fragment>
           ) : (
-            buttonProps.icon
+            props.buttonProps?.icon
           )
         }
       >
-        {showLabel ? label : null}
-        {children}
+        {showLabel ? props.label : null}
+        {props.children}
       </NavigationButton>
     </Tooltip>
   );
@@ -245,9 +247,9 @@ function PrimaryNavigationButton({
 
 const PrimaryNavigationUnreadIndicator = styled(
   (props: {variant: 'accent' | 'danger' | 'warning'}) => {
+    const theme = useTheme();
     const {layout} = useNavigation();
     const showLabel = layout === 'mobile';
-    const theme = useTheme();
     return (
       <Container
         position="absolute"
@@ -289,18 +291,8 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
-function PrimaryNavigationMenu({
-  items,
-  children,
-  analyticsKey,
-  analyticsParams,
-  label,
-  onOpen,
-  icon,
-  indicator,
-  size,
-  triggerWrap: TriggerWrap = Fragment,
-}: PrimaryNavigationMenuProps) {
+function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
+  const TriggerWrap = props.triggerWrap ?? Fragment;
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = useNavigation();
@@ -325,7 +317,7 @@ function PrimaryNavigationMenu({
         return (
           <TriggerWrap>
             <Tooltip
-              title={label}
+              title={props.label}
               disabled={showLabel}
               position="right"
               skipWrapper
@@ -333,44 +325,44 @@ function PrimaryNavigationMenu({
             >
               <NavigationButton
                 {...triggerProps}
-                aria-label={showLabel ? undefined : label}
-                size={size}
+                aria-label={showLabel ? undefined : props.label}
+                size={props.size}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   if (organization) {
                     trackAnalytics('navigation.primary_item_clicked', {
-                      item: analyticsKey,
+                      item: props.analyticsKey,
                       organization,
-                      ...analyticsParams,
+                      ...props.analyticsParams,
                     });
                   }
                   triggerProps.onClick?.(event);
-                  onOpen?.(event);
+                  props.onOpen?.(event);
                 }}
                 icon={
-                  indicator ? (
+                  props.indicator ? (
                     <Fragment>
-                      {icon}
-                      <PrimaryNavigationUnreadIndicator variant={indicator} />
+                      {props.icon}
+                      <PrimaryNavigationUnreadIndicator variant={props.indicator} />
                     </Fragment>
                   ) : (
-                    icon
+                    props.icon
                   )
                 }
               >
                 {showLabel ? (
                   <Fragment>
-                    {label}
-                    {children}
+                    {props.label}
+                    {props.children}
                   </Fragment>
                 ) : (
-                  children
+                  props.children
                 )}
               </NavigationButton>
             </Tooltip>
           </TriggerWrap>
         );
       }}
-      items={items}
+      items={props.items}
     />
   );
 }
@@ -542,16 +534,13 @@ export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
  * on desktop and a modified overlay in mobile to match the design of
  * the mobile topbar.
  */
-function PrimaryNavigationButtonOverlay({
-  children,
-  overlayProps,
-}: PrimaryNavigationButtonOverlayProps) {
+function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
-        <ScrollableOverlay>{children}</ScrollableOverlay>
+      <PositionWrapper zIndex={theme.zIndex.modal} {...props.overlayProps}>
+        <ScrollableOverlay>{props.children}</ScrollableOverlay>
       </PositionWrapper>
     </FocusScope>,
     document.body
@@ -587,9 +576,13 @@ export function isPrimaryNavigationLinkActive(
   return pathname.startsWith(toPathname);
 }
 
+interface PassthroughWrapperProps {
+  children: React.ReactNode;
+}
+
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
-function PassthroughWrapper({children}: {children: React.ReactNode}) {
-  return children;
+function PassthroughWrapper(props: PassthroughWrapperProps) {
+  return props.children;
 }
 
 export const PrimaryNavigation = {
