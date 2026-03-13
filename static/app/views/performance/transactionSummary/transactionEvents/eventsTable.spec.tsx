@@ -254,35 +254,6 @@ describe('Performance GridEditable Table', () => {
   });
 
   it('does not render trace link when trace id is missing', async () => {
-    data = data.map(event => ({...event, trace: null}));
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      headers: {
-        Link:
-          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
-      },
-      body: {
-        meta: {
-          fields: {
-            id: 'string',
-            'user.display': 'string',
-            'transaction.duration': 'duration',
-            'project.id': 'integer',
-            timestamp: 'date',
-            trace: 'string',
-          },
-        },
-        data,
-      },
-      match: [
-        (_url, options) => {
-          return options.query?.field?.includes('user.display');
-        },
-      ],
-    });
-
     const initialData = initializeData();
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -310,14 +281,12 @@ describe('Performance GridEditable Table', () => {
       />
     );
 
-    // Event ID links should still render
-    expect(await screen.findByRole('link', {name: 'deadbeef'})).toBeInTheDocument();
+    // First event has a trace and should render a trace link
+    expect(await screen.findByRole('link', {name: '1234'})).toBeInTheDocument();
 
-    // Trace column values should not be wrapped in links when trace is null
-    const noValueElements = screen.getAllByText('(no value)');
-    for (const el of noValueElements) {
-      expect(el.closest('a')).toBeNull();
-    }
+    // Second event has no trace - its (no value) should not be a link
+    const noValueElement = screen.getByText('(no value)');
+    expect(noValueElement.closest('a')).toBeNull();
   });
 
   it('renders replay id', async () => {
