@@ -520,7 +520,15 @@ class SpansBuffer:
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
-            segments = self._load_segment_data([k for _, _, k in segment_keys])
+            # Pass queue mapping to enable TTL expiration detection
+            segment_to_queue = {
+                segment_key: queue_key for _, queue_key, segment_key in segment_keys
+            }
+            segments = self._load_segment_data(
+                [k for _, _, k in segment_keys],
+                segment_to_queue,
+                now,
+            )
         load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
@@ -648,12 +656,19 @@ class SpansBuffer:
 
         return accepted
 
-    def _load_segment_data(self, segment_keys: list[SegmentKey]) -> dict[SegmentKey, list[bytes]]:
+    def _load_segment_data(
+        self,
+        segment_keys: list[SegmentKey],
+        segment_to_queue: dict[SegmentKey, QueueKey],
+        now: int,
+    ) -> dict[SegmentKey, list[bytes]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
 
         :param segment_keys: List of segment keys to load.
+        :param segment_to_queue: Mapping of segment keys to their queue keys for TTL checking.
+        :param now: Current timestamp for age calculation.
         :return: payloads mapping segment keys to lists of span payloads.
         """
 
@@ -722,8 +737,8 @@ class SpansBuffer:
             ingested_results = p.execute()
 
         # Calculate dropped counts: total ingested - successfully loaded
-        # Track expired segments to avoid double-counting in empty_segments metric
-        expired_keys = set()
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        root_timeout = options.get("spans.buffer.root-timeout")
 
         for i, key in enumerate(segment_keys):
             ingested_count = ingested_results[i * 2]
@@ -765,16 +780,26 @@ class SpansBuffer:
                         quantity=dropped,
                     )
             elif not payloads.get(key):
-                # BUG DETECTION: Segment was in the flush queue but both the data
-                # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
-                # This means the Redis keys expired before the flusher could process
-                # them, resulting in silent data loss. The spans were already committed
-                # from the ingest Kafka topic, so they cannot be recovered.
-                metrics.incr("spans.buffer.segment_expired_before_flush")
-                expired_keys.add(key)
+                # Both data and metadata are missing. This could be:
+                # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
+                # 2. Race condition (another consumer flushed between load and metadata fetch)
+                # Only increment metric if segment is old enough to have actually expired.
+                queue_key = segment_to_queue.get(key)
+                if queue_key:
+                    deadline_score = self.client.zscore(queue_key, key)
+                    if deadline_score is not None:
+                        deadline = int(deadline_score)
+                        time_past_deadline = now - deadline
+                        # Estimate segment age: deadline = creation_time + timeout
+                        # Use root_timeout as conservative estimate (smaller value)
+                        estimated_age = time_past_deadline + root_timeout
+
+                        if estimated_age > redis_ttl:
+                            # Segment is older than TTL - true expiration (data loss)
+                            metrics.incr("spans.buffer.segment_expired_before_flush")
 
         for key, spans in payloads.items():
-            if not spans and key not in expired_keys:
+            if not spans:
                 # This is a bug, most likely the input topic is not
                 # partitioned by trace_id so multiple consumers are writing
                 # over each other. The consequence is duplicated segments,
