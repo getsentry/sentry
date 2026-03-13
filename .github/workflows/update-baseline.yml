@@ -7,13 +7,12 @@ on:
     # 1st of every month at 10am SF time (17:00 UTC)
     - cron: '0 17 1 * *'
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   update:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
