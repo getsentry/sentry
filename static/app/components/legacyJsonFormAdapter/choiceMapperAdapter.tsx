@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
@@ -9,7 +9,7 @@ import {
   type SelectOption,
   type SelectProps,
 } from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
 
@@ -243,30 +243,24 @@ export function ChoiceMapperTable({
   }
 
   return (
-    <Fragment>
-      <Flex align="center" marginTop="lg">
+    <Stack gap="lg">
+      <Flex align="center" gap="md">
         <LabelColumn>
           <HeadingItem>{mappedColumnLabel}</HeadingItem>
         </LabelColumn>
         {mappedKeys.map(fieldKey => (
-          <Flex
-            justify="between"
-            align="center"
-            flex="1 0 0"
-            marginLeft="md"
-            key={fieldKey}
-          >
+          <Flex justify="between" align="center" flex="1 0 0" key={fieldKey}>
             <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
           </Flex>
         ))}
       </Flex>
       {Object.keys(value).map(itemKey => (
-        <Flex align="center" marginTop="md" key={itemKey}>
+        <Flex align="center" gap="md" key={itemKey}>
           <LabelColumn>
             {(value[itemKey]?.__label as string) ?? valueMap[itemKey]}
           </LabelColumn>
           {mappedKeys.map((fieldKey, i) => (
-            <Flex align="center" flex="1 0 0" marginLeft="md" key={fieldKey}>
+            <Flex align="center" flex="1 0 0" gap="md" key={fieldKey}>
               <Control>
                 <Select
                   {...(perItemMapping
@@ -286,21 +280,19 @@ export function ChoiceMapperTable({
                 />
               </Control>
               {i === mappedKeys.length - 1 && (
-                <Actions>
-                  <Button
-                    icon={<IconDelete />}
-                    size="sm"
-                    disabled={disabled}
-                    onClick={() => removeRow(itemKey)}
-                    aria-label={t('Delete')}
-                  />
-                </Actions>
+                <Button
+                  icon={<IconDelete />}
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => removeRow(itemKey)}
+                  aria-label={t('Delete')}
+                />
               )}
             </Flex>
           ))}
         </Flex>
       ))}
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -332,8 +324,4 @@ const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Actions = styled('div')`
-  margin-left: ${p => p.theme.space.md};
 `;

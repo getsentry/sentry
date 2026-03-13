@@ -111,7 +111,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
         {fieldApi => (
           <fieldApi.Base>
             {(baseProps, {indicator}) => (
-              <Stack flexGrow={1} gap="md">
+              <Stack flexGrow={1} gap="xl">
                 <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                   <ChoiceMapperDropdown
                     config={field}
