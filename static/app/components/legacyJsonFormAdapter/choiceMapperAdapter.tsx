@@ -1,10 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 import {useQuery} from '@tanstack/react-query';
+import type {DistributedPick} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  type SelectOption,
+  type SelectProps,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
@@ -50,8 +54,7 @@ function AsyncSearchCompactSelect({
   defaultOptions?: Array<SelectOption<string>>;
   noResultsMessage?: string;
   searchField?: string;
-  trigger?: React.ReactNode;
-}) {
+} & DistributedPick<SelectProps<string>, 'trigger'>) {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
@@ -79,7 +82,7 @@ function AsyncSearchCompactSelect({
       clearable={false}
       disabled={false}
       options={options}
-      onChange={(option: SelectOption<string>) => {
+      onChange={option => {
         setSearch('');
         onChange(option);
       }}
@@ -102,28 +105,6 @@ function AsyncSearchCompactSelect({
   );
 }
 
-function useDropdown(config: ChoiceMapperConfig, value: Record<string, unknown>) {
-  const {addDropdown, addButtonText = t('Add Item')} = config;
-
-  const selectableValues =
-    addDropdown?.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
-
-  const asyncUrl = addDropdown?.url;
-
-  const dropdownTrigger = (triggerProps: Record<string, unknown>, _isOpen: boolean) => {
-    const merged = mergeProps(triggerProps, {
-      children: (
-        <Flex gap="xs">
-          <IconAdd /> {addButtonText}
-        </Flex>
-      ),
-    });
-    return <OverlayTrigger.Button {...merged} />;
-  };
-
-  return {selectableValues, asyncUrl, dropdownTrigger, addDropdown};
-}
-
 /**
  * Renders just the "Add" dropdown button.
  * Placed inside Layout.Row alongside the label.
@@ -141,13 +122,12 @@ export function ChoiceMapperDropdown({
     {}
   );
 
-  const {selectableValues, asyncUrl, dropdownTrigger, addDropdown} = useDropdown(
-    config,
-    value
-  );
+  const asyncUrl = config.addDropdown?.url;
+  const selectableValues =
+    config.addDropdown?.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
 
   const addRow = (item: SelectOption<string>) => {
-    const newValue = addDropdown?.url ? {...emptyValue, __label: item.label} : emptyValue;
+    const newValue = asyncUrl ? {...emptyValue, __label: item.label} : emptyValue;
     onChange({...value, [item.value]: newValue});
   };
 
@@ -156,11 +136,17 @@ export function ChoiceMapperDropdown({
       <Flex align="center" gap="sm">
         <AsyncSearchCompactSelect
           url={asyncUrl}
-          searchField={addDropdown?.searchField}
+          searchField={config.addDropdown?.searchField}
           defaultOptions={selectableValues.map(i => ({value: i.value, label: i.label}))}
-          noResultsMessage={addDropdown?.noResultsMessage ?? t('No results found')}
+          noResultsMessage={config.addDropdown?.noResultsMessage ?? t('No results found')}
           onChange={addRow}
-          trigger={dropdownTrigger}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps}>
+              <Flex gap="xs">
+                <IconAdd /> {config.addButtonText ?? t('Add Item')}
+              </Flex>
+            </OverlayTrigger.Button>
+          )}
         />
         {indicator}
       </Flex>
@@ -173,8 +159,8 @@ export function ChoiceMapperDropdown({
         value={undefined}
         emptyMessage={
           selectableValues.length === 0
-            ? addDropdown?.emptyMessage
-            : addDropdown?.noResultsMessage
+            ? config.addDropdown?.emptyMessage
+            : config.addDropdown?.noResultsMessage
         }
         size="xs"
         search
@@ -182,7 +168,13 @@ export function ChoiceMapperDropdown({
         options={selectableValues.map(i => ({value: i.value, label: i.label}))}
         menuWidth={250}
         onChange={addRow}
-        trigger={dropdownTrigger}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps}>
+            <Flex gap="xs">
+              <IconAdd /> {config.addButtonText ?? t('Add Item')}
+            </Flex>
+          </OverlayTrigger.Button>
+        )}
       />
       {indicator}
     </Flex>
@@ -278,9 +270,7 @@ export function ChoiceMapperTable({
               <Control>
                 <Select
                   {...(perItemMapping
-                    ? (mappedSelectors as Record<string, Record<string, unknown>>)[
-                        itemKey
-                      ]?.[fieldKey]
+                    ? mappedSelectors[itemKey]?.[fieldKey]
                     : mappedSelectors[fieldKey])}
                   options={transformMappedChoices(
                     perItemMapping
