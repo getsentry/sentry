@@ -236,12 +236,26 @@ export default function IntegrationDetailedView() {
 
   const onInstall = useCallback(
     (integration: Integration) => {
-      // send the user to the configure integration view for that integration
+      if (provider?.features.includes('coding-agent')) {
+        queryClient.invalidateQueries({
+          queryKey: makeIntegrationQueryKey({
+            orgSlug: organization.slug,
+            integrationSlug,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: [
+            getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+          ],
+        });
+      }
       navigate(
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       );
     },
-    [organization.slug, navigate]
+    [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
   );
 
   const onRemove = useCallback(
