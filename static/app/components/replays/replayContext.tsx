@@ -580,10 +580,12 @@ export function Provider({
   const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
   const SEEK_THRESHOLD_MS = 200;
+  const isStillSeeking =
+    buffer.target > buffer.previous
+      ? currentPlayerTime < buffer.target - SEEK_THRESHOLD_MS
+      : currentPlayerTime > buffer.target + SEEK_THRESHOLD_MS;
   const [isBuffering, currentBufferedPlayerTime] =
-    buffer.target !== -1 &&
-    Math.abs(currentPlayerTime - buffer.target) > SEEK_THRESHOLD_MS &&
-    buffer.target !== buffer.previous
+    buffer.target !== -1 && isStillSeeking && buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
 
