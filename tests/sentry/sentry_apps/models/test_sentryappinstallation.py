@@ -58,7 +58,7 @@ class SentryAppInstallationTest(TestCase):
         )
 
     def test_handle_async_replication_clears_region_cache(self) -> None:
-        with mock.patch.object(caching_module, "region_caching_service") as mock_caching_service:
+        with mock.patch.object(caching_module, "cell_caching_service") as mock_caching_service:
             self.install.save()
             cell = get_cell_for_organization(self.org.slug)
             mock_caching_service.clear_key.assert_any_call(

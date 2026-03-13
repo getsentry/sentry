@@ -36,7 +36,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.hybridcloud.services.organizationmember_mapping import (
@@ -186,7 +186,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
 
 @cell_silo_model
-class OrganizationMember(ReplicatedRegionModel):
+class OrganizationMember(ReplicatedCellModel):
     """
     Identifies relationships between organizations and users.
 

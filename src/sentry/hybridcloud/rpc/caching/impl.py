@@ -9,7 +9,7 @@ from sentry.hybridcloud.models.cacheversion import (
     ControlCacheVersion,
     RegionCacheVersion,
 )
-from sentry.hybridcloud.rpc.caching.service import ControlCachingService, RegionCachingService
+from sentry.hybridcloud.rpc.caching.service import CellCachingService, ControlCachingService
 from sentry.silo.base import SiloMode
 
 _V = TypeVar("_V")
@@ -81,7 +81,7 @@ class CacheBackend:
     set_cache = staticmethod(_set_cache)
 
 
-class LocalRegionCachingService(RegionCachingService):
+class LocalCellCachingService(CellCachingService):
     def clear_key(self, *, region_name: str, key: str) -> int:
         return _consume_generator(_delete_cache(key, SiloMode.CELL))
 

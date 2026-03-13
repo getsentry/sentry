@@ -18,15 +18,15 @@ if TYPE_CHECKING:
     pass
 
 
-class RegionCachingService(RpcService):
+class CellCachingService(RpcService):
     key = "region_caching"
     local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import LocalRegionCachingService
+        from .impl import LocalCellCachingService
 
-        return LocalRegionCachingService()
+        return LocalCellCachingService()
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
@@ -290,7 +290,7 @@ def back_with_silo_cache(
     If the cache read fails, the decorated function will be called and its result
     will be stored in cache. The decorator adds helper methods on the wrapped
     function for generating keys to clear cache entries
-    with region_caching_service and control_caching_service.
+    with cell_caching_service and control_caching_service.
 
     See user_service.get_user() for an example usage.
     """
@@ -335,7 +335,7 @@ def back_with_silo_cache_list(
     If the cache read for the id value fails, the decorated function will be called and
     its result will be stored in cache. The decorator also adds method on the wrapped
     function for generating keys to clear cache entires with
-    with region_caching_service and control_caching_service.
+    with cell_caching_service and control_caching_service.
 
     See app_service.installations_for_organization() for an example usage.
     """
@@ -346,7 +346,7 @@ def back_with_silo_cache_list(
     return wrapper
 
 
-region_caching_service = RegionCachingService.create_delegation()
+cell_caching_service = CellCachingService.create_delegation()
 
 
 class ControlCachingService(RpcService):

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sentry.auth.services.orgauthtoken.service import OrgAuthTokenService
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.orgauthtoken import OrgAuthToken
 
@@ -38,7 +38,7 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
         date_last_used: datetime | None = None,
         project_last_used_id: int | None = None,
     ) -> None:
-        RegionOutbox(
+        CellOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_id,
             category=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED,
