@@ -235,7 +235,7 @@ export function useTrace(
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams('eap', query, filters.selection, {
+    return getTraceQueryParams(query, filters.selection, {
       limit: options.limit,
       timestamp: options.timestamp,
       targetId: options.targetEventId,
