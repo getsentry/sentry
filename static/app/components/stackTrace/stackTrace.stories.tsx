@@ -1320,14 +1320,6 @@ const WideHovercard = styled(WideHovercardBase)`
 const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   align-items: center;
   gap: ${p => p.theme.space.sm};
-  width: ${p => (p.visible ? 'max-content' : '0')};
-  flex: ${p => (p.visible ? '0 0 max-content' : '0 0 0')};
-  height: ${p => (p.visible ? '28px' : '0')};
-  min-height: ${p => (p.visible ? '28px' : '0')};
-  overflow: hidden;
-  pointer-events: none;
-
-  > * {
-    pointer-events: auto;
-  }
+  opacity: ${p => (p.visible ? 1 : 0)};
+  pointer-events: ${p => (p.visible ? 'auto' : 'none')};
 `;
