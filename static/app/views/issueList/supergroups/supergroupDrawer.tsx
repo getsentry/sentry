@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -15,8 +14,8 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import GroupList from 'sentry/components/issues/groupList';
 import {IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {StyledMarkedText} from 'sentry/views/issueList/supergroups/styledComponents';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDetail}) {
@@ -116,10 +115,4 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
 
 const DrawerContentBody = styled(DrawerBody)`
   padding: 0;
-`;
-
-const StyledMarkedText = styled(MarkedText)`
-  code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
-  }
 `;

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {inlineCodeStyles} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -14,9 +13,9 @@ import {Redirect} from 'sentry/components/redirect';
 import {IconFocus} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {StyledMarkedText} from 'sentry/views/issueList/supergroups/styledComponents';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
@@ -34,7 +33,9 @@ function SupergroupCard({
   return (
     <CardContainer background="primary" border="primary" radius="md" onClick={onClick}>
       <Stack padding="lg" gap="md">
-        <CardTitle>{supergroup.title}</CardTitle>
+        <Text as="span" size="lg" bold wordBreak="break-word">
+          {supergroup.title}
+        </Text>
 
         <Stack gap="xs">
           <Text size="xs" variant="muted">
@@ -187,20 +188,6 @@ const CardContainer = styled(Container)`
     background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.accent.moderate};
     box-shadow: ${p => p.theme.dropShadowMedium};
-  }
-`;
-
-const CardTitle = styled('span')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: 600;
-  color: ${p => p.theme.tokens.content.primary};
-  line-height: 1.3;
-  word-break: break-word;
-`;
-
-const StyledMarkedText = styled(MarkedText)`
-  code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
   }
 `;
 
