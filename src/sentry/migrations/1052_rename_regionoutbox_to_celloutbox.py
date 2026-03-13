@@ -22,6 +22,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1051_rename_controloutbox_region_name_to_cell_name"),
+        ("workflow_engine", "0106_migrate_actions_sentry_app_data"),
     ]
 
     operations = [
