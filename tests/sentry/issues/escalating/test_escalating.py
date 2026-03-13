@@ -345,7 +345,9 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestEAPIsEscalating(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0, tzinfo=timezone.utc)
+    FROZEN_TIME = (datetime.now(timezone.utc) - timedelta(hours=24)).replace(
+        hour=6, minute=30, second=0, microsecond=0
+    )
 
     def _event_timestamp(self, hours_ago: int = 0) -> float:
         return (
