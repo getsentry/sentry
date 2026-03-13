@@ -43,7 +43,7 @@ There are two outbox types corresponding to the two directions of flow:
 > An assertion at import time enforces this. A category registered to zero or multiple scopes causes an import crash.
 
 > **Bulk operations must use the producing manager.**
-> Use `MyModel.objects.bulk_create()` / `bulk_update()` / `bulk_delete()` from `RegionOutboxProducingManager` or `ControlOutboxProducingManager`. Raw querysets bypass outbox creation.
+> Use `MyModel.objects.bulk_create()` / `bulk_update()` / `bulk_delete()` from `CellOutboxProducingManager` or `ControlOutboxProducingManager`. Raw querysets bypass outbox creation.
 
 > **Snowflake ID models cannot use `bulk_create`.**
 > The producing manager pre-allocates IDs via `SELECT nextval(...)`, which conflicts with snowflake ID generation. Use individual `save()` calls instead.
@@ -82,11 +82,11 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel, RegionOutboxProducingManager
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel, CellOutboxProducingManager
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
-class MyModelManager(RegionOutboxProducingManager["MyModel"]):
+class MyModelManager(CellOutboxProducingManager["MyModel"]):
     """Manager that ensures bulk operations create outboxes."""
     pass
 
@@ -241,7 +241,7 @@ When adding outbox replication to a model that already has data in production:
 
 1. Change the model's base class to `ReplicatedRegionModel` or `ReplicatedControlModel`
 2. Add the `category` class variable
-3. Add a producing manager (`RegionOutboxProducingManager` / `ControlOutboxProducingManager`)
+3. Add a producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`)
 4. Implement `handle_async_replication` and `handle_async_deletion`
 5. If needed, add `payload_for_update()` for deletion recovery data
 6. Create the `OutboxCategory` if it doesn't exist (Step 3)
@@ -394,7 +394,7 @@ Before submitting your PR, verify:
 - [ ] `handle_async_replication` is idempotent (safe to call multiple times)
 - [ ] `handle_async_deletion` is idempotent and handles the case where the row is already gone
 - [ ] `payload_for_update()` includes only data needed for deletion recovery (not rapidly-changing fields)
-- [ ] Producing manager (`RegionOutboxProducingManager` / `ControlOutboxProducingManager`) is set on the model
+- [ ] Producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`) is set on the model
 - [ ] Bulk operations go through the producing manager, not raw querysets
 - [ ] `ReplicatedControlModel` has correct `outbox_region_names()` implementation
 - [ ] Tests verify outbox creation (scope, category, identifiers)

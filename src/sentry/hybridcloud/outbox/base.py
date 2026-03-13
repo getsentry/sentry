@@ -32,7 +32,7 @@ class CellOutboxProducingModel(Model):
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
 
-    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    Models that subclass from this or its descendents should consider using CellOutboxProducingManager
     to support bulk operations that respect outbox creation.
     """
 
@@ -80,7 +80,7 @@ class CellOutboxProducingModel(Model):
 _RM = TypeVar("_RM", bound=CellOutboxProducingModel)
 
 
-class RegionOutboxProducingManager(BaseManager[_RM]):
+class CellOutboxProducingManager(BaseManager[_RM]):
     """
     Provides bulk update and delete methods that respect outbox creation.
     """
@@ -156,7 +156,7 @@ class ReplicatedRegionModel(CellOutboxProducingModel):
     that invokes either of handle_async_replication or handle_async_deletion based on whether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
 
-    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    Models that subclass from this or its descendents should consider using CellOutboxProducingManager
     to support bulk operations that respect outbox creation.
     """
 
