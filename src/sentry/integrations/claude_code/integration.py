@@ -299,11 +299,11 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         environment_choices: list[tuple[str, str]] = []
         try:
             environments = client.list_environments()
+            environment_choices = [
+                (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
+            ]
         except Exception:
             logger.exception("claude_code.get_organization_config.fetch_environments_failed")
-        environment_choices = [
-            (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
-        ]
         choices = _build_environment_choices(environment_choices)
 
         return [
