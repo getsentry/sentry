@@ -41,6 +41,7 @@ const storyBookEntryPoints = [
   'static/app/stories/playground/*.tsx',
   'static/**/*.stories.{js,ts,tsx}',
   'static/**/*.mdx',
+  'build-utils/mdx-plugins.ts',
 ];
 
 const config: KnipConfig = {

@@ -15,7 +15,7 @@ from sentry.hybridcloud.models import (
     ExternalActorReplica,
     OrgAuthTokenReplica,
 )
-from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -115,7 +115,7 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedCellModel],
     destination: BaseModel,
     fk: str | None = None,
 ) -> None:

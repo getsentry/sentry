@@ -43,14 +43,14 @@ When debugging stuck outboxes, you'll often need to generate SQL for a developer
 
 ### Choosing the Correct Table
 
-| Direction            | Model class     | Table name             |
-| -------------------- | --------------- | ---------------------- |
-| Region -> Control    | `RegionOutbox`  | `sentry_regionoutbox`  |
-| Control -> Region(s) | `ControlOutbox` | `sentry_controloutbox` |
+| Direction          | Model class     | Table name             |
+| ------------------ | --------------- | ---------------------- |
+| Cell -> Control    | `RegionOutbox`  | `sentry_regionoutbox`  |
+| Control -> Cell(s) | `ControlOutbox` | `sentry_controloutbox` |
 
 **How to determine direction**: Look at the model that changed.
 
-- If the source model is decorated `@cell_silo_model` (or inherits `ReplicatedRegionModel`), it writes to `sentry_regionoutbox`
+- If the source model is decorated `@cell_silo_model` (or inherits `ReplicatedCellModel`), it writes to `sentry_regionoutbox`
 - If the source model is decorated `@control_silo_model` (or inherits `ReplicatedControlModel`), it writes to `sentry_controloutbox`
 
 ### Column Reference
@@ -250,10 +250,10 @@ See `references/backfill.md` for details on how `find_replication_version()` use
 For local debugging or in a Django shell:
 
 ```python
-from sentry.hybridcloud.models.outbox import RegionOutbox, ControlOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox
 
 # Top 10 deepest region shards
-for shard in RegionOutbox.get_shard_depths_descending(limit=10):
+for shard in CellOutbox.get_shard_depths_descending(limit=10):
     print(f"Scope={shard['shard_scope']} ID={shard['shard_identifier']} Depth={shard['depth']}")
 ```
 

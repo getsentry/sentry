@@ -7,7 +7,7 @@ from django.utils import timezone as django_timezone
 from sentry import features, roles
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models.utils import slugify_instance
-from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.hybridcloud.services.control_organization_provisioning import (
@@ -32,8 +32,8 @@ from sentry.utils.snowflake import generate_snowflake_id
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-) -> RegionOutbox:
-    return RegionOutbox(
+) -> CellOutbox:
+    return CellOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
