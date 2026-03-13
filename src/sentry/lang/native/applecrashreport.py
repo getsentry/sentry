@@ -302,9 +302,10 @@ class AppleCrashReport:
         image_addr = debug_image["image_addr"] + slide_value
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
-            hex(image_addr + debug_image["image_size"] - 1),
+            # Default to 1 so the end address isn't before the start when image_size is missing or None
+            hex(image_addr + (debug_image.get("image_size") or 1) - 1),
             image_name(debug_image.get("code_file") or NATIVE_UNKNOWN_STRING),
             get_path(self.context, "device", "arch") or NATIVE_UNKNOWN_STRING,
-            debug_image.get("debug_id").replace("-", "").lower(),
+            (debug_image.get("debug_id") or "").replace("-", "").lower() or NATIVE_UNKNOWN_STRING,
             debug_image.get("code_file") or NATIVE_UNKNOWN_STRING,
         )

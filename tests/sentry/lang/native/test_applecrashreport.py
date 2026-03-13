@@ -2,6 +2,33 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
+def _make_acr_with_context():
+    return AppleCrashReport(
+        context={
+            "device": {
+                "arch": "x86",
+                "family": "iPhone",
+                "freeMemory": 169684992,
+                "memorySize": 17179869184,
+                "model": "iPhone9,1",
+                "simulator": True,
+                "storageSize": 249695305728,
+                "type": "device",
+                "usableMemory": 14919622656,
+            },
+            "os": {
+                "build": "16C67",
+                "bundleID": "com.rokkincat.SentryExample",
+                "bundleVersion": "2",
+                "kernel_version": "Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64",
+                "name": "iOS",
+                "type": "os",
+                "version": "10.2",
+            },
+        }
+    )
+
+
 def test_get_threads_apple_string() -> None:
     acr = AppleCrashReport(
         threads=[
@@ -489,30 +516,7 @@ def test_binary_images_without_code_file() -> None:
 
 
 def test__convert_debug_meta_to_binary_image_row() -> None:
-    acr = AppleCrashReport(
-        context={
-            "device": {
-                "arch": "x86",
-                "family": "iPhone",
-                "freeMemory": 169684992,
-                "memorySize": 17179869184,
-                "model": "iPhone9,1",
-                "simulator": True,
-                "storageSize": 249695305728,
-                "type": "device",
-                "usableMemory": 14919622656,
-            },
-            "os": {
-                "build": "16C67",
-                "bundleID": "com.rokkincat.SentryExample",
-                "bundleVersion": "2",
-                "kernel_version": "Darwin Kernel Version 16.3.0: Thu Nov 17 20:23:58 PST 2016; root:xnu-3789.31.2~1/RELEASE_X86_64",
-                "name": "iOS",
-                "type": "os",
-                "version": "10.2",
-            },
-        }
-    )
+    acr = _make_acr_with_context()
     binary_image = acr._convert_debug_meta_to_binary_image_row(
         debug_image={
             "cpu_subtype": 3,
@@ -528,6 +532,45 @@ def test__convert_debug_meta_to_binary_image_row() -> None:
     assert (
         binary_image
         == "0xd69a000 - 0xd712fff SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
+    )
+
+
+def test__convert_debug_meta_to_binary_image_row_debug_id_none() -> None:
+    acr = _make_acr_with_context()
+    binary_image = acr._convert_debug_meta_to_binary_image_row(
+        debug_image={
+            "cpu_subtype": 3,
+            "cpu_type": 16777223,
+            "image_addr": 0xD69A000,
+            "image_size": 495616,
+            "image_vmaddr": 0x0,
+            "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
+            "type": "apple",
+            "debug_id": None,
+        }
+    )
+    assert (
+        binary_image
+        == f"0xd69a000 - 0xd712fff SentrySwift x86  <{NATIVE_UNKNOWN_STRING}> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
+    )
+
+
+def test__convert_debug_meta_to_binary_image_row_image_size_missing() -> None:
+    acr = _make_acr_with_context()
+    binary_image = acr._convert_debug_meta_to_binary_image_row(
+        debug_image={
+            "cpu_subtype": 3,
+            "cpu_type": 16777223,
+            "image_addr": 0xD69A000,
+            "image_vmaddr": 0x0,
+            "code_file": "/Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift",
+            "type": "apple",
+            "debug_id": "B427AE1D-BF36-3B50-936F-D78A7D1C8340",
+        }
+    )
+    assert (
+        binary_image
+        == "0xd69a000 - 0xd69a000 SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift"
     )
 
 
