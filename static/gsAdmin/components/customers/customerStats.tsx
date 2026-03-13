@@ -20,9 +20,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -569,10 +569,7 @@ export const CustomerStats = memo(
         if (totalSeries === 0) {
           return;
         }
-        const seriesUpdate: Array<Record<string, any>> = Array.from(
-          {length: totalSeries},
-          () => ({})
-        );
+        const seriesUpdate = Array.from({length: totalSeries}, () => ({}));
         regions.forEach((_, i) => {
           seriesUpdate[i] = {
             markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
