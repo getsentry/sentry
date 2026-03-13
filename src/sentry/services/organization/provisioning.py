@@ -161,7 +161,7 @@ class OrganizationProvisioningService:
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            slug_mapping=slug_mapping, region_name=destination_region_name
+            slug_mapping=slug_mapping, cell_name=destination_region_name
         )
 
 
