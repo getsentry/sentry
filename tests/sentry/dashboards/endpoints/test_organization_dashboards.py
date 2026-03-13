@@ -2184,7 +2184,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 for d in response.data
                 if "prebuiltId" in d and d["prebuiltId"] == prebuilt_dashboard["prebuilt_id"]
             ]
-            assert len(matching_response_data) == 1
+            is_hidden = prebuilt_dashboard.get("hidden", False)
+            assert len(matching_response_data) == (0 if is_hidden else 1)
 
     def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
@@ -2279,8 +2280,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 ).count()
                 assert prebuilt_dashboards_count == 3
 
+                # Response excludes hidden prebuilt dashboards (ID 3 is hidden)
+                visible_count = len(
+                    [d for d in PREBUILT_DASHBOARDS[:3] if not d.get("hidden", False)]
+                )
                 assert response.status_code == 200
-                assert len(response.data) == prebuilt_dashboards_count
+                assert len(response.data) == visible_count
                 assert all(d.get("prebuiltId") is not None for d in response.data)
 
     def test_hidden_prebuilt_dashboards_excluded_by_default(self) -> None:
