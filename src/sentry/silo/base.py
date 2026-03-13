@@ -36,7 +36,7 @@ class SiloMode(Enum):
             return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
-        return cls[mode]
+        return cls(mode)
 
     def __str__(self) -> str:
         return str(self.value)
