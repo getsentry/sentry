@@ -8,8 +8,8 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
 import {descopeFeatureName} from 'sentry/utils';
-import getCsrfToken from 'sentry/utils/getCsrfToken';
-import useOrganization from 'sentry/utils/useOrganization';
+import {getCsrfToken} from 'sentry/utils/getCsrfToken';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 

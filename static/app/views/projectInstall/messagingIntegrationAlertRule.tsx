@@ -8,7 +8,7 @@ import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IssueAlertNotificationProps,

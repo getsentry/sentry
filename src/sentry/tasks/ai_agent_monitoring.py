@@ -102,7 +102,7 @@ def _add_glob_model_names(models_dict: dict[ModelId, AIModelCostV2]) -> None:
     namespace=ai_agent_monitoring_tasks,
     processing_deadline_duration=35,
     expires=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fetch_ai_model_costs() -> None:
     """

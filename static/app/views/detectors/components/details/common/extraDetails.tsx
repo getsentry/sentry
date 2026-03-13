@@ -10,7 +10,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
 type Props = {

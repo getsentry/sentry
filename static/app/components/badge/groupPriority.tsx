@@ -24,7 +24,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupPriorityDropdownProps = {
   groupId: string;

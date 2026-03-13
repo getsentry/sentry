@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackListBulkSelection} from 'sentry/components/feedback/list/feedbackListBulkSelection';
 import {MailboxPicker} from 'sentry/components/feedback/list/mailboxPicker';
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
+import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasNewItems';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';

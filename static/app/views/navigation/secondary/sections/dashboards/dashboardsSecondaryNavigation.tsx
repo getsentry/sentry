@@ -7,18 +7,16 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isSidebarLinkActive} from 'sentry/views/navigation/primary/components';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {DashboardsNavigationItems} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsNavigationItems';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 export function DashboardsSecondaryNavigation() {
   const organization = useOrganization();
@@ -39,9 +37,7 @@ export function DashboardsSecondaryNavigation() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.DASHBOARDS].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Dashboards')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.Item

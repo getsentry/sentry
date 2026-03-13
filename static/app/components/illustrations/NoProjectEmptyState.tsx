@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {makeOpacityJitter, makeShake} from 'sentry/styles/animations';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const Background = styled(motion.g)``;
 

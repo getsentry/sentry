@@ -193,7 +193,7 @@ class JiraIssueHookControlTest(APITestCase):
             },
         )
 
-        with assume_test_silo_mode(SiloMode.REGION, region_name="us"):
+        with assume_test_silo_mode(SiloMode.CELL, region_name="us"):
             self.us_org = self.create_organization(region="us")
             self.us_project = Project.objects.create(organization=self.us_org)
             self.first_release = self.create_release(
@@ -215,7 +215,7 @@ class JiraIssueHookControlTest(APITestCase):
                 integration=self.integration,
                 key=self.issue_key,
             )
-        with assume_test_silo_mode(SiloMode.REGION, region_name="de"):
+        with assume_test_silo_mode(SiloMode.CELL, region_name="de"):
             self.de_org = self.create_organization(region="de")
             self.de_project = Project.objects.create(organization=self.de_org)
             self.de_group = self.create_group(

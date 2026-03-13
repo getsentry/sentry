@@ -11,7 +11,7 @@ import type {
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {

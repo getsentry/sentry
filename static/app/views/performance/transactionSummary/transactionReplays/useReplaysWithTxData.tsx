@@ -12,7 +12,7 @@ export type ReplayListRecordWithTx = ReplayListRecord & {
 
 type Return = undefined | ReplayListRecordWithTx[];
 
-function useReplaysWithTxData({events, replays}: Opts): Return {
+export function useReplaysWithTxData({events, replays}: Opts): Return {
   const replaysWithTx = replays?.map<ReplayListRecordWithTx>(replay => {
     const slowestEvent = events.reduce((slowest, event) => {
       if (event.replayId !== replay.id) {
@@ -36,5 +36,3 @@ function useReplaysWithTxData({events, replays}: Opts): Return {
 
   return replaysWithTx;
 }
-
-export default useReplaysWithTxData;

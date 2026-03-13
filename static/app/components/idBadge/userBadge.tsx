@@ -15,7 +15,7 @@ export interface UserBadgeProps extends BaseBadgeProps {
   user?: AvatarUser;
 }
 
-function UserBadge({
+export function UserBadge({
   hideEmail = false,
   displayName,
   displayEmail,
@@ -72,5 +72,3 @@ const Email = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default UserBadge;

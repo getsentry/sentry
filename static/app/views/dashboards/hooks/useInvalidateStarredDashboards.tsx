@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 
 export function useInvalidateStarredDashboards() {

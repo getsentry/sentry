@@ -8,13 +8,15 @@ import {Flex} from '@sentry/scraps/layout';
 import Hook from 'sentry/components/hook';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondaryMobile} from 'sentry/views/navigation/secondary/secondaryMobile';
@@ -29,6 +31,8 @@ export function MobileNavigation() {
   const activeGroup = useActiveNavigationGroup();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<ActiveView>('closed');
+  const {layout} = useNavigation();
+  const {currentStepId, endTour} = useNavigationTour();
 
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {
@@ -37,6 +41,14 @@ export function MobileNavigation() {
 
   /** Close menu after any location pathname change */
   useEffect(() => setView('closed'), [location.pathname]);
+
+  // The tour only works with the sidebar layout, so if we change to the mobile
+  // layout in the middle of the tour, it needs to end.
+  useEffect(() => {
+    if (currentStepId !== null && layout === 'mobile') {
+      endTour();
+    }
+  }, [endTour, layout, currentStepId]);
 
   const handleClick = useCallback(
     () =>

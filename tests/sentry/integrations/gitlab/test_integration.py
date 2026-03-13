@@ -233,7 +233,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -266,7 +266,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -297,7 +297,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -338,7 +338,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -377,7 +377,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -466,7 +466,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -493,7 +493,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -769,7 +769,7 @@ class GitlabApiClientTest(GitLabTestCase):
 
         responses.calls.reset()
         cache.clear()
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
@@ -920,7 +920,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 2
@@ -958,7 +958,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 2
@@ -982,7 +982,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=False)
 
         assert len(responses.calls) == 1
@@ -1003,7 +1003,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
@@ -1019,7 +1019,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should not make any API calls
@@ -1052,7 +1052,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, None, assign=True)
 
         # Should make API call to unassign when user is None
@@ -1080,7 +1080,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         # Should only call user search, not issue update

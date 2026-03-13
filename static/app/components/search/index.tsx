@@ -8,7 +8,7 @@ import AutoComplete from 'sentry/components/autoComplete';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';

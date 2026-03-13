@@ -65,7 +65,7 @@ def kick_off_service_hooks(event: GroupEvent, has_alert: bool) -> None:
     name="sentry.sentry_apps.tasks.service_hooks.process_service_hook",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def process_service_hook(

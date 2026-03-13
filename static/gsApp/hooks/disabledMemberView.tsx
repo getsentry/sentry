@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';

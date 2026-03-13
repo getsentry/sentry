@@ -74,7 +74,7 @@ def _send_email(message: dict[str, Any]) -> None:
     namespace=notifications_tasks,
     processing_deadline_duration=90,
     retry=Retry(times=2, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(on=(TemporaryEmailError,))
 def send_email(message: dict[str, Any]) -> None:

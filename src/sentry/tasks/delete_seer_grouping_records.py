@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.delete_seer_grouping_records_by_hash",
     namespace=seer_tasks,
     processing_deadline_duration=60 * (15 + 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
@@ -89,7 +89,7 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
     name="sentry.tasks.call_seer_delete_project_grouping_records",
     namespace=seer_tasks,
     processing_deadline_duration=60 * (15 + 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def call_seer_delete_project_grouping_records(
     project_id: int,

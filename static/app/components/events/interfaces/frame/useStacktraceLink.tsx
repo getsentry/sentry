@@ -57,7 +57,7 @@ const stacktraceLinkQueryKey = (
   {query},
 ];
 
-function useStacktraceLink(
+export function useStacktraceLink(
   {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
   options: Partial<UseApiQueryOptions<StacktraceLinkResult>> = {}
 ) {
@@ -71,4 +71,3 @@ function useStacktraceLink(
     }
   );
 }
-export default useStacktraceLink;

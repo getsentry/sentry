@@ -26,7 +26,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});

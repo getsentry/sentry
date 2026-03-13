@@ -17,7 +17,7 @@ import {
   type RouterNavigateOptions,
 } from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';

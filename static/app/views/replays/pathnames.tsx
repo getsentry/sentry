@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 const REPLAYS_BASE_PATHNAME = 'explore/replays';
 

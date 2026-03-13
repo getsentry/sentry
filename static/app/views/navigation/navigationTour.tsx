@@ -23,11 +23,11 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
@@ -43,6 +43,7 @@ export const enum NavigationTour {
 
 // Started rolling out to GA users on June 18, 2025
 const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
+const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 const ORDERED_NAVIGATION_TOUR = [
   NavigationTour.ISSUES,
@@ -283,12 +284,7 @@ export function NavigationTourReminder({children}: {children: React.ReactNode}) 
         'You can always use the help menu to take this tour again or share feedback with the team.'
       )}
       actions={
-        <TourAction
-          size="xs"
-          onClick={() => {
-            setShowTourReminder(false);
-          }}
-        >
+        <TourAction size="xs" onClick={() => setShowTourReminder(false)}>
           {t('Got it')}
         </TourAction>
       }
@@ -373,8 +369,6 @@ export function useNavigationTourModal() {
     dismissTour,
   ]);
 }
-
-const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 export function useIsNavigationTourActive() {
   const location = useLocation();

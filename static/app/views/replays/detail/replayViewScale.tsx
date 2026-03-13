@@ -5,7 +5,7 @@ import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconRuler} from 'sentry/icons/iconRuler';
 import {t} from 'sentry/locale';
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 
 interface Props {

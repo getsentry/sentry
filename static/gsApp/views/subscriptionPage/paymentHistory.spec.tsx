@@ -5,7 +5,7 @@ import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
 

@@ -14,7 +14,7 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization, OrgRole} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EmailValue} from './emailValue';
 import type {InviteStatus} from './types';

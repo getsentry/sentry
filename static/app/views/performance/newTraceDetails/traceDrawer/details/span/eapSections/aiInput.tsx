@@ -10,7 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,

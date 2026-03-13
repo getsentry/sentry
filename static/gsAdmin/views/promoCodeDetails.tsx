@@ -16,17 +16,17 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
 import {PromoCodeClaimants} from 'admin/components/promoCodes/promoCodeClaimants';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
 import type {PromoCode} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 export function PromoCodeDetails() {
   const {codeId} = useParams<{codeId: string}>();

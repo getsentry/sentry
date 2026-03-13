@@ -5,11 +5,11 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DetectorTypeForm,
   useDetectorTypeQueryState,

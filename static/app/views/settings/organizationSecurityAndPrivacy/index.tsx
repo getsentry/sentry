@@ -16,7 +16,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
@@ -27,7 +27,7 @@ import {
   SettingScope,
 } from 'sentry/utils/crashReports';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

@@ -1,8 +1,8 @@
 import {defined} from 'sentry/utils';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 
-function useDashboardWidgetSource(): DashboardWidgetSource | '' {
+export function useDashboardWidgetSource(): DashboardWidgetSource | '' {
   const {getParamValue} = useUrlParams('source');
   const source = getParamValue();
 
@@ -14,5 +14,3 @@ function useDashboardWidgetSource(): DashboardWidgetSource | '' {
     ? (source as DashboardWidgetSource)
     : DashboardWidgetSource.DASHBOARDS;
 }
-
-export default useDashboardWidgetSource;

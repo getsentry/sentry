@@ -1352,6 +1352,12 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.explorer.context-engine-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
 # {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
@@ -2488,11 +2494,6 @@ register(
 )
 register(
     "hybridcloud.webhookpayload.push_drain_trigger",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.deliver_webhooks.delivery_time_include_github_tags",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

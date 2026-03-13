@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -25,11 +25,7 @@ interface Props {
   projectIds: string[];
 }
 
-export default function useMutateFeedback({
-  feedbackIds,
-  organization,
-  projectIds,
-}: Props) {
+export function useMutateFeedback({feedbackIds, organization, projectIds}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 

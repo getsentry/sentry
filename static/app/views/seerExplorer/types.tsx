@@ -101,6 +101,7 @@ export interface ToolCall {
 interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
+  metadata?: Record<string, string> | null;
   thinking_content?: string;
   tool_calls?: ToolCall[];
 }

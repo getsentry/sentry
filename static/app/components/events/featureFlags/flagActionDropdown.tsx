@@ -6,7 +6,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab} from 'sentry/views/issueDetails/types';

@@ -35,7 +35,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -52,7 +51,7 @@ import {
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {getHasTag} from 'sentry/utils/tag';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 import {withTags} from 'sentry/utils/withTags';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
@@ -213,7 +212,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   };
 
   formElemBaseStyle = {
-    padding: space(0.5),
+    padding: '4px',
     border: 'none',
   };
 
@@ -286,7 +285,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       }),
       container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
-        margin: space(0.5),
+        margin: '4px',
       }),
     };
   }
