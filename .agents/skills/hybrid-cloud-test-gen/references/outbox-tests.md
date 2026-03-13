@@ -108,7 +108,7 @@ class Test{Feature}OutboxProcessing(TestCase):
         with outbox_context(flush=False):
             Organization(id=org.id).outbox_for_update().save()
 
-        RegionOutbox.objects.filter(
+        CellOutbox.objects.filter(
             shard_identifier=org.id,
         ).first().drain_shard()
 
@@ -135,7 +135,7 @@ class Test{Feature}OutboxProcessing(TestCase):
 
         shards = {
             (row["shard_scope"], row["shard_identifier"])
-            for row in RegionOutbox.find_scheduled_shards()
+            for row in CellOutbox.find_scheduled_shards()
         }
         assert shards == {
             (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),

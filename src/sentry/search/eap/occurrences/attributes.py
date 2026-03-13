@@ -41,13 +41,13 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 processor=datetime_processor,
             ),
             ResolvedAttribute(
-                public_alias="occurrence_id",
-                internal_name="occurrence_id",
+                public_alias="issue_occurrence_id",
+                internal_name="issue_occurrence_id",
                 search_type="string",
             ),
             ResolvedAttribute(
-                public_alias="occurrence_type_id",
-                internal_name="occurrence_type_id",
+                public_alias="group_type_id",
+                internal_name="group_type_id",
                 search_type="integer",
             ),
             ResolvedAttribute(

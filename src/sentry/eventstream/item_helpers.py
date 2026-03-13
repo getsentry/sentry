@@ -156,8 +156,8 @@ def _extract_from_event(event: Event | GroupEvent) -> Mapping[str, float | int |
         out["group_first_seen"] = event.group.first_seen.timestamp()
         occurrence = event._occurrence
         if occurrence is not None:
-            out["occurrence_id"] = occurrence.id
-            out["occurrence_type_id"] = occurrence.type.type_id
+            out["issue_occurrence_id"] = occurrence.id
+            out["group_type_id"] = occurrence.type.type_id
     return out
 
 

@@ -49,6 +49,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     scmProviders,
     scmIntegrations,
     connectedIdentifiers,
+    refetchIntegrations,
     reposByIntegrationId,
     reposPendingByIntegrationId,
     reposQueryKey,
@@ -143,6 +144,10 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     },
   });
 
+  const handleAddIntegration = useCallback(() => {
+    refetchIntegrations();
+  }, [refetchIntegrations]);
+
   const handleToggleRepo = useCallback(
     async (
       repo: IntegrationRepository,
@@ -153,7 +158,6 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
 
       try {
         if (isConnected) {
-          // Find the connected Repository to get its id for the API call
           const connectedRepo = queryClient
             .getQueryData<InfiniteData<{json: Repository[]}>>(reposQueryKey as any)
             ?.pages.flatMap(p => p.json)
@@ -163,7 +167,8 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
             return;
           }
 
-          const updated = await hideRepository(api, organization.slug, connectedRepo.id);
+          // Optimistically remove repo from cache so the UI updates immediately
+          const previousData = queryClient.getQueryData(reposQueryKey as any);
           queryClient.setQueryData(
             reposQueryKey as any,
             (old: InfiniteData<{json: Repository[]}> | undefined) => {
@@ -172,12 +177,18 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
                 ...old,
                 pages: old.pages.map(page => ({
                   ...page,
-                  json: page.json.map(r => (r.id === updated.id ? updated : r)),
+                  json: page.json.filter(r => r.id !== connectedRepo.id),
                 })),
               };
             }
           );
-          addSuccessMessage(t('Removed %s', repo.name));
+
+          try {
+            await hideRepository(api, organization.slug, connectedRepo.id);
+            addSuccessMessage(t('Removed %s', repo.name));
+          } catch {
+            queryClient.setQueryData(reposQueryKey as any, previousData);
+          }
         } else {
           const newRepo = await addRepository(
             api,
@@ -276,7 +287,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
                   transform: `translateY(${virtualItem.start}px)`,
                   height: virtualItem.size,
                 }}
-                orgSlug={organization.slug}
+                onAddIntegration={handleAddIntegration}
                 onToggleProvider={toggleProvider}
                 onToggleIntegration={toggleIntegration}
                 onToggleRepo={handleToggleRepo}

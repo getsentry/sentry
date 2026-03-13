@@ -18,9 +18,10 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -36,7 +37,6 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({
   children,
@@ -45,21 +45,17 @@ function SidebarBody({
   children: React.ReactNode;
   ref: React.RefObject<HTMLUListElement | null>;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
-    <SidebarList
-      isMobile={layout === NavigationLayout.MOBILE}
-      data-primary-list-container
-      ref={ref}
-    >
+    <SidebarList isMobile={layout === 'mobile'} data-primary-list-container ref={ref}>
       {children}
     </SidebarList>
   );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const isMobile = layout === 'mobile';
 
   if (!children) {
     return null;
@@ -104,11 +100,8 @@ export function PrimaryNavigationItems() {
             <SidebarLink
               to={`/${prefix}/issues/`}
               analyticsKey="issues"
-              group={PrimaryNavigationGroup.ISSUES}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.ISSUES),
-                tourProps
-              )}
+              label={t('Issues')}
+              {...mergeProps(makeNavigationItemProps('issues'), tourProps)}
             >
               <IconIssues />
             </SidebarLink>
@@ -125,11 +118,8 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
               activeTo={`/${prefix}/explore`}
               analyticsKey="explore"
-              group={PrimaryNavigationGroup.EXPLORE}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.EXPLORE),
-                tourProps
-              )}
+              label={t('Explore')}
+              {...mergeProps(makeNavigationItemProps('explore'), tourProps)}
             >
               <IconCompass />
             </SidebarLink>
@@ -151,11 +141,8 @@ export function PrimaryNavigationItems() {
                 to={`/${prefix}/dashboards/`}
                 activeTo={`/${prefix}/dashboard`}
                 analyticsKey="dashboards"
-                group={PrimaryNavigationGroup.DASHBOARDS}
-                {...mergeProps(
-                  makeNavigationItemProps(PrimaryNavigationGroup.DASHBOARDS),
-                  tourProps
-                )}
+                label={t('Dashboards')}
+                {...mergeProps(makeNavigationItemProps('dashboards'), tourProps)}
               >
                 <IconDashboard />
               </SidebarLink>
@@ -174,11 +161,8 @@ export function PrimaryNavigationItems() {
                 to={`/${prefix}/insights/`}
                 activeTo={`/${prefix}/insights`}
                 analyticsKey="insights"
-                group={PrimaryNavigationGroup.INSIGHTS}
-                {...mergeProps(
-                  makeNavigationItemProps(PrimaryNavigationGroup.INSIGHTS),
-                  tourProps
-                )}
+                label={t('Insights')}
+                {...mergeProps(makeNavigationItemProps('insights'), tourProps)}
               >
                 <IconGraph type="area" />
               </SidebarLink>
@@ -192,8 +176,8 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/prevent/tests/`}
               activeTo={`/${prefix}/prevent/`}
               analyticsKey="prevent"
-              group={PrimaryNavigationGroup.PREVENT}
-              {...makeNavigationItemProps(PrimaryNavigationGroup.PREVENT)}
+              label={t('Prevent')}
+              {...makeNavigationItemProps('prevent')}
             >
               <IconPrevent />
             </SidebarLink>
@@ -208,8 +192,8 @@ export function PrimaryNavigationItems() {
             <SidebarLink
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
-              group={PrimaryNavigationGroup.MONITORS}
-              {...makeNavigationItemProps(PrimaryNavigationGroup.MONITORS)}
+              label={t('Monitors')}
+              {...makeNavigationItemProps('monitors')}
             >
               <IconSiren />
             </SidebarLink>
@@ -227,11 +211,8 @@ export function PrimaryNavigationItems() {
               to={`/settings/${organization.slug}/`}
               activeTo="/settings/"
               analyticsKey="settings"
-              group={PrimaryNavigationGroup.SETTINGS}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.SETTINGS),
-                tourProps
-              )}
+              label={t('Settings')}
+              {...mergeProps(makeNavigationItemProps('settings'), tourProps)}
             >
               <IconSettings />
             </SidebarLink>

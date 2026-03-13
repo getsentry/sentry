@@ -1,9 +1,10 @@
 import {useEffect, useRef, useState} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -19,29 +20,31 @@ import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
  */
+
+interface UseActivateNavigationGroupOnHoverProps {
+  ref: React.RefObject<HTMLElement | null>;
+}
 export function useActivateNavigationGroupOnHover({
   ref,
-}: {
-  ref: React.RefObject<HTMLElement | null>;
-}) {
-  const {layout} = useNavigationContext();
+}: UseActivateNavigationGroupOnHoverProps) {
+  const {layout, setActiveGroup} = useNavigation();
+  const {view} = useSecondaryNavigation();
+
   const mouseAccelerationRef = useMouseMovement({
     ref,
-    disabled: layout !== NavigationLayout.SIDEBAR,
+    disabled: layout !== 'sidebar',
   });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {setActivePrimaryNavigationGroup, isCollapsed, collapsedNavigationIsOpen} =
-    useNavigationContext();
   const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
+  return function makeNavigationItemProps(group: NavigationGroup) {
     const onMouseEnter = (e: MouseEvent) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
-      if (isCollapsed && !collapsedNavigationIsOpen) {
-        setActivePrimaryNavigationGroup(group);
+      if (view === 'collapsed') {
+        setActiveGroup(group);
         return;
       }
 
@@ -90,7 +93,7 @@ export function useActivateNavigationGroupOnHover({
       };
 
       timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavigationGroup(group);
+        setActiveGroup(group);
       }, getDelay());
     };
 
@@ -101,10 +104,11 @@ export function useActivateNavigationGroupOnHover({
     };
 
     const onClick = () => {
-      setActivePrimaryNavigationGroup(group);
+      setActiveGroup(group);
     };
 
     return {
+      group,
       onMouseEnter,
       onMouseLeave,
       onClick,
