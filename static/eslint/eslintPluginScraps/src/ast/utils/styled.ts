@@ -139,7 +139,41 @@ function classifyStyledArgs(
 }
 
 /**
+ * Check whether a CallExpression is an intermediate sub-expression of a larger
+ * styled pattern. Intermediate nodes should not be classified — only the
+ * outermost expression (TaggedTemplateExpression or final CallExpression) should.
+ *
+ * Intermediate patterns:
+ * - `styled(X)\`...\`` → styled(X) is tag of a TaggedTemplateExpression
+ * - `styled(X)({...})` → styled(X) is callee of another CallExpression
+ * - `styled(X).attrs({})\`...\`` → styled(X) feeds into a MemberExpression chain
+ */
+function isIntermediateCall(node: TSESTree.CallExpression): boolean {
+  const {parent} = node;
+  if (!parent) {
+    return false;
+  }
+  // styled(X)`...` — this CallExpression is the tag of a template
+  if (parent.type === 'TaggedTemplateExpression' && parent.tag === node) {
+    return true;
+  }
+  // styled(X)({...}) — this CallExpression is the callee of another call
+  if (parent.type === 'CallExpression' && parent.callee === node) {
+    return true;
+  }
+  // styled(X).attrs(...) — this CallExpression feeds into a member chain
+  if (parent.type === 'MemberExpression' && parent.object === node) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Classify a TaggedTemplateExpression or CallExpression as a styled/css pattern.
+ *
+ * Returns classification info for the **outermost** styled expression only.
+ * Intermediate CallExpressions (e.g. `styled(X)` inside `styled(X)\`...\``)
+ * return null to avoid duplicate matches when rules listen on both node types.
  *
  * Handles:
  * - `styled.div\`...\`` and `styled.div({...})`
@@ -153,6 +187,11 @@ function classifyStyledArgs(
 export function getStyledCallInfo(
   node: TSESTree.TaggedTemplateExpression | TSESTree.CallExpression
 ): StyledCallInfo {
+  // Skip intermediate CallExpressions — the outermost node will classify instead
+  if (node.type === 'CallExpression' && isIntermediateCall(node)) {
+    return null;
+  }
+
   const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
 
   // Try classifying from the tag/callee expression

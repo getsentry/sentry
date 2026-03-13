@@ -79,32 +79,23 @@ ruleTester.run('getStyledCallInfo', testRule, {
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'span'}}],
     },
-    // styled('div')`` — both TaggedTemplateExpression and inner CallExpression match
+    // styled('div')`` — only outermost TaggedTemplateExpression matches
     {
       code: "const Box = styled('div')`color: red`;",
       filename: '/project/src/file.tsx',
-      errors: [
-        {messageId: 'info', data: {kind: 'element', name: 'div'}},
-        {messageId: 'info', data: {kind: 'element', name: 'div'}},
-      ],
+      errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
-    // styled(Button)`` — both TaggedTemplateExpression and inner CallExpression match
+    // styled(Button)`` — only outermost TaggedTemplateExpression matches
     {
       code: 'const MyButton = styled(Button)`color: red`;',
       filename: '/project/src/file.tsx',
-      errors: [
-        {messageId: 'info', data: {kind: 'component', name: 'Button'}},
-        {messageId: 'info', data: {kind: 'component', name: 'Button'}},
-      ],
+      errors: [{messageId: 'info', data: {kind: 'component', name: 'Button'}}],
     },
     // styled(Mod.Button)``
     {
       code: 'const MyButton = styled(Mod.Button)`color: red`;',
       filename: '/project/src/file.tsx',
-      errors: [
-        {messageId: 'info', data: {kind: 'component', name: 'Mod.Button'}},
-        {messageId: 'info', data: {kind: 'component', name: 'Mod.Button'}},
-      ],
+      errors: [{messageId: 'info', data: {kind: 'component', name: 'Mod.Button'}}],
     },
     // styled.div({...}) — object syntax call expression
     {
@@ -112,15 +103,11 @@ ruleTester.run('getStyledCallInfo', testRule, {
       filename: '/project/src/file.tsx',
       errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
-    // styled('div')({...})
+    // styled('div')({...}) — only outermost CallExpression matches
     {
       code: "const Box = styled('div')({ color: 'red' });",
       filename: '/project/src/file.tsx',
-      errors: [
-        // The outer call and the inner styled('div') both match
-        {messageId: 'info', data: {kind: 'element', name: 'div'}},
-        {messageId: 'info', data: {kind: 'element', name: 'div'}},
-      ],
+      errors: [{messageId: 'info', data: {kind: 'element', name: 'div'}}],
     },
   ],
 });
