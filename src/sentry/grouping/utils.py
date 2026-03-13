@@ -66,11 +66,6 @@ def normalize_message_for_grouping(
     else:
         parameterized = context.parameterizer.parameterize(message)
 
-    message_parameterized = parameterized != message
-
-    if message_parameterized:
-        metrics.incr("grouping.message_parameterized", tags={"source": reason})
-
     return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
