@@ -595,33 +595,31 @@ class User(Model, AbstractBaseUser):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
         from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        cell_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
+        cell_caching_service.clear_key(key=get_user.key_from(identifier), region_name=cell_name)
         cell_caching_service.clear_key(
-            key=get_many_by_id.key_from(identifier), region_name=region_name
+            key=get_many_by_id.key_from(identifier), region_name=cell_name
         )
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        cell_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
-        cell_caching_service.clear_key(
-            key=get_many_by_id.key_from(self.id), region_name=region_name
-        )
+        cell_caching_service.clear_key(key=get_user.key_from(self.id), region_name=cell_name)
+        cell_caching_service.clear_key(key=get_many_by_id.key_from(self.id), region_name=cell_name)
         organization_service.update_region_user(
             user=RpcRegionUser(
                 id=self.id,
                 is_active=self.is_active,
                 email=self.email,
             ),
-            cell_name=region_name,
+            cell_name=cell_name,
         )
 
 
