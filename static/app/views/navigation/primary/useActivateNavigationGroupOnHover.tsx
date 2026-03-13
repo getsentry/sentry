@@ -1,7 +1,12 @@
 import {useEffect, useRef, useState} from 'react';
 
+import type {LinkProps} from '@sentry/scraps/link';
+
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
@@ -27,8 +32,9 @@ interface UseActivateNavigationGroupOnHoverProps {
 export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
-  const {layout, setActiveGroup} = useNavigation();
+  const {layout, setActiveGroup, activeGroup} = useNavigation();
   const {view} = useSecondaryNavigation();
+  const location = useLocation();
 
   const mouseAccelerationRef = useMouseMovement({
     ref,
@@ -37,8 +43,17 @@ export function useActivateNavigationGroupOnHover({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(group: NavigationGroup) {
-    const onMouseEnter = (e: MouseEvent) => {
+  return function makeNavigationItemProps(
+    group: NavigationGroup,
+    to: string,
+    activeTo?: string
+  ): Omit<Partial<LinkProps>, 'to'> {
+    const isActive = isPrimaryNavigationLinkActive(
+      normalizeUrl(activeTo ?? to, location),
+      location.pathname
+    );
+
+    const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -108,7 +123,8 @@ export function useActivateNavigationGroupOnHover({
     };
 
     return {
-      group,
+      'aria-selected': activeGroup === group ? true : isActive,
+      'aria-current': isActive ? ('page' as const) : undefined,
       onMouseEnter,
       onMouseLeave,
       onClick,

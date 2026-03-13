@@ -75,7 +75,10 @@ export function PrimaryNavigationItems() {
                 to={`/${prefix}/issues/`}
                 analyticsKey="issues"
                 label={t('Issues')}
-                {...mergeProps(makeNavigationItemProps('issues'), tourProps)}
+                {...mergeProps(
+                  makeNavigationItemProps('issues', `/${prefix}/issues/`),
+                  tourProps
+                )}
               >
                 <IconIssues />
               </PrimaryNavigation.Link>
@@ -92,10 +95,16 @@ export function PrimaryNavigationItems() {
             <PrimaryNavigation.ListItem>
               <PrimaryNavigation.Link
                 to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
-                activeTo={`/${prefix}/explore`}
                 analyticsKey="explore"
                 label={t('Explore')}
-                {...mergeProps(makeNavigationItemProps('explore'), tourProps)}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'explore',
+                    `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+                    `/${prefix}/explore`
+                  ),
+                  tourProps
+                )}
               >
                 <IconCompass />
               </PrimaryNavigation.Link>
@@ -117,10 +126,16 @@ export function PrimaryNavigationItems() {
               <PrimaryNavigation.ListItem>
                 <PrimaryNavigation.Link
                   to={`/${prefix}/dashboards/`}
-                  activeTo={`/${prefix}/dashboard`}
                   analyticsKey="dashboards"
                   label={t('Dashboards')}
-                  {...mergeProps(makeNavigationItemProps('dashboards'), tourProps)}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'dashboards',
+                      `/${prefix}/dashboards/`,
+                      `/${prefix}/dashboard`
+                    ),
+                    tourProps
+                  )}
                 >
                   <IconDashboard />
                 </PrimaryNavigation.Link>
@@ -139,10 +154,16 @@ export function PrimaryNavigationItems() {
               <PrimaryNavigation.ListItem>
                 <PrimaryNavigation.Link
                   to={`/${prefix}/insights/`}
-                  activeTo={`/${prefix}/insights`}
                   analyticsKey="insights"
                   label={t('Insights')}
-                  {...mergeProps(makeNavigationItemProps('insights'), tourProps)}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
                 >
                   <IconGraph type="area" />
                 </PrimaryNavigation.Link>
@@ -159,7 +180,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
               label={t('Monitors')}
-              {...makeNavigationItemProps('monitors')}
+              {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
               <BetaBadge type="alpha" />
@@ -176,10 +197,16 @@ export function PrimaryNavigationItems() {
             <PrimaryNavigation.ListItem>
               <PrimaryNavigation.Link
                 to={`/settings/${organization.slug}/`}
-                activeTo="/settings/"
                 analyticsKey="settings"
                 label={t('Settings')}
-                {...mergeProps(makeNavigationItemProps('settings'), tourProps)}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'settings',
+                    `/settings/${organization.slug}/`,
+                    '/settings/'
+                  ),
+                  tourProps
+                )}
               >
                 <IconSettings />
               </PrimaryNavigation.Link>

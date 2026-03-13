@@ -8,7 +8,7 @@ import type {LocationDescriptor} from 'history';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -17,7 +17,6 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
@@ -25,7 +24,6 @@ import {
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
@@ -65,25 +63,16 @@ function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
   );
 }
 
-interface PrimaryNavigationLinkProps extends PrimaryNavigationItemBaseProps {
-  group: NavigationGroup;
+interface PrimaryNavigationLinkProps
+  extends PrimaryNavigationItemBaseProps, Omit<LinkProps, 'to'> {
   label: string;
   to: string;
-  activeTo?: string;
   children?: React.ReactNode;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
-  onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>;
-  onMouseLeave?: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization();
-  const {layout, activeGroup} = useNavigation();
-  const location = useLocation();
-  const isActive = isPrimaryNavigationLinkActive(
-    normalizeUrl(props.activeTo ?? props.to, location),
-    location.pathname
-  );
+  const {layout} = useNavigation();
 
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
@@ -93,8 +82,8 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
       to={props.to}
       reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activeGroup === props.group ? true : isActive}
-      aria-current={isActive ? 'page' : undefined}
+      aria-selected={props['aria-selected']}
+      aria-current={props['aria-current']}
       isMobile={layout === 'mobile'}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}
