@@ -226,7 +226,7 @@ class AlertRuleFetchMixin(Endpoint):
                 Q(alertruledetector__isnull=False)  # Dual-written
                 | Q(alertruledetector__isnull=True, type="metric_issue"),  # Single-written
                 project__in=projects,
-            )
+            ).distinct()  # Deduplicate after JOIN
             if not features.has("organizations:performance-view", organization):
                 detectors = filter_detectors_by_dataset(detectors, Dataset.Events)
             response = self.paginate(
