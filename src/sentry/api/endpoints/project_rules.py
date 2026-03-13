@@ -749,7 +749,7 @@ def format_request_data(
     }
     owner = data.get("owner")
     if owner:
-        actor = parse_and_validate_actor(owner, project.organization_id)
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
 
         if actor and actor.is_team:
             workflow_payload["owner_team_id"] = actor.id

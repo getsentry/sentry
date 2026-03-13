@@ -1003,11 +1003,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(rule, payload)
 
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        dual_written_workflow = arw.workflow
+        fake_dual_written_workflow_id = get_fake_id_from_object_id(dual_written_workflow.id)
+
         with self.feature("organizations:workflow-engine-rule-serializers"):
             workflow_response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.fake_dual_written_workflow_id,
+                fake_dual_written_workflow_id,
                 status_code=status.HTTP_200_OK,
                 **payload,
             )
@@ -1253,11 +1257,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 organization_id=self.organization.id,
             ),
         )
+
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        dual_written_workflow = arw.workflow
+        fake_dual_written_workflow_id = get_fake_id_from_object_id(dual_written_workflow.id)
         with self.feature("organizations:workflow-engine-rule-serializers"):
             workflow_response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                self.fake_dual_written_workflow_id,
+                fake_dual_written_workflow_id,
                 status_code=status.HTTP_200_OK,
                 **payload,
             )
