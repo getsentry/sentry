@@ -77,6 +77,13 @@ interface IndexedExceptionValue extends ExceptionValue {
   stacktrace: StacktraceType;
 }
 
+function getDisplayedRawStacktrace(
+  exc: IndexedExceptionValue,
+  isMinified: boolean
+): StacktraceType {
+  return isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace;
+}
+
 /** Resolves symbolicated vs raw (minified) exception fields. */
 function resolveExceptionFields(exc: IndexedExceptionValue, isMinified: boolean) {
   return {
@@ -251,8 +258,10 @@ function IssueStackTraceContent({
               exceptions
                 .map(exc =>
                   rawStacktraceContent({
-                    data: exc.stacktrace,
+                    data: getDisplayedRawStacktrace(exc, isMinified),
                     platform: event.platform,
+                    exception: exc,
+                    isMinified,
                   })
                 )
                 .join('\n\n')
@@ -268,9 +277,7 @@ function IssueStackTraceContent({
               {exceptions
                 .map(exc =>
                   rawStacktraceContent({
-                    data: isMinified
-                      ? (exc.rawStacktrace ?? exc.stacktrace)
-                      : exc.stacktrace,
+                    data: getDisplayedRawStacktrace(exc, isMinified),
                     platform: event.platform,
                     exception: exc,
                     isMinified,

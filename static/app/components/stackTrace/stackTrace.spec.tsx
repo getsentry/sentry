@@ -245,6 +245,47 @@ describe('Core StackTrace', () => {
     expect(screen.getByRole('button', {name: 'Hide 1 frame'})).toBeInTheDocument();
   });
 
+  it('resets hidden frame toggles when switching stacktrace variants', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const symbolicatedStacktrace: StacktraceWithFrames = {
+      ...stacktrace,
+      frames: [
+        {...stacktrace.frames[0]!, filename: 'symbolicated/hidden.js', inApp: false},
+        {...stacktrace.frames[1]!, filename: 'symbolicated/visible.js', inApp: false},
+        {...stacktrace.frames[2]!, filename: 'symbolicated/app.js', inApp: true},
+      ],
+    };
+    const minifiedStacktrace: StacktraceWithFrames = {
+      ...symbolicatedStacktrace,
+      frames: [
+        {...symbolicatedStacktrace.frames[0]!, filename: 'minified/hidden.js'},
+        {...symbolicatedStacktrace.frames[1]!, filename: 'minified/visible.js'},
+        {...symbolicatedStacktrace.frames[2]!, filename: 'minified/app.js'},
+      ],
+    };
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={symbolicatedStacktrace}
+        minifiedStacktrace={minifiedStacktrace}
+      >
+        <DisplayOptions />
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 1 more frame'}));
+    expect(screen.getByText('symbolicated/hidden.js')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    expect(screen.getByText('minified/hidden.js')).not.toBeVisible();
+    expect(screen.queryByRole('button', {name: 'Hide 1 frame'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 1 more frame'})).toBeInTheDocument();
+  });
+
   it('renders frame badges for in-app frames only', async () => {
     renderStackTrace();
 

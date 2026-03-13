@@ -407,6 +407,68 @@ describe('IssueStackTrace', () => {
     expect(firstIdx).toBeLessThan(secondIdx);
   });
 
+  it('copies unsymbolicated raw text for chained exceptions when minified view is active', async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(''),
+      },
+    });
+
+    const {event, stacktrace} = makeStackTraceData();
+    const symbolicatedStacktrace: StacktraceWithFrames = {
+      ...stacktrace,
+      frames: stacktrace.frames.map((frame, index) => ({
+        ...frame,
+        filename: `symbolicated/${index}.js`,
+      })),
+    };
+    const rawStacktrace: StacktraceWithFrames = {
+      ...symbolicatedStacktrace,
+      frames: symbolicatedStacktrace.frames.map((frame, index) => ({
+        ...frame,
+        filename: `minified/${index}.js`,
+      })),
+    };
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'RootError',
+            value: 'root cause',
+            module: 'app.main',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace: symbolicatedStacktrace,
+            rawStacktrace,
+            threadId: null,
+          },
+          {
+            type: 'NestedError',
+            value: 'nested cause',
+            module: 'app.nested',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace: symbolicatedStacktrace,
+            rawStacktrace,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByText('Text'));
+
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalled());
+
+    const copiedText = (navigator.clipboard.writeText as jest.Mock).mock.calls[0][0];
+    expect(copiedText).toContain('minified/0.js');
+    expect(copiedText).not.toContain('symbolicated/0.js');
+  });
+
   describe('standalone stacktrace prop', () => {
     it('renders frame rows for a standalone stacktrace', async () => {
       const {event, stacktrace} = makeStackTraceData();

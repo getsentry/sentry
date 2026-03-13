@@ -45,12 +45,23 @@ export function StackTraceProvider({
   );
   const lastFrameIndex = useMemo(() => getLastFrameIndex(frames), [frames]);
 
-  const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
-    createInitialHiddenFrameToggleMap(frames, view === 'full')
+  const shouldIncludeSystemFrames = view === 'full';
+  const initialHiddenFrameToggleMap = useMemo(
+    () => createInitialHiddenFrameToggleMap(frames, shouldIncludeSystemFrames),
+    [frames, shouldIncludeSystemFrames]
   );
+  const [hiddenFrameToggleState, setHiddenFrameToggleState] = useState(() => ({
+    stacktrace: activeStacktrace,
+    view,
+    map: initialHiddenFrameToggleMap,
+  }));
+  const hiddenFrameToggleMap =
+    hiddenFrameToggleState.stacktrace === activeStacktrace &&
+    hiddenFrameToggleState.view === view
+      ? hiddenFrameToggleState.map
+      : initialHiddenFrameToggleMap;
 
   const platform = platformProp ?? getDefaultPlatform(activeStacktrace, event);
-  const shouldIncludeSystemFrames = view === 'full';
 
   const frameCountMap = useMemo(
     () => getFrameCountMap(frames, shouldIncludeSystemFrames),
@@ -129,10 +140,21 @@ export function StackTraceProvider({
       hiddenFrameToggleMap,
       lastFrameIndex,
       toggleHiddenFrames: (frameIndex: number) => {
-        setHiddenFrameToggleMap(prevState => ({
-          ...prevState,
-          [frameIndex]: !prevState[frameIndex],
-        }));
+        setHiddenFrameToggleState(prevState => {
+          const currentMap =
+            prevState.stacktrace === activeStacktrace && prevState.view === view
+              ? prevState.map
+              : initialHiddenFrameToggleMap;
+
+          return {
+            stacktrace: activeStacktrace,
+            view,
+            map: {
+              ...currentMap,
+              [frameIndex]: !currentMap[frameIndex],
+            },
+          };
+        });
       },
     }),
     [
@@ -144,12 +166,14 @@ export function StackTraceProvider({
       hasAnyExpandableFrames,
       hideSourceMapDebugger,
       hiddenFrameToggleMap,
+      initialHiddenFrameToggleMap,
       lastFrameIndex,
       meta,
       platform,
       project,
       rows,
       activeStacktrace,
+      view,
     ]
   );
 
