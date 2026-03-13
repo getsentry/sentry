@@ -56,7 +56,7 @@ describe('Performance > Transaction Summary > Transaction Events > Utils', () =>
   it('decodes legacy location filters to percentile filters', () => {
     const decoded = decodeEventsDisplayFilterFromLocation({
       query: {showTransactions: TransactionFilterOptions.SLOW},
-    } as Location);
+    } as unknown as Location);
 
     expect(decoded).toBe(EventsDisplayFilterName.P95);
   });

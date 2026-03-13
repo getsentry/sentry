@@ -153,9 +153,8 @@ function getEventsDisplayFilterName(
 
 export function decodeEventsDisplayFilterFromLocation(location: Location) {
   return (
-    getEventsDisplayFilterName(
-      decodeScalar(location.query.showTransactions, undefined)
-    ) ?? EventsDisplayFilterName.P100
+    getEventsDisplayFilterName(decodeScalar(location.query.showTransactions, '')) ??
+    EventsDisplayFilterName.P100
   );
 }
 
