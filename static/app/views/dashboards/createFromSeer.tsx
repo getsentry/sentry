@@ -160,7 +160,7 @@ export default function CreateFromSeer() {
       reportedWidgetErrors.current.add(errorKey);
 
       Sentry.withScope(scope => {
-        scope.setFingerprint(['dashboard-widget-query-error']);
+        scope.setFingerprint(['generated-dashboard-widget-query-error']);
         scope.setTag('seer.run_id', seerRunId);
         scope.setLevel('error');
         Sentry.captureMessage('Generated dashboard widget query error', {
