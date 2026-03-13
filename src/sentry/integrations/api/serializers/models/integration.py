@@ -219,26 +219,16 @@ class IntegrationProviderSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        organization = kwargs.pop("organization")
-        org_slug = organization.slug
+        org_slug = kwargs.pop("organization").slug
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
-
-        can_add = obj.can_add
-        if can_add and not obj.allow_multiple:
-            existing = integration_service.get_integrations(
-                organization_id=organization.id,
-                providers=[obj.key],
-            )
-            if existing:
-                can_add = False
 
         return {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
             "metadata": metadata,
-            "canAdd": can_add,
+            "canAdd": obj.can_add,
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(
