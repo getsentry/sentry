@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
@@ -42,7 +42,16 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.base.action import ActionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.workflow import (
+    ActionFilterInput,
+    WorkflowInput,
+    WorkflowValidator,
+)
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
@@ -738,60 +747,53 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
-) -> dict[str, Any]:
-    workflow_payload = {
-        "name": data.get("name"),
+) -> WorkflowInput:
+    workflow_payload: WorkflowInput = {
+        "name": data.get("name", ""),
         "enabled": data.get("status", "active") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
-    triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
-    translated_filter_list = []
+
+    triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
+    translated_filter_list: list[DataConditionInput] = []
     fake_dcg = DataConditionGroup()
     # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
-        try:
-            translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
-        except KeyError:
-            raise ValidationError("Ensure all required fields are filled in.")
-        except ValueError:
-            raise ValidationError("Invalid condition data")
-
-        translated_conditions.pop("condition_group")
-        triggers["conditions"].append(translated_conditions)
+        triggers["conditions"].append(
+            translate_to_data_condition_data(condition, fake_dcg).to_input()
+        )
 
     workflow_payload["triggers"] = triggers
 
     for filter_data in data.get("filters", []):
-        try:
-            translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
-        except KeyError:
-            raise ValidationError("Ensure all required fields are filled in.")
-        except ValueError:
-            raise ValidationError("Invalid filter data")
+        translated_filter_list.append(
+            translate_to_data_condition_data(filter_data, fake_dcg).to_input()
+        )
 
-        translated_filters.pop("condition_group")
-        translated_filter_list.append(translated_filters)
-
-    translated_actions = translate_rule_data_actions_to_notification_actions(
+    translated_actions: list[ActionInput] = []
+    for action_data in translate_rule_data_actions_to_notification_actions(
         data.get("actions", []), False
-    )
-    for action in translated_actions:
-        target_type = None
-        action_config = action.get("config", {})
-        if action_config is not None:
-            target_type = action_config.get("target_type")
+    ):
+        action: ActionInput = {
+            "type": action_data["type"],
+            "data": action_data["data"],
+            "config": action_data["config"],
+            "integrationId": action_data["integration_id"],
+        }
+        target_type = action["config"].get("target_type")
         if target_type is not None:
             assert isinstance(target_type, int)
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
+        translated_actions.append(action)
 
     filter_match = data.get("filterMatch", "any-short")
     if filter_match == "any":
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
-    action_filters = {
+    action_filters: ActionFilterInput = {
         "logicType": filter_match,
         "conditions": translated_filter_list,
         "actions": translated_actions,
