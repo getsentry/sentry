@@ -172,26 +172,26 @@ export function InsightComparisonSection({
     <Stack gap="md">
       <Flex align="center" gap="sm" wrap="wrap">
         <SegmentedControl value={selectedTab} onChange={setSelectedTab}>
-          {statusCounts.all > 0 ? (
+          {statusCounts.all > 0 && (
             <SegmentedControl.Item key="all">
               {t('All (%s)', statusCounts.all)}
             </SegmentedControl.Item>
-          ) : null}
-          {statusCounts.new > 0 ? (
+          )}
+          {statusCounts.new > 0 && (
             <SegmentedControl.Item key="new">
               {t('New (%s)', statusCounts.new)}
             </SegmentedControl.Item>
-          ) : null}
-          {statusCounts.unresolved > 0 ? (
+          )}
+          {statusCounts.unresolved > 0 && (
             <SegmentedControl.Item key="unresolved">
               {t('Unresolved (%s)', statusCounts.unresolved)}
             </SegmentedControl.Item>
-          ) : null}
-          {statusCounts.resolved > 0 ? (
+          )}
+          {statusCounts.resolved > 0 && (
             <SegmentedControl.Item key="resolved">
               {t('Resolved (%s)', statusCounts.resolved)}
             </SegmentedControl.Item>
-          ) : null}
+          )}
         </SegmentedControl>
       </Flex>
 
