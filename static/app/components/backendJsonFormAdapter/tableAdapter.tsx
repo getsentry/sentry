@@ -99,18 +99,6 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
     onSave();
   };
 
-  const renderConfirmMessage = () => (
-    <Alert variant="danger">
-      <span
-        dangerouslySetInnerHTML={{
-          __html: singleLineRenderer(
-            config.confirmDeleteMessage ?? t('Are you sure you want to delete this item?')
-          ),
-        }}
-      />
-    </Alert>
-  );
-
   return (
     <Stack gap="lg">
       <Flex align="center" gap="md">
@@ -138,7 +126,18 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
             priority="danger"
             disabled={disabled}
             onConfirm={() => handleDelete(rowIndex)}
-            message={renderConfirmMessage()}
+            message={
+              <Alert variant="danger">
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: singleLineRenderer(
+                      config.confirmDeleteMessage ??
+                        t('Are you sure you want to delete this item?')
+                    ),
+                  }}
+                />
+              </Alert>
+            }
           >
             <Button
               icon={<IconDelete />}
