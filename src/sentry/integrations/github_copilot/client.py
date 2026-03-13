@@ -12,7 +12,6 @@ from sentry.integrations.github_copilot.models import (
     GithubPRFromGraphQL,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -46,35 +45,22 @@ class GithubCopilotAgentClient(CodingAgentClient):
         owner = request.repository.owner
         repo = request.repository.name
 
-        # GitHub Copilot has a 30000 character limit for problem_statement,
-        # measured on the JSON-serialized string value. Characters like \n, \",
-        # and \\ expand during JSON encoding (e.g. one newline char becomes two
-        # chars: \n), so we must truncate based on the encoded length.
-        max_encoded_length = 29900
+        # GitHub Copilot has a 30,000 character limit for problem_statement.
+        # Use 25,000 to leave headroom for JSON encoding expansion.
+        max_prompt_length = 25000
         prompt = request.prompt
-        json_encoded = json.dumps(prompt)
-        encoded_length = len(json_encoded) - 2  # subtract surrounding quotes
 
-        if encoded_length > max_encoded_length:
-            original_encoded_length = encoded_length
-            # Scale down raw string proportionally to the encoding expansion ratio
-            ratio = len(prompt) / encoded_length if encoded_length > 0 else 1.0
-            prompt = prompt[: int(max_encoded_length * ratio)]
-
-            # Safety: verify and trim further if still over (edge case: cut lands
-            # on a cluster of escapable chars)
-            while len(json.dumps(prompt)) - 2 > max_encoded_length:
-                prompt = prompt[: len(prompt) - 100]
-
+        if len(prompt) > max_prompt_length:
             logger.warning(
                 "coding_agent.github_copilot.prompt_truncated",
                 extra={
                     "owner": owner,
                     "repo": repo,
-                    "original_encoded_length": original_encoded_length,
-                    "truncated_encoded_length": len(json.dumps(prompt)) - 2,
+                    "original_length": len(prompt),
+                    "truncated_length": max_prompt_length,
                 },
             )
+            prompt = prompt[:max_prompt_length]
 
         payload = GithubCopilotTaskRequest(
             problem_statement=prompt,
