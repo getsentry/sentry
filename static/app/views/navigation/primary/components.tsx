@@ -71,6 +71,9 @@ interface PrimaryNavigationLinkProps extends PrimaryNavigationItemBaseProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+  onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLAnchorElement>;
 }
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
@@ -93,12 +96,15 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
       aria-selected={activeGroup === props.group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === 'mobile'}
-      onClick={() => {
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+      onClick={e => {
         trackAnalytics('navigation.primary_item_clicked', {
           item: props.analyticsKey,
           organization,
           ...props.analyticsParams,
         });
+        props.onClick?.(e);
       }}
       {...{
         [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
