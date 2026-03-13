@@ -152,7 +152,7 @@ export default function CreateFromSeer() {
   const reportedWidgetErrors = useRef(new Set<string>());
 
   const handleWidgetError = useCallback(
-    (widget: {title: string}, errorMessage: string) => {
+    (widget: Widget, errorMessage: string) => {
       const errorKey = `${widget.title}:${errorMessage}`;
       if (reportedWidgetErrors.current.has(errorKey)) {
         return;
