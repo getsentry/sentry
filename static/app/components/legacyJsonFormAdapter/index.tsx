@@ -3,6 +3,7 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveField} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -110,13 +111,15 @@ export function LegacyJsonFormAdapter<TData, TContext>({
         {fieldApi => (
           <fieldApi.Base>
             {(baseProps, {indicator}) => (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <ChoiceMapperDropdown
-                  config={field}
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  indicator={indicator}
-                />
+              <Stack flexGrow={1} gap="md">
+                <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                  <ChoiceMapperDropdown
+                    config={field}
+                    value={fieldApi.state.value}
+                    onChange={fieldApi.handleChange}
+                    indicator={indicator}
+                  />
+                </fieldApi.Layout.Row>
                 <ChoiceMapperTable
                   config={field}
                   value={fieldApi.state.value}
@@ -124,7 +127,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
                   onSave={() => baseProps.onBlur()}
                   disabled={field.disabled || baseProps.disabled}
                 />
-              </fieldApi.Layout.Row>
+              </Stack>
             )}
           </fieldApi.Base>
         )}
