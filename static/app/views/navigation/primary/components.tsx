@@ -1,20 +1,20 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
 import {createPortal} from 'react-dom';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -165,7 +165,7 @@ function PrimaryNavigationButton({
             <Fragment>
               {buttonProps.icon}
               <PrimaryNavigationUnreadIndicator
-                isMobile={showLabel}
+                data-unread-indicator
                 variant={indicator}
               />
             </Fragment>
@@ -180,6 +180,41 @@ function PrimaryNavigationButton({
     </Tooltip>
   );
 }
+
+const PrimaryNavigationUnreadIndicator = styled(
+  (props: {variant: 'accent' | 'danger' | 'warning'}) => {
+    const {layout} = useNavigation();
+    const showLabel = layout === 'mobile';
+    const theme = useTheme();
+    return (
+      <Container
+        position="absolute"
+        top={showLabel ? `-${theme.space.xs}` : '0'}
+        right={showLabel ? 'auto' : '0px'}
+        left={showLabel ? '11px' : 'auto'}
+        width="10px"
+        height="10px"
+        radius="full"
+      >
+        {p => {
+          return (
+            <PrimaryNavigationUnreadIndicator
+              {...p}
+              {...props}
+              data-unread-indicator
+              variant={props.variant}
+            />
+          );
+        }}
+      </Container>
+    );
+  }
+)<{
+  variant?: 'accent' | 'danger' | 'warning';
+}>`
+  background: ${p => p.theme.tokens.graphics[p.variant ?? 'accent'].vibrant};
+  border: 2px solid ${p => p.theme.tokens.border[p.variant ?? 'accent'].muted};
+`;
 
 interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   items: MenuItemProps[];
@@ -253,10 +288,7 @@ function PrimaryNavigationMenu({
                   indicator ? (
                     <Fragment>
                       {icon}
-                      <PrimaryNavigationUnreadIndicator
-                        isMobile={showLabel}
-                        variant={indicator}
-                      />
+                      <PrimaryNavigationUnreadIndicator variant={indicator} />
                     </Fragment>
                   ) : (
                     icon
@@ -391,32 +423,6 @@ const NavigationLink = styled(Link, {
   }
 `;
 
-const PrimaryNavigationUnreadIndicator = styled('span')<{
-  isMobile: boolean;
-  variant?: 'accent' | 'danger' | 'warning';
-}>`
-  position: absolute;
-  top: -${p => p.theme.space.xs};
-  right: -${p => p.theme.space.md};
-  display: block;
-  text-align: center;
-  color: ${p => p.theme.colors.white};
-  font-size: ${p => p.theme.font.size.xs};
-  background: ${p => p.theme.tokens.graphics[p.variant ?? 'accent'].vibrant};
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid ${p => p.theme.tokens.border[p.variant ?? 'accent'].muted};
-
-  ${p =>
-    p.isMobile &&
-    css`
-      top: -${p.theme.space.xs};
-      right: auto;
-      left: 11px;
-    `}
-`;
-
 type PrimaryNavigationButtonOverlayProps = {
   children: React.ReactNode;
   overlayProps: React.HTMLAttributes<HTMLDivElement>;
@@ -445,29 +451,31 @@ function PrimaryNavigationButtonOverlay({
   overlayProps,
 }: PrimaryNavigationButtonOverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavigation();
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
-        <ScrollableOverlay isMobile={layout === 'mobile'}>{children}</ScrollableOverlay>
+        <ScrollableOverlay>{children}</ScrollableOverlay>
       </PositionWrapper>
     </FocusScope>,
     document.body
   );
 }
 
-const ScrollableOverlay = styled(Overlay, {
-  shouldForwardProp: prop => prop !== 'isMobile',
-})<{
-  isMobile: boolean;
-}>`
-  overscroll-behavior: none;
-  min-height: 150px;
-  max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
-  overflow-y: auto;
-  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
-`;
+function ScrollableOverlay(props: OverlayProps) {
+  const theme = useTheme();
+  const {layout} = useNavigation();
+  return (
+    <Container
+      overflowY="auto"
+      overscrollBehavior="none"
+      maxHeight={layout === 'mobile' ? '80vh' : '60vh'}
+      width={layout === 'mobile' ? `calc(100vw - ${theme.space['3xl']})` : '400px'}
+    >
+      <Overlay {...props} />
+    </Container>
+  );
+}
 
 export function isPrimaryNavigationLinkActive(
   to: LocationDescriptor | string,

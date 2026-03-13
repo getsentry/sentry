@@ -249,8 +249,7 @@ export function PrimaryNavigationItems() {
 
 // Force all buttons to the same size
 const FooterButtonBar = styled(ButtonBar)`
-  & > button,
-  & > span > button {
+  button {
     width: ${p => p.theme.form.md.height};
     height: ${p => p.theme.form.md.height};
   }
@@ -259,8 +258,8 @@ const FooterButtonBar = styled(ButtonBar)`
 const BetaBadge = styled(FeatureBadge)`
   position: absolute;
   pointer-events: none;
-  top: -2px;
-  right: 2px;
+  top: 0px;
+  right: 4px;
   font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;

@@ -1,14 +1,14 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -68,21 +68,26 @@ export function UserDropdown() {
       minMenuWidth={200}
       trigger={triggerProps =>
         isMobile ? (
-          <MobileUserButton
-            {...triggerProps}
-            aria-label={user.email}
-            icon={<UserAvatar user={user} size={16} />}
-            priority="transparent"
-            size="xs"
-            onClick={e => {
-              handleTriggerClick();
-              triggerProps.onClick?.(e);
-            }}
-          >
-            {t('User Settings')}
-          </MobileUserButton>
+          <Flex justify="start" padding="md 2xl">
+            {props => (
+              <Button
+                {...props}
+                {...triggerProps}
+                aria-label={user.email}
+                icon={<UserAvatar user={user} size={16} />}
+                priority="transparent"
+                size="xs"
+                onClick={e => {
+                  handleTriggerClick();
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {t('User Settings')}
+              </Button>
+            )}
+          </Flex>
         ) : (
-          <FullWidthAvatarButton
+          <AvatarButton
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
@@ -98,9 +103,23 @@ export function UserDropdown() {
         {
           key: 'user',
           label: (
-            <SectionTitleWrapper>
-              <UserBadge user={user} avatarSize={32} />
-            </SectionTitleWrapper>
+            <Flex align="center" gap="md">
+              <UserAvatar user={user} size={32} />
+              <Stack gap="xs">
+                <Text size="sm" bold uppercase variant="primary">
+                  {/*
+                  Some users never set their name, so lets not show their email twice and
+                  attempt to infer their name from their email
+                   */}
+                  {user.name === user.email
+                    ? user.email.split('@')[0]?.split('.').join(' ')
+                    : user.name}
+                </Text>
+                <Text size="xs" variant="muted">
+                  {user.email}
+                </Text>
+              </Stack>
+            </Flex>
           ),
           textValue: t('User Summary'),
           children: [
@@ -126,20 +145,3 @@ export function UserDropdown() {
     />
   );
 }
-
-const FullWidthAvatarButton = styled(AvatarButton)`
-  min-width: unset;
-`;
-
-const MobileUserButton = styled(Button)`
-  width: 100%;
-  justify-content: flex-start;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
-`;
-
-const SectionTitleWrapper = styled('div')`
-  text-transform: none;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;

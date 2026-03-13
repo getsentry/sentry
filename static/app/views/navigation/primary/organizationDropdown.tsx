@@ -1,8 +1,12 @@
-import styled from '@emotion/styled';
+import {useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
@@ -34,6 +38,12 @@ interface OrganizationDropdownProps {
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
+  const theme = useTheme();
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
 
   const organization = useOrganization();
   const {organizations} = useLegacyStore(OrganizationsStore);
@@ -55,6 +65,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   return (
     <DropdownMenu
+      usePortal
+      portalContainerRef={portalContainerRef}
+      zIndex={theme.zIndex.modal}
       trigger={triggerProps => (
         <AvatarButton
           avatar={
@@ -91,13 +104,17 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         {
           key: 'organization',
           label: (
-            <SectionTitleWrapper>
-              <OrganizationBadge
-                organization={organization}
-                description={tn('%s Project', '%s Projects', projects.length)}
-                avatarSize={32}
-              />
-            </SectionTitleWrapper>
+            <Flex align="center" gap="md">
+              <OrganizationAvatar organization={organization} size={32} />
+              <Stack gap="xs">
+                <Text size="sm" bold uppercase variant="primary">
+                  {organization.name}
+                </Text>
+                <Text size="xs" variant="muted">
+                  {tn('%s Project', '%s Projects', projects.length)}
+                </Text>
+              </Stack>
+            </Flex>
           ),
           children: [
             ...(props.hideCurrentOrganizationLinks
@@ -204,10 +221,3 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
     hidden: !ConfigStore.get('features').has('organizations:create'),
   };
 }
-
-const SectionTitleWrapper = styled('div')`
-  text-transform: none;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;
