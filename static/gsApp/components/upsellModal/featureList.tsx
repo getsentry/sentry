@@ -124,7 +124,7 @@ const FeatureLink = styled(motion.div)`
   grid-template-columns: max-content auto;
   gap: ${p => p.theme.space.md};
   align-items: center;
-  align-content: center;
+  align-content: baseline;
   margin-bottom: ${p => p.theme.space.xs};
 
   &:hover {
