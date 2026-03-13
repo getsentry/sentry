@@ -27,7 +27,6 @@ from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
 from sentry.hybridcloud.services.replica.service import (
     ControlReplicaService,
     RegionReplicaService,
-    region_replica_service,
 )
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
@@ -325,11 +324,6 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
-    def delete_project_key(self, *, project_key_id: int, cell_name: str | None = None) -> None:
-        from sentry.models.projectkey import ProjectKey
-
-        ProjectKey.objects.filter(id=project_key_id).delete()
-
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
@@ -401,9 +395,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                     "project_key_mapping.conflict",
                     extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
                 )
-                region_replica_service.delete_project_key(
-                    project_key_id=project_key.id, cell_name=project_key.cell_name
-                )
+                raise
 
     def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
         ProjectKeyMapping.objects.filter(

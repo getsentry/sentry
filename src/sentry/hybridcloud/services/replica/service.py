@@ -147,11 +147,6 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
-    @abc.abstractmethod
-    def delete_project_key(self, *, project_key_id: int, cell_name: str | None = None) -> None:
-        pass
-
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedRegionReplicaService
