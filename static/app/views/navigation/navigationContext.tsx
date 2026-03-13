@@ -3,21 +3,24 @@ import {useTheme} from '@emotion/react';
 
 import {useMedia} from 'sentry/utils/useMedia';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+import {
+  PRIMARY_NAVIGATION_GROUP_CONFIG,
+  useActiveNavigationGroup,
+} from 'sentry/views/navigation/useActiveNavigationGroup';
+
+type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
 interface NavigationContext {
-  activePrimaryNavigationGroup: PrimaryNavigationGroup | null;
+  activeGroup: NavigationGroup;
   layout: 'mobile' | 'sidebar';
-  setActivePrimaryNavigationGroup: (
-    activePrimaryNavigationGroup: PrimaryNavigationGroup | null
-  ) => void;
+  setActiveGroup: (group: NavigationGroup | null) => void;
 }
 
 const NavigationContext = createContext<NavigationContext>({
   layout: 'sidebar',
-  activePrimaryNavigationGroup: null,
-  setActivePrimaryNavigationGroup: () => {},
+  activeGroup: 'issues',
+  setActiveGroup: () => {},
 });
 
 export function useNavigation(): NavigationContext {
@@ -29,19 +32,19 @@ interface NavigationContextProviderProps {
 }
 
 export function NavigationContextProvider(props: NavigationContextProviderProps) {
-  const [activePrimaryNavigationGroup, setActivePrimaryNavigationGroup] =
-    useState<PrimaryNavigationGroup | null>(null);
+  const [activeGroupOverride, setActiveGroup] = useState<NavigationGroup | null>(null);
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const routeGroup = useActiveNavigationGroup();
 
   const value = useMemo(
     () => ({
       layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
-      activePrimaryNavigationGroup,
-      setActivePrimaryNavigationGroup,
+      activeGroup: activeGroupOverride ?? routeGroup,
+      setActiveGroup,
     }),
-    [isMobile, activePrimaryNavigationGroup]
+    [isMobile, activeGroupOverride, routeGroup]
   );
 
   return (

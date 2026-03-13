@@ -25,7 +25,7 @@ import {
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
+import type {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -148,7 +148,7 @@ export function SidebarMenu({
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  group: PrimaryNavigationGroup;
+  group: keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
   label: string;
   to: string;
   activeTo?: string;
@@ -192,7 +192,7 @@ function SidebarNavigationLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavigationGroup} = useNavigation();
+  const {layout, activeGroup} = useNavigation();
   const location = useLocation();
   const isActive = isSidebarLinkActive(
     normalizeUrl(activeTo, location),
@@ -207,7 +207,7 @@ function SidebarNavigationLink({
       to={to}
       reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
+      aria-selected={activeGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === 'mobile'}
       onClick={() => {

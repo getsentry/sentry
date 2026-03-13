@@ -5,15 +5,16 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {capitalize} from 'sentry/utils/string/capitalize';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 type Props = {
   handleClickBack: () => void;
 };
 
 export function SecondaryMobile({handleClickBack}: Props) {
-  const activeGroup = useActiveNavigationGroup();
+  const {activeGroup} = useNavigation();
 
   return (
     <SecondaryMobileWrapper>
@@ -25,9 +26,7 @@ export function SecondaryMobile({handleClickBack}: Props) {
           size="xs"
           priority="transparent"
         />
-        <HeaderLabel>
-          {activeGroup ? activeGroup.charAt(0).toUpperCase() + activeGroup.slice(1) : ''}
-        </HeaderLabel>
+        <HeaderLabel>{capitalize(activeGroup)}</HeaderLabel>
       </GroupHeader>
       <Stack justify="between" align="stretch" overflowY="auto" area="content">
         <SecondaryNavigationContent group={activeGroup} />

@@ -25,7 +25,7 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {setActivePrimaryNavigationGroup} = useNavigation();
+  const {setActiveGroup} = useNavigation();
   const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
@@ -40,8 +40,8 @@ export function useCollapsedNavigation() {
     isHoveredRef.current = false;
     setInteraction(null);
     setView('collapsed');
-    setActivePrimaryNavigationGroup(null);
-  }, [setActivePrimaryNavigationGroup, setInteraction, setView]);
+    setActiveGroup(null);
+  }, [setActiveGroup, setInteraction, setView]);
 
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
