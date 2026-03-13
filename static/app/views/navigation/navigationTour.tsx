@@ -231,18 +231,17 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   );
 }
 
-const NavigationTourReminderContext = createContext<{
+interface NavigationTourReminderContext {
   setShowTourReminder: (value: boolean) => void;
   showTourReminder: boolean;
-}>({
+}
+
+const NavigationTourReminderContext = createContext<NavigationTourReminderContext>({
   showTourReminder: false,
   setShowTourReminder: () => {},
 });
 
-function useNavigationTourReminderContext(): {
-  setShowTourReminder: (value: boolean) => void;
-  showTourReminder: boolean;
-} {
+function useNavigationTourReminderContext(): NavigationTourReminderContext {
   const context = useContext(NavigationTourReminderContext);
   if (!context) {
     throw new Error('Must be used within a NavigationTourReminderContextProvider');
@@ -250,11 +249,13 @@ function useNavigationTourReminderContext(): {
   return context;
 }
 
-export function NavigationTourReminderContextProvider({
-  children,
-}: {
+interface NavigationTourReminderContextProviderProps {
   children: React.ReactNode;
-}) {
+}
+
+export function NavigationTourReminderContextProvider(
+  props: NavigationTourReminderContextProviderProps
+) {
   const [showTourReminder, setShowTourReminder] = useState(false);
 
   const contextValue = useMemo(
@@ -264,16 +265,20 @@ export function NavigationTourReminderContextProvider({
 
   return (
     <NavigationTourReminderContext.Provider value={contextValue}>
-      {children}
+      {props.children}
     </NavigationTourReminderContext.Provider>
   );
 }
 
-export function NavigationTourReminder({children}: {children: React.ReactNode}) {
+interface NavigationTourReminderProps {
+  children: React.ReactNode;
+}
+
+export function NavigationTourReminder(props: NavigationTourReminderProps) {
   const {showTourReminder, setShowTourReminder} = useNavigationTourReminderContext();
 
   if (!showTourReminder) {
-    return children;
+    return props.children;
   }
 
   return (
@@ -289,7 +294,7 @@ export function NavigationTourReminder({children}: {children: React.ReactNode}) 
       }
       isOpen={showTourReminder}
     >
-      {props => <div {...props}>{children}</div>}
+      {tourProps => <div {...tourProps}>{props.children}</div>}
     </TourGuide>
   );
 }

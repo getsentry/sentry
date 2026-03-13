@@ -406,6 +406,32 @@ const PrimaryNavigationButtonBar = styled(ButtonBar)`
   }
 `;
 
+interface PrimaryNavigationFooterItemsProps {
+  children: NonNullable<React.ReactNode>;
+}
+
+function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) {
+  const {layout} = useNavigation();
+
+  return (
+    <Flex
+      display="flex"
+      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
+      align="center"
+      justify={layout === 'mobile' ? 'start' : 'center'}
+      width={layout === 'mobile' ? '100%' : 'auto'}
+    >
+      {layout === 'mobile' ? (
+        <Stack width="100%">{props.children}</Stack>
+      ) : (
+        <PrimaryNavigation.ButtonBar orientation="vertical">
+          {props.children}
+        </PrimaryNavigation.ButtonBar>
+      )}
+    </Flex>
+  );
+}
+
 function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
@@ -577,4 +603,5 @@ export const PrimaryNavigation = {
   ButtonOverlay: PrimaryNavigationButtonOverlay,
   Sidebar: PrimaryNavigationSidebar,
   SidebarHeader: PrimaryNavigationSidebarHeader,
+  FooterItems: PrimaryNavigationFooterItems,
 };

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -19,7 +19,6 @@ import {
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -192,7 +191,7 @@ export function PrimaryNavigationItems() {
       </PrimaryNavigation.List>
 
       <Stack gap="md" marginTop="auto" paddingBottom="md">
-        <SidebarFooter>
+        <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
           </ErrorBoundary>
@@ -212,34 +211,12 @@ export function PrimaryNavigationItems() {
             <PrimaryNavigationWhatsNew />
           </ErrorBoundary>
           <PrimaryNavigationHelp />
-        </SidebarFooter>
-        <SidebarFooter>
+        </PrimaryNavigation.FooterItems>
+        <PrimaryNavigation.FooterItems>
           <UserDropdown />
-        </SidebarFooter>
+        </PrimaryNavigation.FooterItems>
       </Stack>
     </Fragment>
-  );
-}
-
-function SidebarFooter(props: {children: NonNullable<React.ReactNode>}) {
-  const {layout} = useNavigation();
-
-  return (
-    <Flex
-      display="flex"
-      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
-      align="center"
-      justify={layout === 'mobile' ? 'start' : 'center'}
-      width={layout === 'mobile' ? '100%' : 'auto'}
-    >
-      {layout === 'mobile' ? (
-        <Stack width="100%">{props.children}</Stack>
-      ) : (
-        <PrimaryNavigation.ButtonBar orientation="vertical">
-          {props.children}
-        </PrimaryNavigation.ButtonBar>
-      )}
-    </Flex>
   );
 }
 

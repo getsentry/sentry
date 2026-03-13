@@ -22,13 +22,9 @@ import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
-  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavigation();
   const {visible} = useGlobalModal();
-
-  const {currentStepId} = useNavigationTour();
-  const hoverProps = useResetActiveNavigationGroup();
 
   useGlobalCommandPaletteActions();
 
@@ -50,6 +46,27 @@ function UserAndOrganizationNavigation() {
   );
 
   return (
+    <NavigationLayout>
+      {layout === 'sidebar' ? <DesktopNavigation /> : <MobileNavigation />}
+    </NavigationLayout>
+  );
+}
+
+function UserOnlyNavigation() {
+  return (
+    <PrimaryNavigation.Sidebar>
+      <UserDropdown />
+    </PrimaryNavigation.Sidebar>
+  );
+}
+
+function NavigationLayout({children}: {children: React.ReactNode}) {
+  const theme = useTheme();
+  const {layout} = useNavigation();
+  const {currentStepId} = useNavigationTour();
+  const hoverProps = useResetActiveNavigationGroup();
+
+  return (
     <Flex
       top={0}
       position={currentStepId ? undefined : 'sticky'}
@@ -61,16 +78,8 @@ function UserAndOrganizationNavigation() {
       }}
       {...hoverProps}
     >
-      {layout === 'sidebar' ? <DesktopNavigation /> : <MobileNavigation />}
+      {children}
     </Flex>
-  );
-}
-
-function UserOnlyNavigation() {
-  return (
-    <PrimaryNavigation.Sidebar>
-      <UserDropdown />
-    </PrimaryNavigation.Sidebar>
   );
 }
 
