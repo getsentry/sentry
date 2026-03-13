@@ -1108,7 +1108,7 @@ export default typescript.config([
         },
         {
           type: 'story-book',
-          pattern: ['static/app/stories', 'static/**/__stories__/*.{ts,tsx}'],
+          pattern: ['static/app/stories', '**/__stories__'],
         },
         // --- debug tools (e.g. notifications) ---
         {
