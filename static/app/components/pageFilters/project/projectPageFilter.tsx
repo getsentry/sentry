@@ -15,7 +15,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {
@@ -28,10 +28,10 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useRouter} from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -128,7 +128,26 @@ export function ProjectPageFilter({
                 ? true
                 : isSelected
             }
-            onChange={() => toggleOptionRef.current?.(parseInt(project.id, 10))}
+            onChange={() => {
+              const projectId = parseInt(project.id, 10);
+              // When a sentinel is staged, the checkbox appears checked via the
+              // `checked` override above — but toggleOption would just add the
+              // ID alongside the sentinel (e.g. [-1, 1]), keeping kind='all'.
+              // Instead, expand to explicit IDs first, then remove this project.
+              if (optionSelectionIntent.kind === 'all') {
+                dispatchRef.current?.({
+                  type: 'set staged',
+                  value: allProjectIds(projects).filter(id => id !== projectId),
+                });
+              } else if (optionSelectionIntent.kind === 'my' && project.isMember) {
+                dispatchRef.current?.({
+                  type: 'set staged',
+                  value: memberProjectIds(projects).filter(id => id !== projectId),
+                });
+              } else {
+                toggleOptionRef.current?.(projectId);
+              }
+            }}
             aria-label={t('Select %s', project.slug)}
             tabIndex={-1}
           />

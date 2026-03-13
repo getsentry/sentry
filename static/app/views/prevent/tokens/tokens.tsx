@@ -11,13 +11,13 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 
 import {useInfiniteRepositoryTokens} from './repoTokenTable/hooks/useInfiniteRepositoryTokens';
 import RepoTokenTable, {parseSortFromQuery} from './repoTokenTable/repoTokenTable';
 
-export default function TokensPage() {
+export function TokensPage() {
   const {integratedOrgId} = usePreventContext();
   const organization = useOrganization();
   const navigate = useNavigate();

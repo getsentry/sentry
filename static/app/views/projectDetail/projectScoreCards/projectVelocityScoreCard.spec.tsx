@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectVelocityScoreCard from './projectVelocityScoreCard';
+import {ProjectVelocityScoreCard} from './projectVelocityScoreCard';
 
 describe('ProjectDetail > ProjectVelocity', () => {
   const organization = OrganizationFixture();

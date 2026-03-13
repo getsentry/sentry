@@ -1,4 +1,4 @@
-function LinePreview() {
+export function LinePreview() {
   return (
     <svg
       viewBox="0 0 143 48"
@@ -17,5 +17,3 @@ function LinePreview() {
     </svg>
   );
 }
-
-export default LinePreview;

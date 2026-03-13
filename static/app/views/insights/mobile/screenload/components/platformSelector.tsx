@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {t} from 'sentry/locale';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -20,7 +20,7 @@ export function PlatformSelector() {
   const {query, pathname} = useLocation();
   const platform =
     decodeScalar(query[PLATFORM_QUERY_PARAM]) ??
-    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    localStorageWrapper.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
     DEFAULT_PLATFORM;
 
   return (
@@ -30,7 +30,7 @@ export function PlatformSelector() {
         value={platform}
         aria-label={t('Filter platform')}
         onChange={val => {
-          localStorage.setItem(PLATFORM_LOCAL_STORAGE_KEY, val);
+          localStorageWrapper.setItem(PLATFORM_LOCAL_STORAGE_KEY, val);
           navigate({
             pathname,
             query: {

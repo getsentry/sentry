@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.base import DefaultFieldsModel
@@ -92,6 +92,15 @@ class DashboardWidgetTypes(TypesClass):
         (PREPROD_APP_SIZE, "preprod-app-size"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DashboardWidgetLegendType(str, Enum):
+    DEFAULT = "default"
+    BREAKDOWN = "breakdown"
+
+    @classmethod
+    def as_text_choices(cls):
+        return [(member.value, member.value) for member in cls]
 
 
 class DatasetSourcesTypes(Enum):
@@ -179,6 +188,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     RAGE_AND_DEAD_CLICKS = 11
     SERVER_TREE = 12
     TEXT = 13
+    AGENTS_TRACES_TABLE = 14
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -193,11 +203,12 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (RAGE_AND_DEAD_CLICKS, "rage_and_dead_clicks"),
         (SERVER_TREE, "server_tree"),
         (TEXT, "text"),
+        (AGENTS_TRACES_TABLE, "agents_traces_table"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -237,7 +248,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardFieldLink(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -254,7 +265,7 @@ class DashboardFieldLink(DefaultFieldsModel):
         unique_together = (("dashboard_widget_query", "field"),)
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -323,7 +334,7 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.

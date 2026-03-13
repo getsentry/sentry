@@ -244,7 +244,6 @@ class TestTransformWebhookToCodegenRequest:
         expected_repo["integration_id"] = str(repo.integration_id)
 
         assert isinstance(result, dict)
-        assert result["request_type"] == "pr-review"
         assert result["external_owner_id"] == "123456"
         assert result["data"]["pr_id"] == 42
         repo_data = result["data"]["repo"]

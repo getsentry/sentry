@@ -10,10 +10,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
-export default function SeerWizardSetupBanner() {
+export function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const theme = useInvertedTheme();
 

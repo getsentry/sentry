@@ -2184,7 +2184,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 for d in response.data
                 if "prebuiltId" in d and d["prebuiltId"] == prebuilt_dashboard["prebuilt_id"]
             ]
-            assert len(matching_response_data) == 1
+            is_hidden = prebuilt_dashboard.get("hidden", False)
+            assert len(matching_response_data) == (0 if is_hidden else 1)
 
     def test_endpoint_does_not_create_duplicate_prebuilt_dashboards_when_exist(self) -> None:
         with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
@@ -2269,36 +2270,58 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 assert response.status_code == 200
                 assert len(response.data) == total_count - prebuilt_dashboards_count
 
-    def test_endpoint_creates_favorites_for_pre_favorited_prebuilt_dashboards(self) -> None:
-        assert (
-            DashboardFavoriteUser.objects.filter(
-                organization=self.organization, user_id=self.user.id
-            ).count()
-            == 0
-        )
+    def test_get_with_only_prebuilt(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "onlyPrebuilt"})
 
-        pre_favorited_prebuilt_ids = {
-            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
-        }
+                prebuilt_dashboards_count = Dashboard.objects.filter(
+                    organization=self.organization, prebuilt_id__isnull=False
+                ).count()
+                assert prebuilt_dashboards_count == 3
 
-        with self.feature(
-            [
-                "organizations:dashboards-prebuilt-insights-dashboards",
-                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
-            ]
-        ):
-            response = self.do_request("get", self.url)
+                # Response excludes hidden prebuilt dashboards (ID 3 is hidden)
+                visible_count = len(
+                    [d for d in PREBUILT_DASHBOARDS[:3] if not d.get("hidden", False)]
+                )
+                assert response.status_code == 200
+                assert len(response.data) == visible_count
+                assert all(d.get("prebuiltId") is not None for d in response.data)
+
+    def test_hidden_prebuilt_dashboards_excluded_by_default(self) -> None:
+        """Hidden prebuilt dashboards are synced to the DB but excluded from the API response."""
+        # IDs 1, 2, 3 correspond to Frontend Session Health, Queries, Query Details
+        # Query Details (id=3) is marked as isHidden=True
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url)
+
         assert response.status_code == 200
 
-        favorites = DashboardFavoriteUser.objects.filter(
-            organization=self.organization, user_id=self.user.id
-        )
-        favorited_prebuilt_ids = set(
-            Dashboard.objects.filter(
-                id__in=favorites.values_list("dashboard_id", flat=True)
-            ).values_list("prebuilt_id", flat=True)
-        )
-        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+        # All 3 should be synced to the DB
+        prebuilt_count = Dashboard.objects.filter(
+            organization=self.organization, prebuilt_id__isnull=False
+        ).count()
+        assert prebuilt_count == 3
+
+        # But only 2 non-hidden ones should appear in the response
+        prebuilt_in_response = [d for d in response.data if d.get("prebuiltId") is not None]
+        assert len(prebuilt_in_response) == 2
+        prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
+        assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY not in prebuilt_ids_in_response
+
+    def test_hidden_prebuilt_dashboards_included_with_show_hidden_filter(self) -> None:
+        """Hidden prebuilt dashboards are included in the response when showHidden filter is set."""
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options({"dashboards.prebuilt-dashboard-ids": [1, 2, 3]}):
+                response = self.do_request("get", self.url, {"filter": "showHidden"})
+
+        assert response.status_code == 200
+
+        prebuilt_in_response = [d for d in response.data if d.get("prebuiltId") is not None]
+        assert len(prebuilt_in_response) == 3
+        prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
+        assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):

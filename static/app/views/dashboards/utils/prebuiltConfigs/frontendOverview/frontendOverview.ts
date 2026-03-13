@@ -255,4 +255,9 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    description: 'Get started with frontend tracing',
+  },
 };

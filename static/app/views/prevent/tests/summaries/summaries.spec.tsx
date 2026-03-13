@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
 import {Summaries} from 'sentry/views/prevent/tests/summaries/summaries';
 
 // TODO: Make these fixtures

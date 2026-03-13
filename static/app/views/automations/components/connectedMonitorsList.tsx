@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
@@ -67,7 +67,7 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
   );
 }
 
-export default function ConnectedMonitorsList({
+export function ConnectedMonitorsList({
   detectorIds,
   connectedDetectorIds,
   toggleConnected,

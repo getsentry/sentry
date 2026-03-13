@@ -126,7 +126,7 @@ class PrepareDeletesByProjectTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             query, to_delete = prepare_deletes_by_project(is_filtered=lambda model: False)
 
         assert query is not None
@@ -154,7 +154,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         )
 
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
         ):
             task_queue = SynchronousTaskQueue()
@@ -200,7 +200,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         self.create_group(project=project1)
 
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 10),
         ):
             task_queue = SynchronousTaskQueue()

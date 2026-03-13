@@ -37,7 +37,7 @@ def test_audit_log_event() -> None:
         )
     )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
@@ -62,7 +62,7 @@ def test_audit_log_event_bad_actor_user_id() -> None:
             )
         )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
@@ -87,7 +87,7 @@ def test_audit_log_event_bad_target_user_id() -> None:
         )
     )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
@@ -110,7 +110,7 @@ def test_user_ip_event() -> None:
         )
     )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     log_service.record_user_ip(
@@ -120,7 +120,7 @@ def test_user_ip_event() -> None:
         )
     )
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):

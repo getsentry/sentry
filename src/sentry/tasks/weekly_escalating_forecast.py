@@ -31,7 +31,7 @@ ITERATOR_CHUNK = 500
     name="sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
     namespace=issues_tasks,
     processing_deadline_duration=60 * 2,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_escalating_forecast() -> None:
     """
@@ -55,7 +55,7 @@ def run_escalating_forecast() -> None:
     namespace=issues_tasks,
     processing_deadline_duration=60 * 2,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def generate_forecasts_for_projects(project_ids: list[int]) -> None:

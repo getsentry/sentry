@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {makeOpacityJitter, makeShake} from 'sentry/styles/animations';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const Background = styled(motion.g)``;
 
@@ -202,7 +202,7 @@ const Smoke = styled('g')`
   )}
 `;
 
-function NoProjectEmptyState({className}: {className?: string}) {
+export function NoProjectEmptyState({className}: {className?: string}) {
   return (
     <svg
       width="683"
@@ -1431,5 +1431,3 @@ function NoProjectEmptyState({className}: {className?: string}) {
     </svg>
   );
 }
-
-export default NoProjectEmptyState;

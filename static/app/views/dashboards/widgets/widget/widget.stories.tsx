@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -13,9 +12,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import {Widget} from './widget';
 
-export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(documentation.props?.Widget);
+export const documentation =
+  import('!!type-loader!sentry/views/dashboards/widgets/widget/widget');
 
+export default Storybook.story('Widget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

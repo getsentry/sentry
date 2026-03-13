@@ -10,7 +10,7 @@ type Props = {
   project: Project;
 };
 
-function ProjectItem({project, organization}: Props) {
+export function ProjectItem({project, organization}: Props) {
   return (
     <Wrapper>
       <BookmarkStar organization={organization} project={project} />
@@ -29,5 +29,3 @@ const Wrapper = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.lg};
 `;
-
-export default ProjectItem;

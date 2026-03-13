@@ -3,12 +3,12 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class InsightsStarredSegment(DefaultFieldsModel):
     """
     A starred transaction in Insights

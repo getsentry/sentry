@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import ExtraDescription from './extraDescription';
+import {ExtraDescription} from './extraDescription';
 
 export const BULK_LIMIT = 1000;
 export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();

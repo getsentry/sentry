@@ -12,7 +12,7 @@ import type {
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 

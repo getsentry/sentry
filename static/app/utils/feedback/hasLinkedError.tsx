@@ -6,7 +6,7 @@ const CRASH_REPORT_SOURCES: string[] = [
   'crash_report_embed_form',
 ] as const;
 
-export default function hasLinkedError(item: FeedbackIssueListItem): boolean {
+export function feedbackHasLinkedError(item: FeedbackIssueListItem): boolean {
   // If it is in CRASH_REPORT_SOURCES, it has a linked error, or if it is a new_feedback_envelope, check associated_event_id
   // Can potentially remove this after all feedbacks have associated_event_id in their metadata (~90 days)
   return (

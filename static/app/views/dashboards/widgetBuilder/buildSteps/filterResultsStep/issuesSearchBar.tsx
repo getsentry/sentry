@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';

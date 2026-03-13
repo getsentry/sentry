@@ -18,7 +18,7 @@ type ThresholdsSectionProps = {
   setError?: (error: Record<string, any>) => void;
 };
 
-function ThresholdsSection({
+export function ThresholdsSection({
   dataType,
   dataUnit,
   error,
@@ -127,5 +127,3 @@ function ThresholdsSection({
     </Fragment>
   );
 }
-
-export default ThresholdsSection;

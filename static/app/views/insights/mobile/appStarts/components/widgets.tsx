@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
-import DeviceClassBreakdownBarChart from 'sentry/views/insights/mobile/appStarts/components/charts/deviceClassBreakdownBarChart';
-import StartDurationWidget from 'sentry/views/insights/mobile/appStarts/components/startDurationWidget';
+import {Panel} from 'sentry/components/panels/panel';
+import {DeviceClassBreakdownBarChart} from 'sentry/views/insights/mobile/appStarts/components/charts/deviceClassBreakdownBarChart';
+import {StartDurationWidget} from 'sentry/views/insights/mobile/appStarts/components/startDurationWidget';
 
-function SummaryWidgets({additionalFilters}: any) {
+export function SummaryWidgets({additionalFilters}: any) {
   return (
     <WidgetLayout>
       <div style={{gridArea: '1 / 1'}}>
@@ -19,8 +19,6 @@ function SummaryWidgets({additionalFilters}: any) {
     </WidgetLayout>
   );
 }
-
-export default SummaryWidgets;
 
 const WidgetLayout = styled('div')`
   display: grid;

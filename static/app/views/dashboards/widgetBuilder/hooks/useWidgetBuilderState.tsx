@@ -278,7 +278,7 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
-function useWidgetBuilderState(): {
+export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
@@ -1428,5 +1428,3 @@ function checkTraceMetricSortUsed(
   const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
   return sortInFields || sortInYAxis;
 }
-
-export default useWidgetBuilderState;

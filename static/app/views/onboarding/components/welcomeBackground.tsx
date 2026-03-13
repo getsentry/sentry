@@ -7,7 +7,7 @@ import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
 import {Image} from '@sentry/scraps/image';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 function WelcomeBackground() {
   return (

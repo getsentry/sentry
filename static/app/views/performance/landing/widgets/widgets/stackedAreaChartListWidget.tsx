@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
-import Truncate from 'sentry/components/truncate';
+import {Count} from 'sentry/components/count';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
@@ -22,7 +22,7 @@ import {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import {

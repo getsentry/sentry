@@ -280,7 +280,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         name=name,
         namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
-        silo_mode=SiloMode.REGION,
+        silo_mode=SiloMode.CELL,
     )
     def symbolication_fn(
         cache_key: str,

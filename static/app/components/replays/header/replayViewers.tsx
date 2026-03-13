@@ -4,8 +4,8 @@ import Placeholder from 'sentry/components/placeholder';
 import type {User} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type TResponseData = {
   data: {
@@ -18,7 +18,7 @@ interface Props {
   replayId: string;
 }
 
-export default function ReplayViewers({projectId, replayId}: Props) {
+export function ReplayViewers({projectId, replayId}: Props) {
   const organization = useOrganization();
 
   const {projects} = useProjects();

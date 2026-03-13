@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
+import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 
 type Props = {
@@ -27,7 +27,7 @@ type Props = {
   projectId: string;
 } & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
-function KeyRow({
+export function KeyRow({
   data,
   onRemove,
   onToggle,
@@ -118,8 +118,6 @@ function KeyRow({
     </Panel>
   );
 }
-
-export default KeyRow;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

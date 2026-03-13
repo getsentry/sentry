@@ -18,7 +18,7 @@ from snuba_sdk import Column, Function
 
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -951,7 +951,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         raise NotImplementedError
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -1138,7 +1138,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
@@ -1474,7 +1474,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

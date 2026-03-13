@@ -711,12 +711,6 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "seer.code-review.excluded-pr-author-logins",
     type=Sequence,
     default=[],
@@ -737,6 +731,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -754,11 +749,6 @@ register(
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.drop-unprocessed-events.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1358,6 +1348,12 @@ register(
 )
 register(
     "seer.explorer-index.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.explorer.context-engine-rollout",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2502,9 +2498,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_include_github_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
+    type=Sequence,
+    default=["github"],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -3215,6 +3212,15 @@ register(
     "spans.buffer.max-flush-segments",
     type=Int,
     default=500,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of segments a single trace can flush per cycle. Prevents a
+# single trace from monopolizing a flush cycle and concentrating SSCAN load
+# on one Redis node. 0 means no limit.
+register(
+    "spans.buffer.max-flush-segments-per-trace",
+    type=Int,
+    default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.

@@ -27,7 +27,7 @@ from sentry.utils import metrics
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
     convert_enum_keys_to_strings,
-    get_seer_endpoint_for_event,
+    get_seer_path_for_request,
     make_seer_request,
 )
 
@@ -72,11 +72,10 @@ def schedule_task(
     from pydantic import ValidationError
 
     try:
-        request_type = transformed_event.get("request_type")
         validated_payload: (
             SeerCodeReviewTaskRequestForPrClosed | SeerCodeReviewTaskRequestForPrReview
         )
-        if request_type == "pr-closed":
+        if github_event == GithubWebhookType.PULL_REQUEST and github_event_action == "closed":
             validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(transformed_event)
         else:
             validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(transformed_event)
@@ -94,7 +93,7 @@ def schedule_task(
         return
 
     process_github_webhook_event.delay(
-        github_event=github_event.value,
+        seer_path=get_seer_path_for_request(github_event.value, github_event_action),
         event_payload=payload,
         enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         tags=tags,
@@ -106,12 +105,14 @@ def schedule_task(
     name="sentry.seer.code_review.tasks.process_github_webhook_event",
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=RETRYABLE_ERRORS),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_github_webhook_event(
     *,
     enqueued_at_str: str,
-    github_event: str,
+    # Later to be removed when we have migrated all callers to use seer_path
+    seer_path: str | None = None,
+    github_event: str | None = None,
     event_payload: Mapping[str, Any],
     tags: Mapping[str, Any] | None = None,
     **kwargs: Any,
@@ -122,6 +123,7 @@ def process_github_webhook_event(
     Args:
         enqueued_at_str: The timestamp when the task was enqueued
         github_event: The GitHub webhook event type from X-GitHub-Event header (e.g., "check_run", "pull_request")
+        seer_path: The path to the Seer API endpoint to call
         event_payload: The payload of the webhook event (already validated before scheduling)
         tags: Sentry SDK tags to set on this task's scope for error correlation
         **kwargs: Parameters to pass to webhook handler functions
@@ -131,10 +133,24 @@ def process_github_webhook_event(
     try:
         if tags:
             sentry_sdk.set_tags(tags)
-        path = get_seer_endpoint_for_event(github_event).value
         viewer_context: SeerViewerContext | None = None
         if tags and (org_id := tags.get("sentry_organization_id")):
             viewer_context = SeerViewerContext(organization_id=int(org_id))
+
+        # Temporary check for backwards compatibility (pre-seer_path tasks).
+        # event_payload is the Seer-shaped body {external_owner_id, data}; it never
+        # includes GitHub's "action". Old tasks used request_type "pr-closed" instead.
+        if seer_path is None and github_event is not None:
+            assert isinstance(github_event, str)
+            action = event_payload.get("action")
+            if action is None and event_payload.get("request_type") == "pr-closed":
+                action = "closed"
+            if action is None and tags:
+                action = tags.get("github_event_action")
+            path = get_seer_path_for_request(github_event, action)
+        else:
+            assert isinstance(seer_path, str)
+            path = seer_path
         make_seer_request(path=path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__

@@ -3,7 +3,7 @@ import {SecretFixture} from 'sentry-fixture/secret';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsNewSecret from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
 describe('OrganizationFeatureFlagsNewSecret', () => {

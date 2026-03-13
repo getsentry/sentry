@@ -6,7 +6,7 @@ import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type MeasurementsMetaResponse = Record<string, {functions: string[]; unit: string}>;
 

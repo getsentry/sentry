@@ -20,7 +20,7 @@ interface Props {
   visibleRange?: VisibleRange;
 }
 
-export default function useJumpButtons({
+export function useJumpButtons({
   currentTime,
   frames,
   isTable,

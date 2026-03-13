@@ -722,7 +722,7 @@ def refresh_check_state(org_id):
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
     retry=Retry(times=1, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_compatibility_check_async(org_id):
     try:

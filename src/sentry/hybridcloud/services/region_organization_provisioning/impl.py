@@ -166,9 +166,24 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
 
         return True
 
+    def create_organization_in_cell(
+        self,
+        *,
+        cell_name: str,
+        organization_id: int,
+        provision_payload: OrganizationProvisioningOptions,
+    ) -> bool:
+        return self.create_organization_in_region(
+            region_name=cell_name,
+            organization_id=organization_id,
+            provision_payload=provision_payload,
+        )
+
     def update_organization_slug_from_reservation(
         self,
-        region_name: str,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
     ) -> bool:
         # Skip any non-primary organization slug updates

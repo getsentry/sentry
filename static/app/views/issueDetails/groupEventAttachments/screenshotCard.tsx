@@ -7,24 +7,24 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {LazyRender} from 'sentry/components/lazyRender';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   attachments: IssueAttachment[];

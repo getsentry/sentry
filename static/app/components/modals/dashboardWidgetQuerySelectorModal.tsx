@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import withApi from 'sentry/utils/withApi';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import {withApi} from 'sentry/utils/withApi';
+import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 

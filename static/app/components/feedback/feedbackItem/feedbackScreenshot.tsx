@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import TextOverflow from 'sentry/components/textOverflow';
+import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
@@ -21,7 +21,7 @@ type Props = {
   onClick?: () => void;
 };
 
-export default function FeedbackScreenshot({
+export function FeedbackScreenshot({
   className,
   organization,
   projectSlug,

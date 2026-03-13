@@ -243,6 +243,51 @@ class GitHubApiClientTest(TestCase):
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_file_codeowners_raises_on_json_error_response(self, mock_jwt) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS",
+            json={
+                "message": "Not Found",
+                "documentation_url": "https://docs.github.com/rest",
+                "status": "404",
+            },
+            status=404,
+        )
+        with pytest.raises(ApiError):
+            self.github_client.get_file(self.repo, "CODEOWNERS", ref=None, codeowners=True)
+
+    @mock.patch(
+        "sentry.integrations.github.integration.GitHubIntegration.check_file",
+        return_value="https://github.com/Test-Organization/foo/blob/master/CODEOWNERS",
+    )
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_codeowner_file_returns_none_on_error_response(
+        self, mock_jwt, mock_check_file
+    ) -> None:
+        self.config = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+        for location in ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]:
+            responses.add(
+                method=responses.GET,
+                url=f"https://api.github.com/repos/{self.repo.name}/contents/{location}",
+                json={
+                    "message": "Not Found",
+                    "documentation_url": "https://docs.github.com/rest",
+                    "status": "404",
+                },
+                status=404,
+            )
+        result = self.install.get_codeowner_file(
+            self.config.repository, ref=self.config.default_branch
+        )
+        assert result is None
+
     @responses.activate
     def test_get_cached_repo_files_caching_functionality(self) -> None:
         """Fetch files for repo. Test caching logic."""
@@ -773,7 +818,7 @@ class GithubProxyClientTest(TestCase):
 
         responses.calls.reset()
         assert control_proxy_responses.call_count == 0
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             client = GithubProxyTestClient(integration=self.integration)
             client.get_issue("test-repo", "123")
             request = responses.calls[0].request

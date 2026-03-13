@@ -8,10 +8,9 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -22,7 +21,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -119,13 +118,12 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             # Update build distribution data in EAP with new download count
             try:
                 organization = project.organization
-                if features.has("organizations:preprod-build-distribution-eap-write", organization):
-                    produce_preprod_build_distribution_to_eap(
-                        artifact=preprod_artifact,
-                        organization=organization,
-                        organization_id=project.organization_id,
-                        project_id=project.id,
-                    )
+                produce_preprod_build_distribution_to_eap(
+                    artifact=preprod_artifact,
+                    organization=organization,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                )
             except Exception:
                 logger.exception(
                     "Failed to write preprod build distribution to EAP after download",

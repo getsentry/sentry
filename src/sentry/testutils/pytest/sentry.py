@@ -60,7 +60,7 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
 def _configure_test_env_regions() -> None:
@@ -107,6 +107,7 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+    config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -425,6 +426,15 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
     """
+
+    # Auto-add the `symbolicator` marker to any test using the _requires_symbolicator
+    # fixture so that `-m symbolicator` selects all symbolicator-dependent tests.
+    symbolicator_mark = pytest.mark.symbolicator
+    for item in items:
+        for marker in item.iter_markers("usefixtures"):
+            if "_requires_symbolicator" in marker.args:
+                item.add_marker(symbolicator_mark)
+                break
 
     keep, discard = [], []
 

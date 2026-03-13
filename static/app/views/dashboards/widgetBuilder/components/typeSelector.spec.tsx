@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import TypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import {WidgetBuilderTypeSelector as TypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -54,9 +54,6 @@ describe('TypeSelector', () => {
         <TypeSelector />
       </WidgetBuilderProvider>,
       {
-        organization: {
-          features: ['dashboards-issue-widget-series-display-type'],
-        },
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',

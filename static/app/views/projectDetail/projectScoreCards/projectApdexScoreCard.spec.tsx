@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
+import {ProjectApdexScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
 describe('ProjectDetail > ProjectApdex', () => {
   let currentDataEndpointMock: jest.Mock;

@@ -15,7 +15,7 @@ interface EmbeddedSpendLimitSettingsProps extends Omit<
  * A wrapper for the SpendLimitSettings component that allows for embedded use in other components,
  * without controlling state or mutations directly.
  */
-function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
+export function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
   const {initialOnDemandBudgets, onUpdate} = props;
   const [currentOnDemandBudgets, setCurrentOnDemandBudgets] =
     useState<OnDemandBudgets>(initialOnDemandBudgets);
@@ -33,5 +33,3 @@ function EmbeddedSpendLimitSettings(props: EmbeddedSpendLimitSettingsProps) {
     />
   );
 }
-
-export default EmbeddedSpendLimitSettings;

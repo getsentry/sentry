@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
-import MenuItem from 'sentry/components/menuItem';
+import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

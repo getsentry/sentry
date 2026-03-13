@@ -11,11 +11,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -44,7 +43,7 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-import EventsTable from './eventsTable';
+import {EventsTable} from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
 import {getEventsFilterOptions} from './utils';
 
@@ -75,7 +74,7 @@ const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('timestamp'),
 ];
 
-function EventsContent(props: Props) {
+export function EventsContent(props: Props) {
   const {
     location,
     organization,
@@ -304,8 +303,8 @@ function Search(props: Props) {
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(4, min-content);
@@ -327,5 +326,3 @@ const StyledSearchBarWrapper = styled('div')`
     grid-column: auto;
   }
 `;
-
-export default EventsContent;
