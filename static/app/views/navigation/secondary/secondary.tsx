@@ -126,7 +126,8 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
   children?: ReactNode;
 }) {
   const {layout} = useNavigation();
-  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   if (layout === 'mobile') {
     return null;
@@ -140,7 +141,7 @@ SecondaryNavigation.Header = function SecondaryNavigationHeader({
           size="xs"
           icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
           aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
           priority={isCollapsed ? 'primary' : 'transparent'}
           analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
           analyticsEventKey="sidebar_secondary_toggle_button_clicked"
