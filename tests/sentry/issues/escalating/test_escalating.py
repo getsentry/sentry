@@ -28,7 +28,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -96,8 +96,6 @@ class HistoricGroupCounts(
     @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
-        from django.utils import timezone
-
         timestamp = timezone.now() - timedelta(minutes=1)
         # This builds an error group and a profiling group
         profile_error_event, _, profile_issue_occurrence = self.store_search_issue(
@@ -345,9 +343,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestEAPIsEscalating(TestCase, SnubaTestCase):
-    FROZEN_TIME = (datetime.now(timezone.utc) - timedelta(hours=24)).replace(
-        hour=6, minute=30, second=0, microsecond=0
-    )
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=30, second=0)
 
     def _event_timestamp(self, hours_ago: int = 0) -> float:
         return (
