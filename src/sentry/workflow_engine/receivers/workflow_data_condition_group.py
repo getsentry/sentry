@@ -23,9 +23,6 @@ def invalidate_action_filters(
 
     If the relationship to the workflow changes, then we need to invalidate the cache.
     """
-    if kwargs.get("created") is not None:
-        # no need to invalidate the cache if we just created the relationship
-        return
 
     def execute_invalidation() -> None:
         invalidate_action_filter_cache_by_workflow_ids([instance.workflow_id])

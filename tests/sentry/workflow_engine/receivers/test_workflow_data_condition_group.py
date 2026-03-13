@@ -62,10 +62,10 @@ class TestWorkflowDataConditionGroupReceivers(TestCase):
         assert len(_action_filters_cache.get(cache_key)) == 1
 
         # add another data condition group to the workflow
-        action_filter = self.create_data_condition_group()
+        new_action_filter = self.create_data_condition_group()
         self.create_workflow_data_condition_group(
             workflow=workflow,
-            condition_group=action_filter,
+            condition_group=new_action_filter,
         )
 
-        assert len(_action_filters_cache.get(cache_key)) == 0
+        assert _action_filters_cache.get(cache_key) is None
