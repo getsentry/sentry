@@ -16,12 +16,12 @@ from sentry.silo.client import (
     REQUEST_ATTEMPTS_LIMIT,
     CellSiloClient,
     SiloClientError,
-    get_region_ip_addresses,
-    validate_region_ip_address,
+    get_cell_ip_addresses,
+    validate_cell_ip_address,
 )
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
+from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
 from sentry.testutils.region import override_regions
 from sentry.types.region import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
@@ -29,8 +29,8 @@ from sentry.utils import json
 
 class SiloClientTest(TestCase):
     dummy_address = "http://eu.testserver"
-    region = Cell("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
-    region_config = (region,)
+    cell = Cell("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
 
     def setUp(self) -> None:
         self.factory = RequestFactory()
@@ -38,34 +38,34 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_init_clients_from_monolith(self) -> None:
         with raises(SiloClientError):
-            CellSiloClient(self.region)
+            CellSiloClient(self.cell)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_init_clients_from_control(self) -> None:
-        with override_regions(self.region_config):
+        with override_regions(self.cell_config):
             with raises(SiloClientError):
                 CellSiloClient("atlantis")  # type: ignore[arg-type]
 
             with raises(CellResolutionError):
-                region = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
-                CellSiloClient(region)
+                cell = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
+                CellSiloClient(cell)
 
-            client = CellSiloClient(self.region)
+            client = CellSiloClient(self.cell)
             assert client.base_url is not None
-            assert self.region.address in client.base_url
+            assert self.cell.address in client.base_url
 
     @override_settings(SILO_MODE=SiloMode.CELL)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
     def test_init_clients_from_region(self) -> None:
         with raises(SiloClientError):
-            CellSiloClient(self.region)
+            CellSiloClient(self.cell)
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -88,8 +88,8 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success_with_retry(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -113,8 +113,8 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_limit_reached(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -124,7 +124,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha256(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.cell.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
@@ -174,8 +174,8 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_within_limit(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -185,7 +185,7 @@ class SiloClientTest(TestCase):
             )
 
             prefix_hash = "123"
-            hash = sha256(f"{prefix_hash}{self.region.name}POST{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.cell.name}POST{path}".encode()).hexdigest()
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
@@ -196,7 +196,7 @@ class SiloClientTest(TestCase):
                 if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
                     responses.replace(
                         responses.POST,
-                        f"{self.region.address}{path}",
+                        f"{self.cell.address}{path}",
                         status=200,
                         json={"ok": True},
                     )
@@ -235,8 +235,8 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_3xx(self) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -254,8 +254,8 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_4xx(self) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -270,8 +270,8 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_5xx(self) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -286,8 +286,8 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_proxy_request(self) -> None:
-        with override_regions(self.region_config):
-            client = CellSiloClient(self.region)
+        with override_regions(self.cell_config):
+            client = CellSiloClient(self.cell)
             path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -307,18 +307,18 @@ class SiloClientTest(TestCase):
             assert response[PROXY_DIRECT_LOCATION_HEADER] == path
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_invalid_region_silo_ip_address(self) -> None:
-        region = Cell("eu", 1, "http://172.31.255.31:9000", RegionCategory.MULTI_TENANT)
+    def test_invalid_cell_silo_ip_address(self) -> None:
+        cell = Cell("eu", 1, "http://172.31.255.31:9000", RegionCategory.MULTI_TENANT)
 
-        # Disallow any region silo ip address by default.
+        # Disallow any cell silo ip address by default.
         with (
-            override_regions((region,)),
+            override_regions((cell,)),
             patch("sentry_sdk.capture_exception") as mock_capture_exception,
             raises(ApiHostError),
         ):
             assert mock_capture_exception.call_count == 0
 
-            client = CellSiloClient(region)
+            client = CellSiloClient(cell)
             client.base_url = "http://172.31.255.255:9000"
             request = self.factory.get(
                 "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
@@ -331,14 +331,14 @@ class SiloClientTest(TestCase):
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
 
         with (
-            override_regions((region,)),
+            override_regions((cell,)),
             patch("sentry_sdk.capture_exception") as mock_capture_exception,
-            override_allowed_region_silo_ip_addresses("172.31.255.255"),
+            override_allowed_cell_silo_ip_addresses("172.31.255.255"),
             raises(ApiHostError),
         ):
             assert mock_capture_exception.call_count == 0
 
-            client = CellSiloClient(region)
+            client = CellSiloClient(cell)
             request = self.factory.get(
                 "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
             )
@@ -350,124 +350,122 @@ class SiloClientTest(TestCase):
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_allowed_region_silo_ip_addresses("172.31.255.255")
+    @override_allowed_cell_silo_ip_addresses("172.31.255.255")
     def test_client_restricted_ip_address(self) -> None:
-        internal_region_address = "http://172.31.255.255:9000"
-        region = Cell("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
-        region_config = (region,)
+        internal_cell_address = "http://172.31.255.255:9000"
+        cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+        cell_config = (cell,)
 
         with (
-            override_regions(region_config),
-            patch(
-                "sentry.silo.client.validate_region_ip_address"
-            ) as mock_validate_region_ip_address,
+            override_regions(cell_config),
+            patch("sentry.silo.client.validate_cell_ip_address") as mock_validate_cell_ip_address,
         ):
-            client = CellSiloClient(region)
-            path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
+            client = CellSiloClient(cell)
+            path = f"{internal_cell_address}/api/0/imaginary-public-endpoint/"
             request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
 
             class BailOut(Exception):
                 pass
 
-            def test_validate_region_ip_address(ip) -> None:
+            def test_validate_cell_ip_address(ip) -> None:
                 assert ip == "172.31.255.255"
                 # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
-                # validate_region_ip_address function is properly called for the proxy request code path.
+                # validate_cell_ip_address function is properly called for the proxy request code path.
                 raise BailOut()
 
-            mock_validate_region_ip_address.side_effect = test_validate_region_ip_address
+            mock_validate_cell_ip_address.side_effect = test_validate_cell_ip_address
 
-            assert mock_validate_region_ip_address.call_count == 0
+            assert mock_validate_cell_ip_address.call_count == 0
             with raises(BailOut):
                 client.proxy_request(request)
-            assert mock_validate_region_ip_address.call_count == 1
+            assert mock_validate_cell_ip_address.call_count == 1
 
 
-def test_validate_region_ip_address() -> None:
+def test_validate_cell_ip_address() -> None:
     with (
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
-        override_allowed_region_silo_ip_addresses(),
+        override_allowed_cell_silo_ip_addresses(),
     ):
-        assert validate_region_ip_address("172.31.255.255") is False
+        assert validate_cell_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, CellResolutionError)
-        assert err.args == ("allowed_region_ip_addresses is empty for: 172.31.255.255",)
+        assert err.args == ("allowed_cell_ip_addresses is empty for: 172.31.255.255",)
 
     with (
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
-        override_allowed_region_silo_ip_addresses("192.88.99.0"),
+        override_allowed_cell_silo_ip_addresses("192.88.99.0"),
     ):
-        assert validate_region_ip_address("172.31.255.255") is False
+        assert validate_cell_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, CellResolutionError)
-        assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.255",)
 
     with (
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
-        override_allowed_region_silo_ip_addresses("192.88.99.0", "172.31.255.255"),
+        override_allowed_cell_silo_ip_addresses("192.88.99.0", "172.31.255.255"),
     ):
-        assert validate_region_ip_address("172.31.255.255") is True
+        assert validate_cell_ip_address("172.31.255.255") is True
         assert mock_capture_exception.call_count == 0
 
 
-def test_get_region_ip_addresses() -> None:
-    internal_region_address = "http://i.am.an.internal.hostname:9000"
-    region = Cell("eu", 1, internal_region_address, RegionCategory.MULTI_TENANT)
-    region_config = (region,)
+def test_get_cell_ip_addresses() -> None:
+    internal_cell_address = "http://i.am.an.internal.hostname:9000"
+    cell = Cell("eu", 1, internal_cell_address, RegionCategory.MULTI_TENANT)
+    cell_config = (cell,)
 
     with (
-        override_regions(region_config),
+        override_regions(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):
         mock_gethostbyname.return_value = "172.31.255.255"
-        assert get_region_ip_addresses() == frozenset([ipaddress.ip_address("172.31.255.255")])
+        assert get_cell_ip_addresses() == frozenset([ipaddress.ip_address("172.31.255.255")])
         assert mock_capture_exception.call_count == 0
 
     with (
-        override_regions(region_config),
+        override_regions(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("urllib3.util.parse_url") as mock_parse_url,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):
         mock_parse_url.return_value = MagicMock(host=None)
-        assert get_region_ip_addresses() == frozenset([])
+        assert get_cell_ip_addresses() == frozenset([])
         assert mock_gethostbyname.call_count == 0
         assert mock_capture_exception.call_count == 1
 
 
 @mock.patch("sentry.utils.metrics.incr")
-def test_get_region_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
-    eu_region_address = "http://i.am.eu.internal.hostname:9000"
-    eu_region = Cell("eu", 1, eu_region_address, RegionCategory.MULTI_TENANT)
+def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
+    us1_cell_address = "http://i.am.us1.internal.hostname:9000"
+    us1_cell = Cell("eu", 1, us1_cell_address, RegionCategory.MULTI_TENANT)
 
-    us_region_address = "http://i.am.us.internal.hostname:9000"
-    us_region = Cell("us", 1, us_region_address, RegionCategory.MULTI_TENANT)
+    us2_cell_address = "http://i.am.us2.internal.hostname:9000"
+    us2_cell = Cell("us", 1, us2_cell_address, RegionCategory.MULTI_TENANT)
 
-    dead_region_address = "http://i.am.dead.internal.hostname:9000"
-    dead_region = Cell("dead", 1, dead_region_address, RegionCategory.MULTI_TENANT)
+    dead_cell_address = "http://i.am.dead.internal.hostname:9000"
+    dead_cell = Cell("dead", 1, dead_cell_address, RegionCategory.MULTI_TENANT)
 
-    region_config = (eu_region, us_region, dead_region)
+    cell_config = (us1_cell, us2_cell, dead_cell)
 
     def mock_gethostbyname_for_regions(hostname):
-        if hostname == eu_region_address.split("//")[1].split(":")[0]:
+        if hostname == us1_cell_address.split("//")[1].split(":")[0]:
             return "172.31.10.1"
-        elif hostname == us_region_address.split("//")[1].split(":")[0]:
+        elif hostname == us2_cell_address.split("//")[1].split(":")[0]:
             return "172.31.20.1"
-        elif hostname == dead_region_address.split("//")[1].split(":")[0]:
+        elif hostname == dead_cell_address.split("//")[1].split(":")[0]:
             raise socket.gaierror("no_such_host")
         else:
             raise Exception(f"Unexpected hostname: {hostname}")
 
     with (
-        override_regions(region_config),
+        override_regions(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):
         mock_gethostbyname.side_effect = mock_gethostbyname_for_regions
-        result = get_region_ip_addresses()
+        result = get_cell_ip_addresses()
         expected = frozenset(
             [ipaddress.ip_address("172.31.10.1"), ipaddress.ip_address("172.31.20.1")]
         )
