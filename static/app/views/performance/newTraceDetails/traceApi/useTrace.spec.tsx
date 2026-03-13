@@ -23,6 +23,120 @@ describe('useTrace', () => {
     MockApiClient.clearMockResponses();
   });
 
+  describe('retry with wider period', () => {
+    it('retries with 90d when initial response is empty', async () => {
+      window.history.pushState({}, '', '/?statsPeriod=14d');
+      useIsEAPTraceEnabled.mockReturnValue(false);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: {transactions: [], orphan_errors: []},
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: {
+          transactions: [{event_id: 'abc123', transaction: '/foo'}],
+          orphan_errors: [],
+        },
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useTrace({traceSlug: 'test-trace-id'})
+      );
+
+      await waitFor(() => expect(fallbackMock).toHaveBeenCalled());
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual(
+        expect.objectContaining({
+          transactions: expect.arrayContaining([
+            expect.objectContaining({event_id: 'abc123'}),
+          ]),
+        })
+      );
+    });
+
+    it('does not retry when initial response has data', async () => {
+      window.history.pushState({}, '', '/?statsPeriod=14d');
+      useIsEAPTraceEnabled.mockReturnValue(false);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: {
+          transactions: [{event_id: 'abc123', transaction: '/foo'}],
+          orphan_errors: [],
+        },
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: {transactions: [], orphan_errors: []},
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useTrace({traceSlug: 'test-trace-id'})
+      );
+
+      await waitFor(() => expect(result.current.status).toBe('success'));
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(
+        expect.objectContaining({
+          transactions: expect.arrayContaining([
+            expect.objectContaining({event_id: 'abc123'}),
+          ]),
+        })
+      );
+    });
+
+    it('does not retry when timestamp is set', async () => {
+      window.history.pushState({}, '', '/?statsPeriod=14d');
+      useIsEAPTraceEnabled.mockReturnValue(false);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        body: {transactions: [], orphan_errors: []},
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: {
+          transactions: [{event_id: 'abc123', transaction: '/foo'}],
+          orphan_errors: [],
+        },
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useTrace({traceSlug: 'test-trace-id', timestamp: 1234567890})
+      );
+
+      await waitFor(() => expect(result.current.status).toBe('success'));
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(
+        expect.objectContaining({
+          transactions: [],
+          orphan_errors: [],
+        })
+      );
+    });
+  });
+
   describe('tracing endpoint query params', () => {
     const validUUid = '550e8400e29b41d4a716446655440000';
     const invalidUUid = 'notAuuid';

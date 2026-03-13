@@ -269,6 +269,14 @@ export function useTrace(
   const isDemoMode = Boolean(queryParams.demo);
   const demoTrace = useDemoTrace(queryParams.demo, organization);
 
+  // Only retry when using statsPeriod (no specific timestamp or absolute date range)
+  const canRetryWithWiderPeriod = !options.timestamp && 'statsPeriod' in queryParams;
+
+  const fallbackQueryParams = useMemo(
+    () => ({...queryParams, statsPeriod: '90d'}),
+    [queryParams]
+  );
+
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
@@ -302,7 +310,66 @@ export function useTrace(
     }
   );
 
-  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
+  const isInitialTraceEmpty =
+    traceQuery.status === 'success' &&
+    traceQuery.data?.transactions?.length === 0 &&
+    traceQuery.data?.orphan_errors?.length === 0;
+
+  const isInitialEAPTraceEmpty =
+    eapTraceQuery.status === 'success' &&
+    Array.isArray(eapTraceQuery.data) &&
+    eapTraceQuery.data.length === 0;
+
+  const traceFallbackQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+      }),
+      {query: fallbackQueryParams},
+    ],
+    {
+      staleTime: Infinity,
+      enabled:
+        hasValidTrace &&
+        !isDemoMode &&
+        !isEAPEnabled &&
+        isInitialTraceEmpty &&
+        canRetryWithWiderPeriod,
+    }
+  );
+
+  const eapTraceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+      }),
+      {
+        query: {
+          ...fallbackQueryParams,
+          project: -1,
+          additional_attributes: options.additionalAttributes,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+      enabled:
+        hasValidTrace &&
+        !isDemoMode &&
+        isEAPEnabled &&
+        isInitialEAPTraceEmpty &&
+        canRetryWithWiderPeriod,
+    }
+  );
+
+  if (isDemoMode) return demoTrace;
+  if (isEAPEnabled) {
+    return isInitialEAPTraceEmpty && canRetryWithWiderPeriod
+      ? eapTraceFallbackQuery
+      : eapTraceQuery;
+  }
+  return isInitialTraceEmpty && canRetryWithWiderPeriod ? traceFallbackQuery : traceQuery;
 }
 
 const isValidEventUUID = (id: string): boolean => {
