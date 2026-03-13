@@ -18,7 +18,7 @@ type Props = {
   size?: 'xs' | 'sm';
 };
 
-function SubscribeAction({
+export function SubscribeAction({
   className,
   disabled,
   group,
@@ -42,5 +42,3 @@ function SubscribeAction({
     />
   );
 }
-
-export default SubscribeAction;

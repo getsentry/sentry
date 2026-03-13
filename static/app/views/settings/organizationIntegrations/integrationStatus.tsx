@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
 import {
   DISABLED,
@@ -27,7 +27,7 @@ type StatusProps = {
   status: IntegrationInstallationStatus;
 };
 
-const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
+export const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   const theme = useTheme();
 
   return (
@@ -42,5 +42,3 @@ const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   font-weight: light;
   margin-right: ${p => p.theme.space.sm};
 `;
-
-export default IntegrationStatus;

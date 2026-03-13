@@ -70,6 +70,7 @@ export const ZoomContainer = styled('div')`
 `;
 
 export const ZoomableImage = styled(Image)`
+  width: auto;
   max-width: 100%;
   max-height: 60vh;
   object-fit: contain;

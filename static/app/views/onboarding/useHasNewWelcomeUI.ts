@@ -1,4 +1,4 @@
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useHasNewWelcomeUI() {
   const organization = useOrganization();

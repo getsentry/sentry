@@ -24,7 +24,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -36,7 +36,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         )
 
         self.region_name = (
-            "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_region().name
+            "us" if SiloMode.get_current_mode() == SiloMode.CONTROL else get_local_cell().name
         )
 
     def generate_provisioning_args(
@@ -80,7 +80,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
                 organization_id=rpc_org_slug.organization_id
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=rpc_org_slug.organization_id)
             owner_id = organization.default_owner_id
             owner = OrganizationMember.objects.get(organization=organization)
@@ -91,7 +91,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
         assert owner_id == user_id
 
     def assert_organization_has_not_changed(self, old_organization: Organization) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             new_organization = Organization.objects.get(id=old_organization.id)
 
         assert old_organization == new_organization
@@ -120,7 +120,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
         user = self.create_user()
         conflicting_slug = self.provisioning_args.provision_options.slug
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             owner_of_conflicting_org = self.create_user()
             region_only_organization = self.create_organization(
                 name="conflicting_org", slug=conflicting_slug, owner=owner_of_conflicting_org
@@ -137,7 +137,7 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
                 organization_id=region_only_organization.id
             ).delete()
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             with pytest.raises(RpcRemoteException):
                 self.provision_organization()
         else:
@@ -379,7 +379,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         assert slug_reservations[0].slug == desired_slug
         assert slug_reservations[0].reservation_type == OrganizationSlugReservationType.PRIMARY
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org.refresh_from_db()
             assert org.slug == desired_slug
 

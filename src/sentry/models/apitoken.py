@@ -337,7 +337,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
     @classmethod
@@ -352,7 +352,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.delete_replicated_api_token(
             apitoken_id=identifier,
-            region_name=region_name,
+            cell_name=region_name,
         )
 
     @classmethod
@@ -417,11 +417,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
                 # Validate redirect_uri binding (RFC 6749 §4.1.3)
                 # Only validate if redirect_uri was provided in the token request (not None)
-                # This maintains backward compatibility with direct from_grant() calls
+                # This maintains backward compatibility with direct from_grant() calls.
+                # Compare normalized forms so that cosmetic differences (trailing
+                # slash, percent-encoding case) don't cause spurious mismatches.
+                normalize = grant.application.normalize_url
                 if (
                     redirect_uri is not None
                     and grant.redirect_uri
-                    and grant.redirect_uri != redirect_uri
+                    and normalize(grant.redirect_uri) != normalize(redirect_uri)
                 ):
                     # RFC 6749 §10.5: Authorization codes are single-use and must be invalidated
                     # on failed exchange attempts to prevent authorization code replay attacks

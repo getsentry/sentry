@@ -14,7 +14,7 @@ import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -24,7 +24,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupPriorityDropdownProps = {
   groupId: string;
@@ -247,24 +247,20 @@ export function GroupPriorityDropdown({
   );
 }
 
-const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  border: none;
-  padding: 0;
-  height: unset;
-  border-radius: 20px;
-  box-shadow: none;
-
-  > span > div {
-    border-radius: 20px;
-  }
-`;
-
 const StyledTag = styled(Tag)`
   gap: ${p => p.theme.space['2xs']};
   position: relative;
   height: 24px;
   overflow: hidden;
+`;
+
+const DropdownButton = styled(Button)`
+  padding: 0;
+  border-radius: ${p => p.theme.radius.full};
+
+  ${StyledTag} {
+    border-radius: ${p => p.theme.radius.full};
+  }
 `;
 
 const InlinePlaceholder = styled(Placeholder)`

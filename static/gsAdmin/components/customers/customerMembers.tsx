@@ -48,7 +48,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function CustomerMembers({orgId}: Props) {
+export function CustomerMembers({orgId}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -77,5 +77,3 @@ function CustomerMembers({orgId}: Props) {
     />
   );
 }
-
-export default CustomerMembers;

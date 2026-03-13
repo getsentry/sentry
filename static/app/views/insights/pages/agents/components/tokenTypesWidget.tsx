@@ -7,10 +7,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -38,7 +38,7 @@ const SERIES_NAME_MAP: Record<string, string> = {
   'sum(gen_ai.usage.input_tokens.cached)': 'Cached Tokens',
 };
 
-export default function TokenTypesWidget() {
+export function TokenTypesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({

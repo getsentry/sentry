@@ -22,7 +22,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
         slug_replica: OrganizationSlugReservationReplica,
     ):
         matches = slug_replica.organization_id == slug_reservation.organization_id
-        matches = matches and slug_replica.region_name == slug_reservation.cell_name
+        matches = matches and slug_replica.cell_name == slug_reservation.cell_name
         matches = matches and slug_replica.reservation_type == slug_reservation.reservation_type
 
         return matches
@@ -32,7 +32,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
         }
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org_slug_replicas: dict[str, OrganizationSlugReservationReplica] = {
                 org_slug_r.slug: org_slug_r
                 for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())

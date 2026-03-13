@@ -1,13 +1,13 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
+import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 

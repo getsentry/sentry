@@ -25,8 +25,12 @@ from sentry.api.event_search import (
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
-from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.constants import WILDCARD_OPERATOR_MAP, WILDCARD_UNICODE
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.search.events.constants import (
+    TEAM_KEY_TRANSACTION_ALIAS,
+    WILDCARD_OPERATOR_MAP,
+    WILDCARD_UNICODE,
+)
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
@@ -986,6 +990,114 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         # the slash should be removed in the final value
         assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
+
+    def test_has_in_filter(self):
+        assert parse_search_query("release:['some_text', 'some_other_text']") == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="IN",
+                value=SearchValue(
+                    [
+                        "'some_text'",
+                        "'some_other_text'",
+                    ]
+                ),
+            )
+        ]
+
+        # normal has filter
+        assert parse_search_query('has:"hi:there"') == [
+            SearchFilter(
+                key=SearchKey(name="hi:there"), operator="!=", value=SearchValue(raw_value="")
+            )
+        ]
+
+        # actual expression simplified
+        assert parse_search_query("has:release OR has:zoo") == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="!=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            ),
+            "OR",
+            SearchFilter(
+                key=SearchKey(name="zoo"),
+                operator="!=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            ),
+        ]
+
+        # actual expression in parentheses
+        assert parse_search_query("(has:release OR has:zoo)") == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name="release"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                    "OR",
+                    SearchFilter(
+                        key=SearchKey(name="zoo"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                ]
+            ),
+        ]
+
+        # same expression with has in filter:
+        assert parse_search_query("has:[release,zoo]") == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name="release"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                    "OR",
+                    SearchFilter(
+                        key=SearchKey(name="zoo"),
+                        operator="!=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    ),
+                ]
+            ),
+        ]
+        # malformed key
+        with pytest.raises(InvalidSearchQuery):
+            parse_search_query('has:"hi there"')
+
+    def test_not_has_team_key_transaction_allowed_when_disabled(self) -> None:
+        config = SearchConfig.create_from(default_config, allow_not_has_filter=False)
+
+        assert parse_search_query(f"!has:{TEAM_KEY_TRANSACTION_ALIAS}", config=config) == [
+            SearchFilter(
+                key=SearchKey(name=TEAM_KEY_TRANSACTION_ALIAS),
+                operator="=",
+                value=SearchValue(raw_value="", use_raw_value=False),
+            )
+        ]
+        assert parse_search_query(f"!has:[{TEAM_KEY_TRANSACTION_ALIAS}]", config=config) == [
+            ParenExpression(
+                children=[
+                    SearchFilter(
+                        key=SearchKey(name=TEAM_KEY_TRANSACTION_ALIAS),
+                        operator="=",
+                        value=SearchValue(raw_value="", use_raw_value=False),
+                    )
+                ]
+            )
+        ]
+
+    def test_not_has_raises_when_disabled(self) -> None:
+        config = SearchConfig.create_from(default_config, allow_not_has_filter=False)
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            parse_search_query("!has:release", config=config)
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            parse_search_query("!has:[release]", config=config)
 
 
 @pytest.mark.parametrize(

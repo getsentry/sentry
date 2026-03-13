@@ -17,8 +17,8 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 interface ActivityDrawerProps {
   group: Group;

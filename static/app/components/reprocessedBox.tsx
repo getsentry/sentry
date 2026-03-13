@@ -8,7 +8,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivityReprocess} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 type Props = {
   groupCount: number;
@@ -18,7 +18,7 @@ type Props = {
   className?: string;
 };
 
-function ReprocessedBox({
+export function ReprocessedBox({
   orgSlug,
   reprocessActivity,
   groupCount,
@@ -32,11 +32,11 @@ function ReprocessedBox({
   };
 
   const [isBannerHidden, setIsBannerHidden] = useState<boolean>(
-    localStorage.getItem(getBannerUniqueId()) === 'true'
+    localStorageWrapper.getItem(getBannerUniqueId()) === 'true'
   );
 
   const handleBannerDismiss = () => {
-    localStorage.setItem(getBannerUniqueId(), 'true');
+    localStorageWrapper.setItem(getBannerUniqueId(), 'true');
     setIsBannerHidden(true);
   };
 
@@ -85,8 +85,6 @@ function ReprocessedBox({
     </BannerContainer>
   );
 }
-
-export default ReprocessedBox;
 
 const StyledBannerSummary = styled(BannerSummary)`
   & > svg:last-child {

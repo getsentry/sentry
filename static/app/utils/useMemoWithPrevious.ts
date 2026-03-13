@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {useEffectAfterFirstRender} from './useEffectAfterFirstRender';
-import usePrevious from './usePrevious';
+import {usePrevious} from './usePrevious';
 
 const useMemoWithPrevious = <T>(
   factory: (previousInstance: T | null) => T,

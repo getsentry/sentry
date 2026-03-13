@@ -4,7 +4,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
   onAddIntegration?: () => void;
 };
 
-function MessagingIntegrationModal({
+export function MessagingIntegrationModal({
   closeModal,
   Header,
   Body,
@@ -61,5 +61,3 @@ function MessagingIntegrationModal({
     </Fragment>
   );
 }
-
-export default MessagingIntegrationModal;

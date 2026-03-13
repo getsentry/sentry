@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min)) + min;
@@ -87,7 +87,7 @@ type Props = {
   anchorRef: React.Ref<SVGForeignObjectElement>;
 };
 
-function AlertsBackground({anchorRef}: Props) {
+export function AlertsBackground({anchorRef}: Props) {
   let alertInterval: undefined | number;
 
   const alertAnimationHook: React.Ref<SVGGElement> = el => {
@@ -686,5 +686,3 @@ function AlertsBackground({anchorRef}: Props) {
     </svg>
   );
 }
-
-export default AlertsBackground;

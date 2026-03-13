@@ -2,10 +2,10 @@ import * as qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
+import {AwsLambdaCloudformation} from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
   beforeEach(() => {

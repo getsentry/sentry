@@ -1488,3 +1488,28 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             )
             assert response.status_code == 400, response.data
             assert "title" in response.data, response.data
+
+    def test_widget_with_invalid_dataset_source(self) -> None:
+        data = {
+            "title": "Errors over time",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "is:unresolved",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
+            ],
+            "widgetType": "error-events",
+            "datasetSource": "invalid",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "datasetSource" in response.data, response.data
+        assert response.data["datasetSource"][0] == "Invalid dataset source"

@@ -45,7 +45,7 @@ const makeTeamOption = (team: Team) => ({
   leadingItems: <TeamAvatar team={team} size={18} />,
 });
 
-function TeamFilter({
+export function TeamFilter({
   selectedTeams,
   handleChangeFilter,
   hideUnassigned = false,
@@ -122,8 +122,6 @@ function TeamFilter({
     />
   );
 }
-
-export default TeamFilter;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;

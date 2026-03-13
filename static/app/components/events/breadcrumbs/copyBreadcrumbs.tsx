@@ -1,7 +1,7 @@
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function escapeMarkdownCell(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');

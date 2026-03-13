@@ -37,7 +37,7 @@ const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>
   disabled: false,
 });
 
-function MultipleCheckbox<T extends string | number>({
+export function MultipleCheckbox<T extends string | number>({
   children,
   value,
   disabled,
@@ -110,8 +110,6 @@ function Item<T extends string | number>({
 }
 
 MultipleCheckbox.Item = Item;
-
-export default MultipleCheckbox;
 
 const Label = styled('label')`
   display: inline-flex;

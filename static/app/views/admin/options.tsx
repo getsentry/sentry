@@ -7,7 +7,7 @@ import EmailField from 'sentry/components/forms/fields/emailField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 type Section = {
   key: string;

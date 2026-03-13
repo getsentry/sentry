@@ -3,7 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {
   isConsoleFrame,
   type BreadcrumbFrame,
@@ -67,7 +67,7 @@ function sortBySeverity(a: string, b: string) {
   return aRank - bRank;
 }
 
-function useConsoleFilters({frames}: Options): Return {
+export function useConsoleFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   // Keep a reference of object paths that are expanded (via <StructuredEventData>)
@@ -138,5 +138,3 @@ function useConsoleFilters({frames}: Options): Return {
     setSearchTerm,
   };
 }
-
-export default useConsoleFilters;

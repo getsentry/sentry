@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
@@ -54,11 +54,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: t('Error Rate'),
           conditions: AGENT_FILTER,
-          fields: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
-          aggregates: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          fields: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          aggregates: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
           columns: [],
           fieldAliases: [t('Error Rate')],
-          orderby: `-${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
+          orderby: `-equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
         },
       ],
     },
@@ -187,7 +187,7 @@ const AGENTS_TRACES_TABLE = {
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   interval: '1h',
   tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
-  limit: 20,
+  limit: MAX_TABLE_LIMIT,
   queries: [
     {
       conditions: '',
@@ -215,4 +215,9 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

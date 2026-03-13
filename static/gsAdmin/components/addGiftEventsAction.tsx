@@ -33,7 +33,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class AddGiftEventsAction extends Component<Props, State> {
+export class AddGiftEventsAction extends Component<Props, State> {
   state: State = {
     freeEvents: undefined,
   };
@@ -153,5 +153,3 @@ class AddGiftEventsAction extends Component<Props, State> {
     );
   }
 }
-
-export default AddGiftEventsAction;

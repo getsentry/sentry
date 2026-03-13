@@ -7,7 +7,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
@@ -23,8 +23,8 @@ import {
 } from 'sentry/utils/integrationUtil';
 
 import AlertContainer from './integrationAlertContainer';
-import IntegrationStatus from './integrationStatus';
-import PluginDeprecationAlert from './pluginDeprecationAlert';
+import {IntegrationStatus} from './integrationStatus';
+import {PluginDeprecationAlert} from './pluginDeprecationAlert';
 
 type Props = {
   categories: string[];
@@ -56,7 +56,7 @@ const urlMap = {
   docIntegration: 'document-integrations',
 };
 
-function IntegrationRow(props: Props) {
+export function IntegrationRow(props: Props) {
   const {
     organization,
     type,
@@ -214,5 +214,3 @@ const ResolveNowButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
   float: right;
 `;
-
-export default IntegrationRow;

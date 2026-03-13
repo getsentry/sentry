@@ -13,7 +13,7 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';

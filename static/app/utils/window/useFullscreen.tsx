@@ -36,7 +36,7 @@ interface Return {
 /**
  * Enable/Disable/Toggle fullscreen mode for a specified element.
  */
-export default function useFullscreen<Element extends HTMLElement>({
+export function useFullscreen<Element extends HTMLElement>({
   elementRef,
 }: Props<Element>): Return {
   const enter = useCallback(

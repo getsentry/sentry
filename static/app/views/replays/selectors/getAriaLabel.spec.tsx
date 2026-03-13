@@ -1,4 +1,4 @@
-import getAriaLabel from './getAriaLabel';
+import {getAriaLabel} from './getAriaLabel';
 
 describe('getAriaLabel', () => {
   it.each([

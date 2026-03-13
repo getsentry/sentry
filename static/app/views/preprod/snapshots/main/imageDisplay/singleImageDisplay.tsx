@@ -24,7 +24,8 @@ export function SingleImageDisplay({imageUrl, alt}: SingleImageDisplayProps) {
           <Flex
             justify="center"
             align="center"
-            paddingTop="xl"
+            width="100%"
+            height="100%"
             style={zoomTransformStyle(transform)}
           >
             <ZoomableImage src={imageUrl} alt={alt} />

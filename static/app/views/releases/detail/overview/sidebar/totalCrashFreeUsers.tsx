@@ -3,9 +3,9 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import Count from 'sentry/components/count';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Count} from 'sentry/components/count';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -26,7 +26,12 @@ type Props = {
 
 type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 
-function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
+export function TotalCrashFreeUsers({
+  location,
+  organization,
+  projectSlug,
+  version,
+}: Props) {
   const {
     data: releaseStats,
     isPending,
@@ -172,5 +177,3 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
 const Percent = styled(Text)`
   font-variant-numeric: tabular-nums;
 `;
-
-export default TotalCrashFreeUsers;

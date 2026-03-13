@@ -560,7 +560,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             base_artifact_map,
         )
 
-        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/compare/{head_artifact.id}/{base_artifact.id}"
+        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
         assert expected_url in summary
 
     def test_summary_uses_artifact_url_when_no_base(self):
@@ -616,7 +616,10 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app` | 0 | 0 | 0 | 0 | 15 | ✅ Unchanged |"
+            f"| [My App]({artifact_url})<br>`com.example.app`"
+            f" | 0 | 0 | 0 | 0"
+            f" | [{15}]({artifact_url}?section=unchanged)"
+            f" | ✅ Unchanged |"
         )
         assert summary == expected
 
@@ -654,7 +657,13 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app` | 1 | 2 | 3 | 1 | 4 | ⏳ Needs approval |"
+            f"| [My App]({artifact_url})<br>`com.example.app`"
+            f" | [{1}]({artifact_url}?section=added)"
+            f" | [{2}]({artifact_url}?section=removed)"
+            f" | [{3}]({artifact_url}?section=changed)"
+            f" | [{1}]({artifact_url}?section=renamed)"
+            f" | [{4}]({artifact_url}?section=unchanged)"
+            f" | ⏳ Needs approval |"
         )
         assert summary == expected
 

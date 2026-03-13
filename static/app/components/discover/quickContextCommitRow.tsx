@@ -4,11 +4,11 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {useUser} from 'sentry/utils/useUser';
 

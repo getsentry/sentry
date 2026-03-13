@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 explorer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
 

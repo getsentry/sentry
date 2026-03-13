@@ -2,13 +2,13 @@ import type {ComponentProps, CSSProperties} from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import {
   ButtonWrapper,
   Cell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
@@ -16,8 +16,8 @@ import {
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 
 const EMPTY_CELL = '--';
@@ -32,7 +32,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-export default function NetworkTableCell({
+export function NetworkTableCell({
   columnIndex,
   frame,
   onMouseEnter,

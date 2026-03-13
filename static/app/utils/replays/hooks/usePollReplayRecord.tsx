@@ -11,7 +11,7 @@ type Props = {
 };
 
 // A react hook to poll for replay record on the backend every POLL_INTERVAL
-function usePollReplayRecord({
+export function usePollReplayRecord({
   enabled,
   orgSlug,
   replayId,
@@ -33,5 +33,3 @@ function usePollReplayRecord({
 
   return data?.data ? mapResponseToReplayRecord(data.data) : undefined;
 }
-
-export default usePollReplayRecord;

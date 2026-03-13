@@ -6,14 +6,14 @@ import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayView from 'sentry/components/replays/replayView';
-import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {ReplayController} from 'sentry/components/replays/replayController';
+import {ReplayView} from 'sentry/components/replays/replayView';
+import {LayoutKey, useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useFullscreen from 'sentry/utils/window/useFullscreen';
-import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
-import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
-import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
+import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
+import {ReplaySplitPanel as SplitPanel} from 'sentry/views/replays/detail/layout/splitPanel';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 const MIN_CONTENT_WIDTH = 340;
@@ -23,7 +23,7 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-export default function ReplayLayout({
+export function ReplayLayout({
   isVideoReplay = false,
   replayRecord,
   isLoading,

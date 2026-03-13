@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 
 const SUPERUSER_COOKIE_NAME = window.superUserCookieName ?? 'su';
 const SUPERUSER_COOKIE_DOMAIN = window.superUserCookieDomain;

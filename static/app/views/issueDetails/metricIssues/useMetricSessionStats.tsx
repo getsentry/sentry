@@ -6,7 +6,7 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   getPeriodInterval,

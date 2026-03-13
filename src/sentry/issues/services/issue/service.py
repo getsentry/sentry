@@ -7,7 +7,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName, ByOrganizationId, ByOrganizationSlug
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
 from sentry.silo.base import SiloMode
 
@@ -27,7 +27,7 @@ class IssueService(RpcService):
     """
 
     key = "issue"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -35,26 +35,26 @@ class IssueService(RpcService):
 
         return DatabaseBackedIssueService()
 
-    @regional_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_external_issue_groups(
         self, *, region_name: str, external_issue_key: str, integration_id: int
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_shared_for_org(self, *, slug: str, share_id: str) -> RpcGroupShareMetadata | None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
     ) -> RpcGroupShareMetadata | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def upsert_issue_email_reply(
         self, *, organization_id: int, group_id: int, from_email: str, text: str

@@ -6,8 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
-import {space} from 'sentry/styles/space';
-
 type MenuItemProps = {
   /**
    * Enable to allow default event on click
@@ -74,7 +72,7 @@ type MenuItemProps = {
 interface Props
   extends MenuItemProps, Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
-function MenuItem({
+export function MenuItem({
   header,
   icon,
   divider,
@@ -194,7 +192,7 @@ interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
 function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   const common = css`
     display: block;
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${props.theme.space.xs} ${props.theme.space.xl};
     &:focus {
       outline: none;
     }
@@ -265,7 +263,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
     p.divider &&
     css`
       height: 1px;
-      margin: ${space(0.5)} 0;
+      margin: ${p.theme.space.xs} 0;
       overflow: hidden;
       /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p.theme.tokens.border.secondary};
@@ -273,7 +271,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
   ${p =>
     p.header &&
     css`
-      padding: ${space(0.25)} ${space(0.5)};
+      padding: ${p.theme.space['2xs']} ${p.theme.space.xs};
       font-size: ${p.theme.font.size.sm};
       line-height: 1.4;
       color: ${p.theme.tokens.content.secondary};
@@ -291,5 +289,3 @@ const MenuTarget = styled('span')<MenuListItemProps>`
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`
   ${getListItemStyles}
 `;
-
-export default MenuItem;

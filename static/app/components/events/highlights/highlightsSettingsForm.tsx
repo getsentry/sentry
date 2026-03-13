@@ -14,16 +14,14 @@ import {
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {
   projectSlug: any;
 }
 
-export default function HighlightsSettingsForm({
-  projectSlug,
-}: HighlightsSettingsFormProps) {
+export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProps) {
   const organization = useOrganization();
   const {data: project} = useDetailedProject({
     orgSlug: organization.slug,

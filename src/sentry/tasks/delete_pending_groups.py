@@ -24,7 +24,7 @@ MIN_LAST_SEEN_HOURS = 6
     namespace=deletion_tasks,
     processing_deadline_duration=10 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_pending_groups() -> None:
     """

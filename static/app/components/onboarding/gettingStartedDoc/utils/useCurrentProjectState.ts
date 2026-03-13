@@ -6,8 +6,8 @@ import type {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   allPlatforms: readonly PlatformKey[];
@@ -16,7 +16,7 @@ type Props = {
   targetPanel: OnboardingDrawerKey;
 };
 
-function useCurrentProjectState({
+export function useCurrentProjectState({
   currentPanel,
   targetPanel,
   onboardingPlatforms,
@@ -138,5 +138,3 @@ function useCurrentProjectState({
     unsupportedProjects,
   };
 }
-
-export default useCurrentProjectState;

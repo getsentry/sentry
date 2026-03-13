@@ -7,7 +7,7 @@ import type {Client} from 'sentry/api';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -134,7 +134,5 @@ const Modal = withApi(ChangeGoogleDomainModal);
 
 type Options = Pick<Props, 'orgId' | 'onUpdated'>;
 
-const triggerGoogleDomainModal = (opts: Options) =>
+export const triggerGoogleDomainModal = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />);
-
-export default triggerGoogleDomainModal;

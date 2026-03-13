@@ -9,7 +9,7 @@ const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 let __SINGLETON: FeatureFlagOverrides | null = null;
 
-export default class FeatureFlagOverrides {
+export class FeatureFlagOverrides {
   /**
    * Return the same instance of FeatureFlagOverrides in each part of the app.
    *

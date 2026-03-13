@@ -121,9 +121,6 @@ describe('FeatureFlagDrawer', () => {
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     await userEvent.click(sortControl);
-    await userEvent.click(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    );
     await userEvent.click(within(drawerScreen).getByRole('option', {name: 'Z-A'}));
     await userEvent.click(sortControl); // close dropdown
 
@@ -133,70 +130,5 @@ describe('FeatureFlagDrawer', () => {
         .getByText(webVitalsFlag!.flag)
         .compareDocumentPosition(within(drawerScreen).getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
-  });
-
-  it('renders a sort dropdown with Evaluation Order as the default', async () => {
-    const drawerScreen = await renderFlagDrawer();
-
-    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
-    expect(control).toBeInTheDocument();
-    await userEvent.click(control);
-    expect(
-      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
-    ).toBeInTheDocument();
-    expect(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    ).toBeInTheDocument();
-  });
-
-  it('renders a sort dropdown which affects the granular sort dropdown', async () => {
-    const drawerScreen = await renderFlagDrawer();
-
-    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
-    expect(control).toBeInTheDocument();
-    await userEvent.click(control);
-    await userEvent.click(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    );
-    expect(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    ).toHaveAttribute('aria-selected', 'true');
-    expect(within(drawerScreen).getByRole('option', {name: 'A-Z'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-  });
-
-  it('renders a sort dropdown which hides the invalid options', async () => {
-    const drawerScreen = await renderFlagDrawer();
-
-    const control = within(drawerScreen).getByRole('button', {name: 'Sort Flags'});
-    expect(control).toBeInTheDocument();
-    await userEvent.click(control);
-    await userEvent.click(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    );
-    expect(
-      within(drawerScreen).getByRole('option', {name: 'Alphabetical'})
-    ).toHaveAttribute('aria-selected', 'true');
-    expect(
-      within(drawerScreen).queryByRole('option', {name: 'Newest First'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(drawerScreen).queryByRole('option', {name: 'Oldest First'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(
-      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
-    );
-    expect(
-      within(drawerScreen).getByRole('option', {name: 'Evaluation Order'})
-    ).toHaveAttribute('aria-selected', 'true');
-    expect(
-      within(drawerScreen).queryByRole('option', {name: 'Z-A'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(drawerScreen).queryByRole('option', {name: 'A-Z'})
-    ).not.toBeInTheDocument();
   });
 });

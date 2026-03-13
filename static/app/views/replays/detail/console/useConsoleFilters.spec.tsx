@@ -9,7 +9,7 @@ import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';
-import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
+import {useConsoleFilters} from 'sentry/views/replays/detail/console/useConsoleFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
