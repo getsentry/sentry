@@ -255,6 +255,9 @@ export function EventsTable({
           }
         }
 
+        const hasValidTarget =
+          'pathname' in target ? !!target.pathname : !isEmptyObject(target);
+
         return (
           <CellAction
             column={column}
@@ -262,7 +265,7 @@ export function EventsTable({
             handleCellAction={cellActionHandler}
             allowActions={allowActions}
           >
-            <Link to={target}>{rendered}</Link>
+            {hasValidTarget ? <Link to={target}>{rendered}</Link> : rendered}
           </CellAction>
         );
       }

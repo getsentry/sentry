@@ -253,6 +253,73 @@ describe('Performance GridEditable Table', () => {
     );
   });
 
+  it('does not render trace link when trace id is missing', async () => {
+    data = data.map(event => ({...event, trace: null}));
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+            trace: 'string',
+          },
+        },
+        data,
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('user.display');
+        },
+      ],
+    });
+
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        theme={theme}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
+    );
+
+    // Event ID links should still render
+    expect(await screen.findByRole('link', {name: 'deadbeef'})).toBeInTheDocument();
+
+    // Trace column values should not be wrapped in links when trace is null
+    const noValueElements = screen.getAllByText('(no value)');
+    for (const el of noValueElements) {
+      expect(el.closest('a')).toBeNull();
+    }
+  });
+
   it('renders replay id', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
