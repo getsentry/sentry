@@ -507,7 +507,7 @@ def bulk_write_preferences_to_sentry_db(
         project = projects_by_id.get(pref.project_id)
         if project is None:
             logger.warning(
-                "seer.bulk_write_preference.project_not_found",
+                "seer.write_preferences.project_not_found",
                 extra={"project_id": pref.project_id, "organization_id": organization_id},
             )
             continue
@@ -624,7 +624,7 @@ def bulk_set_project_preferences(organization: Organization, preferences: list[d
                 validated_preferences.append(SeerProjectPreference.validate(pref))
             except Exception:
                 logger.exception(
-                    "seer.bulk_write_preference.validation_failed",
+                    "seer.write_preferences.validation_failed",
                     extra={
                         "project_id": pref.get("project_id"),
                         "organization_id": organization.id,
