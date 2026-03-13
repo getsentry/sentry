@@ -15,7 +15,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DataCategoryExact} from 'sentry/types/core';
-import type {DataPoint, ECharts, ReactEchartsRef} from 'sentry/types/echarts';
+import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -533,7 +533,6 @@ export const CustomerStats = memo(
 
     const theme = useTheme();
     const series = useSeries();
-    const chartRef = useRef<ReactEchartsRef>(null);
     const abuseTooltipRef = useRef<HTMLDivElement>(null);
 
     const abuseData = useMemo(
@@ -712,7 +711,6 @@ export const CustomerStats = memo(
                 <Fragment>
                   <ChartContainer>
                     <BarChart
-                      ref={chartRef}
                       onHighlight={handleBarHighlight}
                       onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
                       isGroupedByDate
