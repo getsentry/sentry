@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -273,9 +274,12 @@ export function useTrace(
   const maxPickableDays = useDefaultMaxPickableDays();
 
   // Only retry when using statsPeriod (no specific timestamp or absolute date range)
-  // and only when the org's plan allows a wider window than the default 14d.
+  // and only when the org's plan allows a wider window than the default stats period.
+  const defaultStatsDays = parseInt(DEFAULT_STATS_PERIOD, 10);
   const canRetryWithWiderPeriod =
-    !options.timestamp && 'statsPeriod' in queryParams && maxPickableDays > 14;
+    !options.timestamp &&
+    'statsPeriod' in queryParams &&
+    maxPickableDays > defaultStatsDays;
 
   const fallbackQueryParams = useMemo(
     () => ({...queryParams, statsPeriod: `${maxPickableDays}d`}),
