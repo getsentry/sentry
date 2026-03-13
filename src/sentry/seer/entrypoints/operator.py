@@ -661,7 +661,7 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                 }
             )
 
-            summary = None
+            summary = "Explorer result could not be fetched. Please try again."
             try:
                 state = fetch_run_status(run_id, organization)
                 for block in reversed(state.blocks):
