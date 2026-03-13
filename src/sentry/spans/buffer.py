@@ -300,7 +300,7 @@ class SpansBuffer:
                             byte_count,
                             zero_copy_threshold,
                             "true" if write_distributed_payloads else "false",
-                            "false" if write_merged_payloads else "true",
+                            "true" if write_merged_payloads else "false",
                             *span_ids,
                         )
 
@@ -712,11 +712,11 @@ class SpansBuffer:
         self._last_decompress_latency_ms = 0
         decompress_latency_ms = 0.0
 
-        # Maps each scan key back to the segment it belongs to. For colocated
+        # Maps each scan key back to the segment it belongs to. For merged
         # keys these are the same; for distributed keys many map to one segment.
         scan_key_to_segment: dict[SegmentKey | DistributedPayloadKey, SegmentKey] = {}
 
-        # When read_distributed_payloads is off, scan colocated segment keys directly.
+        # When read_distributed_payloads is off, scan merged segment keys directly.
         # When on, skip them — all data lives in distributed keys.
         cursors: dict[bytes, int] = {}
         if not read_distributed_payloads:
@@ -733,8 +733,8 @@ class SpansBuffer:
                 mk_results = p.execute()
 
             for key, sub_span_ids in zip(segment_keys, mk_results):
-                project_id, trace_id, _ = parse_segment_key(key)
-                pat = f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}"
+                pid, tid, _ = parse_segment_key(key)
+                pat = f"{pid.decode('ascii')}:{tid.decode('ascii')}"
                 distributed_keys: list[bytes] = []
                 for sub_span_id in sub_span_ids:
                     distributed_key = self._get_distributed_payload_key(

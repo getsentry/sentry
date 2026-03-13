@@ -8,7 +8,7 @@ SegmentKey = bytes
 
 # DistributedPayloadKey is a Redis key for a payload set that uses a per-span
 # hash tag: "span-buf:s:{project_id:trace_id:span_id}:span_id". This distributes
-# payloads across Redis cluster nodes instead of colocating by trace.
+# payloads across Redis cluster nodes instead of merging by trace in a single key.
 DistributedPayloadKey = bytes
 
 

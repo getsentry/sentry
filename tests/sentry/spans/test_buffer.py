@@ -1469,32 +1469,32 @@ def test_distributed_multiple_segments(distributed_buffer: SpansBuffer) -> None:
 
 
 def test_distributed_phase1_dual_write() -> None:
-    """Phase 1: both colocated and distributed keys are populated."""
+    """Phase 1: both merged and distributed keys are populated."""
     with override_options(DISTRIBUTED_PHASE_OPTIONS["phase1"]):
         buf = SpansBuffer(assigned_shards=list(range(32)))
         buf.client.flushdb()
         process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
 
-        colocated_key = _segment_id(1, "a" * 32, "b" * 16)
+        set_key = _segment_id(1, "a" * 32, "b" * 16)
         dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + b"b" * 16 + b"}:" + b"b" * 16
         mk_key = b"span-buf:mk:{1:" + b"a" * 32 + b"}:" + b"b" * 16
-        assert buf.client.scard(colocated_key) > 0
+        assert buf.client.scard(set_key) > 0
         assert buf.client.scard(dist_key) > 0
         assert buf.client.scard(mk_key) > 0
 
         rv = buf.flush_segments(now=11)
-        assert len(rv[colocated_key].spans) == 2
+        assert len(rv[set_key].spans) == 2
         buf.done_flush_segments(rv)
 
 
-def test_distributed_phase3_no_colocated_write() -> None:
-    """Phase 3: colocated key is not populated."""
+def test_distributed_phase3_no_merged_write() -> None:
+    """Phase 3: merged key is not populated."""
     with override_options(DISTRIBUTED_PHASE_OPTIONS["phase3"]):
         buf = SpansBuffer(assigned_shards=list(range(32)))
         buf.client.flushdb()
         process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
-        colocated_key = _segment_id(1, "a" * 32, "b" * 16)
-        assert buf.client.scard(colocated_key) == 0
+        set_key = _segment_id(1, "a" * 32, "b" * 16)
+        assert buf.client.scard(set_key) == 0
 
 
 def test_distributed_transition_write_then_read() -> None:

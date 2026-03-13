@@ -29,8 +29,8 @@ ARGS:
 - max_segment_bytes -- int -- The maximum number of bytes the segment can contain.
 - byte_count -- int -- The total number of bytes in the subsegment.
 - zero_copy_dest_threshold -- int -- When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set exceeds this many bytes.
-- distribute_write -- "true" or "false" -- When true, maintain member-keys tracking sets for distributed payload keys.
-- stop_colocated -- "true" or "false" -- When true, skip colocated set merges and colocated key expire.
+- write_distributed_payloads -- "true" or "false" -- When true, maintain member-keys tracking sets for distributed payload keys.
+- write_merged_payloads -- "true" or "false" -- When false, skip merged set merges and merged key expire.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
@@ -51,8 +51,8 @@ local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
 local zero_copy_dest_threshold = tonumber(ARGV[7])
-local distribute_write = ARGV[8] == "true"
-local stop_colocated = ARGV[9] == "true"
+local write_distributed_payloads = ARGV[8] == "true"
+local write_merged_payloads = ARGV[9] == "true"
 local NUM_ARGS = 9
 
 local function get_time_ms()
@@ -106,7 +106,7 @@ local sunionstore_args = {}
 -- Updating the redirect set instead is needed when we receive higher level spans
 -- for a tree we are assembling as the segment root each span points at in the
 -- redirect set changes when a new root is found.
-if not stop_colocated and set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
+if write_merged_payloads and set_span_id ~= parent_span_id and redis.call("scard", parent_key) > 0 then
     table.insert(sunionstore_args, parent_key)
 end
 
@@ -117,7 +117,7 @@ for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
     table.insert(hset_args, span_id)
     table.insert(hset_args, set_span_id)
 
-    if not is_root_span and not stop_colocated then
+    if not is_root_span and write_merged_payloads then
         local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
         table.insert(sunionstore_args, span_key)
     end
@@ -135,7 +135,7 @@ local arg_cleanup_end_time_ms = sunionstore_args_end_time_ms
 -- Maintain member-keys (span-buf:mk) tracking sets so the flusher
 -- knows which distributed keys to fetch. This runs in both write-only and
 -- full distributed mode.
-if distribute_write then
+if write_distributed_payloads then
     local member_keys_key = string.format("span-buf:mk:{%s}:%s", project_and_trace, set_span_id)
     redis.call("sadd", member_keys_key, parent_span_id)
 
@@ -167,17 +167,17 @@ if distribute_write then
     table.insert(latency_table, {"distributed_tracking_step_latency_ms", arg_cleanup_end_time_ms - sunionstore_args_end_time_ms})
 end
 
--- When stop_colocated is true, colocated set merges are skipped but we still need
--- to merge ic/ibc counters from child keys into the segment root.
-if stop_colocated then
+-- When write_merged_payloads is false, merged set merges are skipped but we
+-- still need to merge ic/ibc counters from child keys into the segment root.
+if not write_merged_payloads then
     local ingested_count_key = string.format("span-buf:ic:%s", set_key)
     local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
     for i = NUM_ARGS + 1, NUM_ARGS + num_spans do
         local span_id = ARGV[i]
         if span_id ~= parent_span_id then
-            local child_colocated = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
-            local child_ic_key = string.format("span-buf:ic:%s", child_colocated)
-            local child_ibc_key = string.format("span-buf:ibc:%s", child_colocated)
+            local child_merged = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
+            local child_ic_key = string.format("span-buf:ic:%s", child_merged)
+            local child_ibc_key = string.format("span-buf:ibc:%s", child_merged)
             local child_count = redis.call("get", child_ic_key)
             local child_byte_count = redis.call("get", child_ibc_key)
             if child_count then
@@ -191,9 +191,9 @@ if stop_colocated then
         end
     end
     if set_span_id ~= parent_span_id then
-        local parent_colocated = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
-        local parent_ic_key = string.format("span-buf:ic:%s", parent_colocated)
-        local parent_ibc_key = string.format("span-buf:ibc:%s", parent_colocated)
+        local parent_merged = string.format("span-buf:s:{%s}:%s", project_and_trace, parent_span_id)
+        local parent_ic_key = string.format("span-buf:ic:%s", parent_merged)
+        local parent_ibc_key = string.format("span-buf:ibc:%s", parent_merged)
         local parent_count = redis.call("get", parent_ic_key)
         local parent_byte_count = redis.call("get", parent_ibc_key)
         if parent_count then
@@ -290,7 +290,7 @@ redis.call("incrby", ingested_byte_count_key, byte_count)
 redis.call("expire", ingested_count_key, set_timeout)
 redis.call("expire", ingested_byte_count_key, set_timeout)
 
-if not stop_colocated then
+if write_merged_payloads then
     redis.call("expire", set_key, set_timeout)
 end
 
