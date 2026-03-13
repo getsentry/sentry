@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
 
@@ -12,6 +11,7 @@ import {
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {Client} from 'sentry/api';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -245,23 +245,27 @@ export function ChoiceMapperTable({
   return (
     <Stack gap="lg">
       <Flex align="center" gap="md">
-        <LabelColumn>
-          <HeadingItem>{mappedColumnLabel}</HeadingItem>
-        </LabelColumn>
+        <Flex flex="0 0 200px">
+          <Text variant="muted" size="xs" uppercase>
+            {mappedColumnLabel}
+          </Text>
+        </Flex>
         {mappedKeys.map(fieldKey => (
           <Flex justify="between" align="center" flex="1 0 0" key={fieldKey}>
-            <HeadingItem>{columnLabels[fieldKey]}</HeadingItem>
+            <Text variant="muted" size="xs" uppercase>
+              {columnLabels[fieldKey]}
+            </Text>
           </Flex>
         ))}
       </Flex>
       {Object.keys(value).map(itemKey => (
         <Flex align="center" gap="md" key={itemKey}>
-          <LabelColumn>
+          <Flex flex="0 0 200px">
             {(value[itemKey]?.__label as string) ?? valueMap[itemKey]}
-          </LabelColumn>
+          </Flex>
           {mappedKeys.map((fieldKey, i) => (
             <Flex align="center" flex="1 0 0" gap="md" key={fieldKey}>
-              <Control>
+              <Flex flex="1" direction="column">
                 <Select
                   {...(perItemMapping
                     ? mappedSelectors[itemKey]?.[fieldKey]
@@ -278,7 +282,7 @@ export function ChoiceMapperTable({
                   }
                   value={value[itemKey]?.[fieldKey] as string | null}
                 />
-              </Control>
+              </Flex>
               {i === mappedKeys.length - 1 && (
                 <Button
                   icon={<IconDelete />}
@@ -311,17 +315,3 @@ function transformMappedChoices(
   }
   return choices.map(([val, label]) => ({value: val, label}));
 }
-
-const Control = styled('div')`
-  flex: 1;
-`;
-
-const LabelColumn = styled('div')`
-  flex: 0 0 200px;
-`;
-
-const HeadingItem = styled('div')`
-  font-size: 0.8em;
-  text-transform: uppercase;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
