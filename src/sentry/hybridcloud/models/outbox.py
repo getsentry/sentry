@@ -437,7 +437,7 @@ RegionOutboxBase = CellOutboxBase
 
 
 @cell_silo_model
-class CellOutbox(CellOutboxBase):
+class RegionOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -461,8 +461,8 @@ class CellOutbox(CellOutboxBase):
         )
 
 
-# TODO(cells): remove once getsentry updated
-RegionOutbox = CellOutbox
+# TODO(cells): tmp alias, RegionOutbox is being renamed soon
+CellOutbox = RegionOutbox
 
 
 # Outboxes bound from control silo -> region silo
