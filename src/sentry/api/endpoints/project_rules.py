@@ -42,7 +42,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.types.actor import parse_and_validate_actor
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
@@ -747,15 +746,6 @@ def format_request_data(
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
-    owner = data.get("owner")
-    if owner:
-        actor = parse_and_validate_actor(str(owner), project.organization_id)
-
-        if actor and actor.is_team:
-            workflow_payload["owner_team_id"] = actor.id
-        elif actor:
-            workflow_payload["owner_user_id"] = actor.id
-
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_filter_list = []
     fake_dcg = DataConditionGroup()
