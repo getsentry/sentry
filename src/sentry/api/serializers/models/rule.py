@@ -653,7 +653,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 ):
                     try:
                         f["value"] = int(f["value"])
-                    except (ValueError, AttributeError):
+                    except TypeError:
                         continue
 
             result[workflow]["conditions"] = conditions
