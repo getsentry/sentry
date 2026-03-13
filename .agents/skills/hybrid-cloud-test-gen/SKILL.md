@@ -27,12 +27,12 @@ This skill generates tests for Sentry's hybrid cloud architecture. It covers RPC
 
 Determine which category of HC test to generate based on the user's request:
 
-| Signal                                                                | Category             | Go To  |
-| --------------------------------------------------------------------- | -------------------- | ------ |
-| RPC service, service method, serialization round-trip, dispatch       | RPC Service Tests    | Step 3 |
-| API gateway, proxy, middleware, forwarding                            | API Gateway Tests    | Step 4 |
-| Outbox, cross-silo message, ControlOutbox, RegionOutbox, outbox drain | Outbox Pattern Tests | Step 5 |
-| API endpoint with silo decorator, endpoint test, permission check     | Endpoint Silo Tests  | Step 6 |
+| Signal                                                              | Category             | Go To  |
+| ------------------------------------------------------------------- | -------------------- | ------ |
+| RPC service, service method, serialization round-trip, dispatch     | RPC Service Tests    | Step 3 |
+| API gateway, proxy, middleware, forwarding                          | API Gateway Tests    | Step 4 |
+| Outbox, cross-silo message, ControlOutbox, CellOutbox, outbox drain | Outbox Pattern Tests | Step 5 |
+| API endpoint with silo decorator, endpoint test, permission check   | Endpoint Silo Tests  | Step 6 |
 
 If the signal is ambiguous, ask the user to clarify which category.
 
@@ -171,7 +171,7 @@ from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 
 # Outbox models
-from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 ```
 

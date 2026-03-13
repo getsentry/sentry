@@ -1,7 +1,7 @@
 import datetime
 from unittest.mock import MagicMock, patch
 
-from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
@@ -189,7 +189,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=False)
 
         with assume_test_silo_mode(SiloMode.CELL):
-            RegionOutbox(
+            CellOutbox(
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=self.organization.id
             ).drain_shard()
 

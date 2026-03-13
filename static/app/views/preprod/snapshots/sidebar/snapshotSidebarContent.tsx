@@ -1,5 +1,6 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -78,15 +79,36 @@ export function SnapshotSidebarContent({
 }: SnapshotSidebarContentProps) {
   const isDiffMode = items.length > 0 && items[0]!.type !== 'solo';
 
+  const [sectionParam, setSectionParam] = useQueryState(
+    'section',
+    parseAsStringEnum(Object.values(DiffStatus))
+  );
+
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
     () => {
       const initial: Record<string, boolean> = {};
-      for (const section of SECTION_ORDER) {
-        initial[section.type] = section.defaultExpanded;
+      for (const s of SECTION_ORDER) {
+        initial[s.type] = sectionParam ? s.type === sectionParam : s.defaultExpanded;
       }
       return initial;
     }
   );
+
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sectionParam) {
+      setExpandedSections(prev => ({...prev, [sectionParam]: true}));
+    }
+  }, [sectionParam]);
+
+  useEffect(() => {
+    if (sectionParam && sectionRef.current) {
+      sectionRef.current.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+      setSectionParam(null);
+    }
+  }, [sectionParam, setSectionParam]);
 
   const groupedItems = useMemo(() => {
     if (!isDiffMode) {
@@ -103,6 +125,16 @@ export function SnapshotSidebarContent({
     }
     return groups;
   }, [items, isDiffMode]);
+
+  useEffect(() => {
+    if (!listRef.current || !currentItemName) {
+      return;
+    }
+    const el = listRef.current.querySelector(
+      `[data-item-name="${CSS.escape(currentItemName)}"]`
+    );
+    el?.scrollIntoView({block: 'nearest'});
+  }, [currentItemName]);
 
   const isSearching = searchQuery.length > 0;
 
@@ -128,7 +160,7 @@ export function SnapshotSidebarContent({
           />
         </InputGroup>
       </Stack>
-      <Stack overflow="auto" flex="1" paddingRight="0">
+      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
         {isGroupedDiff &&
           SECTION_ORDER.map(section => {
             const sectionItems = groupedItems.get(section.type);
@@ -137,7 +169,12 @@ export function SnapshotSidebarContent({
             }
             const isExpanded = isSearching || expandedSections[section.type];
             return (
-              <Disclosure key={section.type} size="md" expanded={isExpanded}>
+              <Disclosure
+                key={section.type}
+                size="md"
+                expanded={isExpanded}
+                ref={section.type === sectionParam ? sectionRef : undefined}
+              >
                 <SidebarSectionTitle
                   priority="transparent"
                   size="md"
@@ -161,6 +198,7 @@ export function SnapshotSidebarContent({
                     {sectionItems.map(item => (
                       <SidebarItemRow
                         key={item.name}
+                        data-item-name={item.name}
                         isSelected={item.name === currentItemName}
                         onClick={() => onSelectItem(item.name)}
                       >
@@ -193,6 +231,7 @@ export function SnapshotSidebarContent({
             return (
               <SidebarItemRow
                 key={item.name}
+                data-item-name={item.name}
                 isSelected={isSelected}
                 onClick={() => onSelectItem(item.name)}
               >

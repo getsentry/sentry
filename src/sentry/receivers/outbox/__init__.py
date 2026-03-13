@@ -55,8 +55,8 @@ from typing import TypeVar
 from sentry.db.models import Model
 from sentry.hybridcloud.services.tombstone import (
     RpcTombstone,
+    cell_tombstone_service,
     control_tombstone_service,
-    region_tombstone_service,
 )
 from sentry.silo.base import SiloMode
 
@@ -72,9 +72,7 @@ def maybe_process_tombstone(
     tombstone = RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
     # tombstones sent from control must have a region name, and monolith needs to provide a region_name
     if region_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
-        region_tombstone_service.record_remote_tombstone(
-            region_name=region_name, tombstone=tombstone
-        )
+        cell_tombstone_service.record_remote_tombstone(region_name=region_name, tombstone=tombstone)
     else:
         control_tombstone_service.record_remote_tombstone(tombstone=tombstone)
     return None
