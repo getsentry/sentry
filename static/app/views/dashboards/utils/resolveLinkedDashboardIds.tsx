@@ -98,7 +98,9 @@ export function getLinkedPrebuiltIds(
 ): PrebuiltDashboardId[] {
   return (dashboard?.widgets ?? [])
     .flatMap(widget =>
-      widget.queries.flatMap(query => query.linkedDashboards ?? []).filter(defined)
+      (widget.queries ?? [])
+        .flatMap(query => query.linkedDashboards ?? [])
+        .filter(defined)
     )
     .map(ld => ld.staticDashboardId)
     .filter(defined);

@@ -6,6 +6,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -175,16 +176,18 @@ describe('DashboardTable', () => {
     await userEvent.click(screen.getByLabelText('More options'));
     await userEvent.click(screen.getByText('Duplicate'));
 
-    expect(mockDuplicateRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/dashboards/',
-      expect.objectContaining({
-        method: 'POST',
-        data: expect.objectContaining({
-          title: 'Dashboard',
-          widgets: [],
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockDuplicateRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/',
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            title: 'Dashboard copy',
+            widgets: [],
+          }),
+        })
+      );
+    });
   });
 
   it('can delete a dashboard', async () => {
