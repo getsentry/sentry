@@ -471,9 +471,7 @@ function AMCheckout(props: Props) {
 
       setBillingConfig(newBillingConfig);
 
-      // Initialize form data only once. The ref guard prevents re-initialization
-      // when the subscription object changes (e.g. after saving payment details),
-      // which would reset the user's plan selection.
+      // Prevent overwriting the user's plan selection on subsequent calls.
       if (!isFormInitialized.current) {
         const initialFormData = getInitialData(newBillingConfig);
         setFormData(initialFormData);
@@ -585,11 +583,8 @@ function AMCheckout(props: Props) {
     } else {
       handleRedirect();
     }
-    // Only re-fetch when checkoutTier changes, matching the original class
-    // component's componentDidUpdate behavior. fetchBillingConfig and
-    // handleRedirect are excluded because their identity changes on
-    // subscription updates, which would cause an unintended form data
-    // reset.
+    // fetchBillingConfig excluded — its identity is unstable across renders,
+    // and re-fetching would overwrite the user's in-progress form selections.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscription.canSelfServe, checkoutTier]);
 
