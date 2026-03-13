@@ -247,22 +247,24 @@ class Occurrences(rpc_dataset_common.RPCBase):
 
     @classmethod
     def _build_category_filter(cls, category: OccurrenceCategory | None) -> TraceItemFilter | None:
-        occurrence_id_key = AttributeKey(name="occurrence_id", type=AttributeKey.TYPE_STRING)
+        issue_occurrence_id_key = AttributeKey(
+            name="issue_occurrence_id", type=AttributeKey.TYPE_STRING
+        )
         if category == OccurrenceCategory.ERROR:
-            # Error events: no occurrence attached, so occurrence_id does NOT exist
+            # Error events: no occurrence attached, so issue_occurrence_id does NOT exist
             return TraceItemFilter(
                 not_filter=NotFilter(
                     filters=[
                         TraceItemFilter(
-                            exists_filter=ExistsFilter(key=occurrence_id_key),
+                            exists_filter=ExistsFilter(key=issue_occurrence_id_key),
                         )
                     ]
                 )
             )
         elif category == OccurrenceCategory.ISSUE_PLATFORM:
-            # Issue platform events: occurrence attached, so occurrence_id EXISTS
+            # Issue platform events: occurrence attached, so issue_occurrence_id EXISTS
             return TraceItemFilter(
-                exists_filter=ExistsFilter(key=occurrence_id_key),
+                exists_filter=ExistsFilter(key=issue_occurrence_id_key),
             )
 
         return None

@@ -71,18 +71,18 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         group_error = self.create_group(project=self.project)
         group_generic = self.create_group(project=self.project)
 
-        # Error events have no occurrence_id
+        # Error events have no issue_occurrence_id
         error_occurrence = self.create_eap_occurrence(
             group_id=group_error.id,
         )
-        # Issue platform events have an occurrence_id
+        # Issue platform events have an issue_occurrence_id
         generic_occurrence = self.create_eap_occurrence(
             group_id=group_generic.id,
-            occurrence_id=uuid4().hex,
+            issue_occurrence_id=uuid4().hex,
         )
         self.store_eap_items([error_occurrence, generic_occurrence])
 
-        # OccurrenceCategory.ERROR filters for items without occurrence_id
+        # OccurrenceCategory.ERROR filters for items without issue_occurrence_id
         error_result = self._query_occurrences(
             selected_columns=["group_id", "count()"],
             occurrence_category=OccurrenceCategory.ERROR,
@@ -90,7 +90,7 @@ class EAPOccurrencesTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         assert error_result["data"][0]["count()"] == 1
         assert error_result["data"][0]["group_id"] == group_error.id
 
-        # OccurrenceCategory.ISSUE_PLATFORM filters for items with occurrence_id
+        # OccurrenceCategory.ISSUE_PLATFORM filters for items with issue_occurrence_id
         generic_result = self._query_occurrences(
             selected_columns=["group_id", "count()"],
             occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
@@ -230,13 +230,13 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         group = self.create_group(project=self.project)
         self.store_eap_items(
             [
-                # Error events: no occurrence_id
+                # Error events: no issue_occurrence_id
                 self.create_eap_occurrence(group_id=group.id),
                 self.create_eap_occurrence(group_id=group.id),
                 self.create_eap_occurrence(group_id=group.id),
-                # Generic events: have occurrence_id
-                self.create_eap_occurrence(group_id=group.id, occurrence_id=uuid4().hex),
-                self.create_eap_occurrence(group_id=group.id, occurrence_id=uuid4().hex),
+                # Issue platform events: have issue_occurrence_id
+                self.create_eap_occurrence(group_id=group.id, issue_occurrence_id=uuid4().hex),
+                self.create_eap_occurrence(group_id=group.id, issue_occurrence_id=uuid4().hex),
             ]
         )
 
@@ -289,12 +289,12 @@ class CountOccurrencesQueryTest(TestCase, SnubaTestCase, OccurrenceTestCase):
         trace_id = uuid4().hex
         self.store_eap_items(
             [
-                # Error events: no occurrence_id
+                # Error events: no issue_occurrence_id
                 self.create_eap_occurrence(group_id=group.id, trace_id=trace_id),
                 self.create_eap_occurrence(group_id=group.id, trace_id=trace_id),
-                # Generic event: has occurrence_id
+                # Issue platform event: has issue_occurrence_id
                 self.create_eap_occurrence(
-                    group_id=group.id, trace_id=trace_id, occurrence_id=uuid4().hex
+                    group_id=group.id, trace_id=trace_id, issue_occurrence_id=uuid4().hex
                 ),
             ]
         )

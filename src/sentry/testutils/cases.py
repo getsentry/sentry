@@ -3556,7 +3556,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         title: str = "some error",
         transaction: str | None = None,
         occurrence_type: str = "error",
-        occurrence_id: str | None = None,
+        issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
@@ -3583,8 +3583,8 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         preprocessed: dict[str, Any] = {}
         if group_id is not None:
             preprocessed["group_id"] = group_id
-        if occurrence_id is not None:
-            preprocessed["occurrence_id"] = occurrence_id
+        if issue_occurrence_id is not None:
+            preprocessed["issue_occurrence_id"] = issue_occurrence_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
