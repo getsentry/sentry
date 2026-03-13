@@ -10,6 +10,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
@@ -269,12 +270,16 @@ export function useTrace(
   const isDemoMode = Boolean(queryParams.demo);
   const demoTrace = useDemoTrace(queryParams.demo, organization);
 
+  const maxPickableDays = useDefaultMaxPickableDays();
+
   // Only retry when using statsPeriod (no specific timestamp or absolute date range)
-  const canRetryWithWiderPeriod = !options.timestamp && 'statsPeriod' in queryParams;
+  // and only when the org's plan allows a wider window than the default 14d.
+  const canRetryWithWiderPeriod =
+    !options.timestamp && 'statsPeriod' in queryParams && maxPickableDays > 14;
 
   const fallbackQueryParams = useMemo(
-    () => ({...queryParams, statsPeriod: '90d'}),
-    [queryParams]
+    () => ({...queryParams, statsPeriod: `${maxPickableDays}d`}),
+    [queryParams, maxPickableDays]
   );
 
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
