@@ -728,7 +728,7 @@ class ProjectRulePostData(TypedDict):
     conditions: list[ConditionsData]
     actions: list[dict[str, Any]]
     environment: NotRequired[str | None]
-    owner: NotRequired[str | None]
+    owner: NotRequired[str | int | None]
     filterMatch: NotRequired[Literal["all", "any", "none"]]
     filters: NotRequired[list[FiltersData]]
     status: NotRequired[str]
@@ -746,18 +746,17 @@ def format_request_data(
         "config": {"frequency": data.get("frequency")},
     }
 
-    if data.get("owner"):
-        owner = data["owner"]
-        if isinstance(owner, int):
-            workflow_payload["owner_user_id"] = owner
-        else:
-            split_owner = owner.split(":")
-            identifier, owner_id = split_owner[0], split_owner[1]
+    owner = data.get("owner")
+    if isinstance(owner, int):
+        workflow_payload["owner_user_id"] = owner
+    elif isinstance(owner, str):
+        split_owner = owner.split(":")
+        identifier, owner_id = split_owner[0], split_owner[1]
 
-            if identifier == "team":
-                workflow_payload["owner_team_id"] = owner_id
-            else:
-                workflow_payload["owner_user_id"] = owner_id
+        if identifier == "team":
+            workflow_payload["owner_team_id"] = owner_id
+        else:
+            workflow_payload["owner_user_id"] = owner_id
 
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_filter_list = []
