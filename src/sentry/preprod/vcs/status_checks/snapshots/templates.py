@@ -240,8 +240,21 @@ def _format_snapshot_summary(
             unchanged = comparison.images_unchanged
             has_changes = modified > 0 or added > 0 or removed > 0 or renamed > 0
             status = "⏳ Needs approval" if has_changes else "✅ Unchanged"
+
+            def _section_cell(count: int, section: str) -> str:
+                if count > 0:
+                    section_url = f"{artifact_url}?section={section}"
+                    return f"[{count}]({section_url})"
+                return str(count)
+
             table_rows.append(
-                f"| {name_cell} | {added} | {removed} | {modified} | {renamed} | {unchanged} | {status} |"
+                f"| {name_cell}"
+                f" | {_section_cell(added, 'added')}"
+                f" | {_section_cell(removed, 'removed')}"
+                f" | {_section_cell(modified, 'changed')}"
+                f" | {_section_cell(renamed, 'renamed')}"
+                f" | {_section_cell(unchanged, 'unchanged')}"
+                f" | {status} |"
             )
 
     table_header = (
