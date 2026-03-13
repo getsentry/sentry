@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Select, SelectOption} from '@sentry/scraps/select';
 
-import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -153,14 +152,11 @@ export function MessagingIntegrationAlertRule({
                 // This allows them to add a channel that is not present in the results.
                 creatable
                 formatCreateLabel={(inputValue: string) => inputValue}
-                menuPlacement="auto"
                 components={{
-                  Option: (
-                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
-                  ) => {
+                  Option: optionProps => {
                     return (
                       <SelectOption
-                        {...optionProps}
+                        {...(optionProps as any)}
                         data={{
                           ...optionProps.data,
                           // Hide IconAdd for new channel options by setting __isNew__ to false
