@@ -62,51 +62,23 @@ describe('useTrace', () => {
     it.each([
       {
         search: `?targetId=${validUUid}`, // EAP endpoint
-        mockEapEnabled: true,
         endpoint: 'trace',
         expectedParamKey: 'errorId',
       },
       {
         search: `?eventId=${validUUid}`, // EAP endpoint
-        mockEapEnabled: true,
         endpoint: 'trace',
         expectedParamKey: 'errorId',
       },
       {
         search: `?node=error-${validUUid}`, // EAP endpoint
-        mockEapEnabled: true,
         endpoint: 'trace',
         expectedParamKey: 'errorId',
       },
       {
         search: `?node=txn-${validUUid}`, // EAP endpoint
-        mockEapEnabled: true,
         endpoint: 'trace',
         expectedParamKey: 'errorId',
-      },
-      {
-        search: `?targetId=${validUUid}`, // non-EAP endpoint
-        mockEapEnabled: false,
-        endpoint: 'events-trace',
-        expectedParamKey: 'targetId',
-      },
-      {
-        search: `?eventId=${validUUid}`, // non-EAP endpoint
-        mockEapEnabled: false,
-        endpoint: 'events-trace',
-        expectedParamKey: 'targetId',
-      },
-      {
-        search: `?node=error-${validUUid}`, // non-EAP endpoint
-        mockEapEnabled: false,
-        endpoint: 'events-trace',
-        expectedParamKey: 'targetId',
-      },
-      {
-        search: `?node=txn-${validUUid}`, // non-EAP endpoint
-        mockEapEnabled: false,
-        endpoint: 'events-trace',
-        expectedParamKey: 'targetId',
       },
     ])(
       'calls tracing endpoint with query param options %s',

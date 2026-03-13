@@ -347,13 +347,10 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  },
-  type: 'eap' | 'non-eap'
+  }
 ): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    type === 'eap'
-      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
-      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -1406,7 +1403,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
-    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -1423,19 +1419,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(
-              api,
-              {
-                orgSlug: organization.slug,
-                query: qs.stringify(
-                  getTraceQueryParams(options.type, urlParams, filters.selection, {
-                    timestamp: batchTraceData.timestamp,
-                  })
-                ),
-                traceId: batchTraceData.traceSlug,
-              },
-              options.type
-            );
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(urlParams, filters.selection, {
+                  timestamp: batchTraceData.timestamp,
+                })
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
           })
         );
 

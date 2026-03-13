@@ -25,7 +25,6 @@ type TraceQueryParamOptions = {
 };
 
 function getTargetIdParams(
-  traceType: 'eap' | 'non-eap',
   options: TraceQueryParamOptions,
   normalizedParams: ReturnType<typeof normalizeDateTimeParams>
 ): {targetId?: string} | {errorId?: string} {
@@ -50,11 +49,7 @@ function getTargetIdParams(
     return {};
   }
 
-  if (traceType === 'eap') {
-    return isValidEventUUID(targetId) ? {errorId: targetId} : {};
-  }
-
-  return {targetId};
+  return isValidEventUUID(targetId) ? {errorId: targetId} : {};
 }
 
 type TraceQueryParams = {
@@ -67,7 +62,6 @@ type TraceQueryParams = {
 } & ({targetId?: string} | {errorId?: string});
 
 export function getTraceQueryParams(
-  traceType: 'eap' | 'non-eap',
   query: Location['query'],
   filters?: Partial<PageFilters>,
   options: TraceQueryParamOptions = {}
@@ -101,7 +95,7 @@ export function getTraceQueryParams(
     delete timeRangeParams.statsPeriod;
   }
 
-  const targetEventParams = getTargetIdParams(traceType, options, normalizedParams);
+  const targetEventParams = getTargetIdParams(options, normalizedParams);
 
   const queryParams = {
     ...timeRangeParams,

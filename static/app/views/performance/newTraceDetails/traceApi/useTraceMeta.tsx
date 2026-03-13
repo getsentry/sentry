@@ -44,16 +44,12 @@ function getMetaQueryParams(
 }
 
 async function fetchSingleTraceMetaNew(
-  type: 'non-eap' | 'eap',
   api: Client,
   organization: Organization,
   replayTrace: ReplayTrace,
   queryParams: any
 ) {
-  const url =
-    type === 'eap'
-      ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
-      : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;
+  const url = `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`;
 
   const data = await api.requestPromise(url, {
     method: 'GET',
@@ -63,7 +59,6 @@ async function fetchSingleTraceMetaNew(
 }
 
 async function fetchTraceMetaInBatches(
-  type: 'non-eap' | 'eap',
   api: Client,
   organization: Organization,
   replayTraces: ReplayTrace[],
@@ -71,26 +66,15 @@ async function fetchTraceMetaInBatches(
   filters: Partial<PageFilters> = {}
 ) {
   const clonedTraceIds = [...replayTraces];
-  const meta: TraceMeta | EAPTraceMeta =
-    type === 'eap'
-      ? {
-          errors: 0,
-          logs: 0,
-          performance_issues: 0,
-          span_count: 0,
-          span_count_map: {},
-          transaction_child_count_map: {},
-          uptime_checks: 0,
-        }
-      : {
-          errors: 0,
-          performance_issues: 0,
-          projects: 0,
-          transactions: 0,
-          transaction_child_count_map: {},
-          span_count: 0,
-          span_count_map: {},
-        };
+  const meta: EAPTraceMeta = {
+    errors: 0,
+    logs: 0,
+    performance_issues: 0,
+    span_count: 0,
+    span_count_map: {},
+    transaction_child_count_map: {},
+    uptime_checks: 0,
+  };
 
   const apiErrors: Error[] = [];
 
@@ -99,7 +83,7 @@ async function fetchTraceMetaInBatches(
     const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
       batch.map(replayTrace => {
         const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
-        return fetchSingleTraceMetaNew(type, api, organization, replayTrace, queryParams);
+        return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
       })
     );
 
@@ -175,7 +159,6 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
     queryFn: () =>
       fetchTraceMetaInBatches(
-        'eap',
         api,
         organization,
         replayTraces,

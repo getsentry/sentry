@@ -136,7 +136,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
-      type: 'eap',
       api,
       filters,
       replayTraces: props.replayTraces,
