@@ -8,7 +8,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
   clientID: string | null;

@@ -5,7 +5,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
  * `https://example.com/path/name?query=params#hash` and return
  * `/path/name?query=params#hash`
  */
-export default function stripURLOrigin(url: string): string {
+export function stripURLOrigin(url: string): string {
   const parsedUrl = safeURL(url);
 
   if (parsedUrl === undefined) {

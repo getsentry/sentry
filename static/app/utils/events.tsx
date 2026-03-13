@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {
   EntryException,
   EntryRequest,

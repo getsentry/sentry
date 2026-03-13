@@ -13,7 +13,7 @@ import {
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {useIsFetching, useIsMutating} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();

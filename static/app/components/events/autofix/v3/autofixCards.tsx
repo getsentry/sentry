@@ -5,9 +5,12 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {
-  RootCauseArtifact,
-  SolutionArtifact,
+import {
+  isCodeChangesArtifact,
+  isPullRequestArtifact,
+  isRootCauseArtifact,
+  isSolutionArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -15,18 +18,24 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
-import {
-  type Artifact,
-  type ExplorerFilePatch,
-  type RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
-interface RootCauseCardProps {
-  artifact: Artifact<RootCauseArtifact>;
+interface AutofixCardProps {
+  section: AutofixSection;
 }
 
-export function RootCauseCard({artifact}: RootCauseCardProps) {
+export function RootCauseCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isRootCauseArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
+
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
       <Text>{artifact.data?.one_line_description}</Text>
@@ -62,11 +71,16 @@ export function RootCauseCard({artifact}: RootCauseCardProps) {
   );
 }
 
-interface SolutionCardProps {
-  artifact: Artifact<SolutionArtifact>;
-}
+export function SolutionCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isSolutionArtifact),
+    [section.artifacts]
+  );
 
-export function SolutionCard({artifact}: SolutionCardProps) {
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
+
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
       <Text>{artifact?.data?.one_line_summary}</Text>
@@ -93,14 +107,15 @@ export function SolutionCard({artifact}: SolutionCardProps) {
   );
 }
 
-interface CodeChangesCardProps {
-  artifact: ExplorerFilePatch[];
-}
+export function CodeChangesCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isCodeChangesArtifact),
+    [section.artifacts]
+  );
 
-export function CodeChangesCard({artifact}: CodeChangesCardProps) {
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
-    for (const patch of artifact) {
+    for (const patch of artifact ?? []) {
       const existing = patchesByRepo.get(patch.repo_name) || [];
       existing.push(patch);
       patchesByRepo.set(patch.repo_name, existing);
@@ -129,6 +144,10 @@ export function CodeChangesCard({artifact}: CodeChangesCardProps) {
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesForRepos]);
+
+  if (!defined(artifact)) {
+    return null; // TODO
+  }
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
@@ -160,11 +179,16 @@ export function CodeChangesCard({artifact}: CodeChangesCardProps) {
   );
 }
 
-interface PullRequestsCardProps {
-  artifact: RepoPRState[];
-}
+export function PullRequestsCard({section}: AutofixCardProps) {
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isPullRequestArtifact),
+    [section.artifacts]
+  );
 
-export function PullRequestsCard({artifact}: PullRequestsCardProps) {
+  if (!artifact) {
+    return null; // TODO
+  }
+
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {

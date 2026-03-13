@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export function SelectorList({frame}: {frame: ClickFrame}) {

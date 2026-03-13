@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import Feature from 'sentry/components/acl/feature';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 

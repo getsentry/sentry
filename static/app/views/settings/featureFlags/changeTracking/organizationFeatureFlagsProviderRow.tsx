@@ -10,7 +10,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useUserFromId from 'sentry/utils/useUserFromId';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import type {Secret} from 'sentry/views/settings/featureFlags/changeTracking';
 
 export function OrganizationFeatureFlagsProviderRow({

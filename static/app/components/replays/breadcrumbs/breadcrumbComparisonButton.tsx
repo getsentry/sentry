@@ -1,7 +1,7 @@
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {t} from 'sentry/locale';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isBreadcrumbFrame, isHydrationErrorFrame} from 'sentry/utils/replays/types';
 

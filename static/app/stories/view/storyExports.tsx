@@ -7,7 +7,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -58,9 +58,9 @@ function StoryLayout() {
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
         <StoryContainer>
-          <Flex flexGrow={1} minWidth="0px">
+          <Stack flexGrow={1} minWidth="0px">
             <StoryTabPanels documentation={documentation} />
-          </Flex>
+          </Stack>
           <ErrorBoundary>
             <StorySourceLinks />
           </ErrorBoundary>

@@ -1,7 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 function getPackageNameFromSdkName(sdkName?: string): string | null {
   if (!sdkName) {

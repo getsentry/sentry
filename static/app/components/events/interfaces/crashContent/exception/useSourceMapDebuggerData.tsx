@@ -3,7 +3,7 @@ import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SourceMapDebugBlueThunderResponseFrame {
   debug_id_process: {

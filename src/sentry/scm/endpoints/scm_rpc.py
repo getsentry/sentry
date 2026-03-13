@@ -50,7 +50,7 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     return f"rpc0:{signature}"
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class ScmRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for SCM RPC requests.

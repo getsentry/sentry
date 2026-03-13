@@ -603,6 +603,7 @@ export default typescript.config([
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-default-export-components': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
@@ -1107,7 +1108,7 @@ export default typescript.config([
         },
         {
           type: 'story-book',
-          pattern: 'static/app/stories',
+          pattern: ['static/app/stories', '**/__stories__'],
         },
         // --- debug tools (e.g. notifications) ---
         {

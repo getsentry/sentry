@@ -29,7 +29,7 @@ from sentry.users.services.user.service import user_service
 def test_caching_function() -> None:
     cache.clear()
 
-    @back_with_silo_cache(base_key="my-test-key", silo_mode=SiloMode.REGION, t=RpcUser)
+    @back_with_silo_cache(base_key="my-test-key", silo_mode=SiloMode.CELL, t=RpcUser)
     def get_user(user_id: int) -> RpcUser:
         return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
 
@@ -83,7 +83,7 @@ def test_caching_function_control() -> None:
         old.append(next_org)
 
     for org in orgs:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org.update(name=org.name + " updated")
 
     # Does not include updates
@@ -129,7 +129,7 @@ def test_cache_versioning() -> None:
         last_length = 0
 
         while True:
-            results = yield from CacheBackend.get_cache([shared_key], SiloMode.REGION)
+            results = yield from CacheBackend.get_cache([shared_key], SiloMode.CELL)
             value = next(iter(results.values()))
             if isinstance(value, str):
                 assert len(value) >= last_length, (
@@ -149,7 +149,7 @@ def test_cache_versioning() -> None:
             for i in range(5):
                 yield
             true_value += "a"
-            yield from CacheBackend.delete_cache(shared_key, SiloMode.REGION)
+            yield from CacheBackend.delete_cache(shared_key, SiloMode.CELL)
 
     def cache_death_event() -> Generator[None]:
         while True:
@@ -170,7 +170,7 @@ def test_cache_versioning() -> None:
 def test_caching_many() -> None:
     cache.clear()
 
-    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.REGION, t=RpcUser)
+    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.CELL, t=RpcUser)
     def get_users(user_ids: list[int]) -> list[RpcUser]:
         return user_service.get_many(filter=dict(user_ids=user_ids))
 
@@ -208,7 +208,7 @@ def test_caching_many() -> None:
 def test_caching_many_partial() -> None:
     cache.clear()
 
-    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.REGION, t=RpcUser)
+    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.CELL, t=RpcUser)
     def get_users(user_ids: list[int]) -> list[RpcUser]:
         return user_service.get_many(filter=dict(user_ids=user_ids))
 
@@ -230,7 +230,7 @@ def test_caching_many_partial() -> None:
 def test_caching_many_missing_ids() -> None:
     cache.clear()
 
-    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.REGION, t=RpcUser)
+    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.CELL, t=RpcUser)
     def get_users(user_ids: list[int]) -> list[RpcUser]:
         return user_service.get_many(filter=dict(user_ids=user_ids))
 
@@ -245,7 +245,7 @@ def test_caching_many_missing_ids() -> None:
     assert results[1].id == user_ids[1]
 
     cache_keys = [get_users.key_from(id) for id in user_ids]
-    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.REGION))
+    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.CELL))
     assert len(cache_results) == 3
 
     assert cache_results[get_users.key_from(user_ids[0])] != 0, "should be a hit"
@@ -259,7 +259,7 @@ def test_caching_many_missing_ids() -> None:
 def test_caching_many_versioning() -> None:
     cache.clear()
 
-    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.REGION, t=RpcUser)
+    @back_with_silo_cache_many(base_key="get_users", silo_mode=SiloMode.CELL, t=RpcUser)
     def get_users(user_ids: list[int]) -> list[RpcUser]:
         return user_service.get_many(filter=dict(user_ids=user_ids))
 
@@ -276,7 +276,7 @@ def test_caching_many_versioning() -> None:
         )
 
     # Read from the cache directly and drain the generator
-    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.REGION))
+    cache_results = _consume_generator(CacheBackend.get_cache(cache_keys, SiloMode.CELL))
     assert cache_results is not None
     for item in cache_results.values():
         assert isinstance(item, int), "Should be version as data was purged"
@@ -298,7 +298,7 @@ def test_caching_list() -> None:
 
     users = [Factories.create_user() for _ in range(3)]
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         org = Factories.create_organization()
         members = [
             Factories.create_member(organization=org, user=user, role="owner") for user in users
@@ -311,7 +311,7 @@ def test_caching_list() -> None:
     for wrapped, direct in zip(wrapped_result, direct_result):
         assert wrapped == direct
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         for member in members:
             member.update(role="member")
 

@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useRef, type MouseEventHandler} from 'react';
+import {createPortal} from 'react-dom';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -11,19 +13,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -33,22 +35,20 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
-    <IconDefaultsProvider
-      legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
-    >
+    <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
       <Flex
         as="li"
         ref={ref}
         justify="center"
         align="center"
-        width={layout === NavigationLayout.MOBILE ? '100%' : undefined}
+        width={layout === 'mobile' ? '100%' : undefined}
         {...props}
       >
         <Tooltip
           title={label}
-          disabled={layout === NavigationLayout.MOBILE || disableTooltip}
+          disabled={layout === 'mobile' || disableTooltip}
           position="right"
           skipWrapper
           delay={600}
@@ -87,10 +87,10 @@ export function SidebarMenu({
 }: SidebarMenuProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const theme = useTheme();
 
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export function SidebarMenu({
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
-      position={layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end'}
+      position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {
@@ -118,7 +118,7 @@ export function SidebarMenu({
             >
               <NavigationButton
                 {...triggerProps}
-                isMobile={layout === NavigationLayout.MOBILE}
+                isMobile={layout === 'mobile'}
                 aria-label={showLabel ? undefined : label}
                 size={size}
                 onClick={event => {
@@ -148,7 +148,8 @@ export function SidebarMenu({
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  group: PrimaryNavigationGroup;
+  group: NavigationGroup;
+  label: string;
   to: string;
   activeTo?: string;
   analyticsParams?: Record<string, unknown>;
@@ -161,11 +162,10 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   analyticsParams,
+  label,
   group,
   ...props
 }: SidebarItemLinkProps) {
-  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
-
   return (
     <SidebarItem label={label} {...props}>
       <SidebarNavigationLink
@@ -173,6 +173,7 @@ export function SidebarLink({
         activeTo={activeTo}
         analyticsKey={analyticsKey}
         analyticsParams={analyticsParams}
+        label={label}
         group={group}
       >
         {children}
@@ -187,16 +188,16 @@ function SidebarNavigationLink({
   activeTo = to,
   analyticsKey,
   analyticsParams,
+  label,
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
+  const {layout, activeGroup} = useNavigation();
   const location = useLocation();
   const isActive = isSidebarLinkActive(
     normalizeUrl(activeTo, location),
     location.pathname
   );
-  const label = PRIMARY_NAVIGATION_GROUP_CONFIG[group].label;
 
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
@@ -206,9 +207,9 @@ function SidebarNavigationLink({
       to={to}
       reloadDocument={appState === 'stale'}
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
+      aria-selected={activeGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === NavigationLayout.MOBILE}
+      isMobile={layout === 'mobile'}
       onClick={() => {
         trackAnalytics('navigation.primary_item_clicked', {
           item: analyticsKey,
@@ -220,7 +221,7 @@ function SidebarNavigationLink({
         [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
     >
-      {layout === NavigationLayout.MOBILE ? (
+      {layout === 'mobile' ? (
         <Fragment>
           {children}
           {label}
@@ -255,14 +256,14 @@ export function SidebarButton({
   label,
 }: SidebarButtonProps) {
   const organization = useOrganization();
-  const {layout} = useNavigationContext();
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const showLabel = layout === 'mobile';
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavigationButton
         {...buttonProps}
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
@@ -421,13 +422,13 @@ const NavigationLink = styled(Link, {
 
 const NavigationButton = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
-    const {layout} = useNavigationContext();
+    const {layout} = useNavigation();
 
     return (
       <Button
         {...props}
-        size={layout === NavigationLayout.MOBILE ? 'zero' : props.size}
-        priority={layout === NavigationLayout.MOBILE ? 'transparent' : props.priority}
+        size={layout === 'mobile' ? 'zero' : props.size}
+        priority={layout === 'mobile' ? 'transparent' : props.priority}
       />
     );
   }
@@ -533,3 +534,55 @@ export function isSidebarLinkActive(
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
 }
+
+type PrimaryButtonOverlayProps = {
+  children: React.ReactNode;
+  overlayProps: React.HTMLAttributes<HTMLDivElement>;
+};
+
+export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
+  const {layout} = useNavigation();
+
+  return useOverlay({
+    offset: 8,
+    position: layout === 'mobile' ? 'bottom' : 'right-end',
+    isDismissable: true,
+    shouldApplyMinWidth: false,
+    ...props,
+  });
+}
+
+/**
+ * Overlay to be used for primary navigation buttons in footer, such as
+ * "what's new" and "onboarding". This will appear as a normal overlay
+ * on desktop and a modified overlay in mobile to match the design of
+ * the mobile topbar.
+ */
+export function PrimaryButtonOverlay({
+  children,
+  overlayProps,
+}: PrimaryButtonOverlayProps) {
+  const theme = useTheme();
+  const {layout} = useNavigation();
+
+  return createPortal(
+    <FocusScope restoreFocus autoFocus>
+      <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
+        <ScrollableOverlay isMobile={layout === 'mobile'}>{children}</ScrollableOverlay>
+      </PositionWrapper>
+    </FocusScope>,
+    document.body
+  );
+}
+
+const ScrollableOverlay = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{
+  isMobile: boolean;
+}>`
+  overscroll-behavior: none;
+  min-height: 150px;
+  max-height: ${p => (p.isMobile ? '80vh' : '60vh')};
+  overflow-y: auto;
+  width: ${p => (p.isMobile ? `calc(100vw - ${p.theme.space['3xl']})` : '400px')};
+`;

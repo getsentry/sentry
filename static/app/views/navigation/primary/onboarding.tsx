@@ -16,17 +16,14 @@ import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+} from 'sentry/views/navigation/primary/components';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 function OnboardingItem({
@@ -43,8 +40,8 @@ function OnboardingItem({
   refetch: () => void;
 }) {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const isMobile = layout === 'mobile';
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;

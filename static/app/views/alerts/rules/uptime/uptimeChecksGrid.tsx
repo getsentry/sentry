@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';

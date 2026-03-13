@@ -7,7 +7,6 @@ import {
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/flamegraph';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -85,7 +84,7 @@ export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
 
 const StyledPre = styled('pre')`
   padding: 0;
-  margin: 0 0 ${space(1)} 0;
+  margin: 0 0 ${p => p.theme.space.md} 0;
   word-wrap: break-word;
   white-space: pre-wrap;
   background-color: inherit;

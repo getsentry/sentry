@@ -10,7 +10,7 @@ from sentry.taskworker.namespaces import issues_tasks
     name="sentry.tasks.clear_expired_rulesnoozes",
     namespace=issues_tasks,
     processing_deadline_duration=65,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def clear_expired_rulesnoozes() -> None:
     rule_snooze_ids = RuleSnooze.objects.filter(until__lte=timezone.now()).values_list("id")[:1000]

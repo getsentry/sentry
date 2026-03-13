@@ -8,7 +8,7 @@ import {
   Cell,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {
   getFrameMethod,
   getFrameStatus,
@@ -16,7 +16,7 @@ import {
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import {operationName} from 'sentry/views/replays/detail/utils';
 

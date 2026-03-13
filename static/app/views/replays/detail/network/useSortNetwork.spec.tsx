@@ -8,9 +8,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 
-import useSortNetwork from './useSortNetwork';
+import {useSortNetwork} from './useSortNetwork';
 
 const [
   SPAN_0_NAVIGATE,

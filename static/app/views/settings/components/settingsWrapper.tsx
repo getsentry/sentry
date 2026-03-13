@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {useLocation} from 'sentry/utils/useLocation';
-import useScrollToTop from 'sentry/utils/useScrollToTop';
+import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';
 
 function scrollDisable(newLocation: Location, prevLocation: Location) {

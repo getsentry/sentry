@@ -14,12 +14,12 @@ import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import getCsrfToken from 'sentry/utils/getCsrfToken';
+import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
-import ConfigStore from './stores/configStore';
+import {ConfigStore} from './stores/configStore';
 
 export class Request {
   /**
@@ -237,9 +237,6 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
   return true;
 }
 
-// TODO(ts): move this somewhere
-export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
-
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
 export type RequestCallbacks = {
@@ -279,7 +276,7 @@ export type RequestOptions = RequestCallbacks & {
   /**
    * The HTTP method to use when making the API request
    */
-  method?: APIRequestMethod;
+  method?: 'DELETE' | 'GET' | 'POST' | 'PUT';
   /**
    * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to

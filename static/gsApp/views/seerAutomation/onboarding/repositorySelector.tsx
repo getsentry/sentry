@@ -14,7 +14,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 

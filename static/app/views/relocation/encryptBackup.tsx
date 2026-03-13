@@ -4,7 +4,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
 import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 import {Wrapper} from 'sentry/views/relocation/components/wrapper';

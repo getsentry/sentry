@@ -6,7 +6,7 @@
 // The ^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$ regex should almost match the above regex.
 const ORG_SLUG_REGEX = new RegExp('^(?![0-9]+$)[a-zA-Z0-9][a-zA-Z0-9-]*$');
 
-function isValidOrgSlug(orgSlug: string): boolean {
+export function isValidOrgSlug(orgSlug: string): boolean {
   return (
     orgSlug.length > 0 &&
     !orgSlug.startsWith('-') &&
@@ -15,5 +15,3 @@ function isValidOrgSlug(orgSlug: string): boolean {
     ORG_SLUG_REGEX.test(orgSlug)
   );
 }
-
-export default isValidOrgSlug;

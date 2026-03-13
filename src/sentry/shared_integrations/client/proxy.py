@@ -155,7 +155,7 @@ class IntegrationProxyClient(ApiClient):
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
                 max_retries=Retry(
@@ -170,7 +170,7 @@ class IntegrationProxyClient(ApiClient):
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
         return (
-            SiloMode.get_current_mode() == SiloMode.REGION
+            SiloMode.get_current_mode() == SiloMode.CELL
             and getattr(settings, "SENTRY_SUBNET_SECRET", None) is not None
             and getattr(settings, "SENTRY_CONTROL_ADDRESS", None) is not None
         )

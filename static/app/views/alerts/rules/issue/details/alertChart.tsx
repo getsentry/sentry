@@ -16,7 +16,7 @@ import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import RouteError from 'sentry/views/routeError';
 
 interface IssueAlertDetailsProps extends DateTimeObject {

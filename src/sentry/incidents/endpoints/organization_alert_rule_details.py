@@ -29,6 +29,9 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     DetailedAlertRuleSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    DetailedWorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
@@ -61,14 +64,17 @@ def _anon_to_None[T](u: T | AnonymousUser) -> T | None:
 def fetch_alert_rule(
     request: Request, organization: Organization, alert_rule: AlertRule | Detector
 ) -> Response:
-    if isinstance(alert_rule, Detector):
-        return Response(
-            {"alert_rule": ["Passing a detector through this endpoint is not yet supported"]},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
+    if isinstance(alert_rule, Detector):
+        detector = alert_rule
+        serialized = serialize(
+            detector,
+            request.user,
+            DetailedWorkflowEngineDetectorSerializer(expand=expand, prepare_component_fields=True),
+        )
+        return Response(serialized)
 
+    assert isinstance(alert_rule, AlertRule)
     serialized_rule = serialize(
         alert_rule,
         request.user,

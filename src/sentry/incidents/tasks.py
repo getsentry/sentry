@@ -45,7 +45,7 @@ def handle_snuba_query_update(
     namespace=alerts_tasks,
     retry=Retry(times=5, delay=60),
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def handle_trigger_action(
     action_id: int,
@@ -106,7 +106,7 @@ def handle_trigger_action(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     namespace=alerts_tasks,
     retry=Retry(times=2, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status

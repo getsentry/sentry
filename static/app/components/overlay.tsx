@@ -9,7 +9,7 @@ import {OverlayArrow} from 'sentry/components/overlayArrow';
 import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import {PanelProvider} from 'sentry/utils/panelProvider';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 

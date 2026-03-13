@@ -14,7 +14,7 @@ import OnboardingDrawerStore, {
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // tour is a string that tells which tour the user is completing in the walkthrough
 type Props = ModalRenderProps & {tour: string};

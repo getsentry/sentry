@@ -20,13 +20,13 @@ import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import useUpgradeNowParams from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
 import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 

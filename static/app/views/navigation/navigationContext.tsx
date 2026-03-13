@@ -1,100 +1,57 @@
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {createContext, useContext, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMedia from 'sentry/utils/useMedia';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+import {useMedia} from 'sentry/utils/useMedia';
 import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
-import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+import {
+  useActiveNavigationGroup,
+  type NavigationGroup,
+} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 interface NavigationContext {
-  activePrimaryNavigationGroup: PrimaryNavigationGroup | null;
-  collapsedNavigationIsOpen: boolean;
-  endInteraction: () => void;
-  isCollapsed: boolean;
-  isInteractingRef: React.RefObject<boolean | null>;
-  layout: NavigationLayout;
-  navigationParentRef: React.RefObject<HTMLDivElement | null>;
-  setActivePrimaryNavigationGroup: (
-    activePrimaryNavigationGroup: PrimaryNavigationGroup | null
-  ) => void;
-  setCollapsedNavigationIsOpen: (collapsedNavigationIsOpen: boolean) => void;
-  setIsCollapsed: (isCollapsed: boolean) => void;
-  startInteraction: () => void;
+  activeGroup: NavigationGroup;
+  layout: 'mobile' | 'sidebar';
+  setActiveGroup: (group: NavigationGroup | null) => void;
 }
 
 const NavigationContext = createContext<NavigationContext>({
-  navigationParentRef: {current: null},
-  layout: NavigationLayout.SIDEBAR,
-  isCollapsed: false,
-  setIsCollapsed: () => {},
-  isInteractingRef: {current: false},
-  startInteraction: () => {},
-  endInteraction: () => {},
-  activePrimaryNavigationGroup: null,
-  setActivePrimaryNavigationGroup: () => {},
-  collapsedNavigationIsOpen: false,
-  setCollapsedNavigationIsOpen: () => {},
+  layout: 'sidebar',
+  activeGroup: 'issues',
+  setActiveGroup: () => {},
 });
 
-export function useNavigationContext(): NavigationContext {
+export function useNavigation(): NavigationContext {
   return useContext(NavigationContext);
 }
 
-export function NavigationContextProvider({children}: {children: React.ReactNode}) {
-  const navigationParentRef = useRef<HTMLDivElement>(null);
+interface NavigationContextProviderProps {
+  children: React.ReactNode;
+}
 
-  const isInteractingRef = useRef(false);
-  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
-    NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
-    false
-  );
-  const [collapsedNavigationIsOpen, setCollapsedNavigationIsOpen] = useState(false);
-  const [activePrimaryNavigationGroup, setActivePrimaryNavigationGroup] =
-    useState<PrimaryNavigationGroup | null>(null);
+export function NavigationContextProvider(props: NavigationContextProviderProps) {
+  const [activeGroupOverride, setActiveGroup] = useState<NavigationGroup | null>(null);
 
   const theme = useTheme();
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
-
-  const startInteraction = useCallback(() => {
-    isInteractingRef.current = true;
-  }, []);
-
-  const endInteraction = useCallback(() => {
-    isInteractingRef.current = false;
-  }, []);
+  const routeGroup = useActiveNavigationGroup();
 
   const value = useMemo(
     () => ({
-      navigationParentRef,
-      layout: isMobile ? NavigationLayout.MOBILE : NavigationLayout.SIDEBAR,
-      isCollapsed,
-      setIsCollapsed,
-      isInteractingRef,
-      startInteraction,
-      endInteraction,
-      activePrimaryNavigationGroup,
-      setActivePrimaryNavigationGroup,
-      collapsedNavigationIsOpen,
-      setCollapsedNavigationIsOpen,
+      layout: isMobile ? ('mobile' as const) : ('sidebar' as const),
+      activeGroup: activeGroupOverride ?? routeGroup,
+      setActiveGroup,
     }),
-    [
-      isMobile,
-      isCollapsed,
-      setIsCollapsed,
-      startInteraction,
-      endInteraction,
-      activePrimaryNavigationGroup,
-      setActivePrimaryNavigationGroup,
-      collapsedNavigationIsOpen,
-      setCollapsedNavigationIsOpen,
-    ]
+    [isMobile, activeGroupOverride, routeGroup]
   );
 
   return (
     <NavigationTourReminderContextProvider>
-      <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>
+      <SecondaryNavigationContextProvider>
+        <NavigationContext.Provider value={value}>
+          {props.children}
+        </NavigationContext.Provider>
+      </SecondaryNavigationContextProvider>
     </NavigationTourReminderContextProvider>
   );
 }

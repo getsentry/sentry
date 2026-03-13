@@ -31,7 +31,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -145,10 +145,9 @@ function DashboardTable({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderHeadCell(column: GridColumnOrder<string>) {

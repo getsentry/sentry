@@ -5,7 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';

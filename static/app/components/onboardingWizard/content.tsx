@@ -17,7 +17,7 @@ import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
+import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -26,7 +26,7 @@ import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
