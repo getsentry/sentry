@@ -205,13 +205,15 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             workflow = rule
             organization = project.organization
 
-            if not request.data.get("filterMatch"):
+            data = request.data.copy()
+
+            if not data.get("filterMatch"):
                 # if filterMatch is not passed, don't overwrite it with default value, use the saved dcg type
                 wdcg = WorkflowDataConditionGroup.objects.filter(workflow=workflow).first()
                 if wdcg:
-                    request.data["filterMatch"] = wdcg.condition_group.logic_type
+                    data["filterMatch"] = wdcg.condition_group.logic_type
 
-            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, data))
             if not request_data.get("config", {}).get("frequency"):
                 request_data["config"] = workflow.config
 
