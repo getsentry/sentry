@@ -200,10 +200,10 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
+    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
-        region_name=region_name,
+        cell_name=region_name,
     )
 
     if not able_to_provision:
