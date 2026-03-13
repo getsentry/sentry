@@ -18,6 +18,7 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
@@ -269,32 +270,53 @@ interface LoadingDetailsProps {
 }
 
 function LoadingDetails({messages}: LoadingDetailsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({behavior: 'smooth'});
+    const container = containerRef.current;
+    const bottom = bottomRef.current;
+    if (!defined(container) || !defined(bottom)) {
+      return;
+    }
+
+    if (container.scrollHeight <= container.clientHeight) {
+      return;
+    }
+
+    bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
   }, [messages]);
 
   return (
-    <ArtifactDetails maxHeight="200px" overflowY="scroll">
-      {messages.map((message, index) => {
-        if (message.role === 'user') {
+    <ArtifactDetails paddingTop="0">
+      <Flex
+        direction="column"
+        gap="md"
+        marginTop="md"
+        ref={containerRef}
+        maxHeight="200px"
+        overflowY="scroll"
+      >
+        {messages.map((message, index) => {
+          if (message.role === 'user') {
+            // The user role is used to pass the prompts
+            return null;
+          }
+
+          if (message.content && message.content !== 'Thinking...') {
+            return (
+              <Text key={index} variant="muted">
+                {message.content}
+              </Text>
+            );
+          }
+
           return null;
-        }
-
-        if (message.content && message.content !== 'Thinking...') {
-          return (
-            <Text key={index} variant="muted">
-              {message.content}
-            </Text>
-          );
-        }
-
-        return null;
-      })}
-      <div ref={bottomRef}>
-        <Placeholder height="2rem" />
-      </div>
+        })}
+        <div ref={bottomRef}>
+          <Placeholder height="1.5rem" />
+        </div>
+      </Flex>
     </ArtifactDetails>
   );
 }
