@@ -558,6 +558,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             display_type = data.get("display_type")
             if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
                 max_allowed = 25
+            elif display_type == DashboardWidgetDisplayTypes.TABLE:
+                max_allowed = 20
             else:
                 max_allowed = 10
             if widget_limit > max_allowed:
