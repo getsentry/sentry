@@ -104,7 +104,7 @@ Outbox tests verify that cross-silo messages are created, drained, and produce t
 | Scenario                          | Decorator            | Base Class            |
 | --------------------------------- | -------------------- | --------------------- |
 | Control outbox test               | `@control_silo_test` | `TestCase`            |
-| Region outbox test                | `@cell_silo_test`    | `TestCase`            |
+| Cell outbox test                  | `@cell_silo_test`    | `TestCase`            |
 | Outbox with threading/concurrency | (none)               | `TransactionTestCase` |
 
 ## Step 6: Generate Endpoint Silo Tests
@@ -123,7 +123,7 @@ Endpoint silo tests verify that API endpoints work correctly under their declare
 | Endpoint Decorator                    | Test Decorator                                          |
 | ------------------------------------- | ------------------------------------------------------- |
 | `@cell_silo_endpoint  `               | `@cell_silo_test`                                       |
-| `@cell_silo_endpoint`                 | `@region_silo_test`                                     |
+| `@control_silo_endpoint`              | `@control_silo_test`                                    |
 | `@control_silo_endpoint` (with proxy) | `@control_silo_test(regions=create_test_regions("us"))` |
 | No decorator (monolith-only)          | `@no_silo_test`                                         |
 
