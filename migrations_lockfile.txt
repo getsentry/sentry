@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0026_webhookpayload_rename_region_name_to_cell_name
+hybridcloud: 0027_region_cache_version_to_cell_cache_version
 
 insights: 0002_backfill_team_starred
 
