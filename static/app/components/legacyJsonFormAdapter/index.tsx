@@ -109,7 +109,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
       >
         {fieldApi => (
           <fieldApi.Base>
-            {(_baseProps, {indicator}) => {
+            {(baseProps, {indicator}) => {
               const columnKeys = Object.keys(field.columnLabels ?? {});
               const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
                 Object.values(val).every(row =>
@@ -120,7 +120,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
               ) => {
                 fieldApi.handleChange(val);
                 if (allColumnsFilled(val)) {
-                  _baseProps.onBlur();
+                  baseProps.onBlur();
                 }
               };
               return (
@@ -135,7 +135,7 @@ export function LegacyJsonFormAdapter<TData, TContext>({
                     config={field}
                     value={fieldApi.state.value}
                     onChange={handleChangeAndSave}
-                    disabled={field.disabled}
+                    disabled={field.disabled || baseProps.disabled}
                   />
                 </fieldApi.Layout.Row>
               );

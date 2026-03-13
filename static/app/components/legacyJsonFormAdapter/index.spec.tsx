@@ -433,6 +433,66 @@ describe('LegacyJsonFormAdapter', () => {
     expect(await screen.findByText('my-org/cool-repo')).toBeInTheDocument();
   });
 
+  it('choice_mapper disables controls while mutation is in flight', async () => {
+    let resolveMutation!: () => void;
+    const mutationOptions = {
+      mutationFn: jest.fn(
+        () => new Promise<void>(resolve => (resolveMutation = resolve))
+      ),
+    };
+
+    const org = OrganizationFixture();
+    render(
+      <LegacyJsonFormAdapter
+        field={{
+          name: 'status_mapping',
+          type: 'choice_mapper',
+          label: 'Status Mapping',
+          addButtonText: 'Add Repo',
+          addDropdown: {
+            items: [{value: 'repo1', label: 'my-org/repo1'}],
+          },
+          columnLabels: {on_resolve: 'When Resolved'},
+          mappedColumnLabel: 'Repository',
+          mappedSelectors: {
+            on_resolve: {
+              choices: [
+                ['closed', 'Closed'],
+                ['open', 'Open'],
+              ],
+            },
+          },
+        }}
+        initialValue={{repo1: {on_resolve: 'closed'}}}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    // Verify controls are initially enabled
+    expect(await screen.findByRole('button', {name: 'Delete'})).toBeEnabled();
+
+    // Change a value to trigger mutation
+    await userEvent.click(screen.getByText('Closed'));
+    await userEvent.click(await screen.findByText('Open'));
+
+    // Mutation should be called but not resolved
+    await waitFor(() => {
+      expect(mutationOptions.mutationFn).toHaveBeenCalled();
+    });
+
+    // Controls should be disabled while mutation is pending
+    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+
+    // Resolve the mutation
+    resolveMutation();
+
+    // Controls should be re-enabled
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
+    });
+  });
+
   it('renders placeholder for table', () => {
     renderField(
       {
