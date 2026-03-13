@@ -309,10 +309,11 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = _get_or_create_single_grouphash(hash_value, project, use_caching)
 
-        try:
-            grouphash._metadata = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
-        except GroupHashMetadata.DoesNotExist:
-            pass
+        if not created:
+            try:
+                grouphash._metadata = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+            except GroupHashMetadata.DoesNotExist:
+                pass
 
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
