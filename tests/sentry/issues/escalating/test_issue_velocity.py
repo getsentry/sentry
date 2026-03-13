@@ -1,6 +1,5 @@
 import math
 from datetime import datetime, timedelta
-from datetime import timezone as dt_timezone
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -21,7 +20,7 @@ from sentry.issues.escalating.issue_velocity import (
 )
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 WEEK_IN_HOURS = 7 * 24
 
@@ -344,7 +343,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
 
 
 class TestEAPIssueVelocityThreshold(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 11, 6, 0, 0, tzinfo=dt_timezone.utc)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0, microsecond=0)
 
     def _event_timestamp(self, hours_ago: int = 0) -> float:
         return (self.FROZEN_TIME - timedelta(hours=hours_ago)).timestamp()
