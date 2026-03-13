@@ -9,14 +9,14 @@ from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.hybridcloud.models.outbox import CellOutboxBase
-from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
 @cell_silo_model
-class OrganizationMemberTeam(ReplicatedRegionModel):
+class OrganizationMemberTeam(ReplicatedCellModel):
     """
     Identifies relationships between organization members and the teams they are on.
     """

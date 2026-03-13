@@ -149,7 +149,7 @@ class CellOutboxProducingManager(BaseManager[_RM]):
             return self.filter(id__in={o.id for o in tuple_of_objs}).delete()
 
 
-class ReplicatedRegionModel(CellOutboxProducingModel):
+class ReplicatedCellModel(CellOutboxProducingModel):
     """
     An extension of CellOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category and outbox type configured as class variables.  It also provides a default signal handler

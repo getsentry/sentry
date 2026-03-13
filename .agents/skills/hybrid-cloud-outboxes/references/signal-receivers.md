@@ -2,7 +2,7 @@
 
 ## Overview
 
-Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedRegionModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_region_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
+Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_region_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
 
 **Source files**:
 

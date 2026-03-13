@@ -9,7 +9,7 @@ description: >-
   to region", "add outbox category", "write outbox signal receiver", "debug stuck
   outboxes", "outbox not processing", "data not replicating", "test outbox",
   "migrate model to use outboxes", "backfill outbox data", "outbox coalescing",
-  "ReplicatedRegionModel", "ReplicatedControlModel", "OutboxCategory",
+  "ReplicatedCellModel", "ReplicatedControlModel", "OutboxCategory",
   "OutboxScope", or "outbox_runner". Covers model mixins, category registration,
   signal receivers, testing, backfill, and debugging workflows.
 ---
@@ -28,7 +28,7 @@ There are two outbox types corresponding to the two directions of flow:
 ## Critical Constraints
 
 > **Outboxes MUST be written in the same transaction as the data change.**
-> The mixin classes (`ReplicatedRegionModel`, `ReplicatedControlModel`) enforce this automatically via `prepare_outboxes()`. If you write outboxes manually, always use `outbox_context(transaction.atomic(...))`.
+> The mixin classes (`ReplicatedCellModel`, `ReplicatedControlModel`) enforce this automatically via `prepare_outboxes()`. If you write outboxes manually, always use `outbox_context(transaction.atomic(...))`.
 
 > **Handlers MUST be idempotent.**
 > Outboxes can be retried on failure and are coalesced — the handler may receive only the latest version of a change, or be called multiple times for the same change.
@@ -66,10 +66,10 @@ There are two outbox types corresponding to the two directions of flow:
 
 | Data lives in... | Replicates toward... | Mixin                    | Outbox type     |
 | ---------------- | -------------------- | ------------------------ | --------------- |
-| Region silo      | Control silo         | `ReplicatedRegionModel`  | `RegionOutbox`  |
+| Region silo      | Control silo         | `ReplicatedCellModel`    | `RegionOutbox`  |
 | Control silo     | Region silo(s)       | `ReplicatedControlModel` | `ControlOutbox` |
 
-### 2.2 `ReplicatedRegionModel` Template
+### 2.2 `ReplicatedCellModel` Template
 
 Use this when a Region model needs to replicate data to the Control silo.
 
@@ -82,7 +82,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel, CellOutboxProducingManager
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, CellOutboxProducingManager
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
@@ -92,7 +92,7 @@ class MyModelManager(CellOutboxProducingManager["MyModel"]):
 
 
 @cell_silo_model
-class MyModel(ReplicatedRegionModel):
+class MyModel(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Organization
 
     # Required: the OutboxCategory for this model (must already be registered)
@@ -224,7 +224,7 @@ Load `references/category-and-scope.md` for the full scope-to-category mapping, 
 
 ## Step 4: Write a Manual Signal Receiver
 
-Use manual receivers when the outbox category is **not** tied to a `ReplicatedRegionModel` or `ReplicatedControlModel`. Common cases:
+Use manual receivers when the outbox category is **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. Common cases:
 
 - Payload-only operations (audit logs, IP events) that carry all data in the payload
 - Actions triggered by a model change but not replicating that model directly
@@ -239,7 +239,7 @@ When adding outbox replication to a model that already has data in production:
 
 ### 5.1 Code Changes (Non-Breaking)
 
-1. Change the model's base class to `ReplicatedRegionModel` or `ReplicatedControlModel`
+1. Change the model's base class to `ReplicatedCellModel` or `ReplicatedControlModel`
 2. Add the `category` class variable
 3. Add a producing manager (`CellOutboxProducingManager` / `ControlOutboxProducingManager`)
 4. Implement `handle_async_replication` and `handle_async_deletion`
@@ -387,7 +387,7 @@ Load `references/debugging.md` for the full processing pipeline walkthrough, sha
 
 Before submitting your PR, verify:
 
-- [ ] Model inherits from `ReplicatedRegionModel` or `ReplicatedControlModel` (or uses manual receivers)
+- [ ] Model inherits from `ReplicatedCellModel` or `ReplicatedControlModel` (or uses manual receivers)
 - [ ] `category` class variable is set to the correct `OutboxCategory`
 - [ ] `OutboxCategory` is registered to exactly one `OutboxScope`
 - [ ] The chosen `OutboxScope` matches the model's shard key (organization_id, user_id, etc.)

@@ -58,7 +58,7 @@ f"outbox_backfill.{model._meta.db_table}"
 **To trigger a backfill**: Bump `replication_version` on the model class:
 
 ```python
-class MyModel(ReplicatedRegionModel):
+class MyModel(ReplicatedCellModel):
     replication_version = 2  # Was 1; bumping triggers backfill
 ```
 

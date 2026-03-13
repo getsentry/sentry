@@ -9,7 +9,7 @@ from sentry.hybridcloud.outbox.signals import process_control_outbox, process_re
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
     from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
-    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedCellModel
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
@@ -70,7 +70,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
+    def connect_region_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -80,7 +80,7 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedRegionModel | None = maybe_process_tombstone(
+            maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=None
             )
             if maybe_instance is None:
