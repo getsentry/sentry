@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
@@ -111,6 +111,7 @@ function AMCheckout(props: Props) {
     promotionData,
   } = props;
 
+  const isFormInitialized = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | boolean>(false);
   const [formData, setFormData] = useState<CheckoutFormData | null>(null);
@@ -467,14 +468,20 @@ function AMCheckout(props: Props) {
 
       const planList = getPlans(config);
       const newBillingConfig = {...config, planList};
-      const initialFormData = getInitialData(newBillingConfig);
 
       setBillingConfig(newBillingConfig);
-      setFormData(initialFormData);
-      setFormDataForPreview(getFormDataForPreview(initialFormData));
+
+      // Initialize form data only once. The ref guard prevents re-initialization
+      // when the subscription object changes (e.g. after saving payment details),
+      // which would reset the user's plan selection.
+      if (!isFormInitialized.current) {
+        const initialFormData = getInitialData(newBillingConfig);
+        setFormData(initialFormData);
+        setFormDataForPreview(getFormDataForPreview(initialFormData));
+        isFormInitialized.current = true;
+      }
     } catch (err: any) {
       setError(err);
-      setLoading(false);
       if (err.status !== 401 && err.status !== 403) {
         Sentry.captureException(err);
       }
@@ -578,7 +585,13 @@ function AMCheckout(props: Props) {
     } else {
       handleRedirect();
     }
-  }, [subscription.canSelfServe, fetchBillingConfig, handleRedirect]);
+    // Only re-fetch when checkoutTier changes, matching the original class
+    // component's componentDidUpdate behavior. fetchBillingConfig and
+    // handleRedirect are excluded because their identity changes on
+    // subscription updates, which would cause an unintended form data
+    // reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscription.canSelfServe, checkoutTier]);
 
   // Scroll to step after billing config and form data are ready
   useEffect(() => {
