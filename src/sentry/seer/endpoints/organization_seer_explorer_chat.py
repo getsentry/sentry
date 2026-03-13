@@ -42,6 +42,11 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
+    enable_coding = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Enable code editing tools.",
+    )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
@@ -128,7 +133,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         override_ce_enable = validated_data["override_ce_enable"]
 
         try:
-            enable_coding = organization.get_option("sentry:enable_seer_coding", True)
+            enable_coding = validated_data.get("enable_coding", False)
             client = SeerExplorerClient(
                 organization,
                 request.user,
