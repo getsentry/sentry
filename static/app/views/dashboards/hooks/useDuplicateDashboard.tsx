@@ -95,11 +95,13 @@ async function toDashboardDetails(
   orgSlug: string,
   dashboard: DuplicateDashboardInput
 ): Promise<DashboardDetails> {
-  // Prebuilt dashboards: widgets come from the frontend config, not the DB.
+  // Prebuilt dashboards: widgets come from the frontend config, but saved
+  // filters live on the DB record. Fetch the DB record to preserve them.
   if (dashboard.prebuiltId) {
     const config = PREBUILT_DASHBOARDS[dashboard.prebuiltId];
-    const id = 'id' in dashboard ? dashboard.id : '-1';
-    return {...config, ...dashboard, id, widgets: config.widgets};
+    const id = 'id' in dashboard ? dashboard.id : undefined;
+    const dbRecord = id ? await fetchDashboard(api, orgSlug, id) : undefined;
+    return {...config, ...dbRecord, id: id ?? '-1', widgets: config.widgets};
   }
 
   // DashboardDetails: already has widgets (PrebuiltDashboard is excluded by the

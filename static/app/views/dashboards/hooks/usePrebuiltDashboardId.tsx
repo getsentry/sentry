@@ -1,5 +1,5 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {makeLinkedDashboardsQueryKey} from 'sentry/views/dashboards/utils/resolveLinkedDashboardIds';

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
