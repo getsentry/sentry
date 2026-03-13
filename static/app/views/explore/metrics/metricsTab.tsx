@@ -1,3 +1,18 @@
+import {useCallback, useRef} from 'react';
+import type {DragEndEvent} from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -26,6 +41,7 @@ import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
+  useReorderMetricQueries,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   FilterBarWithSaveAsContainer,
@@ -72,23 +88,67 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+  const reorderMetricQueries = useReorderMetricQueries();
+
+  const dragIdsRef = useRef<number[]>([]);
+  while (dragIdsRef.current.length < metricQueries.length) {
+    dragIdsRef.current.push(dragIdsRef.current.length + 1);
+  }
+  dragIdsRef.current.length = metricQueries.length;
+  const dragIds = dragIdsRef.current;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const {active, over} = event;
+      if (active.id !== over?.id) {
+        const oldIndex = dragIds.indexOf(active.id as number);
+        const newIndex = dragIds.indexOf(over?.id as number);
+        if (oldIndex >= 0 && newIndex >= 0) {
+          const [removed] = dragIds.splice(oldIndex, 1);
+          dragIds.splice(newIndex, 0, removed!);
+          reorderMetricQueries(oldIndex, newIndex);
+        }
+      }
+    },
+    [dragIds, reorderMetricQueries]
+  );
+
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
-        {metricQueries.map((metricQuery, index) => {
-          return (
-            <MetricsQueryParamsProvider
-              key={`queryBuilder-${index}`}
-              queryParams={metricQuery.queryParams}
-              setQueryParams={metricQuery.setQueryParams}
-              traceMetric={metricQuery.metric}
-              setTraceMetric={metricQuery.setTraceMetric}
-              removeMetric={metricQuery.removeMetric}
-            >
-              <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
-            </MetricsQueryParamsProvider>
-          );
-        })}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={dragIds} strategy={verticalListSortingStrategy}>
+            {metricQueries.map((metricQuery, index) => {
+              return (
+                <MetricsQueryParamsProvider
+                  key={`queryBuilder-${dragIds[index]}`}
+                  queryParams={metricQuery.queryParams}
+                  setQueryParams={metricQuery.setQueryParams}
+                  traceMetric={metricQuery.metric}
+                  setTraceMetric={metricQuery.setTraceMetric}
+                  removeMetric={metricQuery.removeMetric}
+                >
+                  <MetricToolbar
+                    traceMetric={metricQuery.metric}
+                    queryIndex={index}
+                    dragId={dragIds[index]!}
+                  />
+                </MetricsQueryParamsProvider>
+              );
+            })}
+          </SortableContext>
+        </DndContext>
         <ToolbarVisualizeAddChart
           add={addMetricQuery}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
