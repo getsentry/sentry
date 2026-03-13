@@ -500,7 +500,9 @@ def taskbroker_send_tasks(
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
-    KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+    if bootstrap_servers:
+        KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
+
     if kafka_topic and namespace:
         options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
@@ -533,10 +535,11 @@ def taskbroker_send_tasks(
         while True:
             func.delay(*task_args, **task_kwargs)
             sent += 1.0
-            if sent % 1000 == 0 and time.time() - start_time > 10:
-                throughput = sent / (time.time() - start_time)
+            interval = time.time() - start_time
+            if sent % 1000 == 0 and interval > 10:
+                throughput = sent / interval
                 click.echo(
-                    message=f"Sent {sent} messages in {time.time() - start_time} seconds. Throughput: {throughput} messages/second."
+                    message=f"Sent {sent} messages in {interval} seconds. Throughput: {throughput} messages/second."
                 )
                 start_time = time.time()
                 sent = 0.0
