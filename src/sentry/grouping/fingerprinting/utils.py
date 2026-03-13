@@ -15,6 +15,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -301,7 +302,10 @@ def resolve_fingerprint_variable(
 
 
 def resolve_fingerprint_values(
-    fingerprint: list[str], event: Event, use_legacy_unknown_variable_handling: bool = False
+    fingerprint: list[str],
+    event: Event,
+    context: GroupingContext,
+    use_legacy_unknown_variable_handling: bool = False,
 ) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)

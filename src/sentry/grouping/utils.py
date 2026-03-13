@@ -16,6 +16,7 @@ from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -57,7 +58,7 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, reason: str, trim_message: bool
+    message: str, event: Event, context: GroupingContext, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
