@@ -1,3 +1,5 @@
+import omit from 'lodash/omit';
+
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   serializeFields,
@@ -12,8 +14,9 @@ export function convertBuilderStateToStateQueryParams(
   state: WidgetBuilderState
 ): WidgetBuilderStateQueryParams {
   const {fields, yAxis, sort, thresholds, traceMetric, ...rest} = state;
+  const allowedRemainingParams = omit(rest, 'textContent');
   return {
-    ...rest,
+    ...allowedRemainingParams,
     field: serializeFields(fields ?? []),
     yAxis: serializeFields(yAxis ?? []),
     sort: serializeSorts(WidgetType.SPANS)(sort ?? []),
