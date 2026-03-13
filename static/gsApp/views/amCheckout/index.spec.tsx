@@ -5,7 +5,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -789,5 +789,187 @@ describe('Default Tier Checkout', () => {
     expect(screen.getByTestId('attachments-volume-item')).toHaveTextContent('1 GB');
     expect(screen.getByTestId('spans-volume-item')).toHaveTextContent('10M');
     expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+  });
+
+  describe('plan selection persistence', () => {
+    it('does not reset plan selection when subscription store updates (free user)', async () => {
+      const sub = SubscriptionFixture({
+        organization,
+        plan: 'am3_f',
+        isFree: true,
+      });
+      SubscriptionStore.set(organization.slug, sub);
+
+      render(
+        <AMCheckout
+          {...RouteComponentPropsFixture()}
+          navigate={jest.fn()}
+          api={api}
+          checkoutTier={PlanTier.AM3}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/billing-config/`,
+          expect.objectContaining({method: 'GET', data: {tier: 'am3'}})
+        );
+      });
+
+      // Free users should default to Business
+      expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
+
+      // User selects Team
+      await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+
+      // Simulate subscription store update (e.g., after saving credit card)
+      act(() => {
+        SubscriptionStore.set(organization.slug, {
+          ...sub,
+          paymentSource: {
+            last4: '4242',
+            brand: 'visa',
+            expMonth: 12,
+            expYear: 2030,
+            countryCode: 'US',
+            zipCode: '94107',
+          },
+        });
+      });
+
+      // Plan selection should be preserved
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+      expect(screen.getByRole('radio', {name: 'Business'})).not.toBeChecked();
+
+      // Billing config should only be fetched once
+      expect(mockBillingConfigResponse).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reset plan selection when subscription store updates (trial user)', async () => {
+      const sub = SubscriptionFixture({
+        organization,
+        plan: 'am3_t',
+        isTrial: true,
+      });
+      SubscriptionStore.set(organization.slug, sub);
+
+      render(
+        <AMCheckout
+          {...RouteComponentPropsFixture()}
+          navigate={jest.fn()}
+          api={api}
+          checkoutTier={PlanTier.AM3}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/billing-config/`,
+          expect.objectContaining({method: 'GET', data: {tier: 'am3'}})
+        );
+      });
+
+      // Trial users should default to Business
+      expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
+
+      // User selects Team
+      await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+
+      // Simulate subscription store update
+      act(() => {
+        SubscriptionStore.set(organization.slug, {
+          ...sub,
+          paymentSource: {
+            last4: '4242',
+            brand: 'visa',
+            expMonth: 12,
+            expYear: 2030,
+            countryCode: 'US',
+            zipCode: '94107',
+          },
+        });
+      });
+
+      // Plan selection should be preserved
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+      expect(screen.getByRole('radio', {name: 'Business'})).not.toBeChecked();
+
+      // Billing config should only be fetched once
+      expect(mockBillingConfigResponse).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves form data across multiple subscription store updates', async () => {
+      const sub = SubscriptionFixture({
+        organization,
+        plan: 'am3_f',
+        isFree: true,
+      });
+      SubscriptionStore.set(organization.slug, sub);
+
+      render(
+        <AMCheckout
+          {...RouteComponentPropsFixture()}
+          navigate={jest.fn()}
+          api={api}
+          checkoutTier={PlanTier.AM3}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+          `/customers/${organization.slug}/billing-config/`,
+          expect.objectContaining({method: 'GET', data: {tier: 'am3'}})
+        );
+      });
+
+      // User selects Team
+      await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+
+      // First subscription store update
+      act(() => {
+        SubscriptionStore.set(organization.slug, {
+          ...sub,
+          paymentSource: {
+            last4: '4242',
+            brand: 'visa',
+            expMonth: 12,
+            expYear: 2030,
+            countryCode: 'US',
+            zipCode: '94107',
+          },
+        });
+      });
+
+      // Team should still be selected after first update
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+
+      // Second subscription store update with different payment data
+      act(() => {
+        SubscriptionStore.set(organization.slug, {
+          ...sub,
+          paymentSource: {
+            last4: '1234',
+            brand: 'mastercard',
+            expMonth: 6,
+            expYear: 2031,
+            countryCode: 'US',
+            zipCode: '10001',
+          },
+        });
+      });
+
+      // Team should STILL be selected after second update
+      expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+      expect(screen.getByRole('radio', {name: 'Business'})).not.toBeChecked();
+
+      // Billing config should only be fetched once
+      expect(mockBillingConfigResponse).toHaveBeenCalledTimes(1);
+    });
   });
 });
