@@ -6,7 +6,7 @@ description: >-
   anywhere eventual consistency is needed — including single-silo deferred side
   effects, audit logging, and event fanout. Use when asked to "add outbox",
   "add outbox replication", "replicate model to control silo", "replicate model
-  to region", "add outbox category", "write outbox signal receiver", "debug stuck
+  to cell", "add outbox category", "write outbox signal receiver", "debug stuck
   outboxes", "outbox not processing", "data not replicating", "test outbox",
   "migrate model to use outboxes", "backfill outbox data", "outbox coalescing",
   "ReplicatedCellModel", "ReplicatedControlModel", "OutboxCategory",
@@ -22,8 +22,8 @@ The most common use case is **cross-silo data replication**: a model saved in th
 
 There are two outbox types corresponding to the two directions of flow:
 
-- **`RegionOutbox`** — written in a Region silo, processed in the Region silo to push data toward Control (via RPC calls in signal receivers).
-- **`ControlOutbox`** — written in the Control silo, processed in the Control silo to push data toward one or more Region silos. Each `ControlOutbox` row targets a specific `region_name`.
+- **`RegionOutbox`** — written in a Cell silo, processed in the Cell silo to push data toward Control (via RPC calls in signal receivers).
+- **`ControlOutbox`** — written in the Control silo, processed in the Control silo to push data toward one or more Cell silos. Each `ControlOutbox` row targets a specific `cell_name`.
 
 ## Critical Constraints
 
@@ -66,12 +66,12 @@ There are two outbox types corresponding to the two directions of flow:
 
 | Data lives in... | Replicates toward... | Mixin                    | Outbox type     |
 | ---------------- | -------------------- | ------------------------ | --------------- |
-| Region silo      | Control silo         | `ReplicatedCellModel`    | `RegionOutbox`  |
-| Control silo     | Region silo(s)       | `ReplicatedControlModel` | `ControlOutbox` |
+| Cell silo        | Control silo         | `ReplicatedCellModel`    | `RegionOutbox`  |
+| Control silo     | Cell silo(s)         | `ReplicatedControlModel` | `ControlOutbox` |
 
 ### 2.2 `ReplicatedCellModel` Template
 
-Use this when a Region model needs to replicate data to the Control silo.
+Use this when a Cell model needs to replicate data to the Control silo.
 
 ```python
 from sentry.backup.scopes import RelocationScope
@@ -148,7 +148,7 @@ class MyModel(ReplicatedCellModel):
 
 ### 2.3 `ReplicatedControlModel` Template
 
-Use this when a Control model needs to replicate data to Region silo(s). The key difference: Control outboxes fan out to one or more regions, so the model must declare which regions to target.
+Use this when a Control model needs to replicate data to Region silo(s). The key difference: Control outboxes fan out to one or more cells, so the model must declare which cells to target.
 
 ```python
 from sentry.db.models import control_silo_model
