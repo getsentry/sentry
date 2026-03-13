@@ -95,7 +95,7 @@ function MetricsQueryBuilderSection() {
     dragIdsRef.current.push(dragIdsRef.current.length + 1);
   }
   dragIdsRef.current.length = metricQueries.length;
-  const dragIds = dragIdsRef.current;
+  const dragIds = [...dragIdsRef.current];
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -108,16 +108,17 @@ function MetricsQueryBuilderSection() {
     (event: DragEndEvent) => {
       const {active, over} = event;
       if (active.id !== over?.id) {
-        const oldIndex = dragIds.indexOf(active.id as number);
-        const newIndex = dragIds.indexOf(over?.id as number);
+        const ids = dragIdsRef.current;
+        const oldIndex = ids.indexOf(active.id as number);
+        const newIndex = ids.indexOf(over?.id as number);
         if (oldIndex >= 0 && newIndex >= 0) {
-          const [removed] = dragIds.splice(oldIndex, 1);
-          dragIds.splice(newIndex, 0, removed!);
+          const [removed] = ids.splice(oldIndex, 1);
+          ids.splice(newIndex, 0, removed!);
           reorderMetricQueries(oldIndex, newIndex);
         }
       }
     },
-    [dragIds, reorderMetricQueries]
+    [reorderMetricQueries]
   );
 
   return (
