@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -17,6 +17,7 @@ import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimeli
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 const SECOND = 1000;
+const KEYBOARD_SEEK_STEP_MS = 5 * SECOND;
 
 const COMPACT_WIDTH_BREAKPOINT = 500;
 
@@ -27,9 +28,75 @@ interface Props {
   speedOptions?: number[];
 }
 
-function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
+function isTypingInInput(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest(
+      'input, textarea, select, button, [role="textbox"], [role="slider"], [contenteditable="true"]'
+    ) || target.isContentEditable
+  );
+}
+
+export function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const replay = useReplayReader();
-  const {currentTime, setCurrentTime} = useReplayContext();
+  const {currentTime, isFinished, isPlaying, restart, setCurrentTime, togglePlayPause} =
+    useReplayContext();
+
+  useEffect(() => {
+    if (isLoading) {
+      return () => {};
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        isTypingInInput(event.target)
+      ) {
+        return;
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setCurrentTime(currentTime - KEYBOARD_SEEK_STEP_MS);
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setCurrentTime(currentTime + KEYBOARD_SEEK_STEP_MS);
+        return;
+      }
+
+      if (event.key === ' ' || event.key === 'Spacebar' || event.key === 'Space') {
+        event.preventDefault();
+        if (isFinished) {
+          restart();
+        } else {
+          togglePlayPause(!isPlaying);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [
+    currentTime,
+    isFinished,
+    isLoading,
+    isPlaying,
+    restart,
+    setCurrentTime,
+    togglePlayPause,
+  ]);
 
   return (
     <Grid flow="column" align="center" gap="md">
