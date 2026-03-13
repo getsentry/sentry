@@ -37,15 +37,16 @@ export function MetricToolbar({traceMetric, queryIndex, dragId}: MetricToolbarPr
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
 
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: dragId,
+    transition: null,
     disabled: !hasMultipleQueries,
   });
 
   return (
     <Grid
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform), transition}}
+      style={{transform: CSS.Transform.toString(transform)}}
       width="100%"
       align="center"
       gap="md"
