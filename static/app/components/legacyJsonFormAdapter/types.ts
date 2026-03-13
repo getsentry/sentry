@@ -41,7 +41,13 @@ interface JsonFormAdapterNumber extends JsonFormAdapterBase {
 interface JsonFormAdapterChoiceMapper extends JsonFormAdapterBase {
   type: 'choice_mapper';
   addButtonText?: string;
-  addDropdown?: Record<string, unknown>;
+  addDropdown?: {
+    items: Array<{label: string; value: string}>;
+    emptyMessage?: string;
+    noResultsMessage?: string;
+    searchField?: string;
+    url?: string;
+  };
   columnLabels?: Record<string, string>;
   formatMessageValue?: boolean;
   mappedColumnLabel?: string;
@@ -49,6 +55,7 @@ interface JsonFormAdapterChoiceMapper extends JsonFormAdapterBase {
     string,
     {choices: Array<[string, string]>; placeholder?: string}
   >;
+  perItemMapping?: boolean;
 }
 
 interface JsonFormAdapterTable extends JsonFormAdapterBase {

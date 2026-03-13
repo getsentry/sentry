@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
+import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import type {JsonFormAdapterFieldConfig} from './types';
 
 function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
@@ -79,15 +80,69 @@ export function LegacyJsonFormAdapter<TData, TContext>({
   );
 
   // Unsupported field types get a placeholder
-  if (
-    field.type === 'choice_mapper' ||
-    field.type === 'table' ||
-    field.type === 'project_mapper'
-  ) {
+  if (field.type === 'table' || field.type === 'project_mapper') {
     return (
       <Text variant="muted" as="p">
         {t('Field "%s" is not supported in auto-save mode.', field.label)}
       </Text>
+    );
+  }
+
+  if (field.type === 'choice_mapper') {
+    const choiceMapperSchema = z.object({
+      [fieldName]: z.any(),
+    });
+    const choiceMapperValue = (
+      initialValue !== undefined && initialValue !== null
+        ? initialValue
+        : field.default === undefined
+          ? {}
+          : field.default
+    ) as Record<string, Record<string, unknown>>;
+
+    return (
+      <AutoSaveField
+        name={fieldName}
+        schema={choiceMapperSchema}
+        initialValue={choiceMapperValue}
+        mutationOptions={mutationOptions}
+      >
+        {fieldApi => (
+          <fieldApi.Base>
+            {(_baseProps, {indicator}) => {
+              const columnKeys = Object.keys(field.columnLabels ?? {});
+              const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
+                Object.values(val).every(row =>
+                  columnKeys.every(key => row[key] !== null && row[key] !== undefined)
+                );
+              const handleChangeAndSave = (
+                val: Record<string, Record<string, unknown>>
+              ) => {
+                fieldApi.handleChange(val);
+                if (allColumnsFilled(val)) {
+                  _baseProps.onBlur();
+                }
+              };
+              return (
+                <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                  <ChoiceMapperDropdown
+                    config={field}
+                    value={fieldApi.state.value}
+                    onChange={fieldApi.handleChange}
+                    indicator={indicator}
+                  />
+                  <ChoiceMapperTable
+                    config={field}
+                    value={fieldApi.state.value}
+                    onChange={handleChangeAndSave}
+                    disabled={field.disabled}
+                  />
+                </fieldApi.Layout.Row>
+              );
+            }}
+          </fieldApi.Base>
+        )}
+      </AutoSaveField>
     );
   }
 
