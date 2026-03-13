@@ -156,6 +156,7 @@ export function useCollapsedNavigation() {
       navigationParentEl.removeEventListener('focusin', handleFocusIn);
       navigationParentEl.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(openTimer);
       clearTimeout(closeTimer);
     };
   }, [
