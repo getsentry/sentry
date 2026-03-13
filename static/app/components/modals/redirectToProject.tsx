@@ -7,7 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';

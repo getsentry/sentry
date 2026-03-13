@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PackageManager} from './utils';
-import docs from '.';
+import {docs} from '.';
 
 describe('GettingStartedWithKotlin', () => {
   it('renders gradle docs correctly', async () => {

@@ -7,8 +7,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
-import localStorageWrapper from 'sentry/utils/localStorage';
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
