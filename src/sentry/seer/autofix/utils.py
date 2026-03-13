@@ -447,6 +447,13 @@ def _write_preferences_to_sentry_db(
     project_repos_to_create: list[SeerProjectRepository] = []
     repo_defs: list[SeerRepoDefinition] = []
     for project, pref in project_preferences:
+        if project.id != pref.project_id:
+            logger.warning(
+                "seer.write_preference.project_id_mismatch",
+                extra={"project_id": project.id, "preference_project_id": pref.project_id},
+            )
+            continue
+
         _write_preference_project_options(project, pref)
 
         for repo_def in pref.repositories:
@@ -460,6 +467,7 @@ def _write_preferences_to_sentry_db(
                     },
                 )
                 continue
+
             project_repos_to_create.append(
                 SeerProjectRepository(
                     project=project,
@@ -493,10 +501,7 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
     _write_preferences_to_sentry_db([(project, preference)])
 
 
-def bulk_write_preferences_to_sentry_db(
-    organization_id: int,
-    preferences: list[SeerProjectPreference],
-) -> None:
+def bulk_write_preferences_to_sentry_db(preferences: list[SeerProjectPreference]) -> None:
     """Write multiple Seer project preferences using bulk operations."""
     projects_by_id = {
         p.id: p for p in Project.objects.filter(id__in=[pref.project_id for pref in preferences])
@@ -508,7 +513,7 @@ def bulk_write_preferences_to_sentry_db(
         if project is None:
             logger.warning(
                 "seer.write_preferences.project_not_found",
-                extra={"project_id": pref.project_id, "organization_id": organization_id},
+                extra={"project_id": pref.project_id, "organization_id": pref.organization_id},
             )
             continue
         project_preferences.append((project, pref))
@@ -631,7 +636,7 @@ def bulk_set_project_preferences(organization: Organization, preferences: list[d
                     },
                 )
         if validated_preferences:
-            bulk_write_preferences_to_sentry_db(organization.id, validated_preferences)
+            bulk_write_preferences_to_sentry_db(validated_preferences)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
