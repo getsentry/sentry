@@ -208,7 +208,6 @@ function PrimaryNavigationMenu({
             >
               <NavigationButton
                 {...triggerProps}
-                isMobile={layout === 'mobile'}
                 aria-label={showLabel ? undefined : label}
                 size={size}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
@@ -230,7 +229,7 @@ function PrimaryNavigationMenu({
                     {children}
                   </Fragment>
                 ) : (
-                  {children}
+                  children
                 )}
               </NavigationButton>
             </Tooltip>
@@ -347,7 +346,7 @@ const NavigationLink = styled(Link, {
   }
 `;
 
-const NavigationButton = styled((props: ButtonProps) => {
+function NavigationButton(props: ButtonProps) {
   const {layout} = useNavigation();
 
   return (
@@ -368,7 +367,7 @@ const NavigationButton = styled((props: ButtonProps) => {
       )}
     </Flex>
   );
-});
+}
 
 const PrimaryNavigationUnreadIndicator = styled('span')<{
   isMobile: boolean;
