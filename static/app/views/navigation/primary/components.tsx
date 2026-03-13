@@ -25,7 +25,7 @@ import {
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import type {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/useActiveNavigationGroup';
+import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -148,7 +148,7 @@ export function SidebarMenu({
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
-  group: keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+  group: NavigationGroup;
   label: string;
   to: string;
   activeTo?: string;

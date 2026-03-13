@@ -30,7 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
 export const enum NavigationTour {
   ISSUES = 'issues',
@@ -133,7 +133,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const activeGroup = useActiveNavigationGroup();
+  const {activeGroup} = useNavigation();
 
   const onStartTour = useCallback(() => {
     // Save the initial URL when the tour starts because we need to restore it when the tour ends.

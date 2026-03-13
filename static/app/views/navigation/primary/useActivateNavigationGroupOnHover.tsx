@@ -4,7 +4,7 @@ import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import type {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/useActiveNavigationGroup';
+import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -37,9 +37,7 @@ export function useActivateNavigationGroupOnHover({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(
-    group: keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG
-  ) {
+  return function makeNavigationItemProps(group: NavigationGroup) {
     const onMouseEnter = (e: MouseEvent) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);

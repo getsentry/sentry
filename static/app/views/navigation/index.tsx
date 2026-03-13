@@ -14,10 +14,7 @@ import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import {
-  NavigationTourProvider,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
@@ -94,9 +91,5 @@ export function Navigation() {
     return <UserOnlyNavigation />;
   }
 
-  return (
-    <NavigationTourProvider>
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
-  );
+  return <UserAndOrganizationNavigation />;
 }
