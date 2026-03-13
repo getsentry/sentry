@@ -24,7 +24,7 @@ import {
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-  useSetMetricVisualize,
+  useSetMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
@@ -70,7 +70,7 @@ export function MetricsGraph({
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
-  const setVisualize = useSetMetricVisualize();
+  const setVisualizes = useSetMetricVisualizes();
 
   const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
@@ -81,7 +81,7 @@ export function MetricsGraph({
   );
 
   function handleChartTypeChange(newChartType: ChartType) {
-    setVisualize(visualize.replace({chartType: newChartType}));
+    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
   }
 
   return (
