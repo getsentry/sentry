@@ -3,7 +3,6 @@ from datetime import datetime
 
 import orjson
 import sentry_sdk
-from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
@@ -26,6 +25,7 @@ from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
+from sentry.seer.signed_seer_api import SeerViewerContext
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class ReplaySummaryPermission(ProjectPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
@@ -67,7 +67,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         )
         super().__init__(**kw)
 
-    def _make_seer_start_request(self, body: ReplaySummaryStartRequest) -> Response:
+    def _make_seer_start_request(
+        self, body: ReplaySummaryStartRequest, viewer_context: SeerViewerContext | None = None
+    ) -> Response:
         """Make a start-summary request to Seer with error handling."""
         serialized = orjson.dumps(body)
         if len(serialized) > SEER_REQUEST_SIZE_LOG_THRESHOLD:
@@ -85,8 +87,9 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
         try:
             response = make_replay_summary_start_request(
                 body,
-                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                timeout=5,
                 retries=0,
+                viewer_context=viewer_context,
             )
         except Exception:
             logger.exception(
@@ -108,13 +111,16 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
 
         return Response(data=response.json(), status=response.status)
 
-    def _make_seer_state_request(self, body: ReplaySummaryStateRequest) -> Response:
+    def _make_seer_state_request(
+        self, body: ReplaySummaryStateRequest, viewer_context: SeerViewerContext | None = None
+    ) -> Response:
         """Make a poll-state request to Seer with error handling."""
         try:
             response = make_replay_summary_state_request(
                 body,
-                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
+                timeout=5,
                 retries=0,
+                viewer_context=viewer_context,
             )
         except Exception:
             logger.exception(
@@ -166,6 +172,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             # Since this endpoint is polled, we skip checking Seer permissions here for performance.
             # Both the frontend and summary generation are gated by the same permissions.
 
+            viewer_context = SeerViewerContext(
+                organization_id=project.organization_id, user_id=request.user.id
+            )
+
             # Request Seer for the state of the summary task.
             return self._make_seer_state_request(
                 ReplaySummaryStateRequest(
@@ -173,6 +183,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                     organization_id=project.organization.id,
                     project_id=project.id,
                 ),
+                viewer_context=viewer_context,
             )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -265,4 +276,8 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             if temperature is not None:
                 start_request["temperature"] = temperature
 
-            return self._make_seer_start_request(start_request)
+            viewer_context = SeerViewerContext(
+                organization_id=project.organization_id, user_id=request.user.id
+            )
+
+            return self._make_seer_start_request(start_request, viewer_context=viewer_context)

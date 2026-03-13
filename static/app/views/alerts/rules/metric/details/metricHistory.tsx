@@ -7,18 +7,17 @@ import {Link} from '@sentry/scraps/link';
 
 import CollapsePanel from 'sentry/components/collapsePanel';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
-import type {ActivityType, Incident} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -42,9 +41,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     activity => activity.value === `${IncidentStatus.WARNING}`
   );
 
-  const triggeredActivity: ActivityType = criticalActivity
-    ? criticalActivity
-    : warningActivity!;
+  const triggeredActivity = criticalActivity ? criticalActivity : warningActivity!;
   const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
 
   // Find duration by looking at the difference between the previous and current activity timestamp
@@ -135,7 +132,7 @@ type Props = {
   incidents?: Incident[];
 };
 
-function MetricHistory({incidents}: Props) {
+export function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
   const filteredIncidents = (incidents ?? []).filter(
     incident => incident.activities?.length
@@ -177,17 +174,15 @@ function MetricHistory({incidents}: Props) {
   );
 }
 
-export default MetricHistory;
-
 const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
   grid-template-columns: max-content 1fr repeat(2, max-content);
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   div:last-of-type {
-    padding: ${p => p.isEmpty && `48px ${space(1)}`};
+    padding: ${p => p.isEmpty && `48px ${p.theme.space.md}`};
   }
 
   ${p =>
@@ -209,5 +204,5 @@ const Cell = styled('div')`
   align-items: center;
   white-space: nowrap;
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;

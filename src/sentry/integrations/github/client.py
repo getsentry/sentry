@@ -53,6 +53,85 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+GET_PULL_REQUEST_COMMENTS_QUERY = """
+query GetPullRequestComments(
+    $owner: String!,
+    $repo: String!,
+    $prNumber: Int!,
+    $commentsAfter: String,
+    $includeComments: Boolean!,
+    $reviewThreadsAfter: String,
+    $includeThreads: Boolean!
+) {
+    repository(owner: $owner, name: $repo) {
+        pullRequest(number: $prNumber) {
+            comments(first: 100, after: $commentsAfter) @include(if: $includeComments) {
+                nodes {
+                    id
+                    body
+                    isMinimized
+                    author { login databaseId __typename }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+            reviewThreads(first: 100, after: $reviewThreadsAfter) @include(if: $includeThreads) {
+                nodes {
+                    id
+                    isCollapsed
+                    isOutdated
+                    isResolved
+                    comments(last: 100) {
+                        nodes {
+                            id
+                            fullDatabaseId
+                            url
+                            body
+                            isMinimized
+                            path
+                            startLine
+                            line
+                            diffHunk
+                            createdAt
+                            updatedAt
+                            reactions(last: 10) {
+                                nodes { content }
+                                totalCount
+                            }
+                            author { login databaseId __typename }
+                        }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+
+MINIMIZE_COMMENT_MUTATION = """
+mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) {
+    minimizeComment(input: {subjectId: $commentId, classifier: $reason}) {
+        minimizedComment { isMinimized }
+    }
+}
+"""
+
+RESOLVE_REVIEW_THREAD_MUTATION = """
+mutation ResolveReviewThread($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+        thread { isResolved }
+    }
+}
+"""
+
+DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION = """
+mutation DeletePullRequestReviewComment($commentNodeId: ID!) {
+    deletePullRequestReviewComment(input: {id: $commentNodeId}) {
+        clientMutationId
+    }
+}
+"""
+
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
@@ -351,11 +430,18 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/hooks")
 
-    def get_commits(self, repo: str) -> Sequence[Any]:
+    def get_commits(
+        self, repo: str, sha: str | None = None, path: str | None = None
+    ) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits")
+        params: dict[str, str] = {}
+        if sha:
+            params["sha"] = sha
+        if path:
+            params["path"] = path
+        return self.get(f"/repos/{repo}/commits", params=params)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
@@ -404,7 +490,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
-    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+    def get_pull_request(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -417,6 +503,16 @@ class GitHubBaseClient(
         https://docs.github.com/en/rest/repos/repos#get-a-repository
         """
         return self.get(f"/repos/{repo}")
+
+    def get_languages(self, repo: str) -> dict[str, int]:
+        """
+        https://docs.github.com/en/rest/repos/repos#list-repository-languages
+
+        :param repo: "owner/repo" format
+        :returns: {"Python": 50000, "JavaScript": 30000, ...}
+                  Keys are GitHub Linguist names, values are bytes of code.
+        """
+        return self.get(f"/repos/{repo}/languages")
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
@@ -465,6 +561,104 @@ class GitHubBaseClient(
                     repo_full_name,
                 )
             return contents["tree"]
+
+    def get_tree_full(
+        self, repo_full_name: str, tree_sha: str, recursive: bool = True
+    ) -> dict[str, Any]:
+        """https://docs.github.com/en/rest/git/trees#get-a-tree
+
+        Returns the full API response including the ``truncated`` flag.
+        """
+        params: dict[str, int] = {}
+        if recursive:
+            params["recursive"] = 1
+        contents: dict[str, Any] = self.get(
+            f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+            params=params,
+        )
+        return contents
+
+    def get_branch(self, repo: str, branch: str) -> Any:
+        """https://docs.github.com/en/rest/branches/branches#get-a-branch"""
+        return self.get(f"/repos/{repo}/branches/{branch}")
+
+    def get_git_ref(self, repo: str, ref: str) -> Any:
+        """https://docs.github.com/en/rest/git/refs#get-a-reference"""
+        return self.get(f"/repos/{repo}/git/refs/heads/{ref}")
+
+    def create_git_ref(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#create-a-reference"""
+        return self.post(f"/repos/{repo}/git/refs", data=data)
+
+    def update_git_ref(self, repo: str, ref: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#update-a-reference"""
+        return self.patch(f"/repos/{repo}/git/refs/heads/{ref}", data=data)
+
+    def create_git_blob(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/blobs#create-a-blob"""
+        return self.post(f"/repos/{repo}/git/blobs", data=data)
+
+    def get_file_content(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/repos/contents#get-repository-content"""
+        params = {}
+        if ref:
+            params["ref"] = ref
+        return self.get(f"/repos/{repo}/contents/{path}", params=params)
+
+    def get_git_commit(self, repo: str, sha: str) -> Any:
+        """https://docs.github.com/en/rest/git/commits#get-a-commit-object"""
+        return self.get(f"/repos/{repo}/git/commits/{sha}")
+
+    def create_git_tree(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/trees#create-a-tree"""
+        return self.post(f"/repos/{repo}/git/trees", data=data)
+
+    def create_git_commit(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/commits#create-a-commit"""
+        return self.post(f"/repos/{repo}/git/commits", data=data)
+
+    def list_pull_requests(self, repo: str, state: str = "open", head: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-pull-requests"""
+        params: dict[str, Any] = {"state": state}
+        if head:
+            params["head"] = head
+        return self.get(f"/repos/{repo}/pulls", params=params)
+
+    def get_pull_request_commits(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request"""
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/commits")
+
+    def get_pull_request_diff(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request (diff format)"""
+        return self.get(
+            f"/repos/{repo}/pulls/{pull_number}",
+            headers={"Accept": "application/vnd.github.v3.diff"},
+            allow_text=True,
+        )
+
+    def create_pull_request(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls", data=data)
+
+    def update_pull_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#update-a-pull-request"""
+        return self.patch(f"/repos/{repo}/pulls/{pull_number}", data=data)
+
+    def create_review_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/review-requests#request-reviewers-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/requested_reviewers", data=data)
+
+    def create_review_comment(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/comments#create-a-review-comment-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/comments", data=data)
+
+    def create_review(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/reviews#create-a-review-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/reviews", data=data)
+
+    def update_check_run(self, repo: str, check_run_id: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/checks/runs#update-a-check-run"""
+        return self.patch(f"/repos/{repo}/check-runs/{check_run_id}", data=data)
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -666,15 +860,11 @@ class GitHubBaseClient(
     ) -> Any:
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
-        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue-comment
         """
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
-        response = self.get(endpoint)
-        reactions = response.get("reactions", {})
-        reactions.pop("url", None)
-        return reactions
+        return self._get_with_pagination(f"/repos/{repo}/issues/comments/{comment_id}/reactions")
 
     def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
         """
@@ -687,6 +877,18 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/issues/comments#delete-an-issue-comment
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-comment-reaction
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
 
     def get_user(self, gh_username: str) -> Any:
         """
@@ -721,12 +923,85 @@ class GitHubBaseClient(
             headers=headers,
         )
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
+        if codeowners:
+            if not contents.ok:
+                raise ApiError.from_response(contents)
+            return contents.content.decode("utf-8")
+
+        return b64decode(contents["content"]).decode("utf-8")
+
+    def _graphql(
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Execute a GraphQL query/mutation against GitHub's API."""
+        payload: dict[str, Any] = {"query": query}
+        if variables:
+            payload["variables"] = variables
+
+        response = self.post(path="/graphql", data=payload, allow_text=False)
+
+        if not isinstance(response, Mapping) or (
+            "data" not in response and "errors" not in response
+        ):
+            raise ApiError("GraphQL response is not in expected format")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                err_message = "\n".join(e.get("message", "") for e in errors)
+                raise ApiError(err_message)
+
+        return response.get("data", {})
+
+    def get_pull_request_comments_graphql(
+        self,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        *,
+        comments_after: str | None = None,
+        include_comments: bool = True,
+        review_threads_after: str | None = None,
+        include_threads: bool = True,
+    ) -> dict[str, Any]:
+        """Fetch PR comments and review threads via GraphQL with independent pagination."""
+        variables: dict[str, Any] = {
+            "owner": owner,
+            "repo": repo,
+            "prNumber": pr_number,
+            "includeComments": include_comments,
+            "includeThreads": include_threads,
+        }
+        if comments_after is not None:
+            variables["commentsAfter"] = comments_after
+        if review_threads_after is not None:
+            variables["reviewThreadsAfter"] = review_threads_after
+        return self._graphql(GET_PULL_REQUEST_COMMENTS_QUERY, variables)
+
+    def minimize_comment(self, comment_node_id: str, reason: str) -> dict[str, Any]:
+        """Minimize (collapse) a comment by its GraphQL node ID."""
+        return self._graphql(
+            MINIMIZE_COMMENT_MUTATION,
+            {"commentId": comment_node_id, "reason": reason},
         )
-        return result
+
+    def resolve_review_thread(self, thread_node_id: str) -> dict[str, Any]:
+        """Resolve a review thread by its GraphQL node ID."""
+        return self._graphql(
+            RESOLVE_REVIEW_THREAD_MUTATION,
+            {"threadId": thread_node_id},
+        )
+
+    def delete_pull_request_review_comment(self, comment_node_id: str) -> dict[str, Any]:
+        """Delete a pull request review comment by its GraphQL node ID."""
+        return self._graphql(
+            DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION,
+            {"commentNodeId": comment_node_id},
+        )
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]

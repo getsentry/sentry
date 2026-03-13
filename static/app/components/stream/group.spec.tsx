@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
-import GuideStore from 'sentry/stores/guideStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';

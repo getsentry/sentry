@@ -21,7 +21,7 @@ import {
 } from 'sentry/components/pageFilters/persistence';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -266,6 +266,18 @@ export function initializeUrlState({
     if (!hasDatetimeInUrl && pinnedFilters.has('datetime')) {
       pageFilters.datetime = getDatetimeFromState(storedState);
       shouldUsePinnedDatetime = true;
+    }
+  }
+
+  // When the organization only has a single project, automatically select it
+  // instead of defaulting to "My Projects" or "All Projects".
+  if (
+    memberProjects.length + nonMemberProjects.length === 1 &&
+    pageFilters.projects.length === 0
+  ) {
+    const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
+    if (onlyProject) {
+      pageFilters.projects = [getProjectIdFromProject(onlyProject)];
     }
   }
 

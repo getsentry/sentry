@@ -315,12 +315,12 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     Return the customer-facing base URL for a locality.
 
     If locality_name is not provided, it is inferred from the running silo:
-    in REGION mode the local cell's locality is used; in MONOLITH mode with
+    in CELL mode the local cell's locality is used; in MONOLITH mode with
     SENTRY_REGION set the corresponding locality is resolved from that cell name.
     Falls back to system.url-prefix when no template or locality name is available.
     """
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if locality_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+    if locality_name is None and SiloMode.get_current_mode() == SiloMode.CELL:
         locality_name = get_local_locality().name
 
     if (
@@ -416,7 +416,7 @@ def handle_query_errors() -> Generator[None]:
         arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(error, RateLimitExceeded):
             sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
-            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+            raise
         if isinstance(
             error,
             (

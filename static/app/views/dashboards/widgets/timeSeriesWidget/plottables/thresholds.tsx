@@ -4,8 +4,8 @@ import type {
   SeriesOption,
 } from 'echarts';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUnit} from 'sentry/views/dashboards/utils';
@@ -47,7 +47,8 @@ export class Thresholds implements Plottable {
   dataType: PlottableTimeSeriesValueType = 'duration';
   dataUnit: TimeSeriesValueUnit = null;
   isEmpty = false;
-  name = '';
+  label = t('Thresholds');
+  name = '__thresholds__';
   needsColor = false;
   start: number | null = null;
   end: number | null = null;

@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';
@@ -35,8 +34,8 @@ const WaitingNotice = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(0.25)} ${space(0.5)};
-  margin-top: ${space(2)};
+  gap: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
+  margin-top: ${p => p.theme.space.xl};
   color: ${p => p.theme.colors.pink500};
 `;
 
@@ -47,6 +46,6 @@ const WaitingHelpText = styled('small')`
 `;
 
 const WaitingIndicator = styled('div')`
-  margin: 0 ${space(0.75)};
+  margin: 0 ${p => p.theme.space.sm};
   ${pulsingIndicatorStyles};
 `;

@@ -4,17 +4,16 @@ import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import Legend from 'sentry/components/charts/components/legend';
-import xAxis from 'sentry/components/charts/components/xAxis';
-import barSeries from 'sentry/components/charts/series/barSeries';
+import {Legend} from 'sentry/components/charts/components/legend';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -370,7 +369,7 @@ function UsageChartBody({
   const colors = outputChartColors(theme);
 
   const series: SeriesOption[] = [
-    barSeries({
+    BarSeries({
       name: SeriesTypes.ACCEPTED,
       data: chartData.accepted,
       barMinHeight: 1,
@@ -379,7 +378,7 @@ function UsageChartBody({
     }),
     ...(chartData.accepted_stored
       ? [
-          barSeries({
+          BarSeries({
             name: SeriesTypes.ACCEPTED,
             data: chartData.accepted_stored,
             barMinHeight: 1,
@@ -399,33 +398,33 @@ function UsageChartBody({
           }),
         ]
       : []),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
       barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.RATE_LIMITED,
       data: chartData.rateLimited,
       barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.INVALID,
       data: chartData.invalid,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.CLIENT_DISCARD,
       data: chartData.clientDiscard,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    barSeries({
+    BarSeries({
       name: SeriesTypes.PROJECTED,
       data: chartData.projected,
       barMinHeight: 1,
@@ -447,7 +446,7 @@ function UsageChartBody({
         },
       }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
-      xAxis={xAxis({
+      xAxis={XAxis({
         show: true,
         type: 'category',
         name: 'Date',
@@ -517,6 +516,6 @@ const ErrorMessages = styled('div')`
   display: flex;
   flex-direction: column;
 
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;

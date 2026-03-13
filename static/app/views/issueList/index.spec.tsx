@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import IssueListContainer from 'sentry/views/issueList';
+import {IssueListContainer} from 'sentry/views/issueList';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueListContainer', () => {

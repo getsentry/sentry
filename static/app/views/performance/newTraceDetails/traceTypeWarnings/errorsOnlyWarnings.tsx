@@ -10,9 +10,9 @@ import OnboardingDrawerStore, {
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useProjects} from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -59,6 +59,7 @@ function PerformanceSetupBanner({
   projectsWithOnboardingChecklist,
 }: PerformanceSetupBannerProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const LOCAL_STORAGE_KEY = `${traceSlug}:performance-orphan-error-onboarding-banner-hide`;
   const hideBanner =
     projectsWithNoPerformance.length === 0 ||
@@ -89,14 +90,17 @@ function PerformanceSetupBanner({
       image={emptyTraceImg}
       onPrimaryButtonClick={() => {
         traceAnalytics.trackPerformanceSetupChecklistTriggered(organization);
-        browserHistory.replace({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            project: projectsWithOnboardingChecklist.map(project => project.id),
+        navigate(
+          {
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              project: projectsWithOnboardingChecklist.map(project => project.id),
+            },
+            hash: '#performance-sidequest',
           },
-          hash: '#performance-sidequest',
-        });
+          {replace: true}
+        );
         OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
       }}
       onSecondaryButtonClick={() =>
@@ -111,6 +115,7 @@ function PerformanceSetupBanner({
 }
 
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
+  const navigate = useNavigate();
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
@@ -170,7 +175,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           props.organization,
           props.tree.shape
         );
-        browserHistory.push({
+        navigate({
           pathname: '/checkout/?referrer=trace-view',
           query: {
             skipBundles: true,

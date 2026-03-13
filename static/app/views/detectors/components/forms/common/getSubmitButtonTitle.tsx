@@ -1,5 +1,5 @@
 import {getSubmitButtonTitle as getSubmitButtonTitleBase} from 'sentry/components/forms/form';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 
 /**
  * Wraps the base getSubmitButtonTitle to support an optional disabledReason

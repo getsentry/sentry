@@ -5,8 +5,8 @@ import {
   useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {GroupSearchView, StarredGroupSearchView} from 'sentry/views/issueList/types';
 

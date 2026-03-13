@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -28,7 +28,7 @@ type Props = {
   showDetails: boolean;
 };
 
-function DebugFileRow({
+export function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
@@ -204,5 +204,3 @@ const DetailsItem = styled('div')`
   text-overflow: ellipsis;
   margin-top: ${p => p.theme.space.md};
 `;
-
-export default DebugFileRow;

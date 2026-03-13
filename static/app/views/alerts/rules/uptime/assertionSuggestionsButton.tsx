@@ -3,14 +3,13 @@ import {useCallback} from 'react';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsDrawerContent';
 import {
   UptimeOpType,
-  type UptimeAndOp,
   type UptimeAssertion,
   type UptimeAssertionSuggestion,
   type UptimeOp,
@@ -76,13 +75,13 @@ export function AssertionSuggestionsButton({
       // the latest form state, preserving any existing assertions.
       const current = getCurrentAssertion();
 
-      const newRoot: UptimeAndOp = current?.root
+      const newRoot = current?.root
         ? {
             ...current.root,
             children: [...current.root.children, newOp],
           }
         : {
-            op: UptimeOpType.AND,
+            op: UptimeOpType.AND as const,
             id: uniqueId(),
             children: [newOp],
           };

@@ -2,12 +2,12 @@ import React from 'react';
 import {useTheme} from '@emotion/react';
 import {Elements} from '@stripe/react-stripe-js';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 
-function StripeWrapper({
+export function StripeWrapper({
   paymentElementMode,
   amount,
   children,
@@ -70,5 +70,3 @@ function StripeWrapper({
     </Elements>
   );
 }
-
-export default StripeWrapper;

@@ -1,7 +1,7 @@
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 
-import useRouter from './useRouter';
+import {useRouter} from './useRouter';
 
 /**
  * withSentryRouter is a higher-order component (HOC) that emulates withRouter,
@@ -10,7 +10,7 @@ import useRouter from './useRouter';
  *
  * @deprecated only use in legacy react class components
  */
-function withSentryRouter<P extends Partial<WithRouterProps>>(
+export function withSentryRouter<P extends Partial<WithRouterProps>>(
   WrappedComponent: React.ComponentType<P>
 ): React.ComponentType<Omit<P, keyof WithRouterProps>> {
   function WithSentryRouterWrapper(props: Omit<P, keyof WithRouterProps>) {
@@ -37,5 +37,3 @@ function withSentryRouter<P extends Partial<WithRouterProps>>(
   }
   return WithSentryRouterWrapper;
 }
-
-export default withSentryRouter;

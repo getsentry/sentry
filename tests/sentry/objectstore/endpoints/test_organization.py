@@ -14,9 +14,9 @@ from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.testutils.silo import cell_silo_test, create_test_regions
 from sentry.testutils.skips import requires_objectstore
-from sentry.types.region import Region
+from sentry.types.region import Cell
 from sentry.utils import json
 
 
@@ -27,7 +27,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@region_silo_test
+@cell_silo_test
 @requires_objectstore
 @pytest.mark.usefixtures("local_live_server")
 class OrganizationObjectstoreEndpointTest(TransactionTestCase):
@@ -40,7 +40,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def get_endpoint_url(self) -> str:
@@ -163,7 +163,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
 test_region = create_test_regions("us")[0]
 
 
-@region_silo_test(regions=(test_region,))
+@cell_silo_test(regions=(test_region,))
 @requires_objectstore
 @with_feature("organizations:objectstore-endpoint")
 @pytest.mark.usefixtures("local_live_server")
@@ -177,7 +177,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def tearDown(self) -> None:
@@ -198,7 +198,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     def test_health(self):
         config = asdict(test_region)
         config["address"] = self.live_server.url
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 response = self.client.get(
                     self.get_endpoint_url() + "health",
@@ -213,7 +213,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 
@@ -284,7 +284,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         ctx = zstandard.ZstdCompressor()
         compressed = ctx.compress(data)
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 

@@ -6,8 +6,8 @@ import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parse
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SESSION_STATUSES,
   SESSIONS_FILTER_TAGS,

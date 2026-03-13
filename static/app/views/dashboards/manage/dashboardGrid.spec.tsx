@@ -174,6 +174,27 @@ describe('Dashboards - DashboardGrid', () => {
     );
   });
 
+  it('does not forward search query parameter to dashboard links', () => {
+    render(
+      <DashboardGrid
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={{
+          ...LocationFixture(),
+          query: {query: 'agent', statsPeriod: '7d'},
+        }}
+        columnCount={3}
+        rowCount={3}
+      />
+    );
+
+    expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/1/?statsPeriod=7d'
+    );
+  });
+
   it('can delete dashboards', async () => {
     render(
       <DashboardGrid

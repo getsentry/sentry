@@ -9,8 +9,13 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
+from sentry.issues.grouptype import (
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -23,7 +28,9 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 logger = logging.getLogger(__name__)
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as ProtoAttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeValue as ProtoAttributeValue,
+)
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
@@ -350,6 +357,32 @@ class OrganizationEventsTraceEndpointTest(
         assert error_event["issue_id"] == error.group_id
         assert error_event["start_timestamp"] == error_data["timestamp"]
 
+    def test_with_missing_group(self) -> None:
+        self.load_trace()
+        _, start = self.get_start_end_from_day_ago(123)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            with mock.patch("sentry.snuba.trace.Group.objects.get", side_effect=Group.DoesNotExist):
+                response = self.client_get(
+                    data={"timestamp": self.day_ago},
+                )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        assert len(data[0]["errors"]) == 0
+
     def test_with_errors_data_with_overlapping_span_id(self) -> None:
         self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
@@ -639,7 +672,7 @@ class OrganizationEventsTraceEndpointTest(
             check_duration_us=500000,
         )
 
-        self.store_uptime_results([redirect_result, final_result])
+        self.store_eap_items([redirect_result, final_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -669,7 +702,7 @@ class OrganizationEventsTraceEndpointTest(
             scheduled_check_time=self.day_ago,
         )
 
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client_get(
@@ -723,7 +756,7 @@ class OrganizationEventsTraceEndpointTest(
 
         features = self.FEATURES
 
-        self.store_uptime_results([redirect_result, final_result])
+        self.store_eap_items([redirect_result, final_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -758,7 +791,7 @@ class OrganizationEventsTraceEndpointTest(
 
         features = self.FEATURES
 
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(features):
             response = self.client_get(
@@ -789,7 +822,7 @@ class OrganizationEventsTraceEndpointTest(
             scheduled_check_time=self.day_ago,
             check_duration_us=200000,
         )
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         occurrence = IssueOccurrence(
             id=uuid4().hex,
@@ -823,3 +856,44 @@ class OrganizationEventsTraceEndpointTest(
         occurrence = occurrences[0]
         assert occurrence["transaction"] == "uptime.check"
         assert occurrence["level"] == "error"
+
+    def _count_occurrences_by_type(self, data: list[dict]) -> tuple[int, dict[int, int]]:
+        """Count occurrences from trace children, grouped by issue type."""
+        counts: dict[int, int] = {}
+        for child in data[0].get("children", []):
+            for o in child.get("occurrences", []):
+                issue_type = o.get("issue_type")
+                counts[issue_type] = counts.get(issue_type, 0) + 1
+        return sum(counts.values()), counts
+
+    def test_trace_filters_unreleased_issue_types(self) -> None:
+        """Test that unreleased issue types are filtered from trace results"""
+        self.load_trace()  # load_trace() creates both FileIO and SlowDB issues
+
+        file_io_visible_flag = PerformanceFileIOMainThreadGroupType.build_visible_feature_name()[0]
+        file_io_type = PerformanceFileIOMainThreadGroupType.type_id
+        slow_db_type = PerformanceSlowDBQueryGroupType.type_id
+
+        # Mock FileIO as unreleased
+        with mock.patch.object(PerformanceFileIOMainThreadGroupType, "released", False):
+            # Without feature flag - FileIO should be filtered out
+            with self.feature({**{f: True for f in self.FEATURES}, file_io_visible_flag: False}):
+                response = self.client_get(data={"timestamp": self.day_ago})
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            total, counts = self._count_occurrences_by_type(response.data)
+            assert total == 1
+            assert counts.get(file_io_type, 0) == 0
+            assert counts.get(slow_db_type, 0) == 1
+
+            # With feature flag - FileIO should appear
+            with self.feature({**{f: True for f in self.FEATURES}, file_io_visible_flag: True}):
+                response = self.client_get(data={"timestamp": self.day_ago})
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            total, counts = self._count_occurrences_by_type(response.data)
+            assert total == 2
+            assert counts.get(file_io_type, 0) == 1
+            assert counts.get(slow_db_type, 0) == 1

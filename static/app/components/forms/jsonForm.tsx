@@ -6,7 +6,7 @@ import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
 import type {FormPanelProps} from './formPanel';
 import FormPanel from './formPanel';

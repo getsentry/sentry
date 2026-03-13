@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 
 import {EventDisplay} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -19,7 +18,7 @@ type EventComparisonProps = {
   project: Project;
 };
 
-function EventComparison({event, project}: EventComparisonProps) {
+export function EventComparison({event, project}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);
   const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
   const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
@@ -57,12 +56,10 @@ function EventComparison({event, project}: EventComparisonProps) {
   );
 }
 
-export default EventComparison;
-
 const StyledGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledGridItem = styled('div')<{position: 'left' | 'right'}>`

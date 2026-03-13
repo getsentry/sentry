@@ -1,7 +1,7 @@
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const setupCheckQueryKey = (orgSlug: string) =>
   `/organizations/${orgSlug}/seer/setup-check/`;

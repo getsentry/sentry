@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -46,7 +46,7 @@ class PutSerializer(serializers.Serializer):
     sampleRate = serializers.FloatField(required=True, min_value=0, max_value=1)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing project sampling rates."""
 

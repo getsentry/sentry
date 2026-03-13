@@ -26,6 +26,7 @@ class SnapshotImageResponse(BaseModel):
     image_file_name: str
     width: int
     height: int
+    previous_image_file_name: str | None = None
 
 
 class SnapshotDiffPair(BaseModel):

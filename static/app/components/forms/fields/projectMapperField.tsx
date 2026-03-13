@@ -10,11 +10,11 @@ import {Select} from '@sentry/scraps/select';
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {ProjectMapperType} from 'sentry/components/forms/types';
-import IdBadge from 'sentry/components/idBadge';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {
   IconAdd,
   IconArrow,
@@ -24,8 +24,7 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import {removeAtArrayIndex} from 'sentry/utils/array/removeAtArrayIndex';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -322,14 +321,14 @@ export default ProjectMapperField;
 
 const Item = styled('div')`
   min-height: 60px;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
   grid-template-columns: 2.5fr min-content 2.5fr max-content 30px;
   grid-template-areas: 'mapped-value arrow sentry-project manage-project field-control';
@@ -340,7 +339,7 @@ const MappedItemValue = styled('div')`
   grid-auto-flow: column;
   grid-auto-columns: max-content;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
   grid-area: mapped-value;
 `;
@@ -372,6 +371,6 @@ const NextButtonPanelAlert = styled(PanelAlert)`
 const NextButtonWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

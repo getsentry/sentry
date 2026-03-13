@@ -16,8 +16,8 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
@@ -111,7 +111,7 @@ export function LogsAggregateTable({
               title = prettifyTagKey(field);
             }
 
-            const direction: 'asc' | 'desc' | undefined =
+            const direction =
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;

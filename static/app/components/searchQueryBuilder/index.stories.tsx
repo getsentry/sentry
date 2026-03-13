@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -393,7 +393,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       },
     };
 
-    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+    const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
       switch (key) {
         case 'apdex':
           return {

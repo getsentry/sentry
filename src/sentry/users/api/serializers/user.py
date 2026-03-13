@@ -183,11 +183,13 @@ class UserSerializer(Serializer):
             "experiments": {},
         }
 
-        if self._user_is_requester(obj, user):
+        if self._user_is_requester(obj, user) or user.is_superuser:
             d["emails"] = [
                 {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
                 for e in attrs["emails"]
             ]
+
+        if self._user_is_requester(obj, user):
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value

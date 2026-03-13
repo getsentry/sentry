@@ -9,8 +9,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -18,17 +18,17 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
-import DetailsPage from 'admin/components/detailsPage';
-import SentryAppUpdateModal from 'admin/components/sentryAppUpdateModal';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
-export default function SentryAppDetails() {
+export function SentryAppDetails() {
   const {sentryAppSlug} = useParams<{sentryAppSlug: string}>();
   const ENDPOINT = getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
     path: {sentryAppIdOrSlug: sentryAppSlug},

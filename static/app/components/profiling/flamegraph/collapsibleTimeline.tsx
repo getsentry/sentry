@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 
 interface CollapsibleTimelineProps {
@@ -82,7 +81,7 @@ const CollapsibleTimelineHeader = styled('div')<{
 `;
 
 export const CollapsibleTimelineLabel = styled('span')`
-  padding: 1px ${space(1)};
+  padding: 1px ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
 `;
 

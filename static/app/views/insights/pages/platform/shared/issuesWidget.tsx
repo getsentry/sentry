@@ -8,28 +8,27 @@ import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/memb
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import GroupListHeader from 'sentry/components/issues/groupListHeader';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import LoadingError from 'sentry/components/loadingError';
+import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const COLUMNS: GroupListColumn[] = [
@@ -211,7 +210,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
@@ -222,13 +221,13 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   color: ${p => p.theme.tokens.content.primary};
   font-size: 1rem;
   line-height: 1.2;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SuperHeader = styled(PanelHeader)`
   background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   text-transform: capitalize;
 `;
 

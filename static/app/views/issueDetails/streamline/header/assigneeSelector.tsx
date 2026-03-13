@@ -15,10 +15,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
+import {useApi} from 'sentry/utils/useApi';
+import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;

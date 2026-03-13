@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import internal_region_silo_endpoint
+from sentry.api.base import internal_cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
@@ -205,7 +205,7 @@ def find_or_create_release(
         return None
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -388,7 +388,7 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                 }
             )
 
-        mobile_app_info = getattr(head_artifact, "mobile_app_info", None)
+        mobile_app_info = head_artifact.get_mobile_app_info()
         build_version = mobile_app_info.build_version if mobile_app_info else None
         build_number = mobile_app_info.build_number if mobile_app_info else None
         if (

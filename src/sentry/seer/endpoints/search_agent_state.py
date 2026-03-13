@@ -11,31 +11,37 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SearchAgentStateRequest, make_search_agent_state_request
+from sentry.seer.signed_seer_api import (
+    SearchAgentStateRequest,
+    SeerViewerContext,
+    make_search_agent_state_request,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any]:
+def fetch_search_agent_state(
+    run_id: int, organization_id: int, viewer_context: SeerViewerContext | None = None
+) -> dict[str, Any]:
     """
     Fetch the current state of a search agent run from Seer.
 
     Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
     body = SearchAgentStateRequest(run_id=run_id, organization_id=organization_id)
-    response = make_search_agent_state_request(body, timeout=10)
+    response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
     Endpoint to poll for search agent state by run_id.
@@ -105,7 +111,12 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             )
 
         try:
-            data = fetch_search_agent_state(run_id_int, organization.id)
+            viewer_context = SeerViewerContext(
+                organization_id=organization.id, user_id=request.user.id
+            )
+            data = fetch_search_agent_state(
+                run_id_int, organization.id, viewer_context=viewer_context
+            )
 
             # Return the session data directly from Seer
             return Response(data)

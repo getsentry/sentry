@@ -6,21 +6,20 @@ import type {Location, LocationDescriptor} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
@@ -52,7 +51,7 @@ type Props = {
   titles?: string[];
 };
 
-function TransactionsTable(props: Props) {
+export function TransactionsTable(props: Props) {
   const {
     eventView,
     titles,
@@ -79,7 +78,7 @@ function TransactionsTable(props: Props) {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index]!;
-      const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
+      const align = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
@@ -286,5 +285,3 @@ const StyledIconQuestion = styled(QuestionTooltip)`
   top: 1px;
   left: 4px;
 `;
-
-export default TransactionsTable;

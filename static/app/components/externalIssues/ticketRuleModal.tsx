@@ -19,15 +19,16 @@ import {
   loadAsyncThenFetchAllFields,
 } from 'sentry/components/externalIssues/utils';
 import type {FormProps} from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
@@ -35,8 +36,8 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -70,7 +71,7 @@ function makeIntegrationIssueConfigTicketRuleQueryKey({
   ];
 }
 
-export default function TicketRuleModal({
+export function TicketRuleModal({
   instance,
   link,
   onSubmitAction,
@@ -107,10 +108,12 @@ export default function TicketRuleModal({
   const {cache, updateCache} = useAsyncOptionsCache(initialOptionsCache);
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
-  const endpointString = makeIntegrationIssueConfigTicketRuleQueryKey({
-    orgSlug: organization.slug,
-    integrationId: instance.integration,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigTicketRuleQueryKey({
+      orgSlug: organization.slug,
+      integrationId: instance.integration,
+    })
+  );
 
   const initialConfigQuery = useMemo(() => {
     return (instance.dynamic_form_fields || [])
@@ -294,7 +297,7 @@ export default function TicketRuleModal({
    * Set the initial data from the Rule, replace `title` and `description` with
    * disabled inputs, and use the cached dynamic choices.
    */
-  const cleanFields: IssueConfigField[] = useMemo(() => {
+  const cleanFields = useMemo(() => {
     const fields: IssueConfigField[] = [
       {
         name: 'title',
@@ -354,7 +357,7 @@ export default function TicketRuleModal({
     return [...fields, ...cleanedFields];
   }, [instance, integrationDetails, cache, showInstanceValues]);
 
-  const formErrors: ExternalIssueFormErrors = useMemo(() => {
+  const formErrors = useMemo(() => {
     const errors: ExternalIssueFormErrors = {};
     for (const field of cleanFields) {
       // If the field is a select and has a default value, make sure that the

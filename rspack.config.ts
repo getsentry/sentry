@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 
-import remarkCallout, {type Callout} from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -17,16 +16,12 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import rehypeExpressiveCode from 'rehype-expressive-code';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
-import {remarkUnwrapMdxParagraphs} from './build-utils/remark-unwrap-mdx-paragraphs.ts';
+import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -59,8 +54,8 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
 // features in the Sentry UI.
-// React query devtools are disabled by default, but can be enabled by setting the USE_REACT_QUERY_DEVTOOL env var to 'true'
-const USE_REACT_QUERY_DEVTOOL = !!env.USE_REACT_QUERY_DEVTOOL;
+// TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
+const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
 // Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
 const ENABLE_SENTRY_TOOLBAR =
   env.ENABLE_SENTRY_TOOLBAR === undefined
@@ -289,11 +284,19 @@ const appConfig: Configuration = {
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
   },
-  // Disable lazy compilation for now to avoid crashes when new modules are loaded
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
-    imports: SHOULD_LAZY_COMPILATION,
+    imports: true,
     entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes('type-loader')) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
   },
   module: {
     /**
@@ -321,36 +324,8 @@ const appConfig: Configuration = {
           {
             loader: '@mdx-js/loader',
             options: {
-              remarkPlugins: [
-                remarkUnwrapMdxParagraphs,
-                remarkFrontmatter,
-                remarkMdxFrontmatter,
-                remarkGfm,
-                [
-                  remarkCallout,
-                  {
-                    root: (callout: Callout) => {
-                      return {
-                        tagName: 'Callout',
-                        properties: {
-                          title: callout.title,
-                          type: callout.type.toLowerCase(),
-                          isFoldable: callout.isFoldable ?? false,
-                          defaultFolded: callout.defaultFolded ?? false,
-                        },
-                      };
-                    },
-                  },
-                ],
-              ],
-              rehypePlugins: [
-                [
-                  rehypeExpressiveCode,
-                  {
-                    useDarkModeMediaQuery: false,
-                  },
-                ],
-              ],
+              remarkPlugins,
+              rehypePlugins,
             },
           },
         ],
@@ -460,7 +435,7 @@ const appConfig: Configuration = {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
       'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
-      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
+      'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
       'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
     }),
 
@@ -478,6 +453,7 @@ const appConfig: Configuration = {
                   'node_modules/**/*',
                   'tests/**/*',
                   '**/*.spec.*',
+                  '**/*.snapshots.*',
                   'static/eslint/**/*',
                   'scripts/**/*',
                 ],

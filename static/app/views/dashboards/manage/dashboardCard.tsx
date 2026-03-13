@@ -9,10 +9,9 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 interface Props {
@@ -28,7 +27,7 @@ interface Props {
   renderContextMenu?: () => React.ReactNode;
 }
 
-function DashboardCard({
+export function DashboardCard({
   title,
   detail,
   createdBy,
@@ -87,7 +86,7 @@ function DashboardCard({
         </Flex>
       </CardLink>
 
-      <Flex gap="xs" position="absolute" bottom={space(1)} right={space(2)}>
+      <Flex gap="xs" position="absolute" bottom={theme.space.md} right={theme.space.xl}>
         <StyledButton
           icon={
             <IconStar
@@ -125,7 +124,7 @@ const AvatarWrapper = styled('span')`
 const CardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const CardWithoutMargin = styled(Card)`
@@ -178,7 +177,7 @@ const Detail = styled('div')`
 
 const CardBody = styled('div')`
   background: ${p => p.theme.colors.gray100};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   max-height: 100px;
   min-height: 100px;
   overflow: hidden;
@@ -187,7 +186,7 @@ const CardBody = styled('div')`
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   display: block;
   width: 100%;
@@ -198,12 +197,10 @@ const DateSelected = styled('div')`
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`
   margin-right: -10px;
   padding: 5px;
 `;
-
-export default DashboardCard;

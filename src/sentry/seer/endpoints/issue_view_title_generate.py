@@ -6,14 +6,17 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+from sentry.seer.signed_seer_api import (
+    LlmGenerateRequest,
+    SeerViewerContext,
+    make_llm_generate_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,9 @@ class IssueViewTitleGeneratePermission(OrganizationPermission):
     }
 
 
-def generate_title_from_query(query: str) -> str | None:
+def generate_title_from_query(
+    query: str, viewer_context: SeerViewerContext | None = None
+) -> str | None:
     truncated_query = query[:MAX_QUERY_LENGTH] if len(query) > MAX_QUERY_LENGTH else query
 
     body = LlmGenerateRequest(
@@ -43,14 +48,14 @@ def generate_title_from_query(query: str) -> str | None:
         temperature=0.3,
         max_tokens=50,
     )
-    response = make_llm_generate_request(body, timeout=10)
+    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     data = response.json()
     return data.get("content")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -72,16 +77,11 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not features.has(
-            "organizations:issue-view-ai-title", organization=organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "Organization does not have access to this feature"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         try:
-            title = generate_title_from_query(query)
+            viewer_context = SeerViewerContext(
+                organization_id=organization.id, user_id=request.user.id
+            )
+            title = generate_title_from_query(query, viewer_context=viewer_context)
             if not title:
                 return Response(
                     {"detail": "Failed to generate title"},

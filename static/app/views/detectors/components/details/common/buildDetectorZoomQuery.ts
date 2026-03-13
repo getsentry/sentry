@@ -1,7 +1,15 @@
+import moment from 'moment-timezone';
+
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import {getUtcDateString} from 'sentry/utils/dates';
 
 // If the end time is within 10 minutes of now, we use a relative time range instead of an absolute one
 const NEAR_NOW_THRESHOLD_MS = 10 * 60 * 1000;
+const MIN_INTERVAL_MS = 60_000;
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+
+// See MAX_ROLLUP_POINTS in sentry/constants.py
+const MAX_DETECTOR_CHART_POINTS = 10_100;
 
 interface ComputeZoomRangeOptions {
   endMs: number;
@@ -20,11 +28,70 @@ interface RelativeZoomRangeMs {
 
 type ZoomRangeMs = AbsoluteZoomRangeMs | RelativeZoomRangeMs;
 
-function toStatsPeriod(durationMs: number): string {
+interface LimitDateTimeParamsToMaxPointsOptions {
+  end?: string | null;
+  intervalSeconds?: number;
+  start?: string | null;
+  statsPeriod?: string | null;
+}
+
+interface LimitDateTimeParamsToMaxPointsResult {
+  dateTimeParams: {
+    end?: string;
+    start?: string;
+    statsPeriod?: string;
+  };
+  isRangeLimited: boolean;
+}
+
+function getMaxSpanMs(intervalSeconds?: number): number {
+  const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, MIN_INTERVAL_MS);
+  const pointsSpanMs = (MAX_DETECTOR_CHART_POINTS - 1) * intervalMs;
+  return Math.min(pointsSpanMs, NINETY_DAYS_MS);
+}
+
+function parseStatsPeriodDurationMs(statsPeriod: string): number | null {
+  const parsed = parseStatsPeriod(statsPeriod);
+  if (!parsed) {
+    return null;
+  }
+
+  const period = Number(parsed.period);
+  if (!Number.isFinite(period)) {
+    return null;
+  }
+
+  const periodLengthMs = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000,
+  }[parsed.periodLength];
+
+  return period * periodLengthMs;
+}
+
+function parseDateTimeMs(dateTime?: string | null): number | null {
+  if (!dateTime) {
+    return null;
+  }
+
+  const parsedDateTime = moment.utc(dateTime);
+  if (!parsedDateTime.isValid()) {
+    return null;
+  }
+
+  return parsedDateTime.valueOf();
+}
+
+// Converts the duration of a zoom range to a statsPeriod string.
+// Rounds up to the nearest hour or day (if it's more than 24 hours).
+function zoomDurationToStatsPeriod(durationMs: number): string {
   const hourMs = 60 * 60 * 1000;
   const durationHours = Math.max(Math.ceil(durationMs / hourMs), 4);
 
-  if (durationHours > 24) {
+  if (durationHours >= 24) {
     return `${Math.ceil(durationHours / 24)}d`;
   }
 
@@ -51,16 +118,13 @@ export function computeZoomRangeMs({
   endMs,
   intervalSeconds,
 }: ComputeZoomRangeOptions): ZoomRangeMs {
-  const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, 60_000);
+  const intervalMs = Math.max((intervalSeconds ?? 60) * 1000, MIN_INTERVAL_MS);
   const bufferMs = 10 * intervalMs;
 
   const desiredStart = startMs - bufferMs;
   const desiredEnd = truncateEndTime(endMs + bufferMs);
 
-  const MAX_POINTS = 10_000;
-  const pointsSpanMs = MAX_POINTS * intervalMs;
-  const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
-  const maxSpanMs = Math.min(pointsSpanMs, ninetyDaysMs);
+  const maxSpanMs = getMaxSpanMs(intervalSeconds);
 
   const endIsNearNow = desiredEnd >= Date.now() - NEAR_NOW_THRESHOLD_MS;
   let zoomStartMs = desiredStart;
@@ -70,13 +134,75 @@ export function computeZoomRangeMs({
   }
 
   if (endIsNearNow) {
-    return {statsPeriod: toStatsPeriod(Date.now() - zoomStartMs)};
+    return {statsPeriod: zoomDurationToStatsPeriod(zoomEndMs - zoomStartMs)};
   }
 
   const start = Math.floor(zoomStartMs / 60_000) * 60_000;
   const end = Math.ceil(zoomEndMs / 60_000) * 60_000;
 
   return {start, end};
+}
+
+/**
+ * Ensure detector chart date params request no more than 10k points. The
+ * event stats endpoint will respond with a 400 if we request more than that.
+ */
+export function limitDateTimeParamsToMaxPoints({
+  start,
+  end,
+  statsPeriod,
+  intervalSeconds,
+}: LimitDateTimeParamsToMaxPointsOptions): LimitDateTimeParamsToMaxPointsResult {
+  const maxSpanMs = getMaxSpanMs(intervalSeconds);
+
+  if (statsPeriod) {
+    const statsPeriodDurationMs = parseStatsPeriodDurationMs(statsPeriod);
+    if (!statsPeriodDurationMs || statsPeriodDurationMs <= maxSpanMs) {
+      return {
+        dateTimeParams: {statsPeriod},
+        isRangeLimited: false,
+      };
+    }
+
+    const hourMs = 60 * 60 * 1000;
+    // Query to the nearest hour, rounded down
+    const durationHours = Math.floor(maxSpanMs / hourMs);
+
+    return {
+      dateTimeParams: {statsPeriod: `${durationHours}h`},
+      isRangeLimited: true,
+    };
+  }
+
+  const startMs = parseDateTimeMs(start);
+  const endMs = parseDateTimeMs(end);
+  if (startMs === null || endMs === null || endMs <= startMs) {
+    return {
+      dateTimeParams: {
+        start: start ?? undefined,
+        end: end ?? undefined,
+      },
+      isRangeLimited: false,
+    };
+  }
+
+  if (endMs - startMs <= maxSpanMs) {
+    return {
+      dateTimeParams: {
+        start: start ?? undefined,
+        end: end ?? undefined,
+      },
+      isRangeLimited: false,
+    };
+  }
+
+  return {
+    dateTimeParams: {
+      start: getUtcDateString(endMs - maxSpanMs),
+      end: getUtcDateString(endMs),
+    },
+    isRangeLimited: true,
+  };
 }
 
 /**

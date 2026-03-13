@@ -4,18 +4,18 @@ import {Alert} from '@sentry/scraps/alert';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import Redirect from 'sentry/components/redirect';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 const profilingFeature = ['profiling'];
 
 function ProfilingContainer() {
   const organization = useOrganization();
 
-  const redirectPath = useRedirectNavV2Routes({
+  const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/profiling/',
     newPathPrefix: '/explore/profiling/',
   });

@@ -6,13 +6,14 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = {
   authConfig: AuthConfig;
 };
 
-function SsoForm({authConfig}: Props) {
+export function SsoForm({authConfig}: Props) {
+  const navigate = useNavigate();
   const [error, setError] = useState('');
 
   const {serverHostname} = authConfig;
@@ -22,7 +23,7 @@ function SsoForm({authConfig}: Props) {
       apiMethod="POST"
       apiEndpoint="/auth/sso-locate/"
       onSubmitSuccess={response => {
-        browserHistory.push({pathname: response.nextUri});
+        navigate({pathname: response.nextUri});
       }}
       onSubmitError={response => {
         setError(response.responseJSON.detail);
@@ -71,5 +72,3 @@ function SlugExample({hostname, slug}: SlugExampleProps) {
     </code>
   );
 }
-
-export default SsoForm;

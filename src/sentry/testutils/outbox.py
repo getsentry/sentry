@@ -79,7 +79,7 @@ def assert_webhook_payloads_for_mailbox(
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
     region_names_set = set(region_names)
     messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
-    messages_with_region_count = messages.filter(region_name__isnull=False).count()
+    messages_with_region_count = messages.filter(cell_name__isnull=False).count()
     if messages_with_region_count != len(region_names_set):
         raise Exception(
             f"Mismatch: Found {messages_with_region_count} WebhookPayload but {len(region_names_set)} region_names"
@@ -100,14 +100,14 @@ def assert_webhook_payloads_for_mailbox(
                 del destination_types[destination_type]
 
         if message.destination_type == DestinationType.CODECOV:
-            assert message.region_name is None
+            assert message.cell_name is None
         else:
-            assert message.region_name is not None
+            assert message.cell_name is not None
             try:
-                region_names_set.remove(message.region_name)
+                region_names_set.remove(message.cell_name)
             except KeyError:
                 raise Exception(
-                    f"Found ControlOutbox for '{message.region_name}', which was not in region_names: {str(region_names_set)}"
+                    f"Found ControlOutbox for '{message.cell_name}', which was not in region_names: {str(region_names_set)}"
                 )
     if len(region_names_set) != 0:
         raise Exception(f"WebhookPayload not found for some region_names: {str(region_names_set)}")

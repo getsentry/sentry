@@ -10,7 +10,7 @@ from sentry import analytics, options
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -18,6 +18,7 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import get_grouping_model_version
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
@@ -39,7 +40,7 @@ class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     shouldBeGrouped: str
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -138,7 +139,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
-        results = get_similarity_data_from_seer(similar_issues_params)
+        viewer_context = SeerViewerContext(
+            organization_id=group.project.organization.id, user_id=request.user.id
+        )
+        results = get_similarity_data_from_seer(
+            similar_issues_params, viewer_context=viewer_context
+        )
 
         analytics.record(
             GroupSimilarIssuesEmbeddingsCountEvent(

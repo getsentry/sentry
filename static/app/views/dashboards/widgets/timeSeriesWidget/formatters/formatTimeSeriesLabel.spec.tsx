@@ -46,8 +46,8 @@ describe('formatSeriesName', () => {
 
   describe('aggregates of measurements', () => {
     it.each([
-      ['p75(measurements.lcp)', 'LCP'],
-      ['p50(measurements.lcp)', 'LCP'],
+      ['p75(measurements.lcp)', 'p75(measurements.lcp)'],
+      ['p50(measurements.lcp)', 'p50(measurements.lcp)'],
     ])('Formats %s as %s', (name, result) => {
       const timeSeries = TimeSeriesFixture({
         yAxis: name,

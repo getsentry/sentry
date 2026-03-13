@@ -8,8 +8,11 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.project import (
+    ProjectDistributionOrProjectPermission,
+    ProjectEndpoint,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -21,10 +24,7 @@ from sentry.preprod.api.models.public.installable_builds import (
     create_latest_installable_build_response,
 )
 from sentry.preprod.api.validators import PreprodLatestInstallableBuildValidator
-from sentry.preprod.build_distribution_utils import (
-    find_current_artifact,
-    find_latest_installable_artifact,
-)
+from sentry.preprod.build_distribution_utils import find_current_and_latest
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -32,13 +32,13 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Mobile Builds"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (ProjectDistributionPermission,)
+    permission_classes = (ProjectDistributionOrProjectPermission,)
     rate_limits = RateLimitConfig(
         limit_overrides={
             "GET": {
@@ -148,58 +148,28 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
             g for g in request.GET.getlist("installGroups") if g
         ] or None
 
-        current_artifact = None
-        latest_artifact = None
-
-        # Determine effective filters for latest lookup
-        effective_build_configuration = build_configuration
-        effective_codesigning_type = codesigning_type
-        effective_install_groups = install_groups
-
-        if build_version:
-            # Check-for-updates mode
-            current_artifact = find_current_artifact(
-                project=project,
-                app_id=app_id,
-                platform=platform,
-                build_version=build_version,
-                build_number=build_number,
-                main_binary_identifier=main_binary_identifier,
-                build_configuration=build_configuration,
-                codesigning_type=codesigning_type,
-            )
-
-            # Inherit filters from current artifact when not explicitly provided
-            if current_artifact:
-                if not effective_build_configuration and current_artifact.build_configuration:
-                    effective_build_configuration = current_artifact.build_configuration.name
-
-                if not effective_codesigning_type and current_artifact.extras:
-                    effective_codesigning_type = current_artifact.extras.get("codesigning_type")
-
-                if not effective_install_groups and current_artifact.extras:
-                    current_groups = current_artifact.extras.get("install_groups")
-                    if current_groups and isinstance(current_groups, list):
-                        effective_install_groups = current_groups
-            else:
-                logger.info(
-                    "preprod.latest_build.current_not_found",
-                    extra={
-                        "project_id": project.id,
-                        "app_id": app_id,
-                        "platform": platform,
-                        "build_version": build_version,
-                    },
-                )
-
-        latest_artifact = find_latest_installable_artifact(
+        current_artifact, latest_artifact = find_current_and_latest(
             project=project,
             app_id=app_id,
             platform=platform,
-            build_configuration_name=effective_build_configuration,
-            codesigning_type=effective_codesigning_type,
-            install_groups=effective_install_groups,
+            build_version=build_version,
+            build_number=build_number,
+            main_binary_identifier=main_binary_identifier,
+            build_configuration=build_configuration,
+            codesigning_type=codesigning_type,
+            install_groups=install_groups,
         )
+
+        if build_version and not current_artifact:
+            logger.info(
+                "preprod.latest_build.current_not_found",
+                extra={
+                    "project_id": project.id,
+                    "app_id": app_id,
+                    "platform": platform,
+                    "build_version": build_version,
+                },
+            )
 
         latest_dict = None
         if latest_artifact:

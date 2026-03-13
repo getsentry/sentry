@@ -4,7 +4,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
-import ReleasesDropdown from './releasesDropdown';
+import {ReleasesDropdown} from './releasesDropdown';
 
 type Props = {
   environments: string[];
@@ -13,7 +13,12 @@ type Props = {
   selectedDisplay: ReleasesDisplayOption;
 };
 
-function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}: Props) {
+export function ReleasesSortOptions({
+  selected,
+  selectedDisplay,
+  onSelect,
+  environments,
+}: Props) {
   const sortOptions = {
     [ReleasesSortOption.DATE]: {label: t('Date Created')},
     [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
@@ -48,8 +53,6 @@ function ReleasesSortOptions({selected, selectedDisplay, onSelect, environments}
     />
   );
 }
-
-export default ReleasesSortOptions;
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 2;

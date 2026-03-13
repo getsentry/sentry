@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -41,7 +41,7 @@ from sentry.uptime.types import CheckConfig
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
     """
     Endpoint to generate assertion suggestions for an uptime monitor.

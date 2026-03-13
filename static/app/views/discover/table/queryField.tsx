@@ -14,7 +14,6 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
@@ -29,7 +28,7 @@ import type {FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-import ArithmeticInput from './arithmeticInput';
+import {ArithmeticInput} from './arithmeticInput';
 import type {FieldValue, FieldValueColumns} from './types';
 import {FieldValueKind} from './types';
 
@@ -160,7 +159,7 @@ class _QueryField extends Component<Props> {
     }
     const {value} = selected;
     const current = this.props.fieldValue;
-    let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
+    let fieldValue = cloneDeep(this.props.fieldValue);
 
     switch (value.kind) {
       case FieldValueKind.TAG:
@@ -753,7 +752,7 @@ const Container = styled('div')<{
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr) ${p.error ? 'auto' : ''};`}
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   flex-grow: 1;

@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {
   getBestActionToIncreaseEventLimits,
   hasPerformance,
 } from 'getsentry/utils/billing';
 import {ButtonWrapper, SubscriptionBody} from 'getsentry/views/subscriptionPage/styles';
-import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
+import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 type Props = {
   organization: Organization;

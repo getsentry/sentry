@@ -1,10 +1,9 @@
 import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
-import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import type {PrimaryNavGroup} from 'sentry/views/nav/types';
-import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
+import {t} from 'sentry/locale';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
 type DefaultProps = {
@@ -28,37 +27,30 @@ type Props = DefaultProps &
      * The configuration for this navigation panel
      */
     navigationObjects: NavigationSection[];
-    /**
-     * The primary navigation group for this settings page
-     */
-    primaryNavGroup: PrimaryNavGroup;
   };
 
 function SettingsSecondaryNavigation({
   navigationObjects,
   hookConfigs,
   hooks,
-  primaryNavGroup,
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
     <Fragment>
-      <SecondaryNav.Header>
-        {PRIMARY_NAV_GROUP_CONFIG[primaryNavGroup].label}
-      </SecondaryNav.Header>
-      <SecondaryNav.Body>
+      <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
-      </SecondaryNav.Body>
+      </SecondaryNavigation.Body>
     </Fragment>
   );
 }
 
-class SettingsNavigation extends Component<Props> {
+export class SettingsNavigation extends Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
@@ -83,13 +75,11 @@ class SettingsNavigation extends Component<Props> {
       hookConfigs,
       stickyTop,
       organization,
-      primaryNavGroup,
       ...otherProps
     } = this.props;
 
     return (
       <SettingsSecondaryNavigation
-        primaryNavGroup={primaryNavGroup}
         navigationObjects={navigationObjects}
         hooks={hooks}
         hookConfigs={hookConfigs}
@@ -100,5 +90,3 @@ class SettingsNavigation extends Component<Props> {
     );
   }
 }
-
-export default SettingsNavigation;

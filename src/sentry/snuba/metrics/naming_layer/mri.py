@@ -41,7 +41,6 @@ __all__ = (
     "SpanMRI",
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
-    "ErrorsMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -206,10 +205,6 @@ class SpanMRI(Enum):
     HTTP_ERROR_RATE = "e:spans/http_error_rate@ratio"
     HTTP_ERROR_COUNT_LIGHT = "e:spans/http_error_count_light@none"
     HTTP_ERROR_RATE_LIGHT = "e:spans/http_error_rate_light@ratio"
-
-
-class ErrorsMRI(Enum):
-    EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
 
 
 @dataclass

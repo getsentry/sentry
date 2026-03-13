@@ -1,11 +1,7 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const SliderLabel = styled('label')`
+export const SliderLabel = styled('label')`
   font-size: 14px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default SliderLabel;

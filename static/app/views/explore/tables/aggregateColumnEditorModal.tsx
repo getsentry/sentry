@@ -20,7 +20,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -33,7 +32,7 @@ import {
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -156,18 +155,13 @@ export function AggregateColumnEditorModal({
                     onAction: () =>
                       insertColumn(new VisualizeFunction(DEFAULT_VISUALIZATION)),
                   },
-                  ...(organization.features.includes('visibility-explore-equations')
-                    ? [
-                        {
-                          key: 'add-equation',
-                          label: t('Equation'),
-                          details: t('ex. p50(span.duration) / 2'),
-                          disabled: !canAddVisualize,
-                          onAction: () =>
-                            insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
-                        },
-                      ]
-                    : []),
+                  {
+                    key: 'add-equation',
+                    label: t('Equation'),
+                    details: t('ex. p50(span.duration) / 2'),
+                    disabled: !canAddVisualize,
+                    onAction: () => insertColumn(new VisualizeEquation(EQUATION_PREFIX)),
+                  },
                 ]}
                 trigger={triggerProps => (
                   <Button
@@ -291,7 +285,7 @@ function GroupBySelector({
   stringTags,
   booleanTags,
 }: GroupBySelectorProps) {
-  const options: Array<SelectOption<string>> = useGroupByFields({
+  const options = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
@@ -374,7 +368,7 @@ function AggregateSelector({
     });
   }, []);
 
-  const argumentOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const argumentOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -537,10 +531,10 @@ const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   :not(:first-child) {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 

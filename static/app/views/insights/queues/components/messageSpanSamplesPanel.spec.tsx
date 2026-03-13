@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -234,32 +234,28 @@ describe('messageSpanSamplesPanel', () => {
         }),
       })
     );
-    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
-      1,
+    expect(traceItemAttributesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
-        query: {
+        query: expect.objectContaining({
           attributeType: 'number',
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',
-          substringMatch: undefined,
-        },
+        }),
       })
     );
-    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
-      2,
+    expect(traceItemAttributesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
-        query: {
+        query: expect.objectContaining({
           attributeType: 'string',
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',
-          substringMatch: undefined,
-        },
+        }),
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();
@@ -346,32 +342,28 @@ describe('messageSpanSamplesPanel', () => {
         }),
       })
     );
-    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
-      1,
+    expect(traceItemAttributesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
-        query: {
+        query: expect.objectContaining({
           attributeType: 'number',
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',
-          substringMatch: undefined,
-        },
+        }),
       })
     );
-    expect(traceItemAttributesMock).toHaveBeenNthCalledWith(
-      2,
+    expect(traceItemAttributesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
         method: 'GET',
-        query: {
+        query: expect.objectContaining({
           attributeType: 'string',
           itemType: 'spans',
           project: [],
           statsPeriod: '10d',
-          substringMatch: undefined,
-        },
+        }),
       })
     );
     expect(screen.getByRole('table', {name: 'Span Samples'})).toBeInTheDocument();

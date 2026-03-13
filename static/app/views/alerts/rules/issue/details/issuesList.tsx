@@ -6,13 +6,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -20,7 +19,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 type GroupHistory = {
@@ -36,7 +35,15 @@ type Props = DateTimeObject & {
   cursor?: string;
 };
 
-function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: Props) {
+export function AlertRuleIssuesList({
+  project,
+  rule,
+  period,
+  start,
+  end,
+  utc,
+  cursor,
+}: Props) {
   const organization = useOrganization();
   const {
     data: groupHistory,
@@ -139,18 +146,16 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
   );
 }
 
-export default AlertRuleIssuesList;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.5fr;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 
   ${p =>
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1)} ${space(2)};
+        padding: ${p.theme.space.md} ${p.theme.space.xl};
       }
     `}
 `;
@@ -171,7 +176,7 @@ const TitleWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   min-width: 200px;
 `;
 

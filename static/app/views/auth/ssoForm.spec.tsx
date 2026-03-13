@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import SsoForm from 'sentry/views/auth/ssoForm';
+import {SsoForm} from 'sentry/views/auth/ssoForm';
 
 describe('SsoForm', () => {
   const emptyAuthConfig = {

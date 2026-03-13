@@ -4,8 +4,8 @@ import {InputGroup} from '@sentry/scraps/input';
 import type {TextAreaProps} from '@sentry/scraps/textarea';
 
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';

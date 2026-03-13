@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import UserMisery from 'sentry/components/userMisery';
+import {UserMisery} from 'sentry/components/userMisery';
 
 describe('UserMisery', () => {
   it('renders no bars when user misery is less than 0.05', () => {

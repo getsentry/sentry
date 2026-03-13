@@ -4,8 +4,8 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 

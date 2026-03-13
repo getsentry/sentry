@@ -458,7 +458,6 @@ class Referrer(StrEnum):
         "api.organization-events.metrics-enhanced.secondary"
     )
     API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
@@ -479,7 +478,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
@@ -562,6 +560,8 @@ class Referrer(StrEnum):
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
     API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
+    API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
+    API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -780,12 +780,6 @@ class Referrer(StrEnum):
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
-    DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
-    DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES = "daily_summary.key_performance_issues"
-    DAILY_SUMMARY_KEY_TRANSACTIONS_P95 = "daily_summary.key_transactions.p95"
-    DAILY_SUMMARY_KEY_TRANSACTIONS = "daily_summary.key_transactions"
-    DAILY_SUMMARY_OUTCOME_SERIES = "daily_summary.outcome_series"
-    DAILY_SUMMARY_OUTCOMES = "daily_summary.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"

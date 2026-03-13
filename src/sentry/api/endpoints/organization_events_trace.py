@@ -18,7 +18,7 @@ from snuba_sdk import Column, Function
 
 from sentry import constants, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -27,14 +27,14 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import base32_encode, format_grouped_length
@@ -526,7 +526,12 @@ def count_performance_issues(
 
     callsite = "api.trace.count_performance_issues"
     if EAPOccurrencesComparator.should_check_experiment(callsite):
-        eap_count = _count_performance_issues_eap(trace_id, params)
+        eap_count = count_occurrences_grouped_by_trace_ids(
+            snuba_params=params,
+            trace_ids=[trace_id],
+            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+            occurrence_category=OccurrenceCategory.GENERIC,
+        ).get(trace_id, 0)
         performance_issues_count = EAPOccurrencesComparator.check_and_choose(
             snuba_count,
             eap_count,
@@ -544,34 +549,6 @@ def count_performance_issues(
         )
 
     return performance_issues_count
-
-
-def _count_performance_issues_eap(trace_id: str, params: SnubaParams) -> int:
-    try:
-        eap_result = Occurrences.run_table_query(
-            params=params,
-            query_string=f"trace:{trace_id}",
-            selected_columns=["count()"],
-            orderby=None,
-            offset=0,
-            limit=1,
-            referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
-            config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.GENERIC,
-        )
-        return int(eap_result["data"][0].get("count()", 0)) if eap_result.get("data") else 0
-    except Exception:
-        logger.exception(
-            "Fetching performance issue count from EAP failed",
-            extra={
-                "trace_id": trace_id,
-                "organization_id": params.organization.id if params.organization else None,
-                "project_ids": [project.id for project in params.projects],
-                "start": params.start.isoformat() if params.start else None,
-                "end": params.end.isoformat() if params.end else None,
-            },
-        )
-        return 0
 
 
 @sentry_sdk.tracing.trace
@@ -974,7 +951,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         raise NotImplementedError
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -1161,7 +1138,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
@@ -1497,7 +1474,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -11,18 +11,26 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import TranslateQueryRequest, make_translate_query_request
+from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
+    TranslateQueryRequest,
+    make_translate_query_request,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def send_translate_request(
-    org_id: int, org_slug: str, project_ids: list[int], natural_language_query: str
+    org_id: int,
+    org_slug: str,
+    project_ids: list[int],
+    natural_language_query: str,
+    viewer_context: SeerViewerContext | None = None,
 ) -> Any:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
@@ -33,13 +41,13 @@ def send_translate_request(
         project_ids=project_ids,
         natural_language_query=natural_language_query,
     )
-    response = make_translate_query_request(body)
+    response = make_translate_query_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TraceExplorerAIQuery(OrganizationEndpoint):
     """
     This endpoint is called when a user visits the trace explorer with the correct flags enabled.
@@ -102,8 +110,13 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         data = send_translate_request(
-            organization.id, organization.slug, project_ids, natural_language_query
+            organization.id,
+            organization.slug,
+            project_ids,
+            natural_language_query,
+            viewer_context=viewer_context,
         )
 
         responses = data.get("responses", [])[:limit]

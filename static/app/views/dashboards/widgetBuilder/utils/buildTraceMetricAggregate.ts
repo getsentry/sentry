@@ -1,0 +1,21 @@
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+
+export function buildTraceMetricAggregate(
+  aggregation: AggregationKeyWithAlias,
+  traceMetric: TraceMetric
+): QueryFieldValue {
+  return {
+    kind: 'function',
+    function: [
+      aggregation,
+      'value',
+      traceMetric.name,
+      traceMetric.type,
+      traceMetric.unit ?? '-',
+    ],
+  };
+}

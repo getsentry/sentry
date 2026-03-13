@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -7,24 +7,16 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {IssueOwnership} from 'sentry/types/group';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-
-const defaultProps = {
-  urls: [] as string[],
-  paths: [] as string[],
-  disabled: false,
-};
 
 type Props = {
   dateUpdated: string | null;
@@ -36,44 +28,40 @@ type Props = {
    */
   page: 'issue_details' | 'project_settings';
   project: Project;
+  disabled?: boolean;
   onSave?: (ownership: IssueOwnership) => void;
-} & typeof defaultProps;
-
-type State = {
-  error: null | {
-    raw: string[];
-  };
-  hasChanges: boolean;
-  text: string | null;
 };
 
-class OwnerInput extends Component<Props, State> {
-  static defaultProps = defaultProps;
+type InputError = {raw: string[]};
 
-  state: State = {
-    hasChanges: false,
-    text: null,
-    error: null,
-  };
-
-  parseError(error: State['error']) {
-    const text = error?.raw?.[0];
-    if (!text) {
-      return null;
-    }
-
-    if (text.startsWith('Invalid rule owners:')) {
-      return <InvalidOwners>{text}</InvalidOwners>;
-    }
-    return (
-      <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />
-    );
+function parseError(error: InputError | null) {
+  const text = error?.raw?.[0];
+  if (!text) {
+    return null;
   }
 
-  handleUpdateOwnership = () => {
-    const {organization, project, onSave, page, initialText} = this.props;
-    const {text} = this.state;
-    this.setState({error: null});
+  if (text.startsWith('Invalid rule owners:')) {
+    return <InvalidOwners>{text}</InvalidOwners>;
+  }
+  return <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />;
+}
+
+export function OwnerInput({
+  dateUpdated,
+  disabled = false,
+  initialText,
+  onCancel,
+  onSave,
+  organization,
+  page,
+  project,
+}: Props) {
+  const [hasChanges, setHasChanges] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [error, setError] = useState<InputError | null>(null);
+
+  const handleUpdateOwnership = () => {
+    setError(null);
 
     const api = new Client();
     const request = api.requestPromise(
@@ -87,13 +75,9 @@ class OwnerInput extends Component<Props, State> {
     request
       .then(ownership => {
         addSuccessMessage(t('Updated issue ownership rules'));
-        this.setState(
-          {
-            hasChanges: false,
-            text,
-          },
-          () => onSave?.(ownership)
-        );
+        setHasChanges(false);
+        setText(text);
+        onSave?.(ownership);
         trackIntegrationAnalytics('project_ownership.saved', {
           page,
           organization,
@@ -102,22 +86,22 @@ class OwnerInput extends Component<Props, State> {
             initialText.split('\n').filter(x => x).length,
         });
       })
-      .catch(error => {
-        this.setState({error: error.responseJSON});
-        if (error.status === 403) {
+      .catch(caught => {
+        setError(caught.responseJSON);
+        if (caught.status === 403) {
           addErrorMessage(
             t(
               "You don't have permission to modify issue ownership rules for this project"
             )
           );
         } else if (
-          error.status === 400 &&
-          error.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
+          caught.status === 400 &&
+          caught.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
             t(
               'Unable to save issue ownership rule changes: %s',
-              error.responseJSON.raw[0]
+              caught.responseJSON.raw[0]
             )
           );
         } else {
@@ -128,109 +112,71 @@ class OwnerInput extends Component<Props, State> {
     return request;
   };
 
-  mentionableUsers() {
-    return MemberListStore.getAll().map(member => ({
-      id: member.id,
-      display: member.email,
-      email: member.email,
-    }));
-  }
-
-  mentionableTeams() {
-    const {project} = this.props;
-    const projectWithTeams = ProjectsStore.getBySlug(project.slug);
-    if (!projectWithTeams) {
-      return [];
-    }
-    return projectWithTeams.teams.map((team: Team) => ({
-      id: team.id,
-      display: `#${team.slug}`,
-      email: team.id,
-    }));
-  }
-
-  handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    this.setState({
-      hasChanges: true,
-      text: e.target.value,
-    });
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setHasChanges(true);
+    setText(e.target.value);
   };
 
-  handleAddRule = (rule: string) => {
-    const {initialText} = this.props;
-    this.setState(
-      ({text}) => ({
-        text: (text || initialText) + '\n' + rule,
-      }),
-      this.handleUpdateOwnership
-    );
-  };
+  return (
+    <Fragment>
+      <div
+        style={{position: 'relative'}}
+        onKeyDown={e => {
+          if (e.metaKey && e.key === 'Enter') {
+            handleUpdateOwnership();
+          }
+        }}
+      >
+        <Panel>
+          <PanelHeader>
+            {t('Ownership Rules')}
 
-  render() {
-    const {disabled, initialText, dateUpdated} = this.props;
-    const {hasChanges, text, error} = this.state;
-
-    return (
-      <Fragment>
-        <div
-          style={{position: 'relative'}}
-          onKeyDown={e => {
-            if (e.metaKey && e.key === 'Enter') {
-              this.handleUpdateOwnership();
-            }
-          }}
-        >
-          <Panel>
-            <PanelHeader>
-              {t('Ownership Rules')}
-
-              {dateUpdated && (
-                <SyncDate>
-                  {t('Last Edited')} <TimeSince date={dateUpdated} />
-                </SyncDate>
-              )}
-            </PanelHeader>
-            <PanelBody>
-              <StyledTextArea
-                aria-label={t('Ownership Rules')}
-                placeholder={
-                  '#example usage\n' +
-                  'path:src/example/pipeline/* person@sentry.io #infra\n' +
-                  'module:com.module.name.example #sdks\n' +
-                  'url:http://example.com/settings/* #product\n' +
-                  'tags.sku_class:enterprise #enterprise'
-                }
-                monospace
-                onChange={this.handleChange}
-                disabled={disabled}
-                value={defined(text) ? text : initialText}
-                spellCheck="false"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-            </PanelBody>
-          </Panel>
-          <ActionBar>
-            <div>{this.parseError(error)}</div>
-            <Grid flow="column" align="center" gap="md">
-              <Button type="button" size="sm" onClick={this.props.onCancel}>
-                {t('Cancel')}
-              </Button>
-              <Button
-                size="sm"
-                priority="primary"
-                onClick={this.handleUpdateOwnership}
-                disabled={disabled || !hasChanges}
-              >
-                {t('Save')}
-              </Button>
-            </Grid>
-          </ActionBar>
-        </div>
-      </Fragment>
-    );
-  }
+            {dateUpdated && (
+              <SyncDate>
+                {t('Last Edited')} <TimeSince date={dateUpdated} />
+              </SyncDate>
+            )}
+          </PanelHeader>
+          <PanelBody>
+            <StyledTextArea
+              aria-label={t('Ownership Rules')}
+              placeholder={
+                '#example usage\n' +
+                'path:src/example/pipeline/* person@sentry.io #infra\n' +
+                'module:com.module.name.example #sdks\n' +
+                'url:http://example.com/settings/* #product\n' +
+                'tags.sku_class:enterprise #enterprise'
+              }
+              monospace
+              onChange={handleChange}
+              disabled={disabled}
+              value={defined(text) ? text : initialText}
+              spellCheck="false"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+            />
+          </PanelBody>
+        </Panel>
+        <ActionBar>
+          <div>{parseError(error)}</div>
+          <Grid flow="column" align="center" gap="md">
+            <Button type="button" size="sm" onClick={onCancel}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              size="sm"
+              priority="primary"
+              onClick={handleUpdateOwnership}
+              disabled={disabled || !hasChanges}
+            >
+              {t('Save')}
+            </Button>
+          </Grid>
+        </ActionBar>
+      </div>
+    </Fragment>
+  );
 }
 
 const TEXTAREA_PADDING = 4;
@@ -280,5 +226,3 @@ const SyncDate = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   text-transform: none;
 `;
-
-export default OwnerInput;

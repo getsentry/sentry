@@ -1,15 +1,17 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import replayOnboardingImg from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
@@ -31,25 +33,21 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {
-  agentMonitoringPlatforms,
-  javascriptMetaFrameworks,
-} from 'sentry/data/platformCategories';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
@@ -58,7 +56,6 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
-  SERVER_SIDE_NODE_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -150,6 +147,7 @@ function ConversationStepRenderer({
   stepIndex: number;
   trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <GuidedSteps.Step
       stepKey={step.type || step.title}
@@ -157,7 +155,7 @@ function ConversationStepRenderer({
       trailingItems={trailingItems}
     >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
@@ -207,7 +205,19 @@ function ConversationOnboardingPanel({
                 <HeaderImage src={replayOnboardingImg} />
               </Flex>
               <Divider />
-              <Container padding="3xl">{children}</Container>
+              <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
+                <Setup>{children}</Setup>
+                <Container padding="xl" paddingTop="3xl">
+                  <Heading as="h4" size="xl">
+                    {t('Preview Conversations')}
+                  </Heading>
+                  <Arcade
+                    src="https://demo.arcade.software/oV2kLNiavNzbDHX12Bib?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Container>
+              </Grid>
             </div>
           </TabSelectionScope>
         </AuthTokenGeneratorProvider>
@@ -277,35 +287,21 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   });
 
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
-    project?.platform ?? 'other'
-  );
-  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
+
+  const integrations = isPythonPlatform
+    ? PYTHON_AGENT_INTEGRATIONS
+    : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
-      items: isPythonPlatform
-        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          }))
-        : (hasServerSideNode
-            ? NODE_AGENT_INTEGRATIONS
-            : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
-              )
-          ).map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          })),
+      items: integrations.map(integration => ({
+        label: AGENT_INTEGRATION_LABELS[integration],
+        value: integration,
+        leadingItems: (
+          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+        ),
+      })),
     },
   };
 
@@ -517,6 +513,26 @@ const HeaderImage = styled('img')`
   }
 `;
 
+const Setup = styled('div')`
+  padding: ${p => p.theme.space['3xl']};
+
+  &:after {
+    content: '';
+    position: absolute;
+    right: 50%;
+    top: 2.5%;
+    height: 95%;
+    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
+  }
+`;
+
+const Arcade = styled('iframe')`
+  width: 100%;
+  min-height: 420px;
+  margin-top: ${p => p.theme.space.md};
+  border: 0;
+`;
+
 const Divider = styled('hr')`
   width: 95%;
   border: none;
@@ -530,7 +546,7 @@ const DescriptionWrapper = styled('div')`
   }
 
   :not(:last-child) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -544,7 +560,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${space(1)};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

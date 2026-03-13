@@ -422,9 +422,7 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
@@ -785,9 +783,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic category', () => {
       it('renders conditional and parenthetical filters', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         // Should show conditionals button
@@ -897,48 +893,27 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic ops', () => {
-      describe('flag disabled', () => {
-        it('can remove logic ops by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+      it('can remove logic selector by clicking the delete button', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Remove logic operator: OR'})
+        );
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
+        expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
       });
 
-      describe('flag enabled', () => {
-        it('can remove logic selector by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
+      it('can select a different logic operator', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Remove logic operator: OR'})
-          );
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit logic operator: OR'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'AND'}));
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
-
-        it('can select a different logic operator', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
-
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Edit logic operator: OR'})
-          );
-          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
-
-          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
-        });
+        expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
       });
     });
 
@@ -1346,11 +1321,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic items', () => {
       it('will suggest logic items when typing its value', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {
-            features: ['search-query-builder-conditionals-combobox-menus'],
-          },
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         await userEvent.type(getLastInput(), 'and');
@@ -2665,6 +2636,164 @@ describe('SearchQueryBuilder', () => {
         expect(within(valueButton).getByText('+1')).toBeInTheDocument();
         expect(within(valueButton).queryByText('four')).not.toBeInTheDocument();
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
+      });
+
+      it('moves selected values to the top when opening a predefined multi-select', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Chrome', 'Safari', 'Edge']);
+      });
+
+      it('does not reorder items when toggling a selection', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Toggle Chrome on via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('does not reset frozen order when predefined sections rebuild', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="assigned:[person1@sentry.io,me]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle person1@sentry.io'})
+        );
+
+        expect(await screen.findByRole('row', {name: 'assigned:me'})).toBeInTheDocument();
+
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('recomputes the initial ordering when reopened with new suggestion values', async () => {
+        const {rerender} = render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Chrome', 'Safari', 'Edge']);
+
+        await userEvent.click(document.body);
+
+        const updatedFilterKeys: ComponentProps<typeof SearchQueryBuilder>['filterKeys'] =
+          {
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...defaultProps.filterKeys[FieldKey.BROWSER_NAME]!,
+              values: ['Safari', 'Opera', 'Firefox', 'Chrome'],
+            },
+          };
+
+        rerender(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:Firefox"
+            filterKeys={updatedFilterKeys}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Safari', 'Opera', 'Chrome']);
+      });
+
+      it('does not reorder items when deselecting a value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Chrome,Firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Deselect Chrome via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
       });
 
       it.each([
@@ -4152,9 +4281,7 @@ describe('SearchQueryBuilder', () => {
           initialQuery="span.op:test"
           disallowLogicalOperators
         />,
-        {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        }
+        {}
       );
 
       await userEvent.click(getLastInput());

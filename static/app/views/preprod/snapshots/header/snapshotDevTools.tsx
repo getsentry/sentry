@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
@@ -19,7 +18,6 @@ import {
 interface SnapshotDevToolsProps {
   hasBaseArtifact: boolean;
   organizationSlug: string;
-  projectSlug: string;
   refetch: () => void;
   snapshotId: string;
   comparisonRunInfo?: SnapshotComparisonRunInfo | null;
@@ -27,7 +25,6 @@ interface SnapshotDevToolsProps {
 
 export function SnapshotDevTools({
   organizationSlug,
-  projectSlug,
   snapshotId,
   comparisonRunInfo,
   hasBaseArtifact,
@@ -67,7 +64,7 @@ export function SnapshotDevTools({
     setRecompareLoading(true);
     setRecompareError(null);
     clientRef.current.request(
-      `/projects/${organizationSlug}/${projectSlug}/preprodartifacts/snapshots/${snapshotId}/recompare/`,
+      `/organizations/${organizationSlug}/preprodartifacts/snapshots/${snapshotId}/recompare/`,
       {
         method: 'POST',
         success: () => {
@@ -80,7 +77,7 @@ export function SnapshotDevTools({
         },
       }
     );
-  }, [organizationSlug, projectSlug, snapshotId, refetch]);
+  }, [organizationSlug, snapshotId, refetch]);
 
   let stateLabel: string;
   if (comparisonState === ComparisonState.PROCESSING) {
@@ -212,8 +209,8 @@ const DevToolsBox = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
-  padding: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
@@ -224,15 +221,15 @@ const DevToolsBox = styled('div')`
 
 const CollapseButton = styled(Button)`
   position: absolute;
-  top: ${space(0.5)};
-  right: ${space(0.5)};
+  top: ${p => p.theme.space.xs};
+  right: ${p => p.theme.space.xs};
 `;
 
 const StatusPill = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
-  padding: 2px ${space(0.75)};
+  gap: ${p => p.theme.space.xs};
+  padding: 2px ${p => p.theme.space.sm};
   border: 1px solid ${p => p.theme.tokens.border.accent};
   border-radius: 12px;
 `;

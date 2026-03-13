@@ -37,6 +37,7 @@ from sentry.seer.autofix.utils import (
     make_autofix_update_request,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.ourlogs import OurLogs
@@ -204,7 +205,9 @@ def _get_trace_tree_for_event(
         )
 
         trace_endpoint = OrganizationTraceEndpoint()
-        trace = trace_endpoint.query_trace_data(snuba_params, trace_id)
+        trace = trace_endpoint.query_trace_data(
+            snuba_params, trace_id, organization=project.organization
+        )
 
         if not trace:
             logger.info(
@@ -465,7 +468,11 @@ def _call_autofix(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = make_autofix_start_request(body)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    if not isinstance(user, AnonymousUser):
+        viewer_context["user_id"] = user.id
+
+    response = make_autofix_start_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -717,7 +724,8 @@ def update_autofix(
 
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
-    response = make_autofix_update_request(body)
+    viewer_context = SeerViewerContext(organization_id=organization_id)
+    response = make_autofix_update_request(body, viewer_context=viewer_context)
 
     if response.status >= 400:
         return Response({"detail": "Failed to update autofix run"}, status=500)

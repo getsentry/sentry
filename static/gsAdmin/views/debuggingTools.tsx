@@ -11,9 +11,9 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 const SECOND_TO_MILLISECOND = 1000;
 const MILLISECOND_TO_DAY = SECOND_TO_MILLISECOND * 60 * 60 * 24;
@@ -167,8 +167,8 @@ function IssueEscalatingDebugging() {
       }
     );
 
-    const forecast: Forecast = data.forecast;
-    const hourlyCount: Array<[number, number]> = data.stats['24h']!;
+    const forecast = data.forecast;
+    const hourlyCount = data.stats['24h']!;
 
     if (forecast && forecast.data.length > 0) {
       const timestamps = hourlyCount.map(

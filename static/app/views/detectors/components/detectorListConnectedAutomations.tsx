@@ -6,12 +6,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationActionSummary} from 'sentry/views/automations/components/automationActionSummary';
 import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -103,16 +102,16 @@ const ConnectedAutomations = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const HovercardRow = styled(Link)`
   position: relative;
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 
   min-height: 64px;
 
@@ -134,7 +133,7 @@ const HovercardRow = styled(Link)`
 `;
 
 const AutomationActionWrapper = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -142,5 +141,5 @@ const MoreText = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   margin: 0;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;

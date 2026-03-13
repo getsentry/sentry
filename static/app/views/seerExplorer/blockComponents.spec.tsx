@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import BlockComponent from './blockComponents';
+import {BlockComponent} from './blockComponents';
 import type {Block} from './types';
 
 describe('BlockComponent', () => {

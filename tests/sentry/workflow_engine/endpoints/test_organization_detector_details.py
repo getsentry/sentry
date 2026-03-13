@@ -21,7 +21,7 @@ from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
@@ -95,7 +95,7 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
         assert self.detector.data_sources is not None
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
@@ -209,7 +209,7 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["ruleId"] is None
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     method = "PUT"
 
@@ -966,7 +966,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot.get("user_updated") is True
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
@@ -1062,7 +1062,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         ).exists()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDetailsPutCacheInvalidationTest(OrganizationDetectorDetailsBaseTest):
     """Tests that PUT requests correctly invalidate the detector cache."""
 

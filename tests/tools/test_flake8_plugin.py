@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import ast
+from datetime import datetime, timezone
 
-from tools.flake8_plugin import SentryCheck
+from tools.flake8_plugin import SentryCheck, _s015_msg
 
 
 def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
@@ -240,3 +241,34 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S015_current_year_only() -> None:
+    cy = datetime.now(timezone.utc).year
+    msg = _s015_msg(cy)
+    assert _run(
+        f"from datetime import datetime, timezone\n\n"
+        f"X = datetime({cy}, 1, 1, tzinfo=timezone.utc)\n",
+        filename="tests/x.py",
+    ) == [f"t.py:3:0: {msg}"]
+    assert (
+        _run(
+            "from datetime import datetime, timezone\n\n"
+            "X = datetime(2020, 1, 1, tzinfo=timezone.utc)\n",
+            filename="tests/x.py",
+        )
+        == []
+    )
+    assert (
+        _run(
+            f"def f():\n    x = datetime({cy}, 1, 1)\n",
+            filename="tests/x.py",
+        )
+        == []
+    )
+    assert _run(
+        f"from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+        f"@freeze_time(datetime({cy}, 1, 1, tzinfo=timezone.utc))\n"
+        f"def t():\n    pass\n",
+        filename="tests/x.py",
+    ) == [f"t.py:4:1: {msg}"]

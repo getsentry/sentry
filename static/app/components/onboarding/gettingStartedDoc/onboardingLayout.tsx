@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import List from 'sentry/components/list';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
@@ -28,13 +28,12 @@ import {
 } from 'sentry/components/onboarding/platformOptionsControl';
 import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
   hookName: 'component:product-selection-availability',
@@ -160,6 +159,9 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
+    ?.hideInstructionsCopy;
+
   return (
     <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <TabSelectionScope>
@@ -184,13 +186,13 @@ export function OnboardingLayout({
           <Divider withBottomMargin />
           <div>
             {steps.map((step, index) => {
-              const copyButton =
-                copyEnabled && index === 0 ? (
-                  <OnboardingCopyMarkdownButton
-                    steps={steps}
-                    source={newOrg ? 'first_time_setup' : 'project_getting_started'}
-                  />
-                ) : null;
+              const showCopy = copyEnabled && index === 0 && !hideInstructionsCopy;
+              const copyButton = showCopy ? (
+                <OnboardingCopyMarkdownButton
+                  steps={steps}
+                  source={newOrg ? 'first_time_setup' : 'project_getting_started'}
+                />
+              ) : null;
 
               const trailingItems = copyButton ? (
                 step.trailingItems ? (
@@ -258,7 +260,7 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
+  ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space['2xl']}`}
 `;
 
 const StyledStep = styled(Step)`

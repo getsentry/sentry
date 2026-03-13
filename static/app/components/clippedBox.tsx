@@ -143,7 +143,7 @@ interface ClippedBoxProps {
   title?: string;
 }
 
-function ClippedBox(props: ClippedBoxProps) {
+export function ClippedBox(props: ClippedBoxProps) {
   const revealRef = useRef(false);
   const mountedRef = useRef(false);
 
@@ -284,7 +284,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
       // If resize observer is not supported, query for rect and call onResize
       // with an entry that mimics the ResizeObserverEntry.
-      const rect: DOMRectReadOnly = contentRef.current.getBoundingClientRect();
+      const rect = contentRef.current.getBoundingClientRect();
       const entry: ResizeObserverEntry = {
         target: contentRef.current,
         contentRect: rect,
@@ -336,8 +336,6 @@ function ClippedBox(props: ClippedBoxProps) {
     </Wrapper>
   );
 }
-
-export default ClippedBox;
 
 const Wrapper = styled('div')`
   position: relative;

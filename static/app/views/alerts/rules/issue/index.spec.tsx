@@ -16,14 +16,14 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
@@ -85,6 +85,9 @@ const createWrapper = (props = {}) => {
     organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
+  const initialLocationPathname = `/settings/${router.params.orgId}/projects/${router.params.projectId}/alerts/rules/${
+    params.ruleId ?? 'new'
+  }/`;
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <IssueRuleEditor
@@ -100,9 +103,15 @@ const createWrapper = (props = {}) => {
       userTeamIds={[]}
     />,
     {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: initialLocationPathname,
+          query: router.location.query,
+          state: router.location.state,
+        },
+        route: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+      },
     }
   );
 
@@ -246,8 +255,8 @@ describe('IssueRuleEditor', () => {
         method: 'DELETE',
         body: {},
       });
-      const {router} = createWrapper();
-      renderGlobalModal({router, deprecatedRouterMocks: true});
+      createWrapper();
+      renderGlobalModal();
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -256,9 +265,6 @@ describe('IssueRuleEditor', () => {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(router.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/projects/project-slug/alerts/'
-      );
     });
 
     it('saves rule with condition value of 0', async () => {
@@ -575,7 +581,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },
@@ -600,7 +606,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },

@@ -15,6 +15,7 @@ import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  stripEquationPrefix,
   type Aggregation,
   type AggregationOutputType,
   type DataUnit,
@@ -29,7 +30,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -56,7 +57,7 @@ import {
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
-import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import {
@@ -66,7 +67,7 @@ import {
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -146,17 +147,21 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.SPANS,
-    enabled: organization.features.includes('visibility-explore-view'),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'string'
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'number'
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'boolean');
+    useSpanItemAttributes(
+      {enabled: organization.features.includes('visibility-explore-view')},
+      'boolean'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -310,7 +315,11 @@ export const SpansConfig: DatasetConfig<
     ) {
       return renderTransactionAsLinkable;
     }
-    if (field === INTERNAL_ERROR_COUNT_FIELD) {
+    const strippedField = stripEquationPrefix(field);
+    if (
+      field === INTERNAL_ERROR_COUNT_FIELD ||
+      strippedField === INTERNAL_ERROR_COUNT_FIELD
+    ) {
       return renderInternalErrorCount(widget, dashboardFilters);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
@@ -493,7 +502,8 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
   return function (data: EventData, baggage: RenderFunctionBaggage) {
     const {organization, eventView} = baggage;
     const selection = eventView?.getPageFilters();
-    const value = data[INTERNAL_ERROR_COUNT_FIELD];
+    const value =
+      data[INTERNAL_ERROR_COUNT_FIELD] ?? data[`equation|${INTERNAL_ERROR_COUNT_FIELD}`];
     const count = typeof value === 'number' ? value : 0;
 
     if (count === 0) {

@@ -43,6 +43,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.supergroups_lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -192,6 +193,13 @@ def _trigger_autofix_task(
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            try:
+                trigger_lightweight_rca(group)
+            except Exception:
+                logger.exception(
+                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    extra={"group_id": group_id},
+                )
         else:
             response = trigger_autofix(
                 group=group,
@@ -257,7 +265,8 @@ def _call_seer(
         organization_id=group.organization.id,
         project_id=group.project.id,
     )
-    response = make_summarize_issue_request(body, timeout=30)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -305,7 +314,10 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
-    response = make_fixability_score_request(body, timeout=settings.SEER_FIXABILITY_TIMEOUT)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_fixability_score_request(
+        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+    )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
