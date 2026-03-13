@@ -9,6 +9,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -106,8 +107,19 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         </Fragment>
       ) : (
         <Fragment>
-          <NavigationLinkIconContainer>{props.children}</NavigationLinkIconContainer>
-          <NavigationLinkLabel>{props.label}</NavigationLinkLabel>
+          <Flex
+            as="span"
+            align="center"
+            justify="center"
+            padding="sm"
+            radius="md"
+            data-icon-container
+          >
+            {props.children}
+          </Flex>
+          <Text size="xs" bold variant="muted" style={{letterSpacing: '-0.05em'}}>
+            {props.label}
+          </Text>
         </Fragment>
       )}
     </NavigationLink>
@@ -241,26 +253,32 @@ function PrimaryNavigationMenu({
   );
 }
 
+function NavigationButton(props: ButtonProps) {
+  const {layout} = useNavigation();
+
+  return (
+    <Flex
+      height={layout === 'mobile' ? 'auto' : '44px'}
+      width={layout === 'mobile' ? '100%' : '44px'}
+      padding={layout === 'mobile' ? 'md 2xl' : 'xs'}
+      justify={layout === 'mobile' ? 'start' : 'center'}
+      align="center"
+    >
+      {p => (
+        <Button
+          {...p}
+          {...props}
+          size={layout === 'mobile' ? 'zero' : props.size}
+          priority={layout === 'mobile' ? 'transparent' : props.priority}
+        />
+      )}
+    </Flex>
+  );
+}
+
 function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
-
-const NavigationLinkIconContainer = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const NavigationLinkLabel = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${p => p.theme.font.size.xs};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  letter-spacing: -0.05em;
-`;
 
 const NavigationLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'size',
@@ -310,7 +328,7 @@ const NavigationLink = styled(Link, {
 
   /* Apply focus styles only to the icon container */
   &:focus-visible {
-    ${NavigationLinkIconContainer} {
+    [data-icon-container] {
       outline: none;
       box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
     }
@@ -319,7 +337,7 @@ const NavigationLink = styled(Link, {
   &:hover,
   &[aria-selected='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    ${NavigationLinkIconContainer} {
+    [data-icon-container] {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
@@ -331,43 +349,19 @@ const NavigationLink = styled(Link, {
     &::before {
       opacity: 1;
     }
-    ${NavigationLinkIconContainer} {
+    [data-icon-container] {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     }
 
     &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover}
-        ${NavigationLinkIconContainer} {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover} [data-icon-container] {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }
     }
   }
 `;
-
-function NavigationButton(props: ButtonProps) {
-  const {layout} = useNavigation();
-
-  return (
-    <Flex
-      height={layout === 'mobile' ? 'auto' : '44px'}
-      width={layout === 'mobile' ? '100%' : '44px'}
-      padding={layout === 'mobile' ? 'md 2xl' : 'xs'}
-      justify={layout === 'mobile' ? 'start' : 'center'}
-      align="center"
-    >
-      {p => (
-        <Button
-          {...p}
-          {...props}
-          size={layout === 'mobile' ? 'zero' : props.size}
-          priority={layout === 'mobile' ? 'transparent' : props.priority}
-        />
-      )}
-    </Flex>
-  );
-}
 
 const PrimaryNavigationUnreadIndicator = styled('span')<{
   isMobile: boolean;
