@@ -409,11 +409,7 @@ function ConfigureIntegration() {
               <BackendJsonFormAdapter
                 key={fieldConfig.name}
                 field={fieldConfig}
-                initialValue={
-                  (integration.configData as Record<string, unknown> | null)?.[
-                    fieldConfig.name
-                  ]
-                }
+                initialValue={integration.configData?.[fieldConfig.name]}
                 mutationOptions={integrationMutationOptions}
               />
             ))}

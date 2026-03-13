@@ -435,7 +435,7 @@ export interface Integration extends CommonIntegration {
   scopes?: string[];
 }
 
-type ConfigData = {
+type ConfigData = Record<string, unknown> & {
   installationType?: string;
 };
 

@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
-import type {JsonFormAdapterFieldConfig} from './types';
+import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 
 function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
   switch (fieldType) {
@@ -63,17 +63,25 @@ function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
   }
 }
 
-interface BackendJsonFormAdapterProps<TData, TContext> {
-  field: JsonFormAdapterFieldConfig;
+interface BackendJsonFormAdapterProps<
+  TField extends JsonFormAdapterFieldConfig,
+  TData,
+  TContext,
+> {
+  field: TField;
   mutationOptions: UseMutationOptions<TData, Error, Record<string, unknown>, TContext>;
-  initialValue?: unknown;
+  initialValue?: FieldValue<TField>;
 }
 
-export function BackendJsonFormAdapter<TData, TContext>({
+export function BackendJsonFormAdapter<
+  TField extends JsonFormAdapterFieldConfig,
+  TData,
+  TContext,
+>({
   field,
   initialValue,
   mutationOptions,
-}: BackendJsonFormAdapterProps<TData, TContext>) {
+}: BackendJsonFormAdapterProps<TField, TData, TContext>) {
   const fieldName = field.name;
 
   const schema = useMemo(
@@ -94,19 +102,12 @@ export function BackendJsonFormAdapter<TData, TContext>({
     const projectMapperSchema = z.object({
       [fieldName]: z.any(),
     });
-    const projectMapperValue = (
-      initialValue !== undefined && initialValue !== null
-        ? initialValue
-        : field.default === undefined
-          ? []
-          : field.default
-    ) as Array<[number, string]>;
 
     return (
       <AutoSaveField
         name={fieldName}
         schema={projectMapperSchema}
-        initialValue={projectMapperValue}
+        initialValue={initialValue ?? field.default ?? []}
         mutationOptions={mutationOptions}
       >
         {fieldApi => (
@@ -144,19 +145,12 @@ export function BackendJsonFormAdapter<TData, TContext>({
     const choiceMapperSchema = z.object({
       [fieldName]: z.any(),
     });
-    const choiceMapperValue = (
-      initialValue !== undefined && initialValue !== null
-        ? initialValue
-        : field.default === undefined
-          ? {}
-          : field.default
-    ) as Record<string, Record<string, unknown>>;
 
     return (
       <AutoSaveField
         name={fieldName}
         schema={choiceMapperSchema}
-        initialValue={choiceMapperValue}
+        initialValue={initialValue ?? field.default ?? {}}
         mutationOptions={mutationOptions}
       >
         {fieldApi => (

@@ -104,3 +104,21 @@ export type JsonFormAdapterFieldConfig =
   | JsonFormAdapterChoiceMapper
   | JsonFormAdapterTable
   | JsonFormAdapterProjectMapper;
+
+/**
+ * Maps a field config type to the shape of its value.
+ */
+export type FieldValue<T extends JsonFormAdapterFieldConfig> =
+  T extends JsonFormAdapterBoolean
+    ? boolean
+    : T extends JsonFormAdapterString | JsonFormAdapterSecret
+      ? string
+      : T extends JsonFormAdapterNumber
+        ? number
+        : T extends JsonFormAdapterSelect
+          ? string | null
+          : T extends JsonFormAdapterChoiceMapper
+            ? Record<string, Record<string, unknown>>
+            : T extends JsonFormAdapterProjectMapper
+              ? Array<[number, string]>
+              : unknown;
