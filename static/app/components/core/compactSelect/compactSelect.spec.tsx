@@ -709,6 +709,33 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument(); // score 1, hidden
     });
 
+    it('default matcher ranks exact matches above partial matches', async () => {
+      render(
+        <CompactSelect
+          search={{placeholder: 'Search here…'}}
+          options={[
+            {value: 'binary_path', label: 'binary_path'},
+            {value: 'file_path', label: 'file_path'},
+            {value: 'path', label: 'path'},
+            {value: 'path_arg', label: 'path_arg'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('path');
+
+      const options = screen.getAllByRole('option');
+      expect(options).toHaveLength(4);
+      expect(options[0]).toHaveTextContent('path');
+      expect(options[1]).toHaveTextContent('binary_path');
+      expect(options[2]).toHaveTextContent('file_path');
+      expect(options[3]).toHaveTextContent('path_arg');
+    });
+
     it('passes option and search string to searchMatcher', async () => {
       const searchMatcher = jest.fn().mockReturnValue({score: 1});
 

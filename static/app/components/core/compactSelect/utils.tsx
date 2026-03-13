@@ -128,7 +128,8 @@ function defaultSearchMatcher<Value extends SelectKey>(
   if (!text) {
     return {score: 0};
   }
-  const result = fzf(text, search.toLowerCase(), false);
+  const lowerSearch = search.toLowerCase();
+  const result = fzf(text, lowerSearch, false);
   // fzf returns end=-1 when no subsequence match exists (score is also 0).
   // For valid matches fzf may return negative scores due to gap penalties, so we
   // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
@@ -136,7 +137,12 @@ function defaultSearchMatcher<Value extends SelectKey>(
   if (result.end === -1) {
     return {score: 0};
   }
-  return {score: Math.max(1, result.score)};
+  const score = Math.max(1, result.score);
+  // Boost exact matches so they sort above partial/substring matches.
+  if (text.toLowerCase() === lowerSearch) {
+    return {score: score + 1000};
+  }
+  return {score};
 }
 
 /**
