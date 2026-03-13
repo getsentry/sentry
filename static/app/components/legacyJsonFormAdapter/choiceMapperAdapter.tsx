@@ -28,7 +28,8 @@ interface ChoiceMapperDropdownProps {
 
 interface ChoiceMapperTableProps {
   config: ChoiceMapperConfig;
-  onChange: (value: Record<string, Record<string, unknown>>) => void;
+  onSave: (value: Record<string, Record<string, unknown>>) => void;
+  onUpdate: (value: Record<string, Record<string, unknown>>) => void;
   value: Record<string, Record<string, unknown>>;
   disabled?: boolean;
 }
@@ -195,7 +196,8 @@ export function ChoiceMapperDropdown({
 export function ChoiceMapperTable({
   config,
   value,
-  onChange,
+  onUpdate,
+  onSave,
   disabled,
 }: ChoiceMapperTableProps) {
   const {
@@ -214,10 +216,23 @@ export function ChoiceMapperTable({
       return map;
     }, {}) ?? {};
 
-  const removeRow = (itemKey: string) => {
-    onChange(
-      Object.fromEntries(Object.entries(value).filter(([key]) => key !== itemKey))
+  const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
+    Object.values(val).every(row =>
+      mappedKeys.every(key => row[key] !== null && row[key] !== undefined)
     );
+
+  const updateAndSaveIfComplete = (newValue: Record<string, Record<string, unknown>>) => {
+    onUpdate(newValue);
+    if (allColumnsFilled(newValue)) {
+      onSave(newValue);
+    }
+  };
+
+  const removeRow = (itemKey: string) => {
+    const newValue = Object.fromEntries(
+      Object.entries(value).filter(([key]) => key !== itemKey)
+    );
+    updateAndSaveIfComplete(newValue);
   };
 
   const setValue = (
@@ -225,7 +240,8 @@ export function ChoiceMapperTable({
     fieldKey: string,
     cellValue: string | number | null
   ) => {
-    onChange({...value, [itemKey]: {...value[itemKey], [fieldKey]: cellValue}});
+    const newValue = {...value, [itemKey]: {...value[itemKey], [fieldKey]: cellValue}};
+    updateAndSaveIfComplete(newValue);
   };
 
   const hasValues = Object.keys(value).length > 0;

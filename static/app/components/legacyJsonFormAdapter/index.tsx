@@ -109,37 +109,23 @@ export function LegacyJsonFormAdapter<TData, TContext>({
       >
         {fieldApi => (
           <fieldApi.Base>
-            {(baseProps, {indicator}) => {
-              const columnKeys = Object.keys(field.columnLabels ?? {});
-              const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
-                Object.values(val).every(row =>
-                  columnKeys.every(key => row[key] !== null && row[key] !== undefined)
-                );
-              const handleChangeAndSave = (
-                val: Record<string, Record<string, unknown>>
-              ) => {
-                fieldApi.handleChange(val);
-                if (allColumnsFilled(val)) {
-                  baseProps.onBlur();
-                }
-              };
-              return (
-                <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                  <ChoiceMapperDropdown
-                    config={field}
-                    value={fieldApi.state.value}
-                    onChange={fieldApi.handleChange}
-                    indicator={indicator}
-                  />
-                  <ChoiceMapperTable
-                    config={field}
-                    value={fieldApi.state.value}
-                    onChange={handleChangeAndSave}
-                    disabled={field.disabled || baseProps.disabled}
-                  />
-                </fieldApi.Layout.Row>
-              );
-            }}
+            {(baseProps, {indicator}) => (
+              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                <ChoiceMapperDropdown
+                  config={field}
+                  value={fieldApi.state.value}
+                  onChange={fieldApi.handleChange}
+                  indicator={indicator}
+                />
+                <ChoiceMapperTable
+                  config={field}
+                  value={fieldApi.state.value}
+                  onUpdate={fieldApi.handleChange}
+                  onSave={() => baseProps.onBlur()}
+                  disabled={field.disabled || baseProps.disabled}
+                />
+              </fieldApi.Layout.Row>
+            )}
           </fieldApi.Base>
         )}
       </AutoSaveField>
