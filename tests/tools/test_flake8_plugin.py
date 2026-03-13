@@ -240,3 +240,97 @@ def test(monkeypatch) -> None: pass
 """
     expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
     assert _run(src) == expected
+
+
+def test_S015() -> None:
+    # Bad: missing viewer_context keyword argument
+    src = """\
+make_signed_seer_api_request(pool, "/path", body=b"data")
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S015 `make_signed_seer_api_request` must be called with an explicit `viewer_context` keyword argument",
+    ]
+
+    # Good: viewer_context is passed
+    src = """\
+make_signed_seer_api_request(pool, "/path", body=b"data", viewer_context=ctx)
+"""
+    assert _run(src, filename="src/sentry/seer/something.py") == []
+
+    # Good: viewer_context=None is explicit
+    src = """\
+make_signed_seer_api_request(pool, "/path", body=b"data", viewer_context=None)
+"""
+    assert _run(src, filename="src/sentry/seer/something.py") == []
+
+    # No error in test files
+    src = """\
+make_signed_seer_api_request(pool, "/path", body=b"data")
+"""
+    assert _run(src, filename="tests/sentry/seer/test_something.py") == []
+
+    # Bad: attribute-style call without viewer_context
+    src = """\
+seer_api.make_signed_seer_api_request(pool, "/path", body=b"data")
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S015 `make_signed_seer_api_request` must be called with an explicit `viewer_context` keyword argument",
+    ]
+
+
+def test_S016() -> None:
+    # Bad: missing both organization_id and user_id
+    src = """\
+SeerViewerContext()
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S016 `SeerViewerContext` must include both `organization_id` and `user_id` keyword arguments",
+    ]
+
+    # Bad: missing user_id
+    src = """\
+SeerViewerContext(organization_id=123)
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S016 `SeerViewerContext` must include both `organization_id` and `user_id` keyword arguments",
+    ]
+
+    # Bad: missing organization_id
+    src = """\
+SeerViewerContext(user_id=456)
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S016 `SeerViewerContext` must include both `organization_id` and `user_id` keyword arguments",
+    ]
+
+    # Good: both present
+    src = """\
+SeerViewerContext(organization_id=123, user_id=456)
+"""
+    assert _run(src, filename="src/sentry/seer/something.py") == []
+
+    # Good: user_id=None is acceptable
+    src = """\
+SeerViewerContext(organization_id=123, user_id=None)
+"""
+    assert _run(src, filename="src/sentry/seer/something.py") == []
+
+    # No error in test files
+    src = """\
+SeerViewerContext(organization_id=123)
+"""
+    assert _run(src, filename="tests/sentry/seer/test_something.py") == []
+
+    # Bad: attribute-style call missing keys
+    src = """\
+signed_seer_api.SeerViewerContext(organization_id=123)
+"""
+    errors = _run(src, filename="src/sentry/seer/something.py")
+    assert errors == [
+        "t.py:1:0: S016 `SeerViewerContext` must include both `organization_id` and `user_id` keyword arguments",
+    ]
