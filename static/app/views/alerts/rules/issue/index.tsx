@@ -44,7 +44,6 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -1093,7 +1092,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               styles={{
                 container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
-                  marginBottom: space(1),
+                  marginBottom: '8px',
                 }),
               }}
               options={projectOptions}

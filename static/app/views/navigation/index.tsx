@@ -10,22 +10,21 @@ import {
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const {currentStepId, endTour} = useNavigationTour();
   const tourIsActive = currentStepId !== null;
   const hoverProps = useResetActiveNavigationGroup();
@@ -54,7 +53,7 @@ function UserAndOrganizationNavigation() {
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
   useEffect(() => {
-    if (tourIsActive && layout === NavigationLayout.MOBILE) {
+    if (tourIsActive && layout === 'mobile') {
       endTour();
     }
   }, [endTour, layout, tourIsActive]);
@@ -63,15 +62,15 @@ function UserAndOrganizationNavigation() {
     <Flex
       top={0}
       position={tourIsActive ? undefined : 'sticky'}
-      bottom={layout === NavigationLayout.MOBILE ? undefined : 0}
-      height={layout === NavigationLayout.MOBILE ? undefined : '100dvh'}
+      bottom={layout === 'mobile' ? undefined : 0}
+      height={layout === 'mobile' ? undefined : '100dvh'}
       style={{
         zIndex: tourIsActive ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
       }}
       {...hoverProps}
     >
-      {layout === NavigationLayout.SIDEBAR ? <DesktopNavigation /> : <MobileNavigation />}
+      {layout === 'sidebar' ? <DesktopNavigation /> : <MobileNavigation />}
     </Flex>
   );
 }

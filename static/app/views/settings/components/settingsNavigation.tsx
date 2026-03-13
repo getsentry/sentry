@@ -50,7 +50,7 @@ function SettingsSecondaryNavigation({
   );
 }
 
-class SettingsNavigation extends Component<Props> {
+export class SettingsNavigation extends Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
@@ -90,5 +90,3 @@ class SettingsNavigation extends Component<Props> {
     );
   }
 }
-
-export default SettingsNavigation;

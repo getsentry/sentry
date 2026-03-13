@@ -28,6 +28,7 @@ export type LegendType = 'default' | 'breakdown';
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+export const MAX_TABLE_LIMIT = 10;
 
 export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
 export const MAX_CATEGORICAL_BAR_LIMIT = 25;

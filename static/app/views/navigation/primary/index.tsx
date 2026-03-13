@@ -18,9 +18,9 @@ import {
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
@@ -36,7 +36,7 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
-import {NavigationLayout, PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 function SidebarBody({
   children,
@@ -45,21 +45,17 @@ function SidebarBody({
   children: React.ReactNode;
   ref: React.RefObject<HTMLUListElement | null>;
 }) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
-    <SidebarList
-      isMobile={layout === NavigationLayout.MOBILE}
-      data-primary-list-container
-      ref={ref}
-    >
+    <SidebarList isMobile={layout === 'mobile'} data-primary-list-container ref={ref}>
       {children}
     </SidebarList>
   );
 }
 
 function SidebarFooter({children}: {children: React.ReactNode}) {
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const isMobile = layout === 'mobile';
 
   if (!children) {
     return null;

@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -15,7 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableBody} from 'sentry/views/explore/components/table';
 import {
   LogsPageDataProvider,

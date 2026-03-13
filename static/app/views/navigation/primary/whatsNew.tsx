@@ -18,16 +18,15 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
   SidebarButton,
   SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
   announcement: t('Announcement'),
@@ -65,13 +64,17 @@ function WhatsNewContent({
           getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
             path: {organizationIdOrSlug: organization.slug},
           }),
+          {query: {show: 'latest', limit: '3'}},
         ],
-        data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
+        data => (Array.isArray(data) ? data.map(item => ({...item, hasSeen: true})) : [])
       );
     },
   });
 
   useEffect(() => {
+    if (unseenPostIds.length === 0) {
+      return undefined;
+    }
     const MARK_SEEN_DELAY = 1000;
     const markSeenTimeout = window.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
@@ -137,6 +140,7 @@ export function PrimaryNavigationWhatsNew() {
       getApiUrl(`/organizations/$organizationIdOrSlug/broadcasts/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
+      {query: {show: 'latest', limit: '3'}},
     ],
     {
       // Five minute stale time prevents window focus frequent refetches
@@ -147,7 +151,10 @@ export function PrimaryNavigationWhatsNew() {
     }
   );
   const unseenPostIds = useMemo(
-    () => (broadcasts ?? []).filter(item => !item.hasSeen).map(item => item.id),
+    () =>
+      (Array.isArray(broadcasts) ? broadcasts : [])
+        .filter(item => !item.hasSeen)
+        .map(item => item.id),
     [broadcasts]
   );
 
@@ -157,7 +164,7 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryButtonOverlay();
 
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return (
     <Fragment>
@@ -173,7 +180,7 @@ export function PrimaryNavigationWhatsNew() {
         {unseenPostIds.length > 0 && (
           <SidebarItemUnreadIndicator
             data-test-id="whats-new-unread-indicator"
-            isMobile={layout === NavigationLayout.MOBILE}
+            isMobile={layout === 'mobile'}
           />
         )}
       </SidebarButton>
@@ -182,7 +189,7 @@ export function PrimaryNavigationWhatsNew() {
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
-            broadcasts={broadcasts}
+            broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
           />
         </PrimaryButtonOverlay>
       )}

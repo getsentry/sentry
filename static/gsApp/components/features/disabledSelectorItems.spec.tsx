@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('DisabledSelectorItems', () => {
   const handleSelectRelative = jest.fn();

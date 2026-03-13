@@ -40,7 +40,7 @@ If the signal is ambiguous, ask the user to clarify which category.
 
 Before generating any test:
 
-1. **Read the source module** being tested. Determine its silo mode by checking for `@region_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@cell_silo_model`/`@control_silo_model` decorators.
+1. **Read the source module** being tested. Determine its silo mode by checking for `@cell_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@cell_silo_model`/`@control_silo_model` decorators.
 
 2. **Find the existing test file** using the mirror path convention:
    - `src/sentry/foo/bar.py` → `tests/sentry/foo/test_bar.py`
@@ -122,7 +122,7 @@ Endpoint silo tests verify that API endpoints work correctly under their declare
 
 | Endpoint Decorator                    | Test Decorator                                          |
 | ------------------------------------- | ------------------------------------------------------- |
-| `@region_silo_endpoint`               | `@region_silo_test`                                     |
+| `@cell_silo_endpoint`                 | `@region_silo_test`                                     |
 | `@control_silo_endpoint`              | `@control_silo_test`                                    |
 | `@control_silo_endpoint` (with proxy) | `@control_silo_test(regions=create_test_regions("us"))` |
 | No decorator (monolith-only)          | `@no_silo_test`                                         |
@@ -180,7 +180,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 ```python
 # Use ONLY for direct ORM queries — never for factory calls
 assume_test_silo_mode(SiloMode.CONTROL)     # Switch to control silo for ORM access
-assume_test_silo_mode(SiloMode.REGION)       # Switch to region silo for ORM access
+assume_test_silo_mode(SiloMode.CELL)       # Switch to cell silo for ORM access
 assume_test_silo_mode_of(ModelClass)         # Switch to silo matching model's silo mode
 
 outbox_runner()                               # Drain all pending outboxes on exit

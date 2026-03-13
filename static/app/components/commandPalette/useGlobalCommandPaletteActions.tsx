@@ -27,8 +27,8 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -36,8 +36,8 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 // This hook generates actions for all pages in the primary and secondary navigation.
@@ -288,7 +288,7 @@ function useNavigationActions(): CommandPaletteAction[] {
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
-  const {isCollapsed, setIsCollapsed} = useNavigationContext();
+  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
 
   return {
     type: 'callback',

@@ -1739,7 +1739,7 @@ class TestExpandedSentryAppsWebhooks(TestCase):
             project_id=self.project.id,
         )
         assert event.group is not None
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             event.group.update(type=4001)
 
         with self.tasks():
@@ -1802,7 +1802,7 @@ class TestBackfillServiceHooksEvents(TestCase):
         )
 
     def test_regenerate_service_hook_for_installation_success(self):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             hook.events = ["issue.resolved", "error.created"]
             hook.save()
@@ -1814,7 +1814,7 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook.refresh_from_db()
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
@@ -1826,7 +1826,7 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
@@ -1835,7 +1835,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             self.sentry_app.update(events=[])
             assert self.sentry_app.events == []
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events != []
 
@@ -1846,6 +1846,6 @@ class TestBackfillServiceHooksEvents(TestCase):
                 events=self.sentry_app.events,
             )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook.refresh_from_db()
             assert hook.events == []

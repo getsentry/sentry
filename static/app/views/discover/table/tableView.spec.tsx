@@ -11,8 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TagStore from 'sentry/stores/tagStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';

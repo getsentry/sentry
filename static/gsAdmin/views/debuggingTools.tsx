@@ -11,7 +11,7 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {PageHeader} from 'admin/components/pageHeader';
 

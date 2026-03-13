@@ -19,7 +19,7 @@ interface TrustedRelaysRequestError extends RequestError {
   };
 }
 
-function createTrustedRelaysResponseError(
+export function createTrustedRelaysResponseError(
   error: TrustedRelaysRequestError
 ): TrustedRelaysResponseError {
   const errorMessage = error.responseJSON?.trustedRelays[0];
@@ -78,5 +78,3 @@ function createTrustedRelaysResponseError(
     message: t('An unknown error occurred while saving Relay public key.'),
   };
 }
-
-export default createTrustedRelaysResponseError;

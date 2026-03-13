@@ -13,10 +13,10 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCommitters from 'sentry/utils/useCommitters';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCommitters} from 'sentry/utils/useCommitters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface CommitWithGroupOwner extends Commit {
@@ -94,7 +94,7 @@ export function SuspectCommits({
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
       <ScrollCarousel
-        gap={1.5}
+        gap="lg"
         transparentMask
         jumpItemCount={1}
         aria-label={t('Suspect commits')}

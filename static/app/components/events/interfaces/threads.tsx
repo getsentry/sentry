@@ -18,7 +18,7 @@ import {
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
-import Pill from 'sentry/components/pill';
+import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -45,9 +45,9 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
 import {ThreadSelector} from './threads/threadSelector';
-import findBestThread from './threads/threadSelector/findBestThread';
-import getThreadException from './threads/threadSelector/getThreadException';
-import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
+import {findBestThread} from './threads/threadSelector/findBestThread';
+import {getThreadException} from './threads/threadSelector/getThreadException';
+import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
 import {NoStackTraceMessage} from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 

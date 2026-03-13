@@ -1,4 +1,4 @@
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 const LOCAL_STORAGE_KEY = 'replay-config';
 
@@ -50,12 +50,12 @@ export const StaticNoSkipReplayPreferences: PrefsStrategy = {
 export const LocalStorageReplayPreferences: PrefsStrategy = {
   _prefs: {...CAN_SKIP_PREFS},
   get() {
-    const parsed = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+    const parsed = JSON.parse(localStorageWrapper.getItem(LOCAL_STORAGE_KEY) || '{}');
     return {...CAN_SKIP_PREFS, ...parsed};
   },
   set(prefs) {
     this._prefs = prefs;
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
+    localStorageWrapper.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs));
   },
 };
 

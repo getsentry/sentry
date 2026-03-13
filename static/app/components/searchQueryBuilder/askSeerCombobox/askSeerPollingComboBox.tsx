@@ -33,8 +33,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay

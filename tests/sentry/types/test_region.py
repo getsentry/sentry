@@ -95,7 +95,7 @@ class CellDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS, [])
         assert directory.cells == frozenset(self._EXPECTED_OUTPUTS)
 
-    @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
+    @override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us")
     def test_get_local_cell(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS, [])
@@ -143,7 +143,7 @@ class CellDirectoryTest(TestCase):
 
     def test_locality_to_url(self) -> None:
         locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+        with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
@@ -179,7 +179,7 @@ class CellDirectoryTest(TestCase):
             assert actual_cells == {"us"}
 
         with (
-            override_settings(SILO_MODE=SiloMode.REGION),
+            override_settings(SILO_MODE=SiloMode.CELL),
             pytest.raises(SiloLimit.AvailabilityError),
         ):
             find_cells_for_user(user_id=user.id)
@@ -212,7 +212,7 @@ class CellDirectoryTest(TestCase):
             assert actual_cells == {"us", "eu"}
 
         with (
-            override_settings(SILO_MODE=SiloMode.REGION),
+            override_settings(SILO_MODE=SiloMode.CELL),
             pytest.raises(SiloLimit.AvailabilityError),
         ):
             find_cells_for_sentry_app(sentry_app=sentry_app)

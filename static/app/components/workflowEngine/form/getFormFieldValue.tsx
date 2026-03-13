@@ -1,4 +1,4 @@
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
 
 /**

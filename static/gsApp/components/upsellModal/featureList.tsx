@@ -7,7 +7,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeaturesLink';
 
