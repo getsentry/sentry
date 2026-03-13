@@ -58,7 +58,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
         from sentry.auth.services.auth.serial import serialize_api_key
 
         region_replica_service.upsert_replicated_api_key(
-            api_key=serialize_api_key(self), region_name=region_name
+            api_key=serialize_api_key(self), cell_name=region_name
         )
 
     def __str__(self) -> str:

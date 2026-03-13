@@ -7,11 +7,11 @@ from sentry.api.helpers.events import get_events_for_group_eap, get_query_builde
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def _query_both(self, group_id: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         group = Group.objects.get(id=group_id)

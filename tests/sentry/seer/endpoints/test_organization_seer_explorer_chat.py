@@ -79,6 +79,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
             on_page_context=None,
+            override_ce_enable=True,
         )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -103,6 +104,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
             mock_client.start_run.assert_called_once_with(
                 prompt="What is this error about?",
                 on_page_context=None,
+                override_ce_enable=True,
             )
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat.SeerExplorerClient")
@@ -161,6 +163,80 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
                 insert_index=2,
                 on_page_context=None,
             )
+
+
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
+@with_feature("organizations:gen-ai-consent-flow-removal")
+class OrganizationSeerExplorerChatContextEngineTest(APITestCase):
+    """End-to-end tests verifying is_context_engine_enabled reaches make_explorer_chat_request."""
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
+
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_false_sets_context_engine_disabled(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
+
+        data = {"query": "What is this error about?", "override_ce_enable": False}
+        with self.feature("organizations:seer-explorer-context-engine-allow-fe-override"):
+            response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body["is_context_engine_enabled"] is False
+
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_true_sets_context_engine_enabled(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
+
+        data = {"query": "What is this error about?", "override_ce_enable": True}
+        with self.feature("organizations:seer-explorer-context-engine-allow-fe-override"):
+            response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body["is_context_engine_enabled"] is True
+
+    @patch("sentry.seer.explorer.client.make_explorer_chat_request")
+    @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_override_ce_enable_ignored_without_feature_flag(
+        self, mock_collect_context, mock_access, mock_chat_request
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {}
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": 123}
+        mock_chat_request.return_value = mock_response
+
+        data = {"query": "What is this error about?", "override_ce_enable": False}
+        response = self.client.post(self.url, data, format="json")
+
+        assert response.status_code == 200
+        body = mock_chat_request.call_args[0][0]
+        assert body.get("is_context_engine_enabled") is not False
 
 
 class CollectUserOrgContextTest(APITestCase):

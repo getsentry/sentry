@@ -5,7 +5,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.tombstone import RpcTombstone
 from sentry.silo.base import SiloMode
 
@@ -40,7 +40,7 @@ class RegionTombstoneService(RpcService):
 
         return DatabaseBackedRegionTombstoneService()
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def record_remote_tombstone(self, *, region_name: str, tombstone: RpcTombstone) -> None:
         pass

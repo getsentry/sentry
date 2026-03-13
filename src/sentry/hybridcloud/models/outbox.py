@@ -433,7 +433,7 @@ class RegionOutboxBase(OutboxBase):
 
 
 @cell_silo_model
-class RegionOutbox(RegionOutboxBase):
+class CellOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -455,6 +455,10 @@ class RegionOutbox(RegionOutboxBase):
             ),
             models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
+
+
+# TODO(cells): remove once all usage is updated
+RegionOutbox = CellOutbox
 
 
 # Outboxes bound from control silo -> region silo

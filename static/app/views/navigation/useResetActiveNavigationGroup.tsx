@@ -15,7 +15,7 @@ import {useNavigation} from 'sentry/views/navigation/navigationContext';
  * to prevent accidental dismissals.
  */
 export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement> {
-  const {layout, setActivePrimaryNavigationGroup} = useNavigation();
+  const {layout, setActiveGroup} = useNavigation();
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetActiveNavigationGroup = useCallback(() => {
@@ -24,9 +24,9 @@ export function useResetActiveNavigationGroup(): DOMAttributes<FocusableElement>
     }
 
     resetTimeoutRef.current = setTimeout(() => {
-      setActivePrimaryNavigationGroup(null);
+      setActiveGroup(null);
     }, NAVIGATION_SIDEBAR_RESET_DELAY_MS);
-  }, [setActivePrimaryNavigationGroup]);
+  }, [setActiveGroup]);
 
   const clearResetTimeout = useCallback(() => {
     if (resetTimeoutRef.current) {
