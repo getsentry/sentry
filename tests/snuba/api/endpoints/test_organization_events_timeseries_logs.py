@@ -50,7 +50,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                     for minute in range(count)
                 ],
             )
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self._do_request(
             data={
@@ -88,7 +88,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         }
 
     def test_top_events(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo"},
