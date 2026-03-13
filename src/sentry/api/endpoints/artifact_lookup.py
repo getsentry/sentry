@@ -96,13 +96,17 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 ReleaseFile.objects.filter(
                     id=ty_id,
                     organization_id=project.organization.id,
-                    release_id__in=ReleaseProject.objects.filter(
-                        project=project,
-                    ).values("release_id"),
                 )
                 .select_related("file")
                 .first()
             )
+            if (
+                file_m is not None
+                and not ReleaseProject.objects.filter(
+                    project=project, release_id=file_m.release_id
+                ).exists()
+            ):
+                file_m = None
             metrics.incr("sourcemaps.download.release_file")
 
         if file_m is None:

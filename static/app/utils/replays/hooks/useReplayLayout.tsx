@@ -97,12 +97,16 @@ function getDefaultLayout(
 
 export function useReplayLayout() {
   const theme = useTheme();
-  const {isCollapsed} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
-  const defaultLayout = getDefaultLayout(isCollapsed, theme, secondarySidebarWidth);
+  const defaultLayout = getDefaultLayout(
+    view !== 'expanded',
+    theme,
+    secondarySidebarWidth
+  );
 
   const organization = useOrganization();
 
