@@ -404,6 +404,7 @@ def get_grouping_variants_for_event(
         else resolve_fingerprint_values(
             raw_fingerprint,
             event,
+            context,
             use_legacy_unknown_variable_handling=use_legacy_unknown_variable_handling,
         )
     )
