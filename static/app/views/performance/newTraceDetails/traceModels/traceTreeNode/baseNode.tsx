@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Level, Measurement} from 'sentry/types/event';
-import {HIDDEN_OCCURRENCE_TYPE_IDS} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -175,7 +174,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
       }
 
       if ('occurrences' in value && Array.isArray(value.occurrences)) {
-        value.occurrences.forEach(occurrence => this.addOccurrence(occurrence));
+        value.occurrences.forEach(occurrence => this.occurrences.add(occurrence));
       }
     }
   }
@@ -274,13 +273,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   get hasIssues(): boolean {
     return this.hasErrors || this.hasOccurrences;
-  }
-
-  addOccurrence(occurrence: TraceTree.TraceOccurrence): void {
-    const issueType = 'type' in occurrence ? occurrence.type : occurrence.issue_type;
-    if (!HIDDEN_OCCURRENCE_TYPE_IDS.includes(issueType)) {
-      this.occurrences.add(occurrence);
-    }
   }
 
   get visibleChildren(): BaseNode[] {

@@ -5,37 +5,37 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  isRootCauseArtifact,
-  isSolutionArtifact,
-  type AutofixArtifact,
+  isCodeChangesSection,
+  isRootCauseSection,
+  isSolutionSection,
+  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
-import {isArrayOf} from 'sentry/types/utils';
-import {isExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import {defined} from 'sentry/utils';
 
 interface SeerDrawerNextStepProps {
-  artifacts: AutofixArtifact[];
   autofix: ReturnType<typeof useExplorerAutofix>;
+  sections: AutofixSection[];
 }
 
-export function SeerDrawerNextStep({artifacts, autofix}: SeerDrawerNextStepProps) {
+export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps) {
   const runId = autofix.runState?.run_id;
-  if (!runId) {
+  const lastSection = sections[sections.length - 1];
+
+  if (!defined(runId) || !defined(lastSection)) {
     return null;
   }
 
-  const lastArtifact = artifacts[artifacts.length - 1];
-
-  if (isRootCauseArtifact(lastArtifact)) {
+  if (isRootCauseSection(lastSection)) {
     return <RootCauseNextStep autofix={autofix} runId={runId} />;
   }
 
-  if (isSolutionArtifact(lastArtifact)) {
+  if (isSolutionSection(lastSection)) {
     return <SolutionNextStep autofix={autofix} runId={runId} />;
   }
 
-  if (isArrayOf(lastArtifact, isExplorerFilePatch) && lastArtifact.length) {
+  if (isCodeChangesSection(lastSection)) {
     return <CodeChangesNextStep autofix={autofix} runId={runId} />;
   }
 

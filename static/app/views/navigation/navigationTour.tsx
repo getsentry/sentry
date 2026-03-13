@@ -30,8 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
 export const enum NavigationTour {
   ISSUES = 'issues',
@@ -43,6 +42,7 @@ export const enum NavigationTour {
 
 // Started rolling out to GA users on June 18, 2025
 const TOUR_MODAL_DATE_THRESHOLD = new Date(2025, 5, 18);
+const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 const ORDERED_NAVIGATION_TOUR = [
   NavigationTour.ISSUES,
@@ -133,7 +133,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const activeGroup = useActiveNavigationGroup();
+  const {activeGroup} = useNavigation();
 
   const onStartTour = useCallback(() => {
     // Save the initial URL when the tour starts because we need to restore it when the tour ends.
@@ -162,7 +162,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case NavigationTour.ISSUES:
-          if (activeGroup !== PrimaryNavigationGroup.ISSUES) {
+          if (activeGroup !== 'issues') {
             const target = normalizeUrl({
               pathname: `/${prefix}/issues/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -171,7 +171,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.EXPLORE:
-          if (activeGroup !== PrimaryNavigationGroup.EXPLORE) {
+          if (activeGroup !== 'explore') {
             const target = normalizeUrl({
               pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -180,7 +180,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.DASHBOARDS:
-          if (activeGroup !== PrimaryNavigationGroup.DASHBOARDS) {
+          if (activeGroup !== 'dashboards') {
             const target = normalizeUrl({
               pathname: `/${prefix}/dashboards/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -189,7 +189,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.INSIGHTS:
-          if (activeGroup !== PrimaryNavigationGroup.INSIGHTS) {
+          if (activeGroup !== 'insights') {
             const target = normalizeUrl({
               pathname: `/${prefix}/insights/frontend/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -198,7 +198,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
           }
           break;
         case NavigationTour.SETTINGS:
-          if (activeGroup !== PrimaryNavigationGroup.SETTINGS) {
+          if (activeGroup !== 'settings') {
             const target = normalizeUrl({
               pathname: `/settings/${organization.slug}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
@@ -283,12 +283,7 @@ export function NavigationTourReminder({children}: {children: React.ReactNode}) 
         'You can always use the help menu to take this tour again or share feedback with the team.'
       )}
       actions={
-        <TourAction
-          size="xs"
-          onClick={() => {
-            setShowTourReminder(false);
-          }}
-        >
+        <TourAction size="xs" onClick={() => setShowTourReminder(false)}>
           {t('Got it')}
         </TourAction>
       }
@@ -373,8 +368,6 @@ export function useNavigationTourModal() {
     dismissTour,
   ]);
 }
-
-const NAVIGATION_TOUR_REFERRER = 'nav-tour';
 
 export function useIsNavigationTourActive() {
   const location = useLocation();

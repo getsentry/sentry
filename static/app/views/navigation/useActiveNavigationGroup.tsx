@@ -1,7 +1,18 @@
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
+
+const PRIMARY_NAVIGATION_GROUP_CONFIG = {
+  issues: ['issues'],
+  explore: ['explore'],
+  dashboards: ['dashboards', 'dashboard'],
+  insights: ['insights'],
+  monitors: ['monitors'],
+  settings: ['settings'],
+  prevent: ['prevent'],
+  admin: ['manage'],
+} as const;
+
+export type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
 const CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/([^/]+)/;
 const NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/organizations\/[^/]+\/([^/]+)/;
@@ -17,22 +28,23 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
   );
 };
 
-export function useActiveNavigationGroup(): PrimaryNavigationGroup {
+export function useActiveNavigationGroup(): NavigationGroup {
   const location = useLocation();
-
   const primaryPath = getPrimaryRoutePath(location.pathname);
 
   if (!primaryPath) {
-    return PrimaryNavigationGroup.ISSUES;
+    return 'issues';
   }
 
-  for (const [navigationGroup, config] of Object.entries(
-    PRIMARY_NAVIGATION_GROUP_CONFIG
-  )) {
-    if (config.basePaths.includes(primaryPath)) {
-      return navigationGroup as PrimaryNavigationGroup;
+  for (const key in PRIMARY_NAVIGATION_GROUP_CONFIG) {
+    if (
+      (
+        PRIMARY_NAVIGATION_GROUP_CONFIG[key as NavigationGroup] as readonly string[]
+      ).includes(primaryPath)
+    ) {
+      return key as NavigationGroup;
     }
   }
 
-  return PrimaryNavigationGroup.ISSUES;
+  return 'issues';
 }

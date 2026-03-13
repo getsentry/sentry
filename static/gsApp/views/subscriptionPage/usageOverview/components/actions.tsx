@@ -16,7 +16,8 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function UsageOverviewActions({organization}: {organization: Organization}) {
   const {layout: navLayout} = useNavigation();
-  const {isCollapsed: navIsCollapsed} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
   const isMobile = navLayout === 'mobile';
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =
