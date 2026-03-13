@@ -4,8 +4,8 @@ on:
   # this GHA runs monthly to keep the baseline fresh
   workflow_dispatch:
   schedule:
-    # 3rd Monday of every month at 10am SF time (17:00 UTC)
-    - cron: '0 17 15-21 * 1'
+    # 1st of every month at 10am SF time (17:00 UTC)
+    - cron: '0 17 1 * *'
 
 jobs:
   update:
@@ -43,6 +43,5 @@ jobs:
           if ! gh pr list --head "$BRANCH" --state open | grep -q .; then
             gh pr create \
               --title "chore(deps): update baseline-browser-mapping" \
-              --body "automated update of [\`baseline-browser-mapping\`](https://npmx.dev/package/baseline-browser-mapping) to suppress stale-data console warnings." \
-              --label "dependencies"
+              --body "automated update of [\`baseline-browser-mapping\`](https://npmx.dev/package/baseline-browser-mapping) to suppress stale-data console warnings"
           fi
