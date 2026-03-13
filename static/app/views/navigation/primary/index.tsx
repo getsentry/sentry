@@ -31,7 +31,6 @@ import {
   SidebarLink,
   SidebarList,
 } from 'sentry/views/navigation/primary/components';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/primary/config';
 import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
@@ -102,11 +101,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/issues/`}
               analyticsKey="issues"
               label={t('Issues')}
-              group={PrimaryNavigationGroup.ISSUES}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.ISSUES),
-                tourProps
-              )}
+              {...mergeProps(makeNavigationItemProps('issues'), tourProps)}
             >
               <IconIssues />
             </SidebarLink>
@@ -124,11 +119,7 @@ export function PrimaryNavigationItems() {
               activeTo={`/${prefix}/explore`}
               analyticsKey="explore"
               label={t('Explore')}
-              group={PrimaryNavigationGroup.EXPLORE}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.EXPLORE),
-                tourProps
-              )}
+              {...mergeProps(makeNavigationItemProps('explore'), tourProps)}
             >
               <IconCompass />
             </SidebarLink>
@@ -151,11 +142,7 @@ export function PrimaryNavigationItems() {
                 activeTo={`/${prefix}/dashboard`}
                 analyticsKey="dashboards"
                 label={t('Dashboards')}
-                group={PrimaryNavigationGroup.DASHBOARDS}
-                {...mergeProps(
-                  makeNavigationItemProps(PrimaryNavigationGroup.DASHBOARDS),
-                  tourProps
-                )}
+                {...mergeProps(makeNavigationItemProps('dashboards'), tourProps)}
               >
                 <IconDashboard />
               </SidebarLink>
@@ -175,11 +162,7 @@ export function PrimaryNavigationItems() {
                 activeTo={`/${prefix}/insights`}
                 analyticsKey="insights"
                 label={t('Insights')}
-                group={PrimaryNavigationGroup.INSIGHTS}
-                {...mergeProps(
-                  makeNavigationItemProps(PrimaryNavigationGroup.INSIGHTS),
-                  tourProps
-                )}
+                {...mergeProps(makeNavigationItemProps('insights'), tourProps)}
               >
                 <IconGraph type="area" />
               </SidebarLink>
@@ -194,8 +177,7 @@ export function PrimaryNavigationItems() {
               activeTo={`/${prefix}/prevent/`}
               analyticsKey="prevent"
               label={t('Prevent')}
-              group={PrimaryNavigationGroup.PREVENT}
-              {...makeNavigationItemProps(PrimaryNavigationGroup.PREVENT)}
+              {...makeNavigationItemProps('prevent')}
             >
               <IconPrevent />
             </SidebarLink>
@@ -211,8 +193,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
               label={t('Monitors')}
-              group={PrimaryNavigationGroup.MONITORS}
-              {...makeNavigationItemProps(PrimaryNavigationGroup.MONITORS)}
+              {...makeNavigationItemProps('monitors')}
             >
               <IconSiren />
             </SidebarLink>
@@ -231,11 +212,7 @@ export function PrimaryNavigationItems() {
               activeTo="/settings/"
               analyticsKey="settings"
               label={t('Settings')}
-              group={PrimaryNavigationGroup.SETTINGS}
-              {...mergeProps(
-                makeNavigationItemProps(PrimaryNavigationGroup.SETTINGS),
-                tourProps
-              )}
+              {...mergeProps(makeNavigationItemProps('settings'), tourProps)}
             >
               <IconSettings />
             </SidebarLink>

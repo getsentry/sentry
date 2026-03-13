@@ -5,8 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {capitalize} from 'sentry/utils/string/capitalize';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
 
 type Props = {
@@ -14,8 +12,6 @@ type Props = {
 };
 
 export function SecondaryMobile({handleClickBack}: Props) {
-  const {activeGroup} = useNavigation();
-
   return (
     <SecondaryMobileWrapper>
       <GroupHeader>
@@ -25,11 +21,12 @@ export function SecondaryMobile({handleClickBack}: Props) {
           aria-label={t('Back to primary navigation')}
           size="xs"
           priority="transparent"
-        />
-        <HeaderLabel>{capitalize(activeGroup)}</HeaderLabel>
+        >
+          {t('Back')}
+        </Button>
       </GroupHeader>
       <Stack justify="between" align="stretch" overflowY="auto" area="content">
-        <SecondaryNavigationContent group={activeGroup} />
+        <SecondaryNavigationContent />
       </Stack>
     </SecondaryMobileWrapper>
   );
@@ -57,9 +54,4 @@ const GroupHeader = styled('h2')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   gap: ${p => p.theme.space.md};
   margin: 0;
-`;
-
-const HeaderLabel = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

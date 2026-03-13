@@ -67,7 +67,7 @@ export function SecondarySidebar() {
               transition={{duration: 0.06}}
             >
               <SecondarySidebarInner>
-                <SecondaryNavigationContent group={activeGroup} />
+                <SecondaryNavigationContent />
               </SecondarySidebarInner>
               <ResizeHandle
                 ref={resizeHandleRef}
