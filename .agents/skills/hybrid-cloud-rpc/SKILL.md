@@ -39,12 +39,12 @@ Classify what the developer needs:
 
 The service's `local_mode` determines where the database-backed implementation runs:
 
-| Data lives in...                                  | `local_mode`       | Decorator on methods                | Example                            |
-| ------------------------------------------------- | ------------------ | ----------------------------------- | ---------------------------------- |
-| Region silo (projects, events, issues, org data)  | `SiloMode.REGION`  | `@regional_rpc_method(resolve=...)` | `OrganizationService`              |
-| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                       | `OrganizationMemberMappingService` |
+| Data lives in...                                  | `local_mode`       | Decorator on methods            | Example                            |
+| ------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
+| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
+| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
-**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.REGION`. If they live in the control database, use `SiloMode.CONTROL`.
+**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 
 Region-silo services require a `RegionResolutionStrategy` on every RPC method so the framework knows which region to route remote calls to. Load `references/resolvers.md` for the full resolver table.
 
@@ -100,7 +100,7 @@ If your service doesn't fit any of these, add a new entry to the `service_packag
 Load `references/resolvers.md` for resolver details.
 
 ```python
-@regional_rpc_method(resolve=ByOrganizationId())
+@cell_rpc_method(resolve=ByOrganizationId())
 @abstractmethod
 def my_method(
     self,
@@ -114,7 +114,7 @@ def my_method(
 
 Key rules:
 
-- `@regional_rpc_method` MUST come before `@abstractmethod`
+- `@cell_rpc_method` MUST come before `@abstractmethod`
 - The resolver parameter (e.g., `organization_id`) MUST be in the method signature
 - Use `return_none_if_mapping_not_found=True` when the return type is `Optional` and a missing org mapping means "not found" rather than an error
 
@@ -243,7 +243,7 @@ Use `assume_test_silo_mode` or `assume_test_silo_mode_of` to switch modes within
 
 ```python
 def test_cross_silo_behavior(self):
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         org = self.create_organization()
     result = my_service.get_by_id(organization_id=org.id, id=thing.id)
     assert result is not None
@@ -325,7 +325,7 @@ For triple-equality assertions (RPC result = source ORM = cross-silo replica):
 ```python
 def test_provisioning_accuracy(self):
     rpc_result = my_service.provision(organization_id=org.id, slug="test")
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         orm_obj = MyModel.objects.get(id=rpc_result.id)
     with assume_test_silo_mode(SiloMode.CONTROL):
         mapping = MyMapping.objects.get(organization_id=org.id)
@@ -375,7 +375,7 @@ Test that remote exceptions are properly wrapped:
 from sentry.hybridcloud.rpc.service import RpcRemoteException
 
 def test_remote_error_wrapping(self):
-    if SiloMode.get_current_mode() == SiloMode.REGION:
+    if SiloMode.get_current_mode() == SiloMode.CELL:
         with pytest.raises(RpcRemoteException):
             my_control_service.do_thing_that_fails(...)
 ```
@@ -386,7 +386,7 @@ Test that failed operations produce no side effects:
 def test_no_side_effects_on_failure(self):
     result = my_service.create_conflicting_thing(organization_id=org.id)
     assert not result
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         assert not MyModel.objects.filter(organization_id=org.id).exists()
 ```
 
@@ -423,9 +423,9 @@ Before submitting your PR, verify:
 - [ ] All RPC method parameters are keyword-only (`*` separator)
 - [ ] All parameters have explicit type annotations
 - [ ] All types are serializable (primitives, RpcModel, list, Optional, dict, Enum, datetime)
-- [ ] Region service methods have `@regional_rpc_method` with appropriate resolver
+- [ ] Region service methods have `@cell_rpc_method` with appropriate resolver
 - [ ] Control service methods have `@rpc_method`
-- [ ] `@regional_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
+- [ ] `@cell_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
 - [ ] `create_delegation()` is called at module level at the bottom of service.py
 - [ ] Service package is under one of the 12 registered discovery packages
 - [ ] `impl.py` implements every abstract method with matching parameter names

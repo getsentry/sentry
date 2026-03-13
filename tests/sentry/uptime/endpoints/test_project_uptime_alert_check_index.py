@@ -2,7 +2,7 @@ import uuid
 from abc import abstractmethod
 from datetime import datetime, timedelta, timezone
 
-from sentry.testutils.cases import UptimeResultEAPTestCase
+from sentry.testutils.cases import SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.silo import region_silo_test
@@ -184,7 +184,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
 @region_silo_test
 @freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
-    ProjectUptimeAlertCheckIndexBaseTest, UptimeResultEAPTestCase
+    ProjectUptimeAlertCheckIndexBaseTest, SnubaTestCase, UptimeResultEAPTestCase
 ):
     __test__ = True
 
@@ -211,4 +211,4 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
             ),
         }
         uptime_result = self.create_eap_uptime_result(**create_params)
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])

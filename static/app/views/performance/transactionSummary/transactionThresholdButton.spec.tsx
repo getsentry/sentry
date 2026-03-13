@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdButton from 'sentry/views/performance/transactionSummary/transactionThresholdButton';

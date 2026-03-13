@@ -14,7 +14,7 @@ interface Props {
   setOrderBy: (value: React.SetStateAction<OrderBy>) => void;
 }
 
-export default function FeatureFlagSort({orderBy, setOrderBy, orderByOptions}: Props) {
+export function FeatureFlagSort({orderBy, setOrderBy, orderByOptions}: Props) {
   return (
     <CompositeSelect
       trigger={triggerProps => (

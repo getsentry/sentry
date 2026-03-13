@@ -16,14 +16,14 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
   sortedFlags,
   type OrderBy,
 } from 'sentry/components/events/featureFlags/utils';
-import useFocusControl from 'sentry/components/events/useFocusControl';
+import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
@@ -35,7 +35,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FlagDrawerProps {
   event: Event;

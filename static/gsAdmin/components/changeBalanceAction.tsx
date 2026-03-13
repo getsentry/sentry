@@ -151,8 +151,6 @@ function ChangeBalanceModal({
   );
 }
 
-const triggerChangeBalanceModal = (
+export const triggerChangeBalanceModal = (
   opts: Omit<ChangeBalanceModalProps, keyof ModalRenderProps>
 ) => openModal(deps => <ChangeBalanceModal {...deps} {...opts} />);
-
-export default triggerChangeBalanceModal;

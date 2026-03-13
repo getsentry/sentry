@@ -17,7 +17,7 @@ import {
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function PartnerPlanEndingBanner({
+export function PartnerPlanEndingBanner({
   subscription,
   organization,
 }: {
@@ -114,5 +114,3 @@ const IllustrationContainer = styled('img')`
     flex-grow: 1;
   }
 `;
-
-export default PartnerPlanEndingBanner;

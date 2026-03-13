@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory, PriorityLevel} from 'sentry/types/group';
-import GroupHeader from 'sentry/views/issueDetails/header';
+import {GroupHeader} from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({

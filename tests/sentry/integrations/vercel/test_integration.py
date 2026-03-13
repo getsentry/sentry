@@ -144,7 +144,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
             enabled_dsn = project_key.get_dsn(public=True)
             integration_endpoint = project_key.integration_endpoint
@@ -289,7 +289,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
             enabled_dsn = project_key.get_dsn(public=True)
             integration_endpoint = project_key.integration_endpoint
@@ -451,10 +451,10 @@ class VercelIntegrationTest(IntegrationTestCase):
         org = self.organization
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation = integration.get_installation(org.id)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
             dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
         with pytest.raises(ValidationError):
@@ -509,7 +509,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=self.organization.id, provider="vercel"
         ).delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = serialize_rpc_organization(self.organization)
 
         with pytest.raises(ValueError, match="user_id is required"):

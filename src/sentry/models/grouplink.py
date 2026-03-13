@@ -13,7 +13,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
@@ -36,7 +36,7 @@ class GroupLinkManager(BaseManager["GroupLink"]):
         return self.filter(**kwargs)
 
 
-@region_silo_model
+@cell_silo_model
 class GroupLink(Model):
     """
     Link a group with an external resource like a commit, issue, or pull request

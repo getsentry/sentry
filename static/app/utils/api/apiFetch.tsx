@@ -1,8 +1,9 @@
 import type {QueryFunctionContext} from '@tanstack/react-query';
 
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
-import {parseQueryKey, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {

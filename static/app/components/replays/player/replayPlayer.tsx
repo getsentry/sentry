@@ -88,7 +88,7 @@ interface Props extends HTMLAttributes<HTMLDivElement> {
   offsetMs?: undefined | number;
 }
 
-export default function ReplayPlayer({offsetMs, ...props}: Props) {
+export function ReplayPlayer({offsetMs, ...props}: Props) {
   const mountPointRef = useReplayerInstance();
   const userAction = useReplayUserAction();
 

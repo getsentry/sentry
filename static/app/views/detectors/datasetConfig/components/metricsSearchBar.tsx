@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,

@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TestSuite = {
   testSuites: string[];

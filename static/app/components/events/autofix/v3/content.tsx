@@ -1,13 +1,15 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {
-  getOrderedAutofixArtifacts,
-  isRootCauseArtifact,
-  isSolutionArtifact,
+  getOrderedAutofixSections,
+  isCodeChangesSection,
+  isPullRequestSection,
+  isRootCauseSection,
+  isSolutionSection,
   useExplorerAutofix,
-  type AutofixArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesCard,
@@ -15,10 +17,9 @@ import {
   RootCauseCard,
   SolutionCard,
 } from 'sentry/components/events/autofix/v3/autofixCards';
+import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import Placeholder from 'sentry/components/placeholder';
-import {isArrayOf} from 'sentry/types/utils';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {isExplorerFilePatch, isRepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -26,49 +27,61 @@ interface SeerDrawerContentProps {
 }
 
 export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
-  const artifacts = useMemo(
-    () => getOrderedAutofixArtifacts(autofix.runState),
+  const sections = useMemo(
+    () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
 
-  return autofix.isLoading ? (
-    <Flex direction="column" gap="xl">
-      <Placeholder height="10rem" />
-      <Placeholder height="15rem" />
+  if (autofix.isLoading) {
+    return (
+      <Flex direction="column" gap="xl">
+        <Placeholder height="10rem" />
+        <Placeholder height="15rem" />
+      </Flex>
+    );
+  }
+
+  if (!autofix.runState && aiConfig.hasAutofix) {
+    return null; // TODO: should this have an empty state?
+  }
+
+  return (
+    <Flex direction="column" gap="lg">
+      <SeerDrawerArtifacts sections={sections} />
+      {autofix.runState?.status === 'completed' && (
+        <SeerDrawerNextStep autofix={autofix} sections={sections} />
+      )}
     </Flex>
-  ) : !autofix.runState && aiConfig.hasAutofix ? null : artifacts.length ? (
-    <SeerDrawerArtifacts artifacts={artifacts} />
-  ) : null;
+  );
 }
 
 interface SeerDrawerArtifactsProps {
-  artifacts: AutofixArtifact[];
+  sections: AutofixSection[];
 }
 
-function SeerDrawerArtifacts({artifacts}: SeerDrawerArtifactsProps) {
+function SeerDrawerArtifacts({sections}: SeerDrawerArtifactsProps) {
   return (
-    <Flex direction="column" gap="lg">
-      {artifacts.map(artifact => {
-        // there should only be 1 artifact of each type
-        if (isRootCauseArtifact(artifact)) {
-          return <RootCauseCard key="root-cause" artifact={artifact} />;
+    <Fragment>
+      {sections.map(section => {
+        if (isRootCauseSection(section)) {
+          return <RootCauseCard key={section.step} section={section} />;
         }
 
-        if (isSolutionArtifact(artifact)) {
-          return <SolutionCard key="solution" artifact={artifact} />;
+        if (isSolutionSection(section)) {
+          return <SolutionCard key={section.step} section={section} />;
         }
 
-        if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
-          return <CodeChangesCard key="code-changes" artifact={artifact} />;
+        if (isCodeChangesSection(section)) {
+          return <CodeChangesCard key={section.step} section={section} />;
         }
 
-        if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
-          return <PullRequestsCard key="pull-requests" artifact={artifact} />;
+        if (isPullRequestSection(section)) {
+          return <PullRequestsCard key={section.step} section={section} />;
         }
 
         // TODO: maybe send a log?
         return null;
       })}
-    </Flex>
+    </Fragment>
   );
 }

@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 type QueryKeyValue = undefined | ApiQueryKey | InfiniteApiQueryKey;

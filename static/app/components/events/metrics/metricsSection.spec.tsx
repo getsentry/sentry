@@ -13,7 +13,7 @@ import {
 
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const TRACE_ID = '00000000000000000000000000000000';

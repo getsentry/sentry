@@ -16,15 +16,15 @@ import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useRouter} from 'sentry/utils/useRouter';
 
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<MultipleSelectProps<string>, 'onChange'>

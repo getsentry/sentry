@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, internal_region_silo_endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -35,7 +35,7 @@ class CleanupStats:
     files_total_deleted: int = 0
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -119,7 +119,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)

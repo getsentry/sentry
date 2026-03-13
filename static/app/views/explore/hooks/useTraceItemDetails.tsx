@@ -5,9 +5,9 @@ import {captureException} from '@sentry/react';
 import type {Meta} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   getRetryDelay,

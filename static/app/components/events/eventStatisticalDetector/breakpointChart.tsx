@@ -2,11 +2,11 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventsStatsData} from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -14,7 +14,7 @@ import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuer
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -22,13 +22,13 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
-import Chart from './lineChart';
+import {LineChart as Chart} from './lineChart';
 
 type EventBreakpointChartProps = {
   event: Event;
 };
 
-function EventBreakpointChart({event}: EventBreakpointChartProps) {
+export function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -120,5 +120,3 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     </InterimSection>
   );
 }
-
-export default EventBreakpointChart;

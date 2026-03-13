@@ -458,7 +458,6 @@ class Referrer(StrEnum):
         "api.organization-events.metrics-enhanced.secondary"
     )
     API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
@@ -479,7 +478,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"

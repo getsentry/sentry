@@ -52,7 +52,7 @@ export function ExpandedStateContextProvider({
   return <Context value={value}>{children}</Context>;
 }
 
-export default function useExpandedState({path}: {path: string}) {
+export function useExpandedState({path}: {path: string}) {
   const {collapse, expand, expandedPaths} = useContext(Context);
   const isExpanded = expandedPaths.includes(path);
   return useMemo(

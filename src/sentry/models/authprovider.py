@@ -18,7 +18,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -51,7 +51,7 @@ class AuthProvider(ReplicatedControlModel):
 
         serialized = serialize_auth_provider(self)
         region_replica_service.upsert_replicated_auth_provider(
-            auth_provider=serialized, region_name=region_name
+            auth_provider=serialized, cell_name=region_name
         )
 
     @classmethod
@@ -65,7 +65,7 @@ class AuthProvider(ReplicatedControlModel):
         from sentry.hybridcloud.services.replica.service import region_replica_service
 
         region_replica_service.delete_replicated_auth_provider(
-            auth_provider_id=identifier, region_name=region_name
+            auth_provider_id=identifier, cell_name=region_name
         )
 
     class flags(TypedClassBitField):
@@ -162,7 +162,7 @@ class AuthProvider(ReplicatedControlModel):
                 object_identifier=self.organization_id,
                 cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     def disable_scim(self):
@@ -210,7 +210,7 @@ class AuthProvider(ReplicatedControlModel):
                 object_identifier=user_id,
                 cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     @classmethod

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -26,7 +26,7 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endp
 from .utils import parse_team_params
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

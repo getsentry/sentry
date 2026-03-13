@@ -4,7 +4,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 

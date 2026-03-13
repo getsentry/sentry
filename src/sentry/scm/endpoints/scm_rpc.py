@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, internal_region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException
 from sentry.scm.errors import (
     SCMError,
@@ -50,7 +50,7 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     return f"rpc0:{signature}"
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class ScmRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for SCM RPC requests.
@@ -117,7 +117,7 @@ def get_signature_validation_error(url: str, body: bytes, signature: str) -> str
     return "wrong secret"
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class ScmRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for SCM interactions. Authenticated with a shared secret.

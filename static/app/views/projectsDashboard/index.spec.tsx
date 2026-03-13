@@ -12,9 +12,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as projectsActions from 'sentry/actionCreators/projects';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import ProjectsDashboard from 'sentry/views/projectsDashboard';
 
 jest.unmock('lodash/debounce');

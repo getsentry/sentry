@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {DetectorSearchBarProps} from 'sentry/views/detectors/datasetConfig/base';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';

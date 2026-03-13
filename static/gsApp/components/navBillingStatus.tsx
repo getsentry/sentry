@@ -14,19 +14,16 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryButtonOverlay,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
   usePrimaryButtonOverlay,
-} from 'sentry/views/navigation/primary/primaryButtonOverlay';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+} from 'sentry/views/navigation/primary/components';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,
@@ -361,7 +358,11 @@ function QuotaExceededContent({
   );
 }
 
-function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
+export function PrimaryNavigationQuotaExceeded({
+  organization,
+}: {
+  organization: Organization;
+}) {
   const subscription = useSubscription();
   const exceededCategories = (
     sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
@@ -435,7 +436,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     overlayProps,
     state: overlayState,
   } = usePrimaryButtonOverlay({});
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
@@ -534,10 +535,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           icon: <IconWarning />,
         }}
       >
-        <SidebarItemUnreadIndicator
-          isMobile={layout === NavigationLayout.MOBILE}
-          variant="warning"
-        />
+        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="warning" />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -553,8 +551,6 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     </Fragment>
   );
 }
-
-export default PrimaryNavigationQuotaExceeded;
 
 const Container = styled('div')`
   background: ${p => p.theme.tokens.background.primary};

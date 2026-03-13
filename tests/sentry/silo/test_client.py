@@ -14,7 +14,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.client import (
     CACHE_TIMEOUT,
     REQUEST_ATTEMPTS_LIMIT,
-    RegionSiloClient,
+    CellSiloClient,
     SiloClientError,
     get_region_ip_addresses,
     validate_region_ip_address,
@@ -23,7 +23,7 @@ from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import override_allowed_region_silo_ip_addresses
 from sentry.testutils.region import override_regions
-from sentry.types.region import Cell, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
 
 
@@ -38,34 +38,34 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_init_clients_from_monolith(self) -> None:
         with raises(SiloClientError):
-            RegionSiloClient(self.region)
+            CellSiloClient(self.region)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_init_clients_from_control(self) -> None:
         with override_regions(self.region_config):
             with raises(SiloClientError):
-                RegionSiloClient("atlantis")  # type: ignore[arg-type]
+                CellSiloClient("atlantis")  # type: ignore[arg-type]
 
-            with raises(RegionResolutionError):
+            with raises(CellResolutionError):
                 region = Cell("atlantis", 1, self.dummy_address, RegionCategory.MULTI_TENANT)
-                RegionSiloClient(region)
+                CellSiloClient(region)
 
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             assert client.base_url is not None
             assert self.region.address in client.base_url
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     @override_settings(SENTRY_CONTROL_ADDRESS=dummy_address)
     def test_init_clients_from_region(self) -> None:
         with raises(SiloClientError):
-            RegionSiloClient(self.region)
+            CellSiloClient(self.region)
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -89,7 +89,7 @@ class SiloClientTest(TestCase):
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success_with_retry(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -114,7 +114,7 @@ class SiloClientTest(TestCase):
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_limit_reached(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -175,7 +175,7 @@ class SiloClientTest(TestCase):
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_within_limit(self, mock_cache: MagicMock) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -236,7 +236,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_3xx(self) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -255,7 +255,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_4xx(self) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -271,7 +271,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_5xx(self) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.POST,
@@ -287,7 +287,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_proxy_request(self) -> None:
         with override_regions(self.region_config):
-            client = RegionSiloClient(self.region)
+            client = CellSiloClient(self.region)
             path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
             responses.add(
                 responses.GET,
@@ -318,7 +318,7 @@ class SiloClientTest(TestCase):
         ):
             assert mock_capture_exception.call_count == 0
 
-            client = RegionSiloClient(region)
+            client = CellSiloClient(region)
             client.base_url = "http://172.31.255.255:9000"
             request = self.factory.get(
                 "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
@@ -327,7 +327,7 @@ class SiloClientTest(TestCase):
 
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
 
         with (
@@ -338,7 +338,7 @@ class SiloClientTest(TestCase):
         ):
             assert mock_capture_exception.call_count == 0
 
-            client = RegionSiloClient(region)
+            client = CellSiloClient(region)
             request = self.factory.get(
                 "/api/0/imaginary-public-endpoint/", HTTP_HOST="https://control.sentry.io"
             )
@@ -346,7 +346,7 @@ class SiloClientTest(TestCase):
 
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -362,7 +362,7 @@ class SiloClientTest(TestCase):
                 "sentry.silo.client.validate_region_ip_address"
             ) as mock_validate_region_ip_address,
         ):
-            client = RegionSiloClient(region)
+            client = CellSiloClient(region)
             path = f"{internal_region_address}/api/0/imaginary-public-endpoint/"
             request = self.factory.get(path, HTTP_HOST="https://control.sentry.io")
 
@@ -391,7 +391,7 @@ def test_validate_region_ip_address() -> None:
         assert validate_region_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("allowed_region_ip_addresses is empty for: 172.31.255.255",)
 
     with (
@@ -401,7 +401,7 @@ def test_validate_region_ip_address() -> None:
         assert validate_region_ip_address("172.31.255.255") is False
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
-        assert isinstance(err, RegionResolutionError)
+        assert isinstance(err, CellResolutionError)
         assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
 
     with (

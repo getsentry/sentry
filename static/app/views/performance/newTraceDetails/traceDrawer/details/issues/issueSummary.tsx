@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventTitleError from 'sentry/components/eventTitleError';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventTitleError} from 'sentry/components/eventTitleError';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -13,7 +13,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;

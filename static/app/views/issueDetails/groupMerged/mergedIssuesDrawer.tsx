@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
+import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
 
 export function MergedIssuesDrawer({group, project}: {group: Group; project: Project}) {
   const location = useLocation();

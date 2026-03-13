@@ -459,7 +459,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.plugins.migrator.Migrator.run")
     def test_disabled_plugin_when_fully_migrated(self, run, *args) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",
@@ -486,7 +486,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # partially copied from IntegrationTestCase.setUp()
         # except the user is not an owner
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user)
@@ -527,7 +527,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user, is_superuser=True)
@@ -557,7 +557,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user, is_superuser=True)
@@ -590,7 +590,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # partially copied from IntegrationTestCase.setUp()
         # except the user is not an owner
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.request = self.make_request(member_user)
@@ -690,7 +690,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.assertDialogSuccess(resp)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.get(id=action.id)
             assert action.status == ObjectStatus.ACTIVE
             # Ensure that the second action is still disabled

@@ -27,7 +27,7 @@ from rest_framework.views import APIView
 from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -96,7 +96,7 @@ class PrebuiltDashboardId(IntEnum):
 class PrebuiltDashboard(TypedDict, total=False):
     prebuilt_id: Required[PrebuiltDashboardId]
     title: Required[str]
-    pre_favorited: bool
+    hidden: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -120,6 +120,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP,
@@ -128,37 +129,39 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
         "title": "Domain Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
         "title": "Web Vitals",
-        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
         "title": "Web Vitals Page Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
         "title": "Mobile Vitals",
-        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
         "title": "Mobile Vitals App Starts",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
         "title": "Mobile Vitals Screen Loads",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
         "title": "Mobile Vitals Screen Rendering",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
         "title": "Backend Overview",
-        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
@@ -195,12 +198,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
         "title": "AI Agents Overview",
-        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
         "title": "MCP Overview",
-        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.LARAVEL_OVERVIEW,
@@ -213,6 +214,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
         "title": "Frontend Assets Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
@@ -221,6 +223,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
         "title": "Queue Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
@@ -297,41 +300,6 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
         ).exclude(prebuilt_id__in=prebuilt_ids).delete()
 
 
-def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int) -> None:
-    """
-    Checks if pre-favorited prebuilt dashboards have a DashboardFavoriteUser record for the
-    user, and creates them if they don't. This ensures that certain prebuilt dashboards are
-    favorited by default for all users.
-    """
-    enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
-    pre_favorited_ids = [
-        d["prebuilt_id"] for d in enabled_prebuilt_dashboards if d.get("pre_favorited")
-    ]
-    if not pre_favorited_ids:
-        return
-
-    with transaction.atomic(router.db_for_write(DashboardFavoriteUser)):
-        prebuilt_dashboards_without_favorite = (
-            Dashboard.objects.filter(
-                organization=organization,
-                prebuilt_id__in=pre_favorited_ids,
-            )
-            .exclude(
-                id__in=DashboardFavoriteUser.objects.filter(
-                    organization=organization,
-                    user_id=user_id,
-                ).values_list("dashboard_id", flat=True)
-            )
-            .order_by("prebuilt_id")
-        )
-        for dashboard in prebuilt_dashboards_without_favorite:
-            DashboardFavoriteUser.objects.insert_favorite_dashboard(
-                organization=organization,
-                user_id=user_id,
-                dashboard=dashboard,
-            )
-
-
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -369,7 +337,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -421,20 +389,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
-            # Favorite pre-favorited prebuilt dashboards for the user
-            try:
-                favorite_lock = locks.get(
-                    f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
-                    duration=10,
-                    name="sync_prebuilt_dashboards_favorited",
-                )
-                with favorite_lock.acquire():
-                    sync_prebuilt_dashboards_favorited(organization, request.user.id)
-            except UnableToAcquireLock:
-                pass
-            except Exception as err:
-                sentry_sdk.capture_exception(err)
-
         filters = request.query_params.getlist("filter")
 
         dashboards = Dashboard.objects.filter(organization_id=organization.id)
@@ -455,6 +409,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboards = dashboards.exclude(created_by_id=request.user.id)
             elif f == "excludePrebuilt":
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
+            elif f == "onlyPrebuilt":
+                dashboards = dashboards.filter(prebuilt_id__isnull=False)
+
+        if "showHidden" not in filters:
+            hidden_prebuilt_ids = [
+                d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("hidden", False)
+            ]
+            if hidden_prebuilt_ids:
+                dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
@@ -623,7 +586,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             return serialized
 
-        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt"}
+        HIDE_PREBUILT_FILTERS = {"onlyFavorites", "owned", "excludePrebuilt", "onlyPrebuilt"}
         render_pre_built_dashboard = True
         if HIDE_PREBUILT_FILTERS.intersection(filters) or should_filter_by_prebuilt_ids:
             render_pre_built_dashboard = False

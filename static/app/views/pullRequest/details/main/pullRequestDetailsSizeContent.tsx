@@ -7,7 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {BuildDetailsMainContent} from 'sentry/views/preprod/buildDetails/main/buildDetailsMainContent';
 import {BuildDetailsSidebarContent} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarContent';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';

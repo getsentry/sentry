@@ -13,7 +13,7 @@ from sentry.db.models import (
     DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
@@ -44,7 +44,7 @@ class UptimeStatus(enum.IntEnum):
     FAILED = 2
 
 
-@region_silo_model
+@cell_silo_model
 class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
@@ -122,7 +122,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -303,7 +303,7 @@ def get_audit_log_data(detector: Detector):
     }
 
 
-@region_silo_model
+@cell_silo_model
 class UptimeResponseCapture(DefaultFieldsModel):
     """
     Stores HTTP response data captured during uptime check failures.

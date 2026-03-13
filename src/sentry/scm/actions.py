@@ -127,9 +127,9 @@ class SourceCodeManager:
             record_count=self.record_count,
         )
 
-    def can(self, actions: list[str]) -> bool:
+    def can(self, actions: list[str]) -> dict[str, bool]:
         """
-        Returns true if the SourceCodeManager can execute a set of actions against a target API.
+        Returns the named set of actions the SourceCodeManager can execute against the target API.
 
         Interactions with source code management services are not transactional. There are many
         failure points in the process and partial states are a reality that must be handled. One
@@ -139,10 +139,11 @@ class SourceCodeManager:
         alter some behavior when we know the request will fail deterministically. This eliminates
         the need to clean-up side-effects after a partially implemented SCM provider fails.
         """
-        return all(
-            hasattr(ActionMap, action) and isinstance(self.provider, getattr(ActionMap, action))
+        return {
+            action: hasattr(ActionMap, action)
+            and isinstance(self.provider, getattr(ActionMap, action))
             for action in actions
-        )
+        }
 
     def get_issue_comments(
         self,

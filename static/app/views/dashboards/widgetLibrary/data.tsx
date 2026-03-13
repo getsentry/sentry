@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';

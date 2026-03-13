@@ -4,9 +4,9 @@ import {Input} from '@sentry/scraps/input';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
 
@@ -24,7 +24,7 @@ type Props = {
   values: Values;
 };
 
-function Form({
+export function Form({
   values,
   onChange,
   errors,
@@ -135,8 +135,6 @@ function Form({
     </form>
   );
 }
-
-export default Form;
 
 const FieldWrapper = styled('div')`
   padding-bottom: ${p => p.theme.space.xl};

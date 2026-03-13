@@ -8,15 +8,15 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   data: ProjectKey;

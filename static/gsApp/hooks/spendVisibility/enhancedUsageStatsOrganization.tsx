@@ -11,9 +11,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import UsageStatsOrganization, {
@@ -29,7 +29,7 @@ import {
   getPaginationPageLink,
 } from 'sentry/views/organizationStats/utils';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';

@@ -10,10 +10,10 @@ import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import useOrganization from 'sentry/utils/useOrganization';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SentryLogoProps = SVGIconProps & {
   /**
@@ -139,7 +139,7 @@ const Build = styled('span')`
   margin-left: ${p => p.theme.space.md};
 `;
 
-const Footer = styled(BaseFooter)`
+export const Footer = styled(BaseFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   color: ${p => p.theme.tokens.content.secondary};
@@ -157,5 +157,3 @@ const Footer = styled(BaseFooter)`
     display: none;
   }
 `;
-
-export default Footer;

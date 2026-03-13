@@ -26,7 +26,7 @@ type ConditionsPanelProps = {
   triggers: DataConditionGroup | null;
 };
 
-function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
+export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
       <ConditionGroupWrapper>
@@ -195,5 +195,3 @@ const IconPadding = styled('span')`
   height: 100%;
   vertical-align: middle;
 `;
-
-export default ConditionsPanel;

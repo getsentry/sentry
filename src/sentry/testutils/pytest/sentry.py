@@ -60,7 +60,7 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
 def _configure_test_env_regions() -> None:
@@ -339,23 +339,33 @@ def register_extensions() -> None:
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     # Store original send_task so tests that need it can restore it
     TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+    TaskbrokerClientNamespace._original_send_task = TaskbrokerClientNamespace.send_task  # type: ignore[attr-defined]
 
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
     TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskbrokerClientNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     if hasattr(TaskNamespace, "_original_send_task"):
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
+
+    if hasattr(TaskbrokerClientNamespace, "_original_send_task"):
+        TaskbrokerClientNamespace.send_task = TaskbrokerClientNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskbrokerClientNamespace._original_send_task
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:

@@ -6,20 +6,20 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRelease';
+import {useFinalizeRelease} from 'sentry/views/releases/components/useFinalizeRelease';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {
@@ -28,7 +28,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
+export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -203,5 +203,3 @@ const FinalizeButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   padding-inline: ${p => p.theme.space.xs};
 `;
-
-export default ProjectReleaseDetails;

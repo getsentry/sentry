@@ -14,7 +14,7 @@ const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
 
 type Opts = {items: ErrorFrame[]};
 
-export default function useSortErrors({items}: Opts) {
+export function useSortErrors({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(
     's_e_asc',
     parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})

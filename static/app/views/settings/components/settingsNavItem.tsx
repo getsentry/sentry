@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 
@@ -41,7 +41,7 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   return badge;
 }
 
-function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
+export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   return (
     <SecondaryNavigation.Item
       to={to}
@@ -63,5 +63,3 @@ const StyledBadge = styled(Badge)`
   padding: 3px ${p => p.theme.space.sm};
   vertical-align: middle;
 `;
-
-export default SettingsNavItem;

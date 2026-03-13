@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
 type Options = {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,

@@ -116,7 +116,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found root cause', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -141,6 +145,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('renders solution artifact', async () => {
@@ -154,7 +159,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found solution', role: 'assistant'},
+              message: {
+                content: 'Found solution',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -178,6 +187,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('renders code changes preview from merged file patches', async () => {
@@ -191,7 +201,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Made changes', role: 'assistant'},
+              message: {
+                content: 'Made changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -233,6 +247,7 @@ describe('AutofixSection', () => {
 
     expect(await screen.findByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('2 files changed in 1 repo')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('renders pull request previews from repo_pr_states', async () => {
@@ -246,7 +261,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -288,6 +307,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
     expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('shows loading place holder while event is pending', () => {
@@ -301,7 +321,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -373,7 +397,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Analysis complete', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -385,6 +413,17 @@ describe('AutofixSection', () => {
                     reproduction_steps: ['step'],
                   },
                 },
+              ],
+            },
+            {
+              id: 'block-2',
+              message: {
+                content: 'Proposed fix',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
                 {
                   key: 'solution',
                   reason: 'Proposed fix',
@@ -394,6 +433,15 @@ describe('AutofixSection', () => {
                   },
                 },
               ],
+            },
+            {
+              id: 'block-3',
+              message: {
+                content: 'Made code changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
+              timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
                   diff: '',
@@ -422,6 +470,7 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toBeInTheDocument();
   });
 
   it('shows empty state when there are no artifacts', async () => {

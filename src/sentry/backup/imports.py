@@ -36,7 +36,7 @@ from sentry.backup.services.import_export.model import (
 )
 from sentry.backup.services.import_export.service import ImportExportService
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -131,7 +131,7 @@ def _import(
     from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        errText = "Imports must be run in REGION or MONOLITH instances only"
+        errText = "Imports must be run in CELL or MONOLITH instances only"
         printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
@@ -506,7 +506,7 @@ def _import(
                     try:
                         # Manually create an empty outbox targeting this organization's shard, so
                         # that we can force it to drain.
-                        RegionOutbox(
+                        CellOutbox(
                             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                             shard_identifier=id,
                             category=OutboxCategory.ORGANIZATION_UPDATE,

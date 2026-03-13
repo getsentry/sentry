@@ -12,12 +12,12 @@ import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/eve
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   onSortClick: (key: Sort) => void;
@@ -30,14 +30,14 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Autofix Agent'), key: 'fixes'},
+  {title: t('Autofix Handoff'), key: 'fixes'},
   {
     title: (
       <Flex gap="sm" align="center">
         {t('PR Creation')}
         <InfoTip
           title={t(
-            'This setting only applies when an Autofix Agent is configured to run automatically.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
         />
       </Flex>
@@ -64,7 +64,7 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,

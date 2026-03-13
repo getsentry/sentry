@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import {IssueCategory} from 'sentry/types/group';
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   bufferLimit?: number;
@@ -12,7 +12,7 @@ interface Props {
 /**
  * Query results for whether an Issue/Group has replays associated.
  */
-export default function useReplayCountForIssues({
+export function useReplayCountForIssues({
   bufferLimit = 25,
   statsPeriod = '14d',
 }: Props = {}) {

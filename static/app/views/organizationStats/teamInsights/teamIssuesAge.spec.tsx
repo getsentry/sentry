@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamIssuesAge from 'sentry/views/organizationStats/teamInsights/teamIssuesAge';
+import {TeamIssuesAge} from 'sentry/views/organizationStats/teamInsights/teamIssuesAge';
 
 describe('TeamIssuesAge', () => {
   it('should render graph with table of oldest issues', async () => {

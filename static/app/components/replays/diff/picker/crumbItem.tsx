@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
+import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {t} from 'sentry/locale';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
-export default function CrumbItem({
+export function CrumbItem({
   crumb,
   startTimestampMs,
 }: {

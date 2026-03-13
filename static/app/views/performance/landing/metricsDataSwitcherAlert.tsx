@@ -13,7 +13,7 @@ import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 import type {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,

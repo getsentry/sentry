@@ -10,7 +10,7 @@ import {
   type ProjectSeerPreferences,
 } from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useQueryClient} from 'sentry/utils/queryClient';
 
 import {
@@ -51,7 +51,7 @@ describe('seerAgentHooks', () => {
       expect(options[0]).toEqual({value: 'seer', label: expect.any(String)});
       expect(options[1]).toMatchObject({
         value: {id: '42', name: 'Cursor', provider: 'cursor'},
-        label: 'Cursor (42)',
+        label: 'Cursor',
       });
       expect(options[2]).toEqual({value: 'none', label: expect.any(String)});
     });

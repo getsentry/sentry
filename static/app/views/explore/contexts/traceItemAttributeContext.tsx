@@ -3,8 +3,9 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
@@ -264,7 +265,19 @@ export function useSpanItemAttributes(
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ): TraceItemAttributeResult {
-  return useTraceItemDatasetAttributes(TraceItemDataset.SPANS, options, type, hiddenKeys);
+  const mergedHiddenKeys = useMemo(() => {
+    if (!hiddenKeys?.length) {
+      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
+    }
+    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
+  }, [hiddenKeys]);
+
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.SPANS,
+    options,
+    type,
+    mergedHiddenKeys
+  );
 }
 
 export function useLogItemAttributes(

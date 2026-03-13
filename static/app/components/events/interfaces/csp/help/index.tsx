@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {IconOpen} from 'sentry/icons';
 
-import effectiveDirectives from './effectiveDirectives';
+import {effectiveDirectives} from './effectiveDirectives';
 
 type EffectiveDirective = keyof typeof effectiveDirectives;
 

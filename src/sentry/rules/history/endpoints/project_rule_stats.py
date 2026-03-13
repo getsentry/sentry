@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import get_date_range_from_params
@@ -38,7 +38,7 @@ class TimeSeriesValueSerializer(Serializer):
 
 
 @extend_schema(tags=["issue_alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

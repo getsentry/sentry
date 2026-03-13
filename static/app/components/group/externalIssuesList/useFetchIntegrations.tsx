@@ -19,7 +19,7 @@ function makeIntegrationsQueryKey(
   ];
 }
 
-export default function useFetchIntegrations({
+export function useFetchIntegrations({
   group,
   organization,
 }: {

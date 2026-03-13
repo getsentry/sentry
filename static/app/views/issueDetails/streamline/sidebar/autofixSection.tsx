@@ -13,6 +13,7 @@ import {
   isRootCauseArtifact,
   isSolutionArtifact,
   useExplorerAutofix,
+  type AutofixArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -32,7 +33,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {isExplorerFilePatch, isRepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -120,29 +121,12 @@ function AutofixContent({group, project, event}: AutofixContentProps) {
   }
 
   return (
-    <Flex direction="column" gap="xl">
-      {artifacts.map(artifact => {
-        // there should only be 1 artifact of each type
-        if (isRootCauseArtifact(artifact)) {
-          return <RootCausePreview key="root-cause" artifact={artifact} />;
-        }
-
-        if (isSolutionArtifact(artifact)) {
-          return <SolutionPreview key="solution" artifact={artifact} />;
-        }
-
-        if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
-          return <CodeChangesPreview key="code-changes" artifact={artifact} />;
-        }
-
-        if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
-          return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
-        }
-
-        // TODO: maybe send a log?
-        return null;
-      })}
-    </Flex>
+    <AutofixPreviews
+      artifacts={artifacts}
+      event={event}
+      group={group}
+      project={project}
+    />
   );
 }
 
@@ -169,7 +153,7 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
   }, [startStep, openSeerDrawer]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Flex direction="column" gap="md">
       <Flex
         border="muted"
         radius="md"
@@ -204,6 +188,57 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
         onClick={handleStartRootCause}
       >
         {t('Fix the Issue')}
+      </Button>
+    </Flex>
+  );
+}
+
+interface AutofixPreviewsProps {
+  artifacts: AutofixArtifact[];
+  event: Event;
+  group: Group;
+  project: Project;
+}
+
+function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProps) {
+  const {openSeerDrawer} = useOpenSeerDrawer({
+    group,
+    project,
+    event,
+  });
+
+  return (
+    <Flex direction="column" gap="xl">
+      {artifacts.map(artifact => {
+        // there should only be 1 artifact of each type
+        if (isRootCauseArtifact(artifact)) {
+          return <RootCausePreview key="root-cause" artifact={artifact} />;
+        }
+
+        if (isSolutionArtifact(artifact)) {
+          return <SolutionPreview key="solution" artifact={artifact} />;
+        }
+
+        if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
+          return <CodeChangesPreview key="code-changes" artifact={artifact} />;
+        }
+
+        if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
+          return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
+        }
+
+        // TODO: maybe send a log?
+        return null;
+      })}
+      <Button
+        size="md"
+        icon={<IconSeer />}
+        aria-label={t('Open Seer')}
+        tooltipProps={{title: t('Open Seer')}}
+        priority="primary"
+        onClick={openSeerDrawer}
+      >
+        {t('Open Seer')}
       </Button>
     </Flex>
   );

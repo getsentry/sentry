@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function RuleNameOwnerForm({disabled, project}: Props) {
+export function RuleNameOwnerForm({disabled, project}: Props) {
   const renderRuleName = () => (
     <StyledTextField
       data-test-id="alert-name"
