@@ -712,3 +712,53 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         self.installation.remove_reaction(
             channel_id=self.channel_id, message_ts=self.thread_ts, emoji="thinking_face"
         )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_startStream")
+    def test_start_stream_success(self, mock_start_stream: MagicMock) -> None:
+        mock_start_stream.return_value = {
+            "ok": True,
+            "channel": self.channel_id,
+            "ts": "1712345680.000001",
+        }
+        ts = self.installation.start_stream(channel_id=self.channel_id, thread_ts=self.thread_ts)
+        assert ts == "1712345680.000001"
+        mock_start_stream.assert_called_once_with(channel=self.channel_id, thread_ts=self.thread_ts)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_startStream")
+    def test_start_stream_error_raises(self, mock_start_stream: MagicMock) -> None:
+        mock_start_stream.side_effect = SlackApiError("channel_not_found", MagicMock())
+        with pytest.raises(IntegrationError):
+            self.installation.start_stream(channel_id=self.channel_id, thread_ts=self.thread_ts)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_appendStream")
+    def test_append_stream_success(self, mock_append_stream: MagicMock) -> None:
+        mock_append_stream.return_value = {"ok": True}
+        self.installation.append_stream(
+            channel_id=self.channel_id, ts=self.thread_ts, markdown_text="Hello"
+        )
+        mock_append_stream.assert_called_once_with(
+            channel=self.channel_id, ts=self.thread_ts, markdown_text="Hello"
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_stopStream")
+    def test_stop_stream_success(self, mock_stop_stream: MagicMock) -> None:
+        mock_stop_stream.return_value = {"ok": True}
+        self.installation.stop_stream(channel_id=self.channel_id, ts=self.thread_ts)
+        mock_stop_stream.assert_called_once_with(channel=self.channel_id, ts=self.thread_ts)
+
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_stopStream")
+    def test_stop_stream_with_text_and_blocks(self, mock_stop_stream: MagicMock) -> None:
+        mock_stop_stream.return_value = {"ok": True}
+        blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": "Final message"}}]
+        self.installation.stop_stream(
+            channel_id=self.channel_id,
+            ts=self.thread_ts,
+            markdown_text="Final message",
+            blocks=blocks,
+        )
+        mock_stop_stream.assert_called_once_with(
+            channel=self.channel_id,
+            ts=self.thread_ts,
+            markdown_text="Final message",
+            blocks=blocks,
+        )
