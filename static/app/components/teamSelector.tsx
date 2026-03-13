@@ -377,7 +377,7 @@ export function TeamSelector(props: Props) {
       onInputChange={handleInputChange}
       getOptionValue={option => option.value}
       filterOption={filterOption}
-      styles={styles as never}
+      styles={styles}
       isLoading={fetching}
       onChange={handleChange as never}
       {...extraProps}
