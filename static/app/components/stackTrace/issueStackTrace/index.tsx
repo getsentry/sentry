@@ -201,6 +201,13 @@ function IssueStackTraceContent({
     markdown: undefined,
   });
 
+  const sectionActions = (
+    <Flex align="center" gap="sm">
+      <DisplayOptions />
+      <CopyAsDropdown size="xs" items={copyItems} />
+    </Flex>
+  );
+
   if (exceptions.length === 1) {
     const exc = exceptions[0]!;
     const {type, module, value} = resolveExceptionFields(exc, isMinified);
@@ -209,62 +216,44 @@ function IssueStackTraceContent({
     const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
 
     return (
-      <StackTraceProvider
-        exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
-        event={event}
-        stacktrace={exc.stacktrace}
-        minifiedStacktrace={exc.rawStacktrace ?? undefined}
-        meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
-      >
-        <InterimSection
-          type={sectionKey}
-          title="Stack Trace"
-          actions={
-            <Flex align="center" gap="sm">
-              <DisplayOptions />
-              <CopyAsDropdown size="xs" items={copyItems} />
-            </Flex>
-          }
+      <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
+        {hasExceptionInfo && (
+          <Flex direction="column" gap="sm">
+            <ExceptionHeader type={type} module={module} />
+            <ExceptionDescription
+              value={value}
+              mechanism={exc.mechanism}
+              meta={excMeta}
+            />
+          </Flex>
+        )}
+        <ErrorBoundary customComponent={null}>
+          <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+        </ErrorBoundary>
+        <StackTraceProvider
+          exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
+          event={event}
+          stacktrace={exc.stacktrace}
+          minifiedStacktrace={exc.rawStacktrace ?? undefined}
+          meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
         >
-          {hasExceptionInfo && (
-            <Flex direction="column" gap="sm">
-              <ExceptionHeader type={type} module={module} />
-              <ExceptionDescription
-                value={value}
-                mechanism={exc.mechanism}
-                meta={excMeta}
-              />
-            </Flex>
-          )}
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
           <StackTraceFrames
             frameContextComponent={IssueStackTraceFrameContext}
             frameActionsComponent={IssueFrameActions}
           />
-          <IssueStackTraceLineCoverageLegend />
-          <IssueStackTraceSuspectCommits
-            event={event}
-            group={group}
-            projectSlug={projectSlug}
-          />
-        </InterimSection>
-      </StackTraceProvider>
+        </StackTraceProvider>
+        <IssueStackTraceLineCoverageLegend />
+        <IssueStackTraceSuspectCommits
+          event={event}
+          group={group}
+          projectSlug={projectSlug}
+        />
+      </InterimSection>
     );
   }
 
   return (
-    <InterimSection
-      type={sectionKey}
-      title="Stack Trace"
-      actions={
-        <Flex align="center" gap="sm">
-          <DisplayOptions />
-          <CopyAsDropdown size="xs" items={copyItems} />
-        </Flex>
-      }
-    >
+    <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Flex direction="column" gap="lg">
         {view === 'raw' ? (
           <Panel>
