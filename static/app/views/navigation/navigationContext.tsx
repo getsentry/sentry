@@ -2,10 +2,7 @@ import {createContext, useContext, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useMedia} from 'sentry/utils/useMedia';
-import {
-  NavigationTourProvider,
-  NavigationTourReminderContextProvider,
-} from 'sentry/views/navigation/navigationTour';
+import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {
   useActiveNavigationGroup,
@@ -52,7 +49,7 @@ export function NavigationContextProvider(props: NavigationContextProviderProps)
     <NavigationTourReminderContextProvider>
       <SecondaryNavigationContextProvider>
         <NavigationContext.Provider value={value}>
-          <NavigationTourProvider>{props.children}</NavigationTourProvider>
+          {props.children}
         </NavigationContext.Provider>
       </SecondaryNavigationContextProvider>
     </NavigationTourReminderContextProvider>
