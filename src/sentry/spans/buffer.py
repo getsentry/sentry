@@ -142,7 +142,7 @@ class FlushedSegment(NamedTuple):
     queue_key: QueueKey
     spans: list[OutputSpan]
     project_id: int  # Used to track outcomes
-    distributed_sub_keys: list[DistributedPayloadKey] = []  # For cleanup
+    distributed_payload_keys: list[DistributedPayloadKey] = []  # For cleanup
 
 
 class SpansBuffer:
@@ -158,7 +158,7 @@ class SpansBuffer:
         self._buffer_logger = BufferLogger()
         self._flusher_logger = FlusherLogger()
         self._debug_trace_logger: DebugTraceLogger | None = None
-        self._distributed_sub_keys_map: dict[SegmentKey, list[bytes]] = {}
+        self._distributed_payload_keys_map: dict[SegmentKey, list[bytes]] = {}
 
     @cached_property
     def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
@@ -182,17 +182,17 @@ class SpansBuffer:
 
     def _cleanup_distributed_keys(self, segment_keys: set[SegmentKey]) -> None:
         """Delete member-keys tracking sets and distributed payload keys for the
-        given segments, and remove them from the sub-keys map so
+        given segments, and remove them from the payload keys map so
         done_flush_segments doesn't try again."""
         with self.client.pipeline(transaction=False) as p:
             for key in segment_keys:
-                sub_keys = self._distributed_sub_keys_map.get(key, [])
-                if sub_keys:
+                payload_keys = self._distributed_payload_keys_map.get(key, [])
+                if payload_keys:
                     mk_key = self._get_payload_key_index(key)
                     p.delete(mk_key)
-                    for batch in itertools.batched(sub_keys, 100):
+                    for batch in itertools.batched(payload_keys, 100):
                         p.unlink(*batch)
-                self._distributed_sub_keys_map.pop(key, None)
+                self._distributed_payload_keys_map.pop(key, None)
             p.execute()
 
     @metrics.wraps("spans.buffer.process_spans")
@@ -609,7 +609,7 @@ class SpansBuffer:
                 queue_key=queue_key,
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
-                distributed_sub_keys=self._distributed_sub_keys_map.get(segment_key, []),
+                distributed_payload_keys=self._distributed_payload_keys_map.get(segment_key, []),
             )
             num_has_root_spans += int(has_root_span)
 
@@ -724,7 +724,7 @@ class SpansBuffer:
                 scan_key_to_segment[key] = key
                 cursors[key] = 0
 
-        self._distributed_sub_keys_map = {}
+        self._distributed_payload_keys_map = {}
 
         if write_distributed_payloads:
             with self.client.pipeline(transaction=False) as p:
@@ -744,7 +744,7 @@ class SpansBuffer:
                     if read_distributed_payloads:
                         scan_key_to_segment[distributed_key] = key
                         cursors[distributed_key] = 0
-                self._distributed_sub_keys_map[key] = distributed_keys
+                self._distributed_payload_keys_map[key] = distributed_keys
 
         dropped_segments: set[SegmentKey] = set()
 
@@ -891,12 +891,11 @@ class SpansBuffer:
                         span_ids = [output_span.payload["span_id"] for output_span in span_batch]
                         p.hdel(redirect_map_key, *span_ids)
 
-                    # Clean up distributed mode keys.
-                    if flushed_segment.distributed_sub_keys:
+                    if flushed_segment.distributed_payload_keys:
                         mk_key = self._get_payload_key_index(segment_key)
                         p.delete(mk_key)
                         for distributed_key_batch in itertools.batched(
-                            flushed_segment.distributed_sub_keys, 100
+                            flushed_segment.distributed_payload_keys, 100
                         ):
                             p.unlink(*distributed_key_batch)
 
