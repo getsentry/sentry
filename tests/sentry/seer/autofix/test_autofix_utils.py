@@ -613,7 +613,7 @@ class TestSetProjectSeerPreference(TestCase):
             automated_run_stopping_point="code_changes",
         )
 
-        set_project_seer_preference(preference)
+        set_project_seer_preference(preference, self.organization, self.project)
 
         mock_make_request.assert_called_once()
         call = mock_make_request.call_args
@@ -640,7 +640,7 @@ class TestSetProjectSeerPreference(TestCase):
             automated_run_stopping_point="open_pr",
         )
 
-        set_project_seer_preference(preference)
+        set_project_seer_preference(preference, self.organization, self.project)
 
         call = mock_make_request.call_args
         actual_body = orjson.loads(call.kwargs["body"])
@@ -661,4 +661,4 @@ class TestSetProjectSeerPreference(TestCase):
         )
 
         with pytest.raises(SeerApiError):
-            set_project_seer_preference(preference)
+            set_project_seer_preference(preference, self.organization, self.project)

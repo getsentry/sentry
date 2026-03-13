@@ -414,7 +414,7 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
+def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
     project.update_option(
         "sentry:seer_automated_run_stopping_point",
         preference.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
@@ -447,7 +447,7 @@ def _write_preferences_to_sentry_db(
     project_repos_to_create: list[SeerProjectRepository] = []
     repo_defs: list[SeerRepoDefinition] = []
     for project, pref in project_preferences:
-        write_preference_project_options(project, pref)
+        _write_preference_project_options(project, pref)
 
         for repo_def in pref.repositories:
             if repo_def.repository_id is None:
