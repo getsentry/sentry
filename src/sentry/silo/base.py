@@ -29,8 +29,6 @@ class SiloMode(Enum):
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
     CELL = "REGION"
-    # TODO(cells): remove once getsentry migrates to CELL
-    REGION = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
