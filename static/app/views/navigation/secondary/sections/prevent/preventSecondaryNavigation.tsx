@@ -31,15 +31,18 @@ export function PreventSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['prevent-test-analytics']}>
-          <SecondaryNavigation.Section id="prevent-configure" title={t('Configure')}>
-            <SecondaryNavigation.List>
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link to={tokensPathName} activeTo={tokensPathName}>
-                  {t('Tokens')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="prevent-configure" title={t('Configure')}>
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link to={tokensPathName} activeTo={tokensPathName}>
+                    {t('Tokens')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
         </Feature>
       </SecondaryNavigation.Body>
     </Fragment>

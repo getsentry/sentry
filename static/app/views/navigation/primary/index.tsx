@@ -32,28 +32,6 @@ import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 
-function SidebarFooter(props: {children: NonNullable<React.ReactNode>}) {
-  const {layout} = useNavigation();
-
-  return (
-    <Flex
-      display="flex"
-      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
-      align="center"
-      justify={layout === 'mobile' ? 'start' : 'center'}
-      width={layout === 'mobile' ? '100%' : 'auto'}
-    >
-      {layout === 'mobile' ? (
-        <Stack width="100%">{props.children}</Stack>
-      ) : (
-        <PrimaryNavigation.ButtonBar orientation="vertical">
-          {props.children}
-        </PrimaryNavigation.ButtonBar>
-      )}
-    </Flex>
-  );
-}
-
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
@@ -240,6 +218,28 @@ export function PrimaryNavigationItems() {
         </SidebarFooter>
       </Stack>
     </Fragment>
+  );
+}
+
+function SidebarFooter(props: {children: NonNullable<React.ReactNode>}) {
+  const {layout} = useNavigation();
+
+  return (
+    <Flex
+      display="flex"
+      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
+      align="center"
+      justify={layout === 'mobile' ? 'start' : 'center'}
+      width={layout === 'mobile' ? '100%' : 'auto'}
+    >
+      {layout === 'mobile' ? (
+        <Stack width="100%">{props.children}</Stack>
+      ) : (
+        <PrimaryNavigation.ButtonBar orientation="vertical">
+          {props.children}
+        </PrimaryNavigation.ButtonBar>
+      )}
+    </Flex>
   );
 }
 

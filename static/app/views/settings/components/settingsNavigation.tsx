@@ -41,8 +41,11 @@ function SettingsSecondaryNavigation({
     <Fragment>
       <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        {navWithHooks.map(config => (
-          <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
+        {navWithHooks.map((config, index) => (
+          <Fragment key={config.name}>
+            {index > 0 && <SecondaryNavigation.Separator />}
+            <SettingsNavigationGroup {...otherProps} {...config} />
+          </Fragment>
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNavigation.Body>

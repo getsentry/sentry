@@ -50,7 +50,9 @@ export function DashboardsSecondaryNavigation() {
                 to={`${baseUrl}/`}
                 end
                 isActive={
-                  hasPrebuiltDashboards ? isOnDashboardsList && !isOnlyPrebuilt : undefined
+                  hasPrebuiltDashboards
+                    ? isOnDashboardsList && !isOnlyPrebuilt
+                    : undefined
                 }
                 analyticsItemName="dashboards_all"
               >
@@ -71,24 +73,27 @@ export function DashboardsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {starredDashboards.length > 0 ? (
-          <SecondaryNavigation.Section
-            id="dashboards-starred"
-            title={t('Starred Dashboards')}
-          >
-            <ErrorBoundary mini>
-              {organization.features.includes('dashboards-starred-reordering') ? (
-                <DashboardsNavigationItems initialDashboards={starredDashboards} />
-              ) : (
-                <StarredDashboardItems
-                  dashboards={starredDashboards}
-                  projects={projects}
-                  organizationSlug={organization.slug}
-                  organizationId={organization.id}
-                  userId={user.id}
-                />
-              )}
-            </ErrorBoundary>
-          </SecondaryNavigation.Section>
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section
+              id="dashboards-starred"
+              title={t('Starred Dashboards')}
+            >
+              <ErrorBoundary mini>
+                {organization.features.includes('dashboards-starred-reordering') ? (
+                  <DashboardsNavigationItems initialDashboards={starredDashboards} />
+                ) : (
+                  <StarredDashboardItems
+                    dashboards={starredDashboards}
+                    projects={projects}
+                    organizationSlug={organization.slug}
+                    organizationId={organization.id}
+                    userId={user.id}
+                  />
+                )}
+              </ErrorBoundary>
+            </SecondaryNavigation.Section>
+          </Fragment>
         ) : null}
       </SecondaryNavigation.Body>
     </Fragment>
@@ -130,7 +135,9 @@ function StarredDashboardItems({
           leadingItems={
             <SecondaryNavigation.ProjectIcon
               projectPlatforms={dashboardProjectPlatforms}
-              allProjects={dashboard.projects?.length === 1 && dashboard.projects[0] === -1}
+              allProjects={
+                dashboard.projects?.length === 1 && dashboard.projects[0] === -1
+              }
             />
           }
         >

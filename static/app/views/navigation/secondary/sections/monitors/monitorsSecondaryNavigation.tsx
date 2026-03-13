@@ -34,7 +34,7 @@ export function MonitorsSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="monitors-data-types" title={t('By Data Type')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -83,7 +83,7 @@ export function MonitorsSecondaryNavigation() {
             </Feature>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="monitors-automations">
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>

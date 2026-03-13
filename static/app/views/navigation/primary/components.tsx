@@ -14,17 +14,78 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
+import Hook from 'sentry/components/hook';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {useNavigation} from 'sentry/views/navigation/navigationContext';
+
+function PrimaryNavigationSidebar(props: Omit<FlexProps, 'aria-label'>) {
+  const theme = useTheme();
+  return (
+    <Flex
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      padding="lg 0 md 0"
+      borderRight="primary"
+      background="primary"
+      direction="column"
+      align="center"
+      justify="between"
+      aria-label={t('Primary Navigation')}
+      style={{zIndex: theme.zIndex.sidebarPanel}}
+    >
+      {props.children}
+    </Flex>
+  );
+}
+
+function PrimaryNavigationSidebarHeader(props: FlexProps<'header'>) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const showSuperuserWarning =
+    isActiveSuperuser() &&
+    !ConfigStore.get('isSelfHosted') &&
+    !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
+
+  return (
+    <Flex
+      as="header"
+      direction="column"
+      align="center"
+      justify="center"
+      position="relative"
+      {...props}
+    >
+      {props.children}
+      {showSuperuserWarning && (
+        <Container
+          position="absolute"
+          top={`-${theme.space.lg}`}
+          left={0}
+          width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+          style={{
+            zIndex: theme.zIndex.initial,
+            background: theme.tokens.background.danger.vibrant,
+          }}
+        >
+          <Hook name="component:superuser-warning" organization={organization} />
+        </Container>
+      )}
+    </Flex>
+  );
+}
 
 interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
@@ -513,4 +574,6 @@ export const PrimaryNavigation = {
   Menu: PrimaryNavigationMenu,
   Separator: PrimaryNavigationSeparator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
+  Sidebar: PrimaryNavigationSidebar,
+  SidebarHeader: PrimaryNavigationSidebarHeader,
 };

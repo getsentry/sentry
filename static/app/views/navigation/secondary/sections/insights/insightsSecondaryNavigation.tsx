@@ -81,6 +81,7 @@ export function InsightsSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="insights-ai" title={t('AI')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -101,6 +102,7 @@ export function InsightsSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="insights-monitors">
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -131,6 +133,7 @@ export function InsightsSecondaryNavigation() {
             </Feature>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="insights-projects-all">
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -145,28 +148,33 @@ export function InsightsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {projectsToDisplay.length > 0 ? (
-          <SecondaryNavigation.Section
-            id="insights-starred-projects"
-            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
-          >
-            <SecondaryNavigation.List>
-              {projectsToDisplay.map(project => (
-                <SecondaryNavigation.ListItem key={project.id}>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/projects/${project.slug}/`}
-                    leadingItems={
-                      <SecondaryNavigation.ProjectIcon
-                        projectPlatforms={project.platform ? [project.platform] : ['default']}
-                      />
-                    }
-                    analyticsItemName="insights_project_starred"
-                  >
-                    {project.slug}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              ))}
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section
+              id="insights-starred-projects"
+              title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+            >
+              <SecondaryNavigation.List>
+                {projectsToDisplay.map(project => (
+                  <SecondaryNavigation.ListItem key={project.id}>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/projects/${project.slug}/`}
+                      leadingItems={
+                        <SecondaryNavigation.ProjectIcon
+                          projectPlatforms={
+                            project.platform ? [project.platform] : ['default']
+                          }
+                        />
+                      }
+                      analyticsItemName="insights_project_starred"
+                    >
+                      {project.slug}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                ))}
+              </SecondaryNavigation.List>
+            </SecondaryNavigation.Section>
+          </Fragment>
         ) : null}
       </SecondaryNavigation.Body>
     </Fragment>

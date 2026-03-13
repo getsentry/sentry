@@ -31,6 +31,7 @@ export function IssuesSecondaryNavigation() {
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
           <SecondaryNavigation.List>
             {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
@@ -64,6 +65,7 @@ export function IssuesSecondaryNavigation() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
@@ -100,24 +102,27 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     : `${baseUrl}/alerts/rules/`;
 
   return (
-    <StickyBottomSection
-      id="issues-configure"
-      title={t('Configure')}
-      collapsible={false}
-      isSticky={isSticky}
-    >
-      <SecondaryNavigation.List>
-        <SecondaryNavigation.ListItem>
-          <SecondaryNavigation.Link
-            to={alertsLink}
-            {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
-            analyticsItemName="issues_alerts"
-          >
-            {t('Alerts')}
-          </SecondaryNavigation.Link>
-        </SecondaryNavigation.ListItem>
-      </SecondaryNavigation.List>
-    </StickyBottomSection>
+    <Fragment>
+      <SecondaryNavigation.Separator />
+      <StickyBottomSection
+        id="issues-configure"
+        title={t('Configure')}
+        collapsible={false}
+        isSticky={isSticky}
+      >
+        <SecondaryNavigation.List>
+          <SecondaryNavigation.ListItem>
+            <SecondaryNavigation.Link
+              to={alertsLink}
+              {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
+              analyticsItemName="issues_alerts"
+            >
+              {t('Alerts')}
+            </SecondaryNavigation.Link>
+          </SecondaryNavigation.ListItem>
+        </SecondaryNavigation.List>
+      </StickyBottomSection>
+    </Fragment>
   );
 }
 

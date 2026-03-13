@@ -41,63 +41,6 @@ function SecondaryNavigationListItem({children}: {children: ReactNode}) {
   );
 }
 
-interface CollapsibleProps {
-  children: React.ReactNode;
-  collapsed: boolean;
-  disabled?: boolean;
-}
-function Collapsible(props: CollapsibleProps) {
-  if (props.disabled) {
-    return props.children;
-  }
-
-  return (
-    <AnimatePresence mode="wait" initial={false}>
-      {!props.collapsed && (
-        <CollapsibleWrapper
-          key="collapsible-content"
-          variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
-            expanded: {
-              // overflow: 'visible',
-              height: 'auto',
-            },
-          }}
-          initial="collapsed"
-          animate="expanded"
-          exit="collapsed"
-          transition={testableTransition({
-            type: 'spring',
-            damping: 50,
-            stiffness: 600,
-            bounce: 0,
-            visualDuration: 0.4,
-          })}
-        >
-          {/*
-            We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
-            from applying to the children, which may cause the children's order to be reversed
-          */}
-          <div>{props.children}</div>
-        </CollapsibleWrapper>
-      )}
-    </AnimatePresence>
-  );
-}
-
-const CollapsibleWrapper = styled(motion.div)`
-  display: flex;
-  /*
-    This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
-    when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
-  */
-  flex-direction: column-reverse;
-  margin: 0;
-`;
-
 interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
@@ -246,9 +189,6 @@ function SecondaryNavigationSection({
 
   return (
     <Section className={className} layout={layout} data-nav-section>
-      <Container padding="md lg">
-        <SectionSeparator />
-      </Container>
       {title ? (
         <SectionTitle
           title={title}
@@ -321,12 +261,15 @@ function SecondaryNavigationLink({
 
 function SecondaryNavigationFooter({children}: {children: ReactNode}) {
   const {layout} = useNavigation();
-
   return <Footer layout={layout}>{children}</Footer>;
 }
 
-function SectionSeparator() {
-  return <Separator orientation="horizontal" border="muted" />;
+function SecondaryNavigationSeparator() {
+  return (
+    <Container padding="md lg">
+      <Separator orientation="horizontal" border="muted" />
+    </Container>
+  );
 }
 
 interface SecondaryNavigationProjectIconProps {
@@ -383,6 +326,63 @@ function SecondaryNavigationProjectIcon({
     </Stack>
   );
 }
+
+interface CollapsibleProps {
+  children: React.ReactNode;
+  collapsed: boolean;
+  disabled?: boolean;
+}
+function Collapsible(props: CollapsibleProps) {
+  if (props.disabled) {
+    return props.children;
+  }
+
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {!props.collapsed && (
+        <CollapsibleWrapper
+          key="collapsible-content"
+          variants={{
+            collapsed: {
+              height: 0,
+              overflow: 'hidden',
+            },
+            expanded: {
+              // overflow: 'visible',
+              height: 'auto',
+            },
+          }}
+          initial="collapsed"
+          animate="expanded"
+          exit="collapsed"
+          transition={testableTransition({
+            type: 'spring',
+            damping: 50,
+            stiffness: 600,
+            bounce: 0,
+            visualDuration: 0.4,
+          })}
+        >
+          {/*
+            We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
+            from applying to the children, which may cause the children's order to be reversed
+          */}
+          <div>{props.children}</div>
+        </CollapsibleWrapper>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const CollapsibleWrapper = styled(motion.div)`
+  display: flex;
+  /*
+    This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
+    when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
+  */
+  flex-direction: column-reverse;
+  margin: 0;
+`;
 
 const IconContainer = styled('div')`
   position: relative;
@@ -561,6 +561,7 @@ export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
+  Separator: SecondaryNavigationSeparator,
   List: SecondaryNavigationList,
   ListItem: SecondaryNavigationListItem,
   Link: SecondaryNavigationLink,

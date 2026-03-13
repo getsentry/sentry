@@ -166,23 +166,29 @@ export function ExploreSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
-          <SecondaryNavigation.Section id="explore-all-queries">
-            <SecondaryNavigation.List>
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                  {t('All Queries')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </SecondaryNavigation.List>
-          </SecondaryNavigation.Section>
-          {starredQueries && starredQueries.length > 0 && (
-            <SecondaryNavigation.Section
-              id="explore-starred-queries"
-              title={t('Starred Queries')}
-            >
-              <ExploreSavedQueryNavigationItems queries={starredQueries} />
+          <Fragment>
+            <SecondaryNavigation.Separator />
+            <SecondaryNavigation.Section id="explore-all-queries">
+              <SecondaryNavigation.List>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
+                    {t('All Queries')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
-          )}
+            {starredQueries && starredQueries.length > 0 && (
+              <Fragment>
+                <SecondaryNavigation.Separator />
+                <SecondaryNavigation.Section
+                  id="explore-starred-queries"
+                  title={t('Starred Queries')}
+                >
+                  <ExploreSavedQueryNavigationItems queries={starredQueries} />
+                </SecondaryNavigation.Section>
+              </Fragment>
+            )}
+          </Fragment>
         </Feature>
       </SecondaryNavigation.Body>
     </Fragment>
