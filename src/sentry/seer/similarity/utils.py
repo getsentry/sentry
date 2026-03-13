@@ -579,7 +579,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         automated_run_stopping_point=stopping_point,
     )
     try:
-        set_project_seer_preference(preference, organization)
+        set_project_seer_preference(preference, organization, project)
     except Exception as e:
         sentry_sdk.capture_exception(e)
 

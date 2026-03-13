@@ -262,11 +262,13 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 repo_data["organization_id"] = organization.id
 
-                repo_exists = filter_repo_by_provider(
+                repo = filter_repo_by_provider(
                     organization.id, provider, external_id, owner, name
-                ).exists()
-                if not repo_exists:
+                ).first()
+                if repo is None:
                     return Response({"detail": "Invalid repository"}, status=400)
+
+                repo_data["repository_id"] = repo.id
 
         preferences_to_set: list[dict[str, Any]] = []
 

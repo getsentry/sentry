@@ -17,10 +17,10 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     GetProjectPreferenceRequest,
     SetProjectPreferenceRequest,
-    _dual_write_preference_to_sentry_db,
     get_autofix_repos_from_project_code_mappings,
     make_get_project_preference_request,
     make_set_project_preference_request,
+    write_preference_to_sentry_db,
 )
 from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext, seer_autofix_default_connection_pool
@@ -126,12 +126,12 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
             repo_data["organization_id"] = project.organization.id
 
-            repo_exists = filter_repo_by_provider(
+            repo = filter_repo_by_provider(
                 project.organization.id, provider, external_id, owner, name
-            ).exists()
-
-            if not repo_exists:
+            ).first()
+            if repo is None:
                 return Response({"detail": "Invalid repository"}, status=400)
+            repo_data["repository_id"] = repo.id
 
         preference = SeerProjectPreference.validate(
             {
@@ -154,10 +154,10 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
         if features.has("organizations:seer-project-settings-dual-write", project.organization):
             try:
-                _dual_write_preference_to_sentry_db(preference)
+                write_preference_to_sentry_db(project, preference)
             except Exception:
                 logger.exception(
-                    "seer.dual_write_preference_failed",
+                    "seer.write_preference.failed",
                     extra={
                         "project_id": project.id,
                         "organization_id": project.organization.id,
