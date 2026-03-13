@@ -554,6 +554,7 @@ export const CustomerStats = memo(
     abuseDataRef.current = abuseData;
 
     const activeAbuseRegionRef = useRef<number | null>(null);
+    const chartInstanceRef = useRef<ECharts | null>(null);
 
     const updateAbuseRegionOpacity = useCallback(
       (instance: ECharts, regionIndex: number | null) => {
@@ -594,6 +595,10 @@ export const CustomerStats = memo(
       [updateAbuseRegionOpacity]
     );
 
+    const handleChartMouseLeave = useCallback(() => {
+      dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
+    }, [dismissAbuseTooltip]);
+
     const handleBarHighlight = useCallback(
       (
         params: {batch?: Array<{dataIndex: number; seriesIndex: number}>},
@@ -603,6 +608,7 @@ export const CustomerStats = memo(
         if (!el || !instance) {
           return;
         }
+        chartInstanceRef.current = instance;
 
         // Skip mark area series (first N entries) and find a bar series highlight
         const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
@@ -709,7 +715,7 @@ export const CustomerStats = memo(
             >
               {zoomRenderProps => (
                 <Fragment>
-                  <ChartContainer>
+                  <ChartContainer onMouseLeave={handleChartMouseLeave}>
                     <BarChart
                       onHighlight={handleBarHighlight}
                       onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
@@ -773,6 +779,7 @@ const AbuseTooltip = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.primary};
   pointer-events: none;
   white-space: nowrap;
