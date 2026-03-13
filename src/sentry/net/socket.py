@@ -135,24 +135,14 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-    sentry_sdk.set_context(
-        "addresses",
-        {
-            "addresses": addresses,
-            "length": len(addresses),
-        },
-    )
+    with sentry_sdk.start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
+        addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
+        gai_span.set_data("address_count", len(addresses))
+        gai_span.set_data("addresses", addresses)
 
     for res in addresses:
-        with sentry_sdk.start_span(
-            op="socket.getaddrinfo.loop", description="socket.getaddrinfo.loop"
-        ) as span:
+        with sentry_sdk.start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
             af, socktype, proto, canonname, sa = res
-            span.set_data(
-                "res",
-                {"af": af, "socktype": socktype, "proto": proto, "canonname": canonname, "sa": sa},
-            )
 
             # Begin custom code.
             ip = sa[0]
@@ -179,7 +169,8 @@ def safe_create_connection(
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
-                sock.connect(sa)
+                with sentry_sdk.start_span(op="socket.connect", name=f"sock.connect.{sa}"):
+                    sock.connect(sa)
                 return sock
 
             except OSError as e:
