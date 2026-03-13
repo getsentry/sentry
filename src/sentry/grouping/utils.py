@@ -61,20 +61,13 @@ def normalize_message_for_grouping(
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-
-    if trim_message:
-        # If there are multiple lines, grab the first two non-empty ones
-        trimmed = _trim_extra_lines(message)
-        normalized = context.parameterizer.parameterize(trimmed)
-        message_parameterized = normalized != trimmed
-    else:
-        normalized = context.parameterizer.parameterize(message)
-        message_parameterized = normalized != message
+    parameterized = context.parameterizer.parameterize(message)
+    message_parameterized = parameterized != message
 
     if message_parameterized:
         metrics.incr("grouping.message_parameterized", tags={"source": reason})
 
-    return normalized
+    return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
 def _trim_extra_lines(input_str: str) -> str:
