@@ -148,7 +148,7 @@ export default function CreateFromSeer() {
   const isLoading =
     !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
 
-  // Prevent repeat errors on the same widget and session
+  // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
 
   const handleWidgetError = useCallback(

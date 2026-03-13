@@ -141,7 +141,11 @@ export function SortableWidget(props: Props) {
     dashboardFilters,
     widgetLegendState,
     renderErrorMessage: errorMessage => {
-      if (typeof errorMessage === 'string' && onWidgetError) {
+      if (
+        typeof errorMessage === 'string' &&
+        errorMessage !== t('No data found') &&
+        onWidgetError
+      ) {
         onWidgetError(widget, errorMessage);
       }
       return (
