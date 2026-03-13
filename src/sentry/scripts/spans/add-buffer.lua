@@ -30,7 +30,7 @@ ARGS:
 - byte_count -- int -- The total number of bytes in the subsegment.
 - zero_copy_dest_threshold -- int -- When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set exceeds this many bytes.
 - write_distributed_payloads -- "true" or "false" -- When true, maintain member-keys tracking sets for distributed payload keys.
-- write_merged_payloads -- "true" or "false" -- When false, skip merged set merges and merged key expire.
+- write_merged_payloads -- "true" or "false" -- When false, skip set merges and set keys expire cmds.
 - *span_id -- str[] -- The span ids in the subsegment.
 
 RETURNS:
