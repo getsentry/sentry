@@ -384,13 +384,13 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         handle_replication(Team, destination)
 
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
-        with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
-            try:
-                rows_updated = ProjectKeyMapping.objects.filter(
-                    project_key_id=project_key.id, cell_name=project_key.cell_name
-                ).update(public_key=project_key.public_key)
+        rows_updated = ProjectKeyMapping.objects.filter(
+            project_key_id=project_key.id, cell_name=project_key.cell_name
+        ).update(public_key=project_key.public_key)
 
-                if not rows_updated:
+        if not rows_updated:
+            try:
+                with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
                     ProjectKeyMapping.objects.create(
                         project_key_id=project_key.id,
                         public_key=project_key.public_key,
