@@ -97,6 +97,12 @@ export function SnapshotSidebarContent({
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (sectionParam) {
+      setExpandedSections(prev => ({...prev, [sectionParam]: true}));
+    }
+  }, [sectionParam]);
+
+  useEffect(() => {
     if (sectionParam && sectionRef.current) {
       sectionRef.current.scrollIntoView({behavior: 'smooth', block: 'nearest'});
       setSectionParam(null);
