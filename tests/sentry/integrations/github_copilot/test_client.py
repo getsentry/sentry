@@ -1,7 +1,11 @@
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import GithubCopilotTask
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
 
@@ -98,6 +102,66 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.id == "task-123"
         assert result.status == "running"
         assert result.artifacts is None
+
+    def _make_launch_request(self) -> CodingAgentLaunchRequest:
+        return CodingAgentLaunchRequest(
+            prompt="Fix the bug",
+            repository=SeerRepoDefinition(
+                provider="github",
+                owner="getsentry",
+                name="sentry",
+                external_id="123",
+            ),
+            branch_name="main",
+        )
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_created_at(self, mock_post: Mock) -> None:
+        """Test launch correctly parses created_at from the response"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-123",
+                "status": "in_progress",
+                "created_at": "2024-06-01T12:00:00Z",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-123"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
+        assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_missing_created_at(self, mock_post: Mock) -> None:
+        """Test launch falls back to now() when created_at is missing"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-456",
+                "status": "in_progress",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        before = datetime.now(UTC)
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+        after = datetime.now(UTC)
+
+        assert result.id == "getsentry:sentry:task-456"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert before <= result.started_at <= after
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_get_pr_from_graphql_success(self, mock_post: Mock) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -103,8 +103,8 @@ class GithubCopilotAgentClient(CodingAgentClient):
 
         agent_id = self.encode_agent_id(owner, repo, task.id)
 
-        # Get created_at from the response
-        started_at = None
+        # Get created_at from the response, falling back to now if missing/unparseable
+        started_at = datetime.now(UTC)
         created_at_str = task.created_at
         if created_at_str:
             try:
