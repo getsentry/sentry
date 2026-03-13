@@ -75,17 +75,18 @@ describe('BackendJsonFormAdapter', () => {
     expect(screen.getByText('Medium')).toBeInTheDocument();
   });
 
-  it('renders placeholder for table', () => {
+  it('renders table field with add button', () => {
     renderField(
       {
         name: 'table_field',
         type: 'table',
         label: 'Table Field',
+        addButtonText: 'Add Item',
       },
-      undefined
+      []
     );
 
-    expect(screen.getByText(/not supported/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Add Item/})).toBeInTheDocument();
   });
 
   it('boolean toggle triggers POST', async () => {

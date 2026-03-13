@@ -119,6 +119,8 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
           ? string | null
           : T extends JsonFormAdapterChoiceMapper
             ? Record<string, Record<string, unknown>>
-            : T extends JsonFormAdapterProjectMapper
-              ? Array<[number, string]>
-              : unknown;
+            : T extends JsonFormAdapterTable
+              ? Array<Record<string, unknown>>
+              : T extends JsonFormAdapterProjectMapper
+                ? Array<[number, string]>
+                : unknown;

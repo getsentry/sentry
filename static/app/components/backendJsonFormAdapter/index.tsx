@@ -4,12 +4,10 @@ import {z} from 'zod';
 
 import {AutoSaveField} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-
-import {t} from 'sentry/locale';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
+import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 
 function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
@@ -89,12 +87,43 @@ export function BackendJsonFormAdapter<
     [fieldName, field.type]
   );
 
-  // Unsupported field types get a placeholder
   if (field.type === 'table') {
+    const tableSchema = z.object({[fieldName]: z.any()});
     return (
-      <Text variant="muted" as="p">
-        {t('Field "%s" is not supported', field.label)}
-      </Text>
+      <AutoSaveField
+        name={fieldName}
+        schema={tableSchema}
+        initialValue={initialValue ?? field.default ?? []}
+        mutationOptions={mutationOptions}
+      >
+        {fieldApi => (
+          <fieldApi.Base>
+            {(baseProps, {indicator}) => (
+              <Stack flexGrow={1} gap="xl">
+                <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                  <TableHeaderRow
+                    config={field}
+                    value={fieldApi.state.value}
+                    onAdd={newValue => {
+                      fieldApi.handleChange(newValue);
+                      baseProps.onBlur();
+                    }}
+                    indicator={indicator}
+                    disabled={field.disabled || baseProps.disabled}
+                  />
+                </fieldApi.Layout.Row>
+                <TableBody
+                  config={field}
+                  value={fieldApi.state.value}
+                  onUpdate={fieldApi.handleChange}
+                  onSave={() => baseProps.onBlur()}
+                  disabled={field.disabled || baseProps.disabled}
+                />
+              </Stack>
+            )}
+          </fieldApi.Base>
+        )}
+      </AutoSaveField>
     );
   }
 
