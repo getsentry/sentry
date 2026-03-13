@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 PROVIDER_KEY = "claude_code"
 PROVIDER_NAME = "Claude Agent"
 DESCRIPTION = "Connect your Sentry organization with Claude Agent."
+DEFAULT_ENVIRONMENT_NAME = "sentry-autofix-agents"
 
 
 def _get_client_class() -> type[Any]:
@@ -91,6 +92,33 @@ metadata = IntegrationMetadata(
 )
 
 
+def _build_environment_choices(
+    environment_choices: list[tuple[str, str]] | None,
+) -> list[tuple[str, str]]:
+    """Build the environment dropdown choices, handling the default environment specially.
+
+    If an environment named ``sentry-autofix-agents`` exists, the default
+    option reads "Use Default Environment - 'sentry-autofix-agents'" and the
+    environment is removed from the individual choices. Otherwise the default
+    option reads "Create a Default Sentry Environment".
+    """
+    has_default = False
+    filtered: list[tuple[str, str]] = []
+    if environment_choices:
+        for env_id, env_name in environment_choices:
+            if env_name == DEFAULT_ENVIRONMENT_NAME:
+                has_default = True
+            else:
+                filtered.append((env_id, env_name))
+
+    if has_default:
+        default_label = str(_("Use Default Environment - '%s'") % DEFAULT_ENVIRONMENT_NAME)
+    else:
+        default_label = str(_("Create a Default Sentry Environment"))
+
+    return [("", default_label)] + filtered
+
+
 class ClaudeCodeApiKeyForm(forms.Form):
     """Step 1: Collect the Anthropic API key."""
 
@@ -108,8 +136,8 @@ class ClaudeCodeEnvironmentForm(forms.Form):
     environment_id = forms.ChoiceField(
         label=_("Environment"),
         help_text=_(
-            "Select an existing environment, or leave as "
-            '"Create new automatically" to create one on first use.'
+            "Select an existing environment, or leave as default "
+            "to use the sentry-autofix-agents environment."
         ),
         required=False,
     )
@@ -128,9 +156,7 @@ class ClaudeCodeEnvironmentForm(forms.Form):
         self, *args: Any, environment_choices: list[tuple[str, str]] | None = None, **kwargs: Any
     ) -> None:
         super().__init__(*args, **kwargs)
-        choices: list[tuple[str, str]] = [("", str(_("Create new automatically")))]
-        if environment_choices:
-            choices += environment_choices
+        choices: list[tuple[str, str]] = _build_environment_choices(environment_choices)
         env_field = self.fields["environment_id"]
         assert isinstance(env_field, forms.ChoiceField)
         env_field.choices = choices
@@ -269,17 +295,16 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
     """
 
     def get_organization_config(self) -> list[dict[str, Any]]:
-        choices: list[tuple[str, str]] = [("", str(_("Create new automatically")))]
         client = self.get_client()
-        environments = []
+        environment_choices: list[tuple[str, str]] = []
         try:
             environments = client.list_environments()
         except Exception:
             logger.exception("claude_code.get_organization_config.fetch_environments_failed")
-
-        choices.extend(
+        environment_choices = [
             (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
-        )
+        ]
+        choices = _build_environment_choices(environment_choices)
 
         return [
             {
@@ -287,8 +312,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                 "type": "select",
                 "label": _("Environment"),
                 "help": _(
-                    "Select an existing environment, or leave as "
-                    '"Create new automatically" to create one on first use.'
+                    "Select an existing environment, or leave as default "
+                    "to use the sentry-autofix-agents environment."
                 ),
                 "required": False,
                 "choices": choices,
