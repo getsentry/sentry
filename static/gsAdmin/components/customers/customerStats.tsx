@@ -611,18 +611,22 @@ export const CustomerStats = memo(
         chartInstanceRef.current = instance;
 
         // Skip mark area series (first N entries) and find a bar series highlight
-        const {intervals: allIntervals, valueByTimestamp, regions} = abuseDataRef.current;
+        const {valueByTimestamp, regions} = abuseDataRef.current;
         const barEntry = params.batch?.find(entry => entry.seriesIndex >= regions.length);
         const dataIndex = barEntry?.dataIndex;
         if (dataIndex === undefined) {
           dismissAbuseTooltip(instance);
           return;
         }
-        const ts = allIntervals[dataIndex];
-        if (ts === undefined) {
+        // Use the main chart's intervals to resolve the timestamp from dataIndex,
+        // then look it up in the abuse data's valueByTimestamp Map. This avoids
+        // index mismatches between the two independent API queries.
+        const chartInterval = stats?.intervals[dataIndex];
+        if (chartInterval === undefined) {
           dismissAbuseTooltip(instance);
           return;
         }
+        const ts = new Date(chartInterval).getTime();
 
         const value = valueByTimestamp.get(ts);
         if (!value) {
@@ -646,7 +650,7 @@ export const CustomerStats = memo(
           el.style.display = 'flex';
         }
       },
-      [dismissAbuseTooltip, updateAbuseRegionOpacity]
+      [dismissAbuseTooltip, updateAbuseRegionOpacity, stats]
     );
 
     if (loading) {
