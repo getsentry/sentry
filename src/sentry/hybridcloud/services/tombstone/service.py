@@ -30,15 +30,15 @@ class ControlTombstoneService(RpcService):
         pass
 
 
-class RegionTombstoneService(RpcService):
+class CellTombstoneService(RpcService):
     key = "region_tombstone"
     local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedRegionTombstoneService
+        from .impl import DatabaseBackedCellTombstoneService
 
-        return DatabaseBackedRegionTombstoneService()
+        return DatabaseBackedCellTombstoneService()
 
     @regional_rpc_method(resolve=ByCellName())
     @abstractmethod
@@ -46,5 +46,5 @@ class RegionTombstoneService(RpcService):
         pass
 
 
-region_tombstone_service = RegionTombstoneService.create_delegation()
+cell_tombstone_service = CellTombstoneService.create_delegation()
 control_tombstone_service = ControlTombstoneService.create_delegation()

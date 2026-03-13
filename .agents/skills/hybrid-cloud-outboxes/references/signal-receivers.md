@@ -138,7 +138,7 @@ This function:
 
 1. Queries `model.objects.filter(id=object_identifier).last()`
 2. If found: returns the instance (for replication)
-3. If not found: records a tombstone via `region_tombstone_service` or `control_tombstone_service` and returns `None`
+3. If not found: records a tombstone via `cell_tombstone_service` or `control_tombstone_service` and returns `None`
 
 The tombstone system drives `HybridCloudForeignKey` cascade deletes across silos. When an object is deleted from one silo, the tombstone propagated to the other silo triggers cleanup of dependent records.
 
