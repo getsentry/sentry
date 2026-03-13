@@ -419,9 +419,9 @@ type SelectProps<OptionType extends OptionTypeBase> =
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
   SelectProps<OptionType> &
     AsyncProps<OptionType> &
-    CreatableProps<OptionType, false> &
+    CreatableProps<OptionType, boolean> &
     Omit<
-      ReactSelectProps<OptionType>,
+      ReactSelectProps<OptionType, boolean>,
       'onChange' | 'value' | 'menuPlacement' | 'theme'
     > & {
       /**
