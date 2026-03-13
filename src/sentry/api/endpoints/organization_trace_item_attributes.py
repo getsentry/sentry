@@ -762,7 +762,7 @@ class OrganizationTraceItemAttributeValidateSerializer(serializers.Serializer):
     )
 
 
-def coarsen_type(search_type: constants.SearchType) -> str:
+def serialize_type(search_type: constants.SearchType) -> str:
     proto_type = constants.TYPE_MAP.get(search_type)
     if proto_type == constants.STRING:
         return "string"
@@ -812,7 +812,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 resolved, _context = resolver.resolve_attribute(attr_name)
                 results[attr_name] = {
                     "valid": True,
-                    "type": coarsen_type(resolved.search_type),
+                    "type": serialize_type(resolved.search_type),
                 }
             except InvalidSearchQuery as e:
                 results[attr_name] = {
