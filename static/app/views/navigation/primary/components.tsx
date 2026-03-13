@@ -131,6 +131,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
   children?: React.ReactNode;
   className?: string;
+  indicator?: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationButton({
@@ -139,6 +140,7 @@ function PrimaryNavigationButton({
   children,
   buttonProps = {},
   label,
+  indicator,
 }: PrimaryNavigationButtonProps) {
   const organization = useOrganization();
   const {layout} = useNavigation();
@@ -158,7 +160,19 @@ function PrimaryNavigationButton({
           });
           buttonProps.onClick?.(e);
         }}
-        icon={buttonProps.icon}
+        icon={
+          indicator ? (
+            <Fragment>
+              {buttonProps.icon}
+              <PrimaryNavigationUnreadIndicator
+                isMobile={showLabel}
+                variant={indicator}
+              />
+            </Fragment>
+          ) : (
+            buttonProps.icon
+          )
+        }
       >
         {showLabel ? label : null}
         {children}
@@ -172,6 +186,7 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   label: string;
   children?: React.ReactNode;
   icon?: React.ReactNode;
+  indicator?: 'accent' | 'danger' | 'warning';
   onOpen?: MouseEventHandler<HTMLButtonElement>;
   size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
@@ -185,6 +200,7 @@ function PrimaryNavigationMenu({
   label,
   onOpen,
   icon,
+  indicator,
   size,
   triggerWrap: TriggerWrap = Fragment,
 }: PrimaryNavigationMenuProps) {
@@ -233,7 +249,19 @@ function PrimaryNavigationMenu({
                   triggerProps.onClick?.(event);
                   onOpen?.(event);
                 }}
-                icon={icon}
+                icon={
+                  indicator ? (
+                    <Fragment>
+                      {icon}
+                      <PrimaryNavigationUnreadIndicator
+                        isMobile={showLabel}
+                        variant={indicator}
+                      />
+                    </Fragment>
+                  ) : (
+                    icon
+                  )
+                }
               >
                 {showLabel ? (
                   <Fragment>
@@ -467,6 +495,5 @@ export const PrimaryNavigation = {
   Button: PrimaryNavigationButton,
   Menu: PrimaryNavigationMenu,
   Separator: PrimaryNavigationSeparator,
-  UnreadIndicator: PrimaryNavigationUnreadIndicator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
 };

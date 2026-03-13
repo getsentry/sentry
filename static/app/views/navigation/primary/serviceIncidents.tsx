@@ -6,7 +6,6 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -19,24 +18,18 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     overlayProps,
   } = usePrimaryNavigationButtonOverlay();
 
-  const {layout} = useNavigation();
-
   return (
     <Fragment>
       <PrimaryNavigation.Button
         analyticsKey="statusupdate"
         label={t('Service status')}
+        indicator="danger"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconFire />,
           size: 'sm',
         }}
-      >
-        <PrimaryNavigation.UnreadIndicator
-          isMobile={layout === 'mobile'}
-          variant="danger"
-        />
-      </PrimaryNavigation.Button>
+      />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           {incidents.map(incident => (

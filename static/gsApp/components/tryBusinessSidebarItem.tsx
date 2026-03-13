@@ -47,6 +47,7 @@ function TryBusinessNavigationItem({
       <PrimaryNavigation.Button
         label={t('Try Business')}
         analyticsKey="try-business"
+        indicator={showIsNew ? 'accent' : undefined}
         buttonProps={{
           size: layout === 'mobile' ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
@@ -55,11 +56,7 @@ function TryBusinessNavigationItem({
             onClick();
           },
         }}
-      >
-        {showIsNew && (
-          <PrimaryNavigation.UnreadIndicator isMobile={layout === 'mobile'} />
-        )}
-      </PrimaryNavigation.Button>
+      />
     </TrialStartedSidebarItem>
   );
 }

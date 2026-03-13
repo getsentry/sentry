@@ -101,14 +101,8 @@ function OnboardingItem({
           ),
         }}
         label={label}
-      >
-        {pendingCompletionSeen && (
-          <PrimaryNavigation.UnreadIndicator
-            data-test-id="pending-seen-indicator"
-            isMobile={isMobile}
-          />
-        )}
-      </PrimaryNavigation.Button>
+        indicator={pendingCompletionSeen ? 'accent' : undefined}
+      />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />

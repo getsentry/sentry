@@ -20,7 +20,6 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -162,26 +161,18 @@ export function PrimaryNavigationWhatsNew() {
     overlayProps,
   } = usePrimaryNavigationButtonOverlay();
 
-  const {layout} = useNavigation();
-
   return (
     <Fragment>
       <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
+        indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,
           size: 'sm',
         }}
-      >
-        {unseenPostIds.length > 0 && (
-          <PrimaryNavigation.UnreadIndicator
-            data-test-id="whats-new-unread-indicator"
-            isMobile={layout === 'mobile'}
-          />
-        )}
-      </PrimaryNavigation.Button>
+      />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent

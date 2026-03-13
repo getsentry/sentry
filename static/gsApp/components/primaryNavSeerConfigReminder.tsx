@@ -13,7 +13,6 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -183,8 +182,6 @@ export function PrimaryNavSeerConfigReminder() {
     state,
   } = usePrimaryNavigationButtonOverlay();
 
-  const {layout} = useNavigation();
-
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
 
@@ -208,16 +205,12 @@ export function PrimaryNavSeerConfigReminder() {
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
+        indicator="accent"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconSeer />,
         }}
-      >
-        <PrimaryNavigation.UnreadIndicator
-          data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === 'mobile'}
-        />
-      </PrimaryNavigation.Button>
+      />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">

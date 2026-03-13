@@ -14,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -434,8 +433,6 @@ export function PrimaryNavigationQuotaExceeded({
     overlayProps,
     state: overlayState,
   } = usePrimaryNavigationButtonOverlay({});
-  const {layout} = useNavigation();
-
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
@@ -528,16 +525,12 @@ export function PrimaryNavigationQuotaExceeded({
       <PrimaryNavigation.Button
         analyticsKey="billingStatus"
         label={t('Billing Status')}
+        indicator="warning"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconWarning />,
         }}
-      >
-        <PrimaryNavigation.UnreadIndicator
-          isMobile={layout === 'mobile'}
-          variant="warning"
-        />
-      </PrimaryNavigation.Button>
+      />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
