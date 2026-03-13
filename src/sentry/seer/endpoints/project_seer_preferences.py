@@ -133,19 +133,18 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             if not repo_exists:
                 return Response({"detail": "Invalid repository"}, status=400)
 
-        preference_dict = SeerProjectPreference.validate(
+        preference = SeerProjectPreference.validate(
             {
                 **serializer.validated_data,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
             }
-        ).dict()
-        body = SetProjectPreferenceRequest(preference=preference_dict)
+        )
         viewer_context = SeerViewerContext(
             organization_id=project.organization.id, user_id=request.user.id
         )
         response = make_set_project_preference_request(
-            body,
+            SetProjectPreferenceRequest(preference=preference.dict()),
             connection_pool=seer_autofix_default_connection_pool,
             viewer_context=viewer_context,
         )
@@ -155,7 +154,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
         if features.has("organizations:seer-project-settings-dual-write", project.organization):
             try:
-                _dual_write_preference_to_sentry_db(preference_dict)
+                _dual_write_preference_to_sentry_db(preference)
             except Exception:
                 logger.exception(
                     "seer.dual_write_preference_failed",
