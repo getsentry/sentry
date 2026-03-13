@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -33,26 +32,23 @@ import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 
-function SidebarFooter({children}: {children: React.ReactNode}) {
+function SidebarFooter(props: {children: NonNullable<React.ReactNode>}) {
   const {layout} = useNavigation();
-  const isMobile = layout === 'mobile';
-
-  if (!children) {
-    return null;
-  }
 
   return (
     <Flex
       display="flex"
       // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
       align="center"
-      justify={isMobile ? 'start' : 'center'}
-      width={isMobile ? '100%' : 'auto'}
+      justify={layout === 'mobile' ? 'start' : 'center'}
+      width={layout === 'mobile' ? '100%' : 'auto'}
     >
-      {isMobile ? (
-        <Stack width="100%">{children}</Stack>
+      {layout === 'mobile' ? (
+        <Stack width="100%">{props.children}</Stack>
       ) : (
-        <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
+        <PrimaryNavigation.ButtonBar orientation="vertical">
+          {props.children}
+        </PrimaryNavigation.ButtonBar>
       )}
     </Flex>
   );
@@ -247,19 +243,11 @@ export function PrimaryNavigationItems() {
   );
 }
 
-// Force all buttons to the same size
-const FooterButtonBar = styled(ButtonBar)`
-  button {
-    width: ${p => p.theme.form.md.height};
-    height: ${p => p.theme.form.md.height};
-  }
-`;
-
 const BetaBadge = styled(FeatureBadge)`
-  position: absolute;
   pointer-events: none;
+  position: absolute;
   top: 0px;
-  right: 4px;
+  right: 6px;
   font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};
   height: 16px;

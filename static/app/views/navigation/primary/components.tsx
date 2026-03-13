@@ -6,7 +6,7 @@ import {FocusScope} from '@react-aria/focus';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
-import {Button} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -336,6 +336,14 @@ function NavigationButton(props: ButtonProps) {
   );
 }
 
+// Force all buttons to the same size
+const PrimaryNavigationButtonBar = styled(ButtonBar)`
+  button {
+    width: ${p => p.theme.form.md.height};
+    height: ${p => p.theme.form.md.height};
+  }
+`;
+
 function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
@@ -501,6 +509,7 @@ export const PrimaryNavigation = {
   ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
+  ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
   Separator: PrimaryNavigationSeparator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
