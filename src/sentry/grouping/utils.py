@@ -63,8 +63,10 @@ def normalize_message_for_grouping(
     """
     if message == context.canonical_event_message:
         parameterized = context.canonical_message_parameterized
+        context.cached_param_result_used = True
     else:
         parameterized = context.parameterizer.parameterize(message)
+        context.cached_parameterizer_used = True
 
     return _trim_extra_lines(parameterized) if trim_message else parameterized
 
