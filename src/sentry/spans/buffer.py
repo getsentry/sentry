@@ -761,7 +761,7 @@ class SpansBuffer:
                         category=DataCategory.SPAN_INDEXED,
                         quantity=dropped,
                     )
-            elif not payloads.get(key):
+            elif key not in payloads:
                 # BUG DETECTION: Segment was in the flush queue but both the data
                 # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
                 # This means the Redis keys expired before the flusher could process
