@@ -416,7 +416,7 @@ def run_webhook_handler_control_task(
 
 
 @instrumented_task(
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     name="sentry.scm.run_webhook_handler_region_task",
     namespace=scm_tasks,
     processing_deadline_duration=10,

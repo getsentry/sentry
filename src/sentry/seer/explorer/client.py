@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import time
 from datetime import datetime
 from typing import Any, Literal, overload
@@ -9,7 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from pydantic import BaseModel
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.explorer.client_models import ExplorerRun, ExplorerRunWithPrs, SeerRunState
@@ -311,8 +312,9 @@ class SeerExplorerClient:
 
         if features.has(
             "organizations:seer-explorer-context-engine", self.organization, actor=self.user
-        ):  # Set to True at the start of the run and persist in Seer explorer run state
-            chat_body["is_context_engine_enabled"] = True
+        ):
+            if random.random() < options.get("seer.explorer.context-engine-rollout"):
+                chat_body["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
@@ -377,6 +379,8 @@ class SeerExplorerClient:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
 
+        # No random rollout here — Seer ANDs this with the persisted value from start_run,
+        # so the start_run coin flip is the single source of truth.
         if features.has(
             "organizations:seer-explorer-context-engine",
             self.organization,

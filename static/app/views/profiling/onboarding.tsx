@@ -37,7 +37,6 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -456,15 +455,13 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const CONTENT_SPACING = space(1);
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child):has(*) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -478,7 +475,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

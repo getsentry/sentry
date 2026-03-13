@@ -298,7 +298,7 @@ class ProjectKey(Model):
 
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
-            if SiloMode.get_current_mode() == SiloMode.REGION:
+            if SiloMode.get_current_mode() == SiloMode.CELL:
                 endpoint = generate_locality_url()
             else:
                 endpoint = options.get("system.url-prefix")

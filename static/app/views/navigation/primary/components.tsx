@@ -24,10 +24,9 @@ import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import type {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
-import {NavigationLayout} from 'sentry/views/navigation/types';
 
 interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
@@ -37,22 +36,20 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 }
 
 function SidebarItem({children, label, disableTooltip, ref, ...props}: SidebarItemProps) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   return (
-    <IconDefaultsProvider
-      legacySize={layout === NavigationLayout.MOBILE ? '16px' : '21px'}
-    >
+    <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
       <Flex
         as="li"
         ref={ref}
         justify="center"
         align="center"
-        width={layout === NavigationLayout.MOBILE ? '100%' : undefined}
+        width={layout === 'mobile' ? '100%' : undefined}
         {...props}
       >
         <Tooltip
           title={label}
-          disabled={layout === NavigationLayout.MOBILE || disableTooltip}
+          disabled={layout === 'mobile' || disableTooltip}
           position="right"
           skipWrapper
           delay={600}
@@ -91,10 +88,10 @@ export function SidebarMenu({
 }: SidebarMenuProps) {
   // This component can be rendered without an organization in some cases
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
   const theme = useTheme();
 
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -107,7 +104,7 @@ export function SidebarMenu({
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
-      position={layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end'}
+      position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {
@@ -122,7 +119,7 @@ export function SidebarMenu({
             >
               <NavigationButton
                 {...triggerProps}
-                isMobile={layout === NavigationLayout.MOBILE}
+                isMobile={layout === 'mobile'}
                 aria-label={showLabel ? undefined : label}
                 size={size}
                 onClick={event => {
@@ -194,7 +191,7 @@ function SidebarNavigationLink({
   group,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
-  const {layout, activePrimaryNavigationGroup} = useNavigationContext();
+  const {layout, activePrimaryNavigationGroup} = useNavigation();
   const location = useLocation();
   const isActive = isSidebarLinkActive(
     normalizeUrl(activeTo, location),
@@ -212,7 +209,7 @@ function SidebarNavigationLink({
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={activePrimaryNavigationGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
-      isMobile={layout === NavigationLayout.MOBILE}
+      isMobile={layout === 'mobile'}
       onClick={() => {
         trackAnalytics('navigation.primary_item_clicked', {
           item: analyticsKey,
@@ -224,7 +221,7 @@ function SidebarNavigationLink({
         [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
     >
-      {layout === NavigationLayout.MOBILE ? (
+      {layout === 'mobile' ? (
         <Fragment>
           {children}
           {label}
@@ -259,14 +256,14 @@ export function SidebarButton({
   label,
 }: SidebarButtonProps) {
   const organization = useOrganization();
-  const {layout} = useNavigationContext();
-  const showLabel = layout === NavigationLayout.MOBILE;
+  const {layout} = useNavigation();
+  const showLabel = layout === 'mobile';
 
   return (
     <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={600}>
       <NavigationButton
         {...buttonProps}
-        isMobile={layout === NavigationLayout.MOBILE}
+        isMobile={layout === 'mobile'}
         analyticsParams={analyticsParams}
         className={className}
         aria-label={showLabel ? undefined : label}
@@ -425,13 +422,13 @@ const NavigationLink = styled(Link, {
 
 const NavigationButton = styled(
   ({isMobile: _isMobile, ...props}: ButtonProps & {isMobile: boolean}) => {
-    const {layout} = useNavigationContext();
+    const {layout} = useNavigation();
 
     return (
       <Button
         {...props}
-        size={layout === NavigationLayout.MOBILE ? 'zero' : props.size}
-        priority={layout === NavigationLayout.MOBILE ? 'transparent' : props.priority}
+        size={layout === 'mobile' ? 'zero' : props.size}
+        priority={layout === 'mobile' ? 'transparent' : props.priority}
       />
     );
   }
@@ -544,11 +541,11 @@ type PrimaryButtonOverlayProps = {
 };
 
 export function usePrimaryButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return useOverlay({
     offset: 8,
-    position: layout === NavigationLayout.MOBILE ? 'bottom' : 'right-end',
+    position: layout === 'mobile' ? 'bottom' : 'right-end',
     isDismissable: true,
     shouldApplyMinWidth: false,
     ...props,
@@ -566,14 +563,12 @@ export function PrimaryButtonOverlay({
   overlayProps,
 }: PrimaryButtonOverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
+  const {layout} = useNavigation();
 
   return createPortal(
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.modal} {...overlayProps}>
-        <ScrollableOverlay isMobile={layout === NavigationLayout.MOBILE}>
-          {children}
-        </ScrollableOverlay>
+        <ScrollableOverlay isMobile={layout === 'mobile'}>{children}</ScrollableOverlay>
       </PositionWrapper>
     </FocusScope>,
     document.body

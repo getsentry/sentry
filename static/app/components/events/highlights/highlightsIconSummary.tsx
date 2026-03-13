@@ -115,7 +115,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+        <ScrollCarousel gap="xl" aria-label={t('Icon highlights')}>
           {runtimeInfo && (
             <Fragment>
               <Tooltip title={runtimeInfo.tooltip} isHoverable>

@@ -94,7 +94,7 @@ export function SuspectCommits({
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
       <ScrollCarousel
-        gap={1.5}
+        gap="lg"
         transparentMask
         jumpItemCount={1}
         aria-label={t('Suspect commits')}

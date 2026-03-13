@@ -59,7 +59,7 @@ class RegionResolutionTest(TestCase):
 
     def test_by_organization_id_attribute(self) -> None:
         region_resolution = ByOrganizationIdAttribute("organization_member")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org_member = OrganizationMember.objects.create(
                 organization_id=self.organization.id,
                 user_id=self.user.id,
