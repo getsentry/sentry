@@ -96,6 +96,7 @@ class PrebuiltDashboardId(IntEnum):
 class PrebuiltDashboard(TypedDict, total=False):
     prebuilt_id: Required[PrebuiltDashboardId]
     title: Required[str]
+    hidden: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -119,6 +120,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP,
@@ -127,6 +129,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
         "title": "Domain Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
@@ -135,6 +138,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
         "title": "Web Vitals Page Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
@@ -143,14 +147,17 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
         "title": "Mobile Vitals App Starts",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
         "title": "Mobile Vitals Screen Loads",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
         "title": "Mobile Vitals Screen Rendering",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
@@ -171,22 +178,27 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_MODELS,
         "title": "AI Agents Model Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_TOOLS,
         "title": "AI Agents Tool Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_TOOLS,
         "title": "MCP Tool Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_RESOURCES,
         "title": "MCP Resource Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_PROMPTS,
         "title": "MCP Prompt Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
@@ -207,6 +219,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
         "title": "Frontend Assets Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
@@ -215,6 +228,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
         "title": "Queue Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
@@ -402,6 +416,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
             elif f == "onlyPrebuilt":
                 dashboards = dashboards.filter(prebuilt_id__isnull=False)
+
+        if "showHidden" not in filters:
+            hidden_prebuilt_ids = [
+                d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("hidden", False)
+            ]
+            if hidden_prebuilt_ids:
+                dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
