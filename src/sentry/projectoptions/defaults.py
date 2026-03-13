@@ -1,10 +1,6 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    SEER_AUTOMATION_HANDOFF_AUTO_CREATE_PR_DEFAULT,
-    SEER_AUTOMATION_HANDOFF_INTEGRATION_ID_DEFAULT,
-    SEER_AUTOMATION_HANDOFF_POINT_DEFAULT,
-    SEER_AUTOMATION_HANDOFF_TARGET_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.projectoptions import register
@@ -195,18 +191,10 @@ register(
     key="sentry:seer_automated_run_stopping_point",
     default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
 )
-register(key="sentry:seer_automation_handoff_point", default=SEER_AUTOMATION_HANDOFF_POINT_DEFAULT)
-register(
-    key="sentry:seer_automation_handoff_target", default=SEER_AUTOMATION_HANDOFF_TARGET_DEFAULT
-)
-register(
-    key="sentry:seer_automation_handoff_integration_id",
-    default=SEER_AUTOMATION_HANDOFF_INTEGRATION_ID_DEFAULT,
-)
-register(
-    key="sentry:seer_automation_handoff_auto_create_pr",
-    default=SEER_AUTOMATION_HANDOFF_AUTO_CREATE_PR_DEFAULT,
-)
+register(key="sentry:seer_automation_handoff_point", default=None)
+register(key="sentry:seer_automation_handoff_target", default=None)
+register(key="sentry:seer_automation_handoff_integration_id", default=None)
+register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
 
 # Boolean to enable/disable preprod size analysis for this project.
 register(key="sentry:preprod_size_enabled_by_customer", default=True)
