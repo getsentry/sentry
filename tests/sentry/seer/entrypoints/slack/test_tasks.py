@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
 from sentry.seer.entrypoints.slack.tasks import (
     EntrypointSetupError,
-    ProcessMentionHaltReason,
     process_mention_for_slack,
 )
 from sentry.testutils.cases import TestCase

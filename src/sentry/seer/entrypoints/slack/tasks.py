@@ -1,19 +1,13 @@
 from __future__ import annotations
 
 import logging
-from enum import StrEnum
 
+from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
-
-
-class ProcessMentionHaltReason(StrEnum):
-    ORG_NOT_FOUND = "org_not_found"
-    NO_EXPLORER_ACCESS = "no_explorer_access"
-    INTEGRATION_NOT_FOUND = "integration_not_found"
 
 
 class EntrypointSetupError(Exception):
