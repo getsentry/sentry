@@ -371,8 +371,10 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     // A step marker means this block starts a new section.
     // Finalize the previous section and start a fresh one.
     const metadata = message.metadata;
-    if (metadata?.step) {
-      finalizeSection();
+    if (defined(metadata) && defined(metadata.step)) {
+      if (metadata.step !== section.step) {
+        finalizeSection();
+      }
 
       section = {
         step: metadata.step,
