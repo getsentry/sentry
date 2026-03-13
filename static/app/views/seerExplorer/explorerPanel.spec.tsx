@@ -213,8 +213,8 @@ describe('ExplorerPanel', () => {
           switchToRun: jest.fn(),
           respondToUserInput: jest.fn(),
           createPR: jest.fn(),
-          overrideCeEnable: true,
-          setOverrideCeEnable: jest.fn(),
+          overrideCtxEngEnable: true,
+          setOverrideCtxEngEnable: jest.fn(),
         });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
@@ -277,8 +277,8 @@ describe('ExplorerPanel', () => {
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),
         createPR: jest.fn(),
-        overrideCeEnable: true,
-        setOverrideCeEnable: jest.fn(),
+        overrideCtxEngEnable: true,
+        setOverrideCtxEngEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});

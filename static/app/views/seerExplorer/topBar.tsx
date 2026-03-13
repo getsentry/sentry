@@ -33,10 +33,10 @@ interface TopBarProps {
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
-  onOverrideCeEnableToggle: () => void;
+  onOverrideCtxEngEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
-  overrideCeEnable: boolean;
+  overrideCtxEngEnable: boolean;
   panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
   showContextEngineToggle: boolean;
@@ -54,8 +54,8 @@ export function TopBar({
   onCopySessionClick,
   onCopyLinkClick,
   onSizeToggleClick,
-  onOverrideCeEnableToggle,
-  overrideCeEnable,
+  onOverrideCtxEngEnableToggle,
+  overrideCtxEngEnable,
   showContextEngineToggle,
   panelSize,
   isCopySessionEnabled,
@@ -115,7 +115,7 @@ export function TopBar({
         {showContextEngineToggle && (
           <Tooltip
             title={
-              overrideCeEnable
+              overrideCtxEngEnable
                 ? t('Context engine enabled (click to disable)')
                 : t('Context engine disabled (click to enable)')
             }
@@ -123,8 +123,8 @@ export function TopBar({
             <ContextEngineToggle>
               <Switch
                 size="sm"
-                checked={overrideCeEnable}
-                onChange={onOverrideCeEnableToggle}
+                checked={overrideCtxEngEnable}
+                onChange={onOverrideCtxEngEnableToggle}
                 aria-label={t('Toggle context engine')}
               />
               <Text size="sm" variant="muted">

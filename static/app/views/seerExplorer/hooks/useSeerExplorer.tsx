@@ -110,7 +110,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
-  const [overrideCeEnable, setOverrideCeEnable] = useState<boolean>(true);
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -253,7 +253,7 @@ export const useSeerExplorer = () => {
             query,
             insert_index: calculatedInsertIndex,
             on_page_context: screenshot,
-            override_ce_enable: overrideCeEnable,
+            override_ce_enable: overrideCtxEngEnable,
           },
         })) as SeerExplorerChatResponse;
 
@@ -291,7 +291,7 @@ export const useSeerExplorer = () => {
       setRunId,
       getPageReferrer,
       organization,
-      overrideCeEnable,
+      overrideCtxEngEnable,
     ]
   );
 
@@ -584,7 +584,7 @@ export const useSeerExplorer = () => {
     clearWasJustInterrupted: useCallback(() => setWasJustInterrupted(false), []),
     respondToUserInput,
     createPR,
-    overrideCeEnable,
-    setOverrideCeEnable,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   };
 };
