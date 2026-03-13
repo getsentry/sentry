@@ -327,7 +327,7 @@ def resolve_fingerprint_values(
 
         if variable_key == "message" and resolved_value != "<no-message>":
             return normalize_message_for_grouping(
-                resolved_value, event, context, reason="fingerprint", trim_message=False
+                resolved_value, context, reason="fingerprint", trim_message=False
             )
 
         return resolved_value
