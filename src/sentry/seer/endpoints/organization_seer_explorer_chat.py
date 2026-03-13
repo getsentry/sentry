@@ -7,6 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -41,11 +42,6 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         required=False,
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
-    )
-    enable_coding = serializers.BooleanField(
-        required=False,
-        default=False,
-        help_text="Enable code editing tools.",
     )
 
 
@@ -133,8 +129,10 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         override_ce_enable = validated_data["override_ce_enable"]
 
         try:
-            enable_coding = validated_data.get("enable_coding", False) and organization.get_option(
+            enable_coding = organization.get_option(
                 "sentry:enable_seer_coding", False
+            ) and features.has(
+                "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
             client = SeerExplorerClient(
                 organization,
