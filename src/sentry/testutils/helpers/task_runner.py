@@ -6,6 +6,7 @@ from typing import Any, ContextManager, Self
 from unittest import mock
 
 from django.conf import settings
+from taskbroker_client.task import Task as TaskbrokerClientTask
 
 from sentry.taskworker.task import Task as TaskworkerTask
 
@@ -14,7 +15,10 @@ __all__ = ("BurstTaskRunner", "TaskRunner")
 
 @contextlib.contextmanager
 def TaskRunner() -> Generator[None]:
-    with mock.patch.object(settings, "TASKWORKER_ALWAYS_EAGER", True):
+    with (
+        mock.patch.object(settings, "TASKWORKER_ALWAYS_EAGER", True),
+        mock.patch("taskbroker_client.task.ALWAYS_EAGER", True),
+    ):
         yield
 
 
@@ -30,6 +34,7 @@ class _BurstState:
     def __init__(self) -> None:
         self._active = False
         self._orig_signal_send = TaskworkerTask._signal_send
+        self._orig_tb_signal_send = TaskbrokerClientTask._signal_send
         self.queue: list[tuple[TaskworkerTask[Any, Any], tuple[Any, ...], dict[str, Any]]] = []
 
     def _signal_send(
@@ -47,7 +52,10 @@ class _BurstState:
         if self._active:
             raise AssertionError("nested BurstTaskRunner!")
 
-        with mock.patch.object(TaskworkerTask, "_signal_send", self._signal_send):
+        with (
+            mock.patch.object(TaskworkerTask, "_signal_send", self._signal_send),
+            mock.patch.object(TaskbrokerClientTask, "_signal_send", self._signal_send),
+        ):
             self._active = True
             try:
                 yield self
@@ -59,7 +67,10 @@ class _BurstState:
         if not self._active:
             raise AssertionError("cannot disable burst when not active")
 
-        with mock.patch.object(TaskworkerTask, "_signal_send", self._orig_signal_send):
+        with (
+            mock.patch.object(TaskworkerTask, "_signal_send", self._orig_signal_send),
+            mock.patch.object(TaskbrokerClientTask, "_signal_send", self._orig_tb_signal_send),
+        ):
             self._active = False
             try:
                 yield
