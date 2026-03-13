@@ -1,3 +1,5 @@
+import type {PlatformKey} from 'sentry/types/project';
+
 /**
  * Field configuration returned by the backend's `get_organization_config()`.
  * All values are JSON-serializable — no functions, no React nodes.
@@ -88,8 +90,8 @@ interface JsonFormAdapterProjectMapper extends JsonFormAdapterBase {
   sentryProjects?: Array<{
     id: number;
     name: string;
-    platform: string | null;
     slug: string;
+    platform?: PlatformKey;
   }>;
 }
 

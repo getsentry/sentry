@@ -62,12 +62,12 @@ export function ProjectMapperAddRow({
   const sentryProjects = config.sentryProjects ?? [];
   const sentryProjectOptions = [
     {label: t('Create a Project'), value: -1, leadingItems: <IconAdd />},
-    ...sentryProjects.map(({slug, id}) => ({
-      label: slug,
-      value: id,
+    ...sentryProjects.map(project => ({
+      label: project.slug,
+      value: project.id,
       leadingItems: (
         <IdBadge
-          project={{id, slug}}
+          project={project}
           avatarProps={{consistentWidth: true}}
           avatarSize={16}
           disableLink
