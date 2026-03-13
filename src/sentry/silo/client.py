@@ -230,7 +230,3 @@ class CellSiloClient(BaseApiClient):
 
         if request_attempts > REQUEST_ATTEMPTS_LIMIT:
             raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
-
-
-# TODO(cells): Remove once getsentry is updated
-RegionSiloClient = CellSiloClient
