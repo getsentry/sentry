@@ -263,7 +263,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         )
 
     if len(preferences_to_set) > 0:
-        bulk_set_project_preferences(organization_id, preferences_to_set)
+        bulk_set_project_preferences(organization, preferences_to_set)
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated

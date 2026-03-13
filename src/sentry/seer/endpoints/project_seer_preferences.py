@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,6 +17,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     GetProjectPreferenceRequest,
     SetProjectPreferenceRequest,
+    _dual_write_preference_to_sentry_db,
     get_autofix_repos_from_project_code_mappings,
     make_get_project_preference_request,
     make_set_project_preference_request,
@@ -131,15 +133,14 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             if not repo_exists:
                 return Response({"detail": "Invalid repository"}, status=400)
 
-        body = SetProjectPreferenceRequest(
-            preference=SeerProjectPreference.validate(
-                {
-                    **serializer.validated_data,
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                }
-            ).dict(),
-        )
+        preference_dict = SeerProjectPreference.validate(
+            {
+                **serializer.validated_data,
+                "organization_id": project.organization.id,
+                "project_id": project.id,
+            }
+        ).dict()
+        body = SetProjectPreferenceRequest(preference=preference_dict)
         viewer_context = SeerViewerContext(
             organization_id=project.organization.id, user_id=request.user.id
         )
@@ -151,6 +152,18 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
+
+        if features.has("organizations:seer-project-settings-dual-write", project.organization):
+            try:
+                _dual_write_preference_to_sentry_db(preference_dict)
+            except Exception:
+                logger.exception(
+                    "seer.dual_write_preference_failed",
+                    extra={
+                        "project_id": project.id,
+                        "organization_id": project.organization.id,
+                    },
+                )
 
         return Response(status=204)
 

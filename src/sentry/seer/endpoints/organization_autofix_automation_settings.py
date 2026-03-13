@@ -321,7 +321,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     )
 
             if preferences_to_set:
-                bulk_set_project_preferences(organization.id, preferences_to_set)
+                bulk_set_project_preferences(organization, preferences_to_set)
 
         self.create_audit_entry(
             request=request,
