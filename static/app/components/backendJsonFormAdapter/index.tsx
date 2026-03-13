@@ -106,7 +106,6 @@ export function BackendJsonFormAdapter<
                     value={fieldApi.state.value}
                     onAdd={newValue => {
                       fieldApi.handleChange(newValue);
-                      baseProps.onBlur();
                     }}
                     indicator={indicator}
                     disabled={field.disabled || baseProps.disabled}

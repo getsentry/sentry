@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -86,7 +85,10 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
       i === rowIndex ? {...row, [key]: cellValue} : row
     );
     onUpdate(newValue);
-    if (allNonIdFieldsFilled(newValue)) {
+  };
+
+  const handleCellBlur = () => {
+    if (allNonIdFieldsFilled(value)) {
       onSave();
     }
   };
@@ -98,7 +100,7 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
   };
 
   const renderConfirmMessage = () => (
-    <Fragment>
+    <Alert variant="danger">
       <span
         dangerouslySetInnerHTML={{
           __html: singleLineRenderer(
@@ -106,7 +108,7 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
           ),
         }}
       />
-    </Fragment>
+    </Alert>
   );
 
   return (
@@ -127,6 +129,7 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
               <Input
                 value={(row[key] as string) ?? ''}
                 onChange={e => handleCellChange(rowIndex, key, e.currentTarget.value)}
+                onBlur={handleCellBlur}
                 disabled={disabled}
               />
             </Flex>

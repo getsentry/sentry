@@ -76,19 +76,17 @@ describe('TableAdapter', () => {
     expect(screen.getAllByRole('button', {name: 'Delete'})).toHaveLength(2);
   });
 
-  it('add row triggers mutation', async () => {
+  it('add row does NOT immediately save', async () => {
     const {mutationOptions} = renderField(makeConfig(), []);
 
     await userEvent.click(screen.getByRole('button', {name: /Add Service/}));
 
-    await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
-        service_table: [{id: '', service: '', integration_key: ''}],
-      });
-    });
+    // New empty row should appear but no save yet
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+    expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
   });
 
-  it('edit cell triggers mutation when all fields filled', async () => {
+  it('edit cell does NOT save on every keystroke', async () => {
     const {mutationOptions} = renderField(makeConfig(), [
       {id: '1', service: 'My Service', integration_key: 'abc123'},
     ]);
@@ -97,6 +95,20 @@ describe('TableAdapter', () => {
     await userEvent.clear(inputs[0]!);
     await userEvent.type(inputs[0]!, 'Updated Service');
 
+    // No save yet — haven't blurred
+    expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('edit cell triggers mutation on blur when all fields filled', async () => {
+    const {mutationOptions} = renderField(makeConfig(), [
+      {id: '1', service: 'My Service', integration_key: 'abc123'},
+    ]);
+
+    const inputs = screen.getAllByRole('textbox');
+    await userEvent.clear(inputs[0]!);
+    await userEvent.type(inputs[0]!, 'Updated Service');
+    await userEvent.click(document.body); // blur
+
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
         service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
@@ -104,16 +116,15 @@ describe('TableAdapter', () => {
     });
   });
 
-  it('edit cell does NOT save if any non-id field is empty', async () => {
+  it('blur does NOT save if any non-id field is empty', async () => {
     const {mutationOptions} = renderField(makeConfig(), [
       {id: '1', service: 'My Service', integration_key: 'abc123'},
     ]);
 
-    // Clear the service field — now it's empty, so no save should happen
     const inputs = screen.getAllByRole('textbox');
     await userEvent.clear(inputs[0]!);
+    await userEvent.click(document.body); // blur
 
-    // The mutation should not have been called (clearing leaves an empty field)
     expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
   });
 
@@ -173,8 +184,11 @@ describe('TableAdapter', () => {
     expect(screen.getByRole('button', {name: /Add Service/})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
 
-    // Trigger mutation by adding a row
-    await userEvent.click(screen.getByRole('button', {name: /Add Service/}));
+    // Trigger mutation by editing a field and blurring
+    const inputs = screen.getAllByRole('textbox');
+    await userEvent.clear(inputs[0]!);
+    await userEvent.type(inputs[0]!, 'Updated');
+    await userEvent.click(document.body); // blur triggers save
 
     await waitFor(() => {
       expect(mutationOptions.mutationFn).toHaveBeenCalled();
