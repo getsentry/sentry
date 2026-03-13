@@ -17,7 +17,26 @@ from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import 
 
 any_confidence = AnyConfidence()
 
-pytestmark = pytest.mark.sentry_metrics
+
+def _assert_timeseries_values_approx(
+    actual_values: list[dict[str, Any]],
+    start: Any,
+    interval: int,
+    expected_values: list[float],
+    abs_tolerance: float,
+) -> None:
+    """Assert actual timeseries values match expected with pytest.approx. Use for rate/float series."""
+    expected_list = build_expected_timeseries(start, interval, expected_values)
+    sorted_actual = sorted(actual_values, key=lambda r: r["timestamp"])
+    assert len(sorted_actual) == len(expected_list), (
+        f"expected {len(expected_list)} buckets, got {len(sorted_actual)}. "
+        f"First row keys (from backend): {list(sorted_actual[0].keys()) if sorted_actual else 'no values'}"
+    )
+    for i, (actual_row, expected_row) in enumerate(zip(sorted_actual, expected_list)):
+        assert actual_row["timestamp"] == expected_row["timestamp"]
+        assert actual_row["value"] == pytest.approx(expected_row["value"], abs=abs_tolerance), (
+            f"bucket {i}: got {actual_row['value']!r}, expected {expected_row['value']!r}"
+        )
 
 
 class OrganizationEventsTimeseriesOccurrencesEndpointTest(
@@ -132,21 +151,16 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         assert timeseries["meta"]["valueUnit"] == value_unit
         assert timeseries["meta"]["interval"] == 3_600_000
         expected_rates = [c / divisor for c in event_counts]
-        values = sorted(timeseries["values"], key=lambda r: r["timestamp"])
-        assert len(values) == 6, (
-            f"expected 6 buckets, got {len(values)}. "
-            f"First row keys (from backend): {list(values[0].keys()) if values else 'no values'}"
+        _assert_timeseries_values_approx(
+            timeseries["values"],
+            self.start,
+            3_600_000,
+            expected_rates,
+            abs_tolerance=tolerance,
         )
-        for i, row in enumerate(values):
-            actual = row["value"]
-            expected = expected_rates[i]
-            assert abs(actual - expected) < tolerance, (
-                f"bucket {i}: got {actual!r}, expected {expected!r}"
-            )
 
     def test_eps_timeseries(self) -> None:
-        """Rate aggregate eps() on /events-timeseries: events/sec per bucket, meta rate/1/second.
-        eps() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        """Rate aggregate eps() on /events-timeseries: events/sec per bucket, meta rate/1/second."""
         self._run_rate_timeseries_test(
             "eps()",
             "1/second",

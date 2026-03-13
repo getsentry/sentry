@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import OccurrenceTestCase
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -110,7 +112,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert abs(data[0]["eps()"] - (2 / 7200)) < 0.0001
+        assert data[0]["eps()"] == pytest.approx(2 / 7200, abs=0.0001)
         meta = response.data["meta"]
         assert meta["fields"]["eps()"] == "rate"
         assert meta["units"]["eps()"] == "1/second"
@@ -121,7 +123,7 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert abs(data[0]["epm()"] - (2 / (7200 / 60))) < 0.001
+        assert data[0]["epm()"] == pytest.approx(2 / (7200 / 60), abs=0.001)
         meta = response.data["meta"]
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"

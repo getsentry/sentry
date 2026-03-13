@@ -1,10 +1,4 @@
-"""
-Shared formula builders for EAP datasets.
-
-Each dataset has an "always-present" attribute used as a row counter.
-These factories accept that key so spans, occurrences, and any future
-dataset can share the same eps/epm logic.
-"""
+"""Shared formula builders for EAP datasets."""
 
 from collections.abc import Callable
 
