@@ -1,8 +1,9 @@
-import {useCallback, type ReactNode} from 'react';
+import {useCallback, useState, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {
   isCodeChangesSection,
@@ -54,18 +55,24 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
     startStep('solution', runId);
   }, [startStep, runId]);
 
-  const handleNoClick = useCallback(() => {
-    // for now, just re run the current step
-    startStep('root_cause', runId);
-  }, [startStep, runId]);
+  const handleNoClick = useCallback(
+    (userFeedback: string) => {
+      startStep('root_cause', runId, userFeedback);
+    },
+    [startStep, runId]
+  );
 
   return (
-    <NextStep
+    <NextStepTemplate
       prompt={t('Are you happy with this root cause?')}
       labelYes={t('Yes, make an implementation plan')}
       onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      placeholderPrompt={t('Give seer additional context to improve this root cause.')}
+      rethinkPrompt={t('How can this root cause be improved?')}
+      labelNevermind={t('Nevermind, make an implementation plan')}
+      labelRethink={t('Rethink root cause')}
     />
   );
 }
@@ -77,18 +84,26 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
     startStep('code_changes', runId);
   }, [startStep, runId]);
 
-  const handleNoClick = useCallback(() => {
-    // for now, just re run the current step
-    startStep('solution', runId);
-  }, [startStep, runId]);
+  const handleNoClick = useCallback(
+    (userFeedback: string) => {
+      startStep('solution', runId, userFeedback);
+    },
+    [startStep, runId]
+  );
 
   return (
-    <NextStep
+    <NextStepTemplate
       prompt={t('Are you happy with this implementation plan?')}
       labelYes={t('Yes, write a code fix')}
       onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      placeholderPrompt={t(
+        'Give seer additional context to improve this implementation plan.'
+      )}
+      rethinkPrompt={t('How can this implementation plan be improved?')}
+      labelNevermind={t('Nevermind, write a code fix')}
+      labelRethink={t('Rethink implementation plan')}
     />
   );
 }
@@ -100,41 +115,80 @@ function CodeChangesNextStep({autofix, runId}: NextStepProps) {
     createPR(runId);
   }, [createPR, runId]);
 
-  const handleNoClick = useCallback(() => {
-    startStep('code_changes', runId);
-  }, [startStep, runId]);
+  const handleNoClick = useCallback(
+    (userFeedback: string) => {
+      startStep('code_changes', runId, userFeedback);
+    },
+    [startStep, runId]
+  );
 
   return (
-    <NextStep
+    <NextStepTemplate
       prompt={t('Are you happy with these code changes?')}
       labelYes={t('Yes, draft a PR')}
       onClickYes={handleYesClick}
       labelNo={t('No')}
       onClickNo={handleNoClick}
+      placeholderPrompt={t('Give seer additional context to improve this code change.')}
+      rethinkPrompt={t('How can this code change be improved?')}
+      labelNevermind={t('Nevermind, draft a PR')}
+      labelRethink={t('Rethink code changes')}
     />
   );
 }
 
 interface NextStepTemplateProps {
+  labelNevermind: ReactNode;
   labelNo: ReactNode;
+  labelRethink: ReactNode;
   labelYes: ReactNode;
-  onClickNo: () => void;
+  onClickNo: (prompt: string) => void;
   onClickYes: () => void;
+  placeholderPrompt: string;
   prompt: ReactNode;
+  rethinkPrompt: ReactNode;
 }
 
-function NextStep({
+function NextStepTemplate({
   prompt,
   labelYes,
   onClickYes,
   labelNo,
   onClickNo,
+  placeholderPrompt,
+  rethinkPrompt,
+  labelNevermind,
+  labelRethink,
 }: NextStepTemplateProps) {
+  const [clickedNo, handleClickedNo] = useState(false);
+  const [userFeedback, setUserFeedback] = useState('');
+
+  if (clickedNo) {
+    return (
+      <Flex direction="column" gap="lg">
+        <Text>{rethinkPrompt}</Text>
+        <TextArea
+          autosize
+          rows={2}
+          placeholder={placeholderPrompt}
+          value={userFeedback}
+          onChange={event => setUserFeedback(event.target.value)}
+        />
+        <Flex gap="md">
+          <Button onClick={onClickYes}>{labelNevermind}</Button>
+          <Button priority="primary" onClick={() => onClickNo(userFeedback)}>
+            {labelRethink}
+          </Button>
+        </Flex>
+      </Flex>
+    );
+  }
+
   return (
     <Flex direction="column" gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
-        <Button onClick={onClickNo}>{labelNo}</Button>
+        <Button onClick={() => handleClickedNo(true)}>{labelNo}</Button>
         <Button priority="primary" onClick={onClickYes}>
           {labelYes}
         </Button>
