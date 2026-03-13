@@ -5,7 +5,7 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -717,6 +717,64 @@ describe('Default Tier Checkout', () => {
       reservedProfileDuration: 0,
       reservedSpans: 0,
     });
+  });
+
+  it('does not reset plan selection when subscription store updates', async () => {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      isFree: true,
+    });
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        navigate={jest.fn()}
+        api={api}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(mockBillingConfigResponse).toHaveBeenCalledWith(
+        `/customers/${organization.slug}/billing-config/`,
+        expect.objectContaining({
+          method: 'GET',
+          data: {tier: 'am3'},
+        })
+      );
+    });
+
+    // Free subscriptions default to Business plan
+    expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
+
+    // User selects Team plan
+    await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
+    expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+
+    // Simulate a subscription store update (e.g. from a payment method update)
+    act(() => {
+      SubscriptionStore.set(organization.slug, {
+        ...sub,
+        paymentSource: {
+          last4: '4242',
+          brand: 'visa',
+          expMonth: 12,
+          expYear: 2030,
+          countryCode: 'US',
+          zipCode: '94107',
+        },
+      });
+    });
+
+    // Plan selection should be preserved — Team should still be selected
+    expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Business'})).not.toBeChecked();
+
+    // Billing config should only have been fetched once
+    expect(mockBillingConfigResponse).toHaveBeenCalledTimes(1);
   });
 
   it('does not use trial volumes for trial subscriptions', async () => {
