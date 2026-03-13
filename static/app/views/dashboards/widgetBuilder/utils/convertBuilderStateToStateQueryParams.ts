@@ -6,6 +6,7 @@ import {
   serializeSorts,
   serializeThresholds,
   serializeTraceMetric,
+  stateParamsNotInUrl,
   type WidgetBuilderState,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -14,7 +15,7 @@ export function convertBuilderStateToStateQueryParams(
   state: WidgetBuilderState
 ): WidgetBuilderStateQueryParams {
   const {fields, yAxis, sort, thresholds, traceMetric, ...rest} = state;
-  const allowedRemainingParams = omit(rest, 'textContent');
+  const allowedRemainingParams = omit(rest, stateParamsNotInUrl);
   return {
     ...allowedRemainingParams,
     field: serializeFields(fields ?? []),

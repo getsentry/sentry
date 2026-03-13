@@ -12,6 +12,7 @@ import {
   serializeFields,
   serializeThresholds,
   serializeTraceMetric,
+  type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -27,8 +28,9 @@ function stringifyFields(
 }
 
 /**
- * Converts a widget to a set of query params that can be used to
- * restore the widget builder state.
+ * Converts a widget to URL query params for initializing the widget builder state.
+ * Use convertWidgetToBuilderSetStateParams for SET_STATE dispatches that
+ * need to carry some extra information for text widgets.
  */
 export function convertWidgetToBuilderStateParams(
   widget: Widget
@@ -80,4 +82,17 @@ export function convertWidgetToBuilderStateParams(
     traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
     axisRange: getAxisRange(widget.axisRange) ?? 'auto',
   };
+}
+
+/**
+ * Converts a widget to SET_STATE params, including textContent for text widgets.
+ * Use this when dispatching SET_STATE actions. This will carry all necessary information
+ * needed for text widgets in addition to all other widgets.
+ */
+export function convertWidgetToBuilderState(widget: Widget): WidgetBuilderStateParams {
+  const state = convertWidgetToBuilderStateParams(widget);
+  if (widget.displayType === DisplayType.TEXT) {
+    return {...state, textContent: widget.description};
+  }
+  return state;
 }

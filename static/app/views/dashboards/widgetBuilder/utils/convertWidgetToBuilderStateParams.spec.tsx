@@ -1,7 +1,10 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  convertWidgetToBuilderState,
+  convertWidgetToBuilderStateParams,
+} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
@@ -186,5 +189,31 @@ describe('convertWidgetToBuilderStateParams', () => {
       expect(params.field).toEqual([]);
       expect(params.sort).toEqual([]);
     });
+  });
+});
+
+describe('convertWidgetToBuilderState', () => {
+  it('includes textContent from description for text widgets', () => {
+    const widget = {
+      title: 'Text Widget',
+      displayType: DisplayType.TEXT,
+      interval: '',
+      queries: [],
+      description: 'My text content',
+    };
+    const params = convertWidgetToBuilderState(widget);
+    expect(params.textContent as string).toBe('My text content');
+    expect(params.description).toBeUndefined();
+  });
+
+  it('does not include textContent for non-text widgets', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      displayType: DisplayType.TABLE,
+      description: 'Widget description',
+    };
+    const params = convertWidgetToBuilderState(widget);
+    expect(params.textContent).toBeUndefined();
+    expect(params.description).toBe('Widget description');
   });
 });

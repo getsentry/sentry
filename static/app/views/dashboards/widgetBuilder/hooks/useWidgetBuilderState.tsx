@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
@@ -20,6 +20,7 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
@@ -62,7 +63,11 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-const TEXT_WIDGET_CONTENT_SESSION_KEY = 'dashboard:edit-widget:text-content';
+export const stateParamsNotInUrl = ['textContent'];
+
+const LOCAL_STORAGE_CONTENT_KEY_MAP = {
+  textContent: 'dashboard:widget-builder:text-content',
+};
 
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
@@ -79,6 +84,15 @@ export type WidgetBuilderStateQueryParams = {
   title?: string;
   traceMetric?: string;
   yAxis?: string[];
+};
+
+/**
+ * Extends the URL query params shape with `textContent` for text widgets.
+ * Used as the payload type for SET_STATE actions, where text widget content
+ * must be carried in-memory without being written to the URL.
+ */
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
+  textContent?: string;
 };
 
 export const BuilderStateAction = {
@@ -118,7 +132,7 @@ type WidgetAction =
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
-  | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
+  | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
@@ -356,15 +370,10 @@ export function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: getAxisRange,
   });
-  const [textContent, setTextContent] = useState<string | undefined>(() => {
-    // when the widget builder state is initialized, this variable can't be pulled from the URL params
-    // so we are going to use session storage for hacks
-    const storedValue = sessionStorage.getItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
-    if (storedValue !== null) {
-      sessionStorage.removeItem(TEXT_WIDGET_CONTENT_SESSION_KEY);
-    }
-    return storedValue ?? undefined;
-  });
+  const [textContent, setTextContent] = useLocalStorageState<string | undefined>(
+    LOCAL_STORAGE_CONTENT_KEY_MAP.textContent,
+    undefined
+  );
 
   const state = useMemo(
     () => ({
@@ -941,7 +950,7 @@ export function useWidgetBuilderState(): {
           setDataset(action.payload.dataset, options);
           setDisplayType(action.payload.displayType, options);
           if (action.payload.displayType === DisplayType.TEXT) {
-            setTextContent(action.payload.description);
+            setTextContent(action.payload.textContent);
             setDescription(undefined, options);
           } else {
             setDescription(action.payload.description, options);
@@ -1230,28 +1239,29 @@ export function useWidgetBuilderState(): {
     [
       dataset,
       setTitle,
-      displayType,
+      setDescription,
       setQuery,
+      displayType,
       setLimit,
       setLegendAlias,
       setSelectedAggregate,
       fields,
       setDataset,
-      setDescription,
       setDisplayType,
       setSort,
       setAxisRange,
       setThresholds,
       yAxis,
       setLinkedDashboards,
+      setTextContent,
       setYAxis,
       setFields,
       sort,
       query,
       description,
+      setTraceMetric,
       limit,
       linkedDashboards,
-      setTraceMetric,
       selectedAggregate,
     ]
   );
