@@ -37,7 +37,7 @@ export type QuasiAnalyzer = (
  * in the file. Bails out early via `shouldAnalyze` for files without Emotion usage.
  */
 export function createQuasiScanner(
-  context: TSESLint.RuleContext<string, unknown[]>,
+  context: Readonly<TSESLint.RuleContext<'quasi', readonly unknown[]>>,
   analyze: QuasiAnalyzer
 ): TSESLint.RuleListener {
   if (!shouldAnalyze(context)) {

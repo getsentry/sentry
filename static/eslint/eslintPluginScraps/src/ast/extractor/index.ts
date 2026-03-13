@@ -16,7 +16,9 @@ import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
  * Returns false if file has no emotion/styled patterns.
  * False positives are acceptable; we just want to skip clearly unrelated files.
  */
-export function shouldAnalyze(context: TSESLint.RuleContext<string, unknown[]>) {
+export function shouldAnalyze(
+  context: Readonly<TSESLint.RuleContext<string, readonly unknown[]>>
+) {
   const text = context.sourceCode.getText();
 
   // Check for emotion imports OR usage patterns
