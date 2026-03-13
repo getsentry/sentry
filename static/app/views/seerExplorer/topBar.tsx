@@ -3,6 +3,9 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   IconAdd,
@@ -30,10 +33,13 @@ interface TopBarProps {
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
+  onOverrideCeEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
+  overrideCeEnable: boolean;
   panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
+  showContextEngineToggle: boolean;
 }
 
 export function TopBar({
@@ -48,6 +54,9 @@ export function TopBar({
   onCopySessionClick,
   onCopyLinkClick,
   onSizeToggleClick,
+  onOverrideCeEnableToggle,
+  overrideCeEnable,
+  showContextEngineToggle,
   panelSize,
   isCopySessionEnabled,
   isCopyLinkEnabled,
@@ -103,6 +112,27 @@ export function TopBar({
           tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
+        {showContextEngineToggle && (
+          <Tooltip
+            title={
+              overrideCeEnable
+                ? t('Context engine enabled (click to disable)')
+                : t('Context engine disabled (click to enable)')
+            }
+          >
+            <ContextEngineToggle>
+              <Switch
+                size="sm"
+                checked={overrideCeEnable}
+                onChange={onOverrideCeEnableToggle}
+                aria-label={t('Toggle context engine')}
+              />
+              <Text size="sm" variant="muted">
+                {t('CE')}
+              </Text>
+            </ContextEngineToggle>
+          </Tooltip>
+        )}
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (
@@ -172,5 +202,19 @@ const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
       p.isSelected
         ? p.theme.tokens.interactive.transparent.neutral.background.active
         : 'transparent'};
+  }
+`;
+
+const ContextEngineToggle = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;

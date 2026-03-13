@@ -100,6 +100,8 @@ export function ExplorerPanel() {
     switchToRun,
     respondToUserInput,
     createPR,
+    overrideCeEnable,
+    setOverrideCeEnable,
   } = useSeerExplorer();
 
   const copySessionEnabled = Boolean(runId && organization?.slug);
@@ -620,6 +622,13 @@ export function ExplorerPanel() {
         onSizeToggleClick={handleSizeToggle}
         panelSize={panelSize}
         sessionHistoryButtonRef={sessionHistoryButtonRef}
+        overrideCeEnable={overrideCeEnable}
+        onOverrideCeEnableToggle={() => setOverrideCeEnable(v => !v)}
+        showContextEngineToggle={
+          !!organization?.features.includes(
+            'seer-explorer-context-engine-fe-override-ui-flag'
+          )
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handlePanelBackgroundClick}>
