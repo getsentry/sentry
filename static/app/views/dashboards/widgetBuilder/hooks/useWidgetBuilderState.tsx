@@ -63,7 +63,7 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-export const stateParamsNotInUrl = ['textContent'];
+export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
 
 const LOCAL_STORAGE_CONTENT_KEY_MAP = {
   textContent: 'dashboard:widget-builder:text-content',
