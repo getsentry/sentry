@@ -213,7 +213,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 if wdcg:
                     data["filterMatch"] = wdcg.condition_group.logic_type
 
-            request_data = format_request_data(cast(ProjectRulePostData, data), project)
+            request_data = format_request_data(cast(ProjectRulePostData, data))
             if not request_data.get("config", {}).get("frequency"):
                 request_data["config"] = workflow.config
 

@@ -738,7 +738,6 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
-    project: Project,
 ) -> dict[str, Any]:
     workflow_payload = {
         "name": data.get("name"),
@@ -894,7 +893,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
+            request_data = format_request_data(cast(ProjectRulePostData, request.data))
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},
