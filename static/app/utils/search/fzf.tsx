@@ -134,7 +134,12 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
     }
   }
 
-  const [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
+  let [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
+
+  // Boost exact matches (text === pattern) so they rank above partial matches
+  if (sidx === 0 && eidx === textLength) {
+    score += scoreMatch;
+  }
 
   // Fzf will return matches per each character, we will try to merge these together
   return {

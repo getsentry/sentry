@@ -587,10 +587,7 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option Two'})).not.toBeInTheDocument();
     });
 
-    // TODO: Unskip this test once exact match boosting is implemented (GH-110680)
-    // Currently all options score identically, but exact matches should be prioritized
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('prioritizes exact matches over partial matches in search results', async () => {
+    it('prioritizes exact matches over partial matches in search results', async () => {
       render(
         <CompactSelect
           search={{placeholder: 'Search here…'}}
@@ -618,6 +615,8 @@ describe('CompactSelect', () => {
       // Exact match 'path' should be sorted first
       const options = screen.getAllByRole('option');
       expect(options[0]).toHaveTextContent('path');
+      expect(options[1]).toHaveTextContent('binary_path');
+      expect(options[2]).toHaveTextContent('code.file.path');
     });
 
     it('shows fzf matches even when gap penalties make the raw score negative', async () => {
