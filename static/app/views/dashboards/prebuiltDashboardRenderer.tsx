@@ -84,7 +84,7 @@ export function PrebuiltDashboardRenderer({
 
   // Build the final dashboard using resolved widgets (which include both the
   // prebuilt config widgets and resolved linked dashboard IDs).
-  const dashboard: DashboardDetails = {
+  const dashboard = {
     ...resolvedDashboard,
     filters: mergedFilters,
   } as DashboardDetails;
