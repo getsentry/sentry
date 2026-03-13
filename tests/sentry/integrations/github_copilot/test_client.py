@@ -103,9 +103,9 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.status == "running"
         assert result.artifacts is None
 
-    def _make_launch_request(self) -> CodingAgentLaunchRequest:
+    def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:
         return CodingAgentLaunchRequest(
-            prompt="Fix the bug",
+            prompt=prompt,
             repository=SeerRepoDefinition(
                 provider="github",
                 owner="getsentry",
@@ -213,3 +213,36 @@ class GithubCopilotAgentClientTest(TestCase):
         result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
 
         assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_truncates_long_prompt(self, mock_post: Mock) -> None:
+        """Prompts exceeding 25,000 chars are truncated"""
+        prompt = "a" * 30000
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        sent_prompt = call_data["problem_statement"]
+        assert len(sent_prompt) == 25000
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
+        """Short prompts are sent as-is without truncation"""
+        prompt = "Fix this bug please."
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        assert call_data["problem_statement"] == prompt
