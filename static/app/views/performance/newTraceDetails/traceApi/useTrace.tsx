@@ -12,7 +12,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {TraceFullDetailed, TraceSplitResults} from './types';
 
@@ -239,48 +238,23 @@ export function useTrace(
   const organization = useOrganization();
   const query = qs.parse(location.search);
 
-  const isEAPEnabled = useIsEAPTraceEnabled();
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(
-      isEAPEnabled ? 'eap' : 'non-eap',
-      query,
-      filters.selection,
-      {
-        limit: options.limit,
-        timestamp: options.timestamp,
-        targetId: options.targetEventId,
-      }
-    );
+    return getTraceQueryParams('eap', query, filters.selection, {
+      limit: options.limit,
+      timestamp: options.timestamp,
+      targetId: options.targetEventId,
+    });
 
     // Only re-run this if the view query param changes, otherwise if we pass location.search
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    options.limit,
-    options.timestamp,
-    options.targetEventId,
-    isEAPEnabled,
-    filters.selection,
-  ]);
+  }, [options.limit, options.timestamp, options.targetEventId, filters.selection]);
 
   const isDemoMode = Boolean(queryParams.demo);
   const demoTrace = useDemoTrace(queryParams.demo, organization);
-
-  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
-    }
-  );
 
   const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
@@ -298,11 +272,11 @@ export function useTrace(
     {
       staleTime: Infinity,
       retry: false,
-      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
+      enabled: hasValidTrace && !isDemoMode,
     }
   );
 
-  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
+  return isDemoMode ? demoTrace : eapTraceQuery;
 }
 
 const isValidEventUUID = (id: string): boolean => {

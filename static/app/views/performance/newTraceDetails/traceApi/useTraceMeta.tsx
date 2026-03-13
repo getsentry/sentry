@@ -12,7 +12,6 @@ import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import type {EAPTraceMeta, TraceMeta} from './types';
@@ -153,7 +152,6 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const api = useApi();
   const filters = usePageFilters();
   const organization = useOrganization();
-  const isEAP = useIsEAPTraceEnabled();
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
@@ -177,7 +175,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     queryKey: ['traceData', replayTraces.map(trace => trace.traceSlug)],
     queryFn: () =>
       fetchTraceMetaInBatches(
-        isEAP ? 'eap' : 'non-eap',
+        'eap',
         api,
         organization,
         replayTraces,
@@ -203,31 +201,19 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // When this happens, we assemble a fake trace response to only include the transaction that had already been
   // created and stored already so that the users can visualize in the context of a trace.
   // The trace meta query has to reflect this by returning a single transaction and project.
-  const demoResults = useMemo(() => {
-    return {
-      data: isEAP
-        ? {
-            errors: 0,
-            logs: 0,
-            performance_issues: 0,
-            span_count: 0,
-            span_count_map: {},
-            transaction_child_count_map: {},
-            uptime_checks: 0,
-          }
-        : {
-            errors: 0,
-            performance_issues: 0,
-            projects: 1,
-            transactions: 1,
-            transaction_child_count_map: {},
-            span_count: 0,
-            span_count_map: {},
-          },
-      errors: [],
-      status: 'success' as QueryStatus,
-    };
-  }, [isEAP]);
+  const demoResults = {
+    data: {
+      errors: 0,
+      logs: 0,
+      performance_issues: 0,
+      span_count: 0,
+      span_count_map: {},
+      transaction_child_count_map: {},
+      uptime_checks: 0,
+    },
+    errors: [],
+    status: 'success' as QueryStatus,
+  };
 
   return mode === 'demo' ? demoResults : results;
 }

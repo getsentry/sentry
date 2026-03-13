@@ -5,14 +5,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {useTrace} from './useTrace';
 
-jest.mock('sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled', () => ({
-  useIsEAPTraceEnabled: jest.fn(),
-}));
-
-const {useIsEAPTraceEnabled} = jest.requireMock(
-  'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled'
-);
-
 const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
 
@@ -38,9 +30,6 @@ describe('useTrace', () => {
     ])('does NOT call EAP endpoint with errorId when URL has %s', async search => {
       // Set up mocked URL before hook runs
       window.history.pushState({}, '', `/some-path${search}`);
-
-      // Set up EAP enabled
-      useIsEAPTraceEnabled.mockReturnValue(true);
 
       const eapTraceMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace/test-trace-id/`,
@@ -121,12 +110,9 @@ describe('useTrace', () => {
       },
     ])(
       'calls tracing endpoint with query param options %s',
-      async ({search, mockEapEnabled, endpoint, expectedParamKey}) => {
+      async ({search, endpoint, expectedParamKey}) => {
         // Mock URL before hook runs
         window.history.pushState({}, '', `/some-path${search}`);
-
-        // Mock EAP toggle
-        useIsEAPTraceEnabled.mockReturnValue(mockEapEnabled);
 
         const eapTraceMock = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/${endpoint}/trace-test-id/`,
