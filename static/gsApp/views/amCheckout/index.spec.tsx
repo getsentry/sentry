@@ -747,14 +747,11 @@ describe('Default Tier Checkout', () => {
       );
     });
 
-    // Free subscriptions default to Business plan
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
 
-    // User selects Team plan
     await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
     expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
 
-    // Simulate a subscription store update (e.g. from a payment method update)
     act(() => {
       SubscriptionStore.set(organization.slug, {
         ...sub,
@@ -769,11 +766,9 @@ describe('Default Tier Checkout', () => {
       });
     });
 
-    // Plan selection should be preserved — Team should still be selected
     expect(screen.getByRole('radio', {name: 'Team'})).toBeChecked();
     expect(screen.getByRole('radio', {name: 'Business'})).not.toBeChecked();
 
-    // Billing config should only have been fetched once
     expect(mockBillingConfigResponse).toHaveBeenCalledTimes(1);
   });
 
