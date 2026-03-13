@@ -120,7 +120,7 @@ export function TopBar({
                 : t('Context engine disabled (click to enable)')
             }
           >
-            <ContextEngineToggle>
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
               <Switch
                 size="sm"
                 checked={overrideCtxEngEnable}
@@ -130,7 +130,7 @@ export function TopBar({
               <Text size="sm" variant="muted">
                 {t('CE')}
               </Text>
-            </ContextEngineToggle>
+            </Flex>
           </Tooltip>
         )}
       </Flex>
@@ -202,19 +202,5 @@ const SessionHistoryButtonWrapper = styled('div')<{isSelected: boolean}>`
       p.isSelected
         ? p.theme.tokens.interactive.transparent.neutral.background.active
         : 'transparent'};
-  }
-`;
-
-const ContextEngineToggle = styled('label')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  cursor: pointer;
-  user-select: none;
-
-  &:hover {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
