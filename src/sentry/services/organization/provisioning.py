@@ -262,7 +262,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
 
     able_to_update_slug = (
         region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-            region_name=region_name,
+            cell_name=region_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
             ),
