@@ -136,6 +136,13 @@ export default function SnapshotsPage() {
       : (filteredItems[0]?.name ?? null);
   const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
 
+  // Clamp variantIndex to valid range when the selected item changes implicitly
+  // (e.g. search filtering selects a new item with fewer variants)
+  const safeVariantIndex =
+    currentItem?.type === 'solo'
+      ? Math.min(variantIndex, currentItem.images.length - 1)
+      : variantIndex;
+
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);
     setVariantIndex(0);
@@ -250,7 +257,7 @@ export default function SnapshotsPage() {
           <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
               selectedItem={deferredItem}
-              variantIndex={variantIndex}
+              variantIndex={safeVariantIndex}
               onVariantChange={setVariantIndex}
               imageBaseUrl={imageBaseUrl}
               diffImageBaseUrl={diffImageBaseUrl}
