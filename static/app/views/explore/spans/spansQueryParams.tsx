@@ -126,7 +126,9 @@ export function getTargetWithReadableQueryParams(
   updateNullableLocation(
     target,
     SPANS_FIELD_KEY,
-    writableQueryParams.fields?.filter(Boolean)
+    writableQueryParams.fields === null
+      ? null
+      : writableQueryParams.fields?.filter(Boolean)
   );
   updateNullableLocation(
     target,
