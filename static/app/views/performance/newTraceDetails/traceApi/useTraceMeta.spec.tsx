@@ -254,6 +254,7 @@ describe('useTraceMeta', () => {
   });
 
   it('Retries with 90d when initial 14d response has no data', async () => {
+    const org = OrganizationFixture({features: ['trace-spans-format']});
     const tracesWithoutTimestamp: ReplayTrace[] = [
       {traceSlug: 'slug1', timestamp: undefined},
       {traceSlug: 'slug2', timestamp: undefined},
@@ -261,52 +262,53 @@ describe('useTraceMeta', () => {
 
     const emptyBody = {
       errors: 0,
+      logs: 0,
       performance_issues: 0,
-      projects: 0,
-      transactions: 0,
-      transaction_child_count_map: [],
       span_count: 0,
       span_count_map: {},
+      transaction_child_count_map: [],
+      uptime_checks: 0,
     };
 
     const mockSlug1_14d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       match: [MockApiClient.matchData({statsPeriod: '14d'})],
       body: emptyBody,
     });
     const mockSlug2_14d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      url: '/organizations/org-slug/trace-meta/slug2/',
       match: [MockApiClient.matchData({statsPeriod: '14d'})],
       body: emptyBody,
     });
 
     const realBody = {
       errors: 1,
+      logs: 1,
       performance_issues: 1,
-      projects: 1,
-      transactions: 1,
-      transaction_child_count_map: [{'transaction.id': 'tx1', count: 1}],
       span_count: 1,
       span_count_map: {op1: 1},
+      transaction_child_count_map: [{'transaction.id': 'tx1', count: 1}],
+      uptime_checks: 0,
     };
 
     const mockSlug1_90d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       match: [MockApiClient.matchData({statsPeriod: '90d'})],
       body: realBody,
     });
     const mockSlug2_90d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      url: '/organizations/org-slug/trace-meta/slug2/',
       match: [MockApiClient.matchData({statsPeriod: '90d'})],
       body: realBody,
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithoutTimestamp), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: tracesWithoutTimestamp,
     });
 
     await waitFor(() => expect(result.current.status === 'success').toBe(true));
@@ -321,42 +323,44 @@ describe('useTraceMeta', () => {
   });
 
   it('Does not retry when initial response has data', async () => {
+    const org = OrganizationFixture({features: ['trace-spans-format']});
     const tracesWithoutTimestamp: ReplayTrace[] = [
       {traceSlug: 'slug1', timestamp: undefined},
     ];
 
     const mockSlug1_14d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       match: [MockApiClient.matchData({statsPeriod: '14d'})],
       body: {
         errors: 1,
+        logs: 1,
         performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
         span_count: 1,
         span_count_map: {op1: 1},
+        transaction_child_count_map: [],
+        uptime_checks: 0,
       },
     });
 
     const mockSlug1_90d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       match: [MockApiClient.matchData({statsPeriod: '90d'})],
       body: {
         errors: 2,
+        logs: 2,
         performance_issues: 2,
-        projects: 1,
-        transactions: 2,
-        transaction_child_count_map: [],
         span_count: 2,
         span_count_map: {},
+        transaction_child_count_map: [],
+        uptime_checks: 0,
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithoutTimestamp), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: tracesWithoutTimestamp,
     });
 
     await waitFor(() => expect(result.current.status === 'success').toBe(true));
@@ -367,39 +371,41 @@ describe('useTraceMeta', () => {
   });
 
   it('Does not retry when all traces have timestamps', async () => {
+    const org = OrganizationFixture({features: ['trace-spans-format']});
     const tracesWithTimestamps: ReplayTrace[] = [{traceSlug: 'slug1', timestamp: 123}];
 
     const mockSlug1_timestamp = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       body: {
         errors: 0,
+        logs: 0,
         performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
         span_count: 0,
         span_count_map: {},
+        transaction_child_count_map: [],
+        uptime_checks: 0,
       },
     });
 
     const mockSlug1_90d = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       match: [MockApiClient.matchData({statsPeriod: '90d'})],
       body: {
         errors: 1,
+        logs: 1,
         performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
         span_count: 1,
         span_count_map: {},
+        transaction_child_count_map: [],
+        uptime_checks: 0,
       },
     });
 
-    const {result} = renderHookWithProviders(() => useTraceMeta(tracesWithTimestamps), {
-      organization,
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: tracesWithTimestamps,
     });
 
     await waitFor(() => expect(result.current.status === 'success').toBe(true));
