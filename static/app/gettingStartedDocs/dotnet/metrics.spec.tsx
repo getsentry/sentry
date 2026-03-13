@@ -14,7 +14,7 @@ describe('metrics', () => {
 
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/SentrySdk\.Experimental\.Metrics\.EmitCounter/)
+        textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/)
       )
     ).toBeInTheDocument();
   });
@@ -26,7 +26,7 @@ describe('metrics', () => {
 
     expect(
       screen.queryByText(
-        textWithMarkupMatcher(/SentrySdk\.Experimental\.Metrics\.EmitCounter/)
+        textWithMarkupMatcher(/SentrySdk\.Metrics\.EmitCounter/)
       )
     ).not.toBeInTheDocument();
   });

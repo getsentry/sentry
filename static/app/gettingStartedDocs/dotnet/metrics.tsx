@@ -27,11 +27,11 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
       language: 'csharp',
       code: `using Sentry;
 
-SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
+SentrySdk.Metrics.EmitCounter("button_click", 5,
     [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
 `,
     },
@@ -52,7 +52,7 @@ export const metrics: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Install our .NET SDK with a minimum version that supports metrics ([code:6.1.0] or higher).',
+            'Install our .NET SDK with a minimum version that supports metrics ([code:6.3.0] or higher).',
             {
               code: <code />,
             }
@@ -84,7 +84,7 @@ export const metrics: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Experimental.Metrics] API.',
+            'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Metrics] API.',
             {
               code: <code />,
             }
@@ -100,11 +100,11 @@ SentrySdk.Init(options =>
     options.Dsn = "${params.dsn.public}";
 });
 
-SentrySdk.Experimental.Metrics.EmitCounter("button_click", 5,
+SentrySdk.Metrics.EmitCounter("button_click", 5,
     [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Experimental.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Experimental.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);`,
         },
         {
