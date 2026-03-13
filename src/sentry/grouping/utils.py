@@ -85,6 +85,8 @@ def normalize_message_for_grouping(
 
         context.cached_parameterizer_used = True
 
+    metrics.incr("grouping.message_used", tags={"reason": reason})
+
     return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
