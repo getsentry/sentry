@@ -648,7 +648,7 @@ function AutofixSolutionDisplay({
                     )
                   : cantReadRepos
                     ? t(
-                        "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                        "Seer can't access any of your selected repos. Check your source code integration and make sure Seer has read access."
                       )
                     : undefined
                 : tct(

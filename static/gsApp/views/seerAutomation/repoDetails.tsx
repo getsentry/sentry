@@ -95,7 +95,10 @@ export default function SeerRepoDetails() {
             }
           )}
         />
-        {isSupportedAutofixProvider(repoWithSettings?.provider) ? (
+        {isSupportedAutofixProvider(
+          repoWithSettings?.provider,
+          organization.features.includes('seer-gitlab-support')
+        ) ? (
           <RepoDetailsForm
             organization={organization}
             repoWithSettings={repoWithSettings}

@@ -247,12 +247,25 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         <Flex align="center" gap="xs">
           {t('Working Repositories')}
           <QuestionTooltip
-            title={tct(
-              'Seer will only be able to see code from and make PRs to the repos that you select here. The [link:GitHub integration] is required for Seer to access these repos.',
-              {
-                link: <Link to={`/settings/${organization.slug}/integrations/github/`} />,
-              }
-            )}
+            title={
+              organization.features.includes('seer-gitlab-support')
+                ? tct(
+                    'Seer will only be able to see code from and make PRs to the repos that you select here. A supported [link:source code integration] is required for Seer to access these repos.',
+                    {
+                      link: <Link to={`/settings/${organization.slug}/integrations/`} />,
+                    }
+                  )
+                : tct(
+                    'Seer will only be able to see code from and make PRs to the repos that you select here. The [link:GitHub integration] is required for Seer to access these repos.',
+                    {
+                      link: (
+                        <Link
+                          to={`/settings/${organization.slug}/integrations/github/`}
+                        />
+                      ),
+                    }
+                  )
+            }
             size="sm"
             isHoverable
           />
@@ -282,6 +295,20 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
                 ),
                 to: `/settings/${organization.slug}/integrations/github_enterprise/`,
               },
+              ...(organization.features.includes('seer-gitlab-support')
+                ? [
+                    {
+                      key: 'gitlab',
+                      label: (
+                        <Flex gap="sm" align="center">
+                          <PluginIcon pluginId="gitlab" size={16} />
+                          <div>{t('GitLab')}</div>
+                        </Flex>
+                      ),
+                      to: `/settings/${organization.slug}/integrations/gitlab/`,
+                    },
+                  ]
+                : []),
             ]}
           />
           <Tooltip

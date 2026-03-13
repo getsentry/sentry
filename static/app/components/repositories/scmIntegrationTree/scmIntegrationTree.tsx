@@ -57,6 +57,13 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     isError,
   } = useScmIntegrationTreeData();
 
+  console.log({
+    scmProviders,
+    scmIntegrations,
+    connectedIdentifiers,
+    reposByIntegrationId,
+  });
+
   // Expansion state
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
   const [expandedIntegrations, setExpandedIntegrations] = useState<Set<string>>(
@@ -99,6 +106,9 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     });
   }, []);
 
+  const hasGitlabSupport = organization.features.includes('seer-gitlab-support');
+  console.log({hasGitlabSupport});
+
   // Flatten the tree into a list based on current expansion state
   const flatNodes = useMemo<TreeNode[]>(
     () =>
@@ -114,6 +124,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         search,
         repoFilter,
         providerFilter,
+        hasGitlabSupport,
       }),
     [
       scmProviders,
@@ -127,6 +138,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       search,
       repoFilter,
       providerFilter,
+      hasGitlabSupport,
     ]
   );
 

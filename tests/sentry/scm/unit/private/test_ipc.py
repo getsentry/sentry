@@ -18,6 +18,7 @@ from sentry.scm.private.ipc import (
     deserialize_comment_event,
     deserialize_event,
     deserialize_pull_request_event,
+    deserialize_raw_event,
     exec_listener,
     produce_to_listeners,
     run_listener,
@@ -777,3 +778,63 @@ def test_produce_to_listeners_returns_none_for_unsupported_events():
     with mock.patch("sentry.scm.private.ipc.deserialize_raw_event", lambda e: None):
         produce_to_listeners(subscription_event, "region", mock_produce)
         assert len(produced_messages) == 0
+
+
+def test_deserialize_raw_event_gitlab_merge_request():
+    """
+    Test that deserialize_raw_event no longer raises for GitLab events
+    and correctly deserializes a merge request event.
+    """
+    import orjson
+
+    gitlab_event = {
+        "object_kind": "merge_request",
+        "user": {"id": 1, "username": "testuser"},
+        "object_attributes": {
+            "iid": 42,
+            "title": "Test MR",
+            "action": "open",
+            "source_branch": "feature",
+            "target_branch": "main",
+            "description": "A test",
+            "last_commit": {"id": "abc123"},
+        },
+        "project": {
+            "id": 10,
+            "path_with_namespace": "group/project",
+            "web_url": "https://gitlab.com/group/project",
+            "visibility": "private",
+        },
+    }
+
+    subscription_event: SubscriptionEvent = {
+        "event_type_hint": "Merge Request Hook",
+        "event": orjson.dumps(gitlab_event).decode("utf-8"),
+        "extra": {},
+        "received_at": 1700000000,
+        "sentry_meta": None,
+        "type": "gitlab",
+    }
+
+    result = deserialize_raw_event(subscription_event)
+    assert result is not None
+    assert isinstance(result, PullRequestEvent)
+    assert result.action == "opened"
+    assert result.pull_request["id"] == "42"
+
+
+def test_deserialize_raw_event_gitlab_unsupported_hook():
+    """
+    Test that deserialize_raw_event returns None for unsupported GitLab event types.
+    """
+    subscription_event: SubscriptionEvent = {
+        "event_type_hint": "Push Hook",
+        "event": "{}",
+        "extra": {},
+        "received_at": 1700000000,
+        "sentry_meta": None,
+        "type": "gitlab",
+    }
+
+    result = deserialize_raw_event(subscription_event)
+    assert result is None

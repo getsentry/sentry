@@ -72,9 +72,13 @@ def convert_enum_keys_to_strings(obj: Any) -> Any:
 # These values need to match the value defined in the Seer API.
 class SeerEndpoint(StrEnum):
     # https://github.com/getsentry/seer/blob/main/src/seer/routes/codegen.py
+    # v1 endpoints (GitHub direct path)
     PR_REVIEW_RERUN = "/v1/code_review/check/rerun"
     CODE_REVIEW_REVIEW_REQUEST = "/v1/code_review/review-request"
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
+    # v2 endpoints (SCM stream path, initially GitLab)
+    V2_CODE_REVIEW_REVIEW_REQUEST = "/v2/code_review/review-request"
+    V2_CODE_REVIEW_PR_CLOSED = "/v2/code_review/pr-closed"
 
 
 def get_seer_path_for_request(github_event: str, github_event_action: str | None = None) -> str:

@@ -41,6 +41,7 @@ export function AddAutofixRepoModal({
     useOrganizationRepositories();
 
   const organization = useOrganization();
+  const hasGitlabSupport = organization.features.includes('seer-gitlab-support');
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
   const [modalSelectedRepoIds, setModalSelectedRepoIds] =
@@ -161,6 +162,7 @@ export function AddAutofixRepoModal({
                       repo={repo}
                       isSelected={modalSelectedRepoIds.includes(repo.externalId)}
                       onToggle={handleToggleRepository}
+                      hasGitlabSupport={hasGitlabSupport}
                     />
                   </div>
                 );

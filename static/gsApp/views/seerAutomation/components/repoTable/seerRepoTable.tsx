@@ -54,6 +54,8 @@ export function SeerRepoTable() {
     parseAsSort.withDefault({field: 'name', kind: 'asc'})
   );
 
+  const hasGitlabSupport = organization.features.includes('seer-gitlab-support');
+
   const queryOptions = organizationRepositoriesInfiniteOptions({
     organization,
     query: {per_page: 100, query: searchTerm, sort},
@@ -74,7 +76,8 @@ export function SeerRepoTable() {
       )
         .filter(
           repository =>
-            repository.externalId && isSupportedAutofixProvider(repository.provider)
+            repository.externalId &&
+            isSupportedAutofixProvider(repository.provider, hasGitlabSupport)
         )
         .sort((a, b) => {
           if (sort.field === 'name') {

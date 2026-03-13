@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
@@ -28,11 +29,17 @@ from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organizationcontributors import (
+    ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+    OrganizationContributors,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.seer.code_review.contributor_seats import should_increment_contributor_seat
+from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -314,6 +321,49 @@ class MergeEventWebhook(GitlabWebhook):
         except IntegrityError:
             pass
 
+        # Create OrganizationContributors record for billing/seat tracking
+        user = event.get("user", {})
+        user_id = user.get("id")
+        user_login = user.get("username")
+
+        if user_id is not None:
+            contributor, _ = OrganizationContributors.objects.get_or_create(
+                organization_id=organization.id,
+                integration_id=integration.id,
+                external_identifier=user_id,
+                defaults={"alias": user_login},
+            )
+
+            if should_increment_contributor_seat(organization, repo, contributor):
+                locked_contributor = None
+                with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                    try:
+                        locked_contributor = (
+                            OrganizationContributors.objects.select_for_update().get(
+                                organization_id=organization.id,
+                                integration_id=integration.id,
+                                external_identifier=user_id,
+                            )
+                        )
+                        locked_contributor.num_actions += 1
+                        locked_contributor.save(update_fields=["num_actions", "date_updated"])
+                    except OrganizationContributors.DoesNotExist:
+                        logger.warning(
+                            "gitlab.webhook.organization_contributor.not_found",
+                            extra={
+                                "organization_id": organization.id,
+                                "integration_id": integration.id,
+                                "external_identifier": user_id,
+                            },
+                        )
+
+                if (
+                    locked_contributor
+                    and locked_contributor.num_actions
+                    >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                ):
+                    assign_seat_to_organization_contributor.delay(locked_contributor.id)
+
 
 class PushEventWebhook(GitlabWebhook):
     """
@@ -482,4 +532,44 @@ class GitlabWebhookEndpoint(Endpoint):
                 ).capture():
                     event_handler(event, integration=integration, organization=organization)
 
+                # Produce to SCM event stream for Merge Request events
+                if request.META.get("HTTP_X_GITLAB_EVENT") == "Merge Request Hook":
+                    repo = MergeEventWebhook().get_repo(integration, organization, event)
+                    self._produce_to_scm_stream(
+                        request=request,
+                        event=event,
+                        integration=integration,
+                        install=install,
+                        repo=repo,
+                    )
+
         return HttpResponse(status=204)
+
+    def _produce_to_scm_stream(
+        self,
+        *,
+        request: HttpRequest,
+        event: Mapping[str, Any],
+        integration: RpcIntegration,
+        install: Any,
+        repo: Any,
+    ) -> None:
+        from sentry.scm.private.stream_producer import produce_event_to_scm_stream
+
+        produce_event_to_scm_stream(
+            {
+                "event_type_hint": request.META.get("HTTP_X_GITLAB_EVENT"),
+                "event": request.body.decode("utf-8"),
+                "extra": {"repository_id": repo.id if repo else 0},
+                "received_at": int(time.time()),
+                "sentry_meta": [
+                    {
+                        "id": None,
+                        "integration_id": integration.id,
+                        "organization_id": install.organization_id,
+                    }
+                ],
+                "type": IntegrationProviderSlug.GITLAB.value,
+            },
+            silo="region",
+        )

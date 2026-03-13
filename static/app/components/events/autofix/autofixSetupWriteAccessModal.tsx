@@ -13,10 +13,21 @@ import {t, tct} from 'sentry/locale';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
+function getRepoUrl(provider: string | undefined, owner: string, name: string): string {
+  if (provider === 'gitlab' || provider === 'integrations:gitlab') {
+    return `https://gitlab.com/${owner}/${name}`;
+  }
+  return `https://github.com/${owner}/${name}`;
+}
+
+function GitRepoLink({
+  repo,
+}: {
+  repo: {name: string; owner: string; ok?: boolean; provider?: string};
+}) {
   return (
     <RepoItem isOk={repo.ok}>
-      <ExternalLink href={`https://github.com/${repo.owner}/${repo.name}`}>
+      <ExternalLink href={getRepoUrl(repo.provider, repo.owner, repo.name)}>
         {repo.owner}/{repo.name}
       </ExternalLink>
       {repo.ok && <IconCheckmark variant="success" size="sm" />}

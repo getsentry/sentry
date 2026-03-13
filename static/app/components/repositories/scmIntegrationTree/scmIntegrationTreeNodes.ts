@@ -22,6 +22,7 @@ type Props = {
   scmProviders: IntegrationProvider[];
   search: string;
   togglingRepos: Set<string>;
+  hasGitlabSupport?: boolean;
 };
 
 export function buildIntegrationTreeNodes({
@@ -36,13 +37,16 @@ export function buildIntegrationTreeNodes({
   search,
   repoFilter,
   providerFilter,
+  hasGitlabSupport,
 }: Props): TreeNode[] {
   const nodes: TreeNode[] = [];
   const query = search.trim().toLowerCase();
 
   const visibleProviders =
     providerFilter === 'seer-supported'
-      ? scmProviders.filter(p => isSupportedAutofixProvider({id: p.key, name: p.name}))
+      ? scmProviders.filter(p =>
+          isSupportedAutofixProvider({id: p.key, name: p.name}, hasGitlabSupport)
+        )
       : scmProviders;
 
   for (const provider of visibleProviders) {

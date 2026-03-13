@@ -13,10 +13,16 @@ interface Props {
   isSelected: boolean;
   onToggle: (repoId: string) => void;
   repo: Repository;
+  hasGitlabSupport?: boolean;
 }
 
-export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
-  const isSupportedProvider = isSupportedAutofixProvider(repo.provider);
+export function SelectableRepoItem({
+  repo,
+  isSelected,
+  onToggle,
+  hasGitlabSupport,
+}: Props) {
+  const isSupportedProvider = isSupportedAutofixProvider(repo.provider, hasGitlabSupport);
 
   return (
     <RepoListItemContainer

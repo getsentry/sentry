@@ -306,7 +306,9 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
     elif event["type"] == "bitbucket":
         raise SCMProviderNotSupported("Bitbucket has not been implemented.")
     elif event["type"] == "gitlab":
-        raise SCMProviderNotSupported("GitLab has not been implemented.")
+        from sentry.scm.private.webhooks.gitlab import deserialize_gitlab_event
+
+        return deserialize_gitlab_event(event)
     else:
         assert_never(event["type"])
 
@@ -355,10 +357,13 @@ def produce_to_listeners(
     :param produce_to_listener:
     """
     parsed_event = deserialize_raw_event(event)
+    print("produce to listeners")
 
     # Most events are not supported. We drop them. They could be processed elsewhere but they're
     # not processed by the unified SCM platform.
     if parsed_event is None:
+        print("parsed event not supported")
+        raise Exception("Event failed", event)
         return None
 
     message = serialize_event(parsed_event)
@@ -373,8 +378,10 @@ def produce_to_listeners(
         event_type_hint = "pull_request"
         listeners = list(stream.pull_request_listeners.keys())
     else:
+        print("assert never")
         assert_never(parsed_event)
 
+    print(event_type_hint, listeners)
     for listener in listeners:
         produce_to_listener(message, cast(EventTypeHint, event_type_hint), listener, silo)
 
@@ -385,6 +392,7 @@ def produce_to_listener(
     listener_name: str,
     silo: HybridCloudSilo,
 ) -> None:
+    print("produce to listener", silo, event_type_hint)
     if silo == "control":
         run_webhook_handler_control_task.delay(listener_name, message, event_type_hint)
     elif silo == "region":
@@ -402,6 +410,7 @@ def produce_to_listener(
 def run_webhook_handler_control_task(
     listener: str, message: str, event_type_hint: EventTypeHint
 ) -> None:
+    print("run run_webhook_handler_control_task")
     run_listener(
         listener,
         message,
@@ -423,6 +432,7 @@ def run_webhook_handler_control_task(
 def run_webhook_handler_region_task(
     listener: str, message: str, event_type_hint: EventTypeHint
 ) -> None:
+    print("run run_webhook_handler_region_task")
     run_listener(
         listener,
         message,
@@ -437,6 +447,7 @@ def run_webhook_handler_region_task(
 
 def report_error_to_sentry(e: Exception) -> None:
     """Typing wrapper around sentry_sdk.capture_exception."""
+    print("report error to sentry", e)
     sentry_sdk.capture_exception(e)
 
 
@@ -473,6 +484,8 @@ def run_listener(
 ) -> None:
     """Execute an SCM platform listener."""
     start = get_current_time()
+
+    print("run listener")
 
     try:
         event = deserialize_event(event_data, event_type_hint)

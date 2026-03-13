@@ -16,6 +16,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
@@ -490,3 +491,128 @@ class WebhookTest(GitLabTestCase):
             call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
         )
         assert call_args[1]["assign"] is False
+
+    def test_merge_event_creates_organization_contributor(self) -> None:
+        """MR webhook should create an OrganizationContributors record."""
+        self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        contributor = OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+        )
+        assert contributor.external_identifier == "51"
+        assert contributor.alias == "root"
+
+    def test_merge_event_no_user_id_skips_contributor_creation(self) -> None:
+        """If user.id is missing from the payload, no contributor record is created."""
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["user"]["id"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+        ).exists()
+
+    @patch("sentry.integrations.gitlab.webhooks.should_increment_contributor_seat")
+    def test_merge_event_increments_contributor_seat(
+        self, mock_should_increment: MagicMock
+    ) -> None:
+        """When seat conditions are met, num_actions is incremented."""
+        mock_should_increment.return_value = True
+        self.create_gitlab_repo("getsentry/sentry")
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        contributor = OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+        )
+        assert contributor.num_actions == 1
+
+    @patch("sentry.integrations.gitlab.webhooks.assign_seat_to_organization_contributor")
+    @patch("sentry.integrations.gitlab.webhooks.should_increment_contributor_seat")
+    def test_merge_event_triggers_seat_assignment_at_threshold(
+        self, mock_should_increment: MagicMock, mock_assign_seat: MagicMock
+    ) -> None:
+        """Seat assignment task fires when num_actions reaches the activation threshold."""
+        mock_should_increment.return_value = True
+        self.create_gitlab_repo("getsentry/sentry")
+
+        # Pre-create contributor with num_actions = 1 so next increment reaches threshold (2)
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+            alias="root",
+            num_actions=1,
+        )
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        contributor = OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="51",
+        )
+        assert contributor.num_actions == 2
+        mock_assign_seat.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.integrations.gitlab.webhooks.should_increment_contributor_seat")
+    def test_merge_event_bot_contributor_not_incremented(
+        self, mock_should_increment: MagicMock
+    ) -> None:
+        """Bot contributors should not have their seats incremented."""
+        mock_should_increment.return_value = False
+        self.create_gitlab_repo("getsentry/sentry")
+
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        payload["user"]["id"] = 999
+        payload["user"]["username"] = "dependabot[bot]"
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        contributor = OrganizationContributors.objects.get(
+            organization_id=self.organization.id,
+            external_identifier="999",
+        )
+        assert contributor.num_actions == 0

@@ -98,14 +98,17 @@ def get_signature_validation_error(url: str, body: bytes, signature: str) -> str
 
     signature_parts = signature.split(":", 1)
     if len(signature_parts) != 2:
+        print("invalid sig format")
         return "invalid signature format"
 
     signature_prefix, signature_data = signature_parts
 
     if signature_prefix != "rpc0":
+        print("invalid sig prefix")
         return "invalid signature prefix"
 
     if not body:
+        print("nobody")
         return "no body"
 
     for key in settings.SCM_RPC_SHARED_SECRET:
@@ -139,6 +142,7 @@ class ScmRpcServiceEndpoint(Endpoint):
             request.successful_authenticator, ScmRpcSignatureAuthentication
         ):
             return True
+        print("not authorized")
         return False
 
     @sentry_sdk.trace
@@ -151,6 +155,8 @@ class ScmRpcServiceEndpoint(Endpoint):
         try:
             result = dispatch(method_name, request.data)
         except SCMRpcActionNotFound as e:
+            print("dispatched", e)
+            sentry_sdk.capture_exception()
             return Response(
                 {
                     "errors": [
@@ -164,6 +170,7 @@ class ScmRpcServiceEndpoint(Endpoint):
                 status=404,
             )
         except SCMRpcCouldNotDeserializeRequest as e:
+            sentry_sdk.capture_exception()
             return Response(
                 {
                     "errors": [
@@ -178,6 +185,8 @@ class ScmRpcServiceEndpoint(Endpoint):
                 status=400,
             )
         except SCMRpcActionCallError as e:
+            print("SCMRpcActionCallError", e)
+            sentry_sdk.capture_exception()
             return Response(
                 {
                     "errors": [

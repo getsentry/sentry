@@ -54,6 +54,57 @@ describe('AutofixSetupWriteAccessModal', () => {
     ).toHaveAttribute('href', 'https://github.com/apps/seer-by-sentry/installations/new');
   });
 
+  it('renders GitLab repo URLs correctly', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/autofix/setup/',
+      match: [MockApiClient.matchQuery({check_write_access: true})],
+      body: AutofixSetupFixture({
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: false,
+          repos: [
+            {
+              provider: 'integrations:github',
+              owner: 'getsentry',
+              name: 'sentry',
+              ok: true,
+            },
+            {
+              provider: 'integrations:gitlab',
+              owner: 'getsentry',
+              name: 'gitlab-repo',
+              ok: false,
+            },
+          ],
+        },
+      }),
+    });
+
+    const closeModal = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => <AutofixSetupWriteAccessModal {...modalProps} groupId="1" />,
+        {
+          onClose: closeModal,
+        }
+      );
+    });
+
+    // GitHub repo should link to github.com
+    const githubLink = await screen.findByRole('link', {name: 'getsentry/sentry'});
+    expect(githubLink).toHaveAttribute('href', 'https://github.com/getsentry/sentry');
+
+    // GitLab repo should link to gitlab.com
+    const gitlabLink = screen.getByRole('link', {name: 'getsentry/gitlab-repo'});
+    expect(gitlabLink).toHaveAttribute(
+      'href',
+      'https://gitlab.com/getsentry/gitlab-repo'
+    );
+  });
+
   it('displays success text when installed repos for github app text', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/autofix/setup/',

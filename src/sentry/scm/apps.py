@@ -6,3 +6,4 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         import sentry.scm.stream  # NOQA
+        import sentry.scm.private.ipc  # NOQA

@@ -184,13 +184,22 @@ export function hasPullRequest(autofixData: AutofixData | null | undefined): boo
   return Boolean(changesStep?.changes?.some(change => change.pull_request));
 }
 
-const supportedProviders = [
+const BASE_SUPPORTED_PROVIDERS = [
   'github',
   'integrations:github',
   'integrations:github_enterprise',
 ];
-export const isSupportedAutofixProvider = (provider: {id: string; name: string}) => {
-  return supportedProviders.includes(provider.id);
+
+const GITLAB_PROVIDERS = ['gitlab', 'integrations:gitlab'];
+
+export const isSupportedAutofixProvider = (
+  provider: {id: string; name: string},
+  hasGitlabSupport?: boolean
+) => {
+  const providers = hasGitlabSupport
+    ? [...BASE_SUPPORTED_PROVIDERS, ...GITLAB_PROVIDERS]
+    : BASE_SUPPORTED_PROVIDERS;
+  return providers.includes(provider.id);
 };
 
 export interface AutofixProgressDetails {

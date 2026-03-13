@@ -34,6 +34,14 @@ def listen_for_pull_request(e):
     return None
 
 
+@scm_event_stream.listen_for(event_type="pull_request")
+def scm_code_review_pull_request_listener(e):
+    from sentry.seer.code_review.scm.handler import handle_pull_request_for_code_review
+
+    print("scm_code_review_pull_request_listener")
+    handle_pull_request_for_code_review(e)
+
+
 # Do not re-export your listener here.
 __all__ = [
     "scm_event_stream",

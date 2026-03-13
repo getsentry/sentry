@@ -32,14 +32,17 @@ def produce_event_to_scm_stream(
     no guarantee or requirement for down-stream consumers to validate their message's authenticity.
     """
     if not rollout_enabled("sentry.scm.stream.rollout"):
-        return None
+        print("rollout not enabled")
+        # return None
 
     try:
         produce_to_listeners(event, silo, produce_to_listener=produce_to_listener)
         record_count(f"{PREFIX}.success", 1, {})
     except SCMProviderNotSupported:
+        print("scm not supported")
         record_count(f"{PREFIX}.failed", 1, {"reason": "not-supported", "provider": event["type"]})
     except Exception as e:
+        print("failed", e)
         record_count(f"{PREFIX}.failed", 1, {"reason": "processing"})
         report_error(e)
 
