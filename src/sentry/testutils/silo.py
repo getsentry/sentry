@@ -436,7 +436,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if len(_protected_operations):
         return _protected_operations
@@ -455,9 +455,7 @@ def get_protected_operations() -> list[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
-            if issubclass(model, ReplicatedControlModel) or issubclass(
-                model, ReplicatedRegionModel
-            ):
+            if issubclass(model, ReplicatedControlModel) or issubclass(model, ReplicatedCellModel):
                 _protected_operations.append(protected_table(model._meta.db_table, "insert"))
                 _protected_operations.append(protected_table(model._meta.db_table, "update"))
                 _protected_operations.append(protected_table(model._meta.db_table, "delete"))

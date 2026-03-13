@@ -15,7 +15,6 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
 import {
   useNavigationTour,
   useNavigationTourModal,
@@ -23,6 +22,7 @@ import {
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
 export function Navigation() {
@@ -30,7 +30,7 @@ export function Navigation() {
   const organization = useOrganization();
 
   const collapsedNavigation = useCollapsedNavigation();
-  const navigationContext = useNavigationContext();
+  const {view} = useSecondaryNavigation();
 
   useNavigationTourModal();
 
@@ -40,7 +40,7 @@ export function Navigation() {
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   const {currentStepId} = useNavigationTour();
-  const isCollapsed = currentStepId === null ? navigationContext.isCollapsed : false;
+  const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
 
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -50,10 +50,10 @@ export function Navigation() {
   const sidebarAnimationProps = useMemo(
     () =>
       makeCollapsedSecondaryWrapperAnimationProps(
-        collapsedNavigation.isOpen,
+        collapsedNavigation.view === 'peek',
         secondarySidebarWidth
       ),
-    [collapsedNavigation.isOpen, secondarySidebarWidth]
+    [collapsedNavigation.view, secondarySidebarWidth]
   );
 
   return (
@@ -93,10 +93,9 @@ export function Navigation() {
         </Flex>
         <PrimaryNavigationItems />
       </Flex>
-      {isCollapsed ? null : <SecondarySidebar />}
       {isCollapsed ? (
         <CollapsedSecondaryWrapper
-          data-visible={collapsedNavigation.isOpen}
+          data-visible={collapsedNavigation.view === 'peek'}
           data-test-id="collapsed-secondary-sidebar"
           height="100%"
           left={`${PRIMARY_SIDEBAR_WIDTH}px`}
@@ -107,7 +106,9 @@ export function Navigation() {
         >
           <SecondarySidebar />
         </CollapsedSecondaryWrapper>
-      ) : null}
+      ) : (
+        <SecondarySidebar />
+      )}
     </Fragment>
   );
 }

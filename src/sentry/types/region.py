@@ -510,14 +510,3 @@ def find_all_multitenant_locality_names() -> list[str]:
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
     ]
-
-
-# TODO(cells): Remove aliases once getsentry import sites are updated
-RegionConfigurationError = CellConfigurationError
-RegionResolutionError = CellResolutionError
-RegionMappingNotFound = CellMappingNotFound
-RegionContextError = CellContextError
-RegionDirectory = CellDirectory
-find_regions_for_orgs = find_cells_for_orgs
-find_regions_for_user = find_cells_for_user
-find_all_multitenant_region_names = find_all_multitenant_cell_names

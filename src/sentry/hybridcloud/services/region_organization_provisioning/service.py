@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -20,7 +20,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
     key = "region_organization_provisioning"
     local_mode = SiloMode.CELL
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def create_organization_in_region(
         self,
@@ -32,7 +32,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         TODO(cells): Deprecated, remove method when all callers are updated to use create_organization_in_cell
         """
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def create_organization_in_cell(
         self,
@@ -52,7 +52,7 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         :param provision_payload: The provisioning options for the organization.
         """
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def update_organization_slug_from_reservation(
         self,

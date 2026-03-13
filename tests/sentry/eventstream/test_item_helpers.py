@@ -74,7 +74,7 @@ class ItemHelpersTest(TestCase):
 
         assert _flatten_attrs("p", data) == expected
 
-    def test_extract_from_event_without_occurrence(
+    def test_extract_from_event_without_issue_occurrence(
         self,
     ) -> None:
         event_data: dict[str, Any] = {}
@@ -84,10 +84,10 @@ class ItemHelpersTest(TestCase):
         assert len(out) == 2
         assert out["group_id"] == event.group_id
         assert out["group_first_seen"] == event.group.first_seen.timestamp()
-        assert "occurrence_id" not in out
-        assert "occurrence_type_id" not in out
+        assert "issue_occurrence_id" not in out
+        assert "group_type_id" not in out
 
-    def test_extract_from_event_with_occurrence(self) -> None:
+    def test_extract_from_event_with_issue_occurrence(self) -> None:
         event_data: dict[str, Any] = {}
         event = self.create_group_event(event_data)
 
@@ -112,8 +112,8 @@ class ItemHelpersTest(TestCase):
         assert len(out) == 4
         assert out["group_id"] == event.group_id
         assert out["group_first_seen"] == event.group.first_seen.timestamp()
-        assert out["occurrence_id"] == occurrence.id
-        assert out["occurrence_type_id"] == MonitorIncidentType.type_id
+        assert out["issue_occurrence_id"] == occurrence.id
+        assert out["group_type_id"] == MonitorIncidentType.type_id
 
     def test_extract_tags_and_contexts(
         self,

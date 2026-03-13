@@ -3,6 +3,9 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   IconAdd,
@@ -30,10 +33,13 @@ interface TopBarProps {
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
   onNewChatClick: () => void;
+  onOverrideCtxEngEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
   onSizeToggleClick: () => void;
+  overrideCtxEngEnable: boolean;
   panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
+  showContextEngineToggle: boolean;
 }
 
 export function TopBar({
@@ -48,6 +54,9 @@ export function TopBar({
   onCopySessionClick,
   onCopyLinkClick,
   onSizeToggleClick,
+  onOverrideCtxEngEnableToggle,
+  overrideCtxEngEnable,
+  showContextEngineToggle,
   panelSize,
   isCopySessionEnabled,
   isCopyLinkEnabled,
@@ -103,6 +112,27 @@ export function TopBar({
           tooltipProps={{title: t('Copy link to current chat and web page')}}
           disabled={!isCopyLinkEnabled}
         />
+        {showContextEngineToggle && (
+          <Tooltip
+            title={
+              overrideCtxEngEnable
+                ? t('Context engine enabled (click to disable)')
+                : t('Context engine disabled (click to enable)')
+            }
+          >
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+              <Switch
+                size="sm"
+                checked={overrideCtxEngEnable}
+                onChange={onOverrideCtxEngEnableToggle}
+                aria-label={t('Toggle context engine')}
+              />
+              <Text size="sm" variant="muted">
+                {t('CE')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
       </Flex>
       <AnimatePresence initial={false}>
         {!isEmptyState && (

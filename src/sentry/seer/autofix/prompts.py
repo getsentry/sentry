@@ -19,6 +19,8 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: 
         4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
         5. Use your todo list to track multiple hypotheses for complex bugs
 
+        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
+
         When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}:
         - one_line_description: A concise summary under 30 words
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
@@ -40,6 +42,8 @@ def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: st
         3. Consider different possible approaches and pick the single most pragmatic one.
 
         Do NOT include testing as part of your plan.
+
+        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
         When you have a solid plan, always generate the solution artifact {artifact_tool_str(artifact_key)}:
         - one_line_summary: A concise summary of the fix in under 30 words
@@ -66,6 +70,8 @@ def code_changes_prompt(
         2. Use the code editing tools to make the necessary changes
         3. Ensure changes are minimal and focused on fixing the issue
 
+        If code changes were previously made, disregard them and implement the fix again from scratch.
+
         Use your coding tools to make changes directly to the codebase.
         """
     )
@@ -85,6 +91,8 @@ def impact_assessment_prompt(
         2. Understand upstream and downstream dependencies
         3. Check for relevant metrics, performance data, and connected issues
         4. Consider affected functionality, user-facing impact, data integrity, and system stability
+
+        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
         When you have assessed the impact, always generate the impact_assessment artifact {artifact_tool_str(artifact_key)}:
         - one_line_description: A concise summary of the overall impact in under 30 words
@@ -109,6 +117,8 @@ def triage_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str 
         2. Look at recent commits that touched the problematic systems (use git history if available)
         3. Identify who might have introduced the issue or at least who owns the affected code
         4. Consider code ownership patterns in the repository
+
+        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
         When you have enough information, always generate the triage artifact {artifact_tool_str(artifact_key)}:
         - suspect_commit: If you can identify a likely culprit commit:
