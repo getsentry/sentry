@@ -137,7 +137,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   let [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
 
   // Boost exact matches (text === pattern) so they rank above partial matches
-  if (sidx === 0 && eidx === textLength) {
+  if (sidx === 0 && eidx === textLength && textLength === patternLength) {
     score += scoreMatch;
   }
 
