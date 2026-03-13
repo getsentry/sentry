@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,10 +9,19 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useMemoTryCatch} from 'sentry/utils/useMemoTryCatch';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 import {Rules} from './rules';
+
+function useMemoTryCatch<Result, Arg>(compute: (arg: Arg) => Result, arg: Arg) {
+  return useMemo(() => {
+    try {
+      return [compute(arg)] as const;
+    } catch (error) {
+      return [undefined, error] as const;
+    }
+  }, [arg, compute]);
+}
 
 type Props = {
   organization: Organization;
