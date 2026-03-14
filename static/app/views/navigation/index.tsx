@@ -12,7 +12,10 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {
+  NavigationContextProvider,
+  useNavigation,
+} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTourProvider,
   useNavigationTour,
@@ -91,8 +94,10 @@ export function Navigation() {
   }
 
   return (
-    <NavigationTourProvider>
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
+    <NavigationContextProvider>
+      <NavigationTourProvider>
+        <UserAndOrganizationNavigation />
+      </NavigationTourProvider>
+    </NavigationContextProvider>
   );
 }

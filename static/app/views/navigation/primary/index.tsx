@@ -158,7 +158,7 @@ export function PrimaryNavigationItems() {
               {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
-              <BetaBadge type="alpha" />
+              <BetaBadge type="alpha" aria-hidden="true" />
             </PrimaryNavigation.Link>
           </PrimaryNavigation.ListItem>
         </Feature>

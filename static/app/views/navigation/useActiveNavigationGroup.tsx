@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -46,5 +48,8 @@ export function useActiveNavigationGroup(): NavigationGroup {
     }
   }
 
+  Sentry.logger.warn('Unknown navigation group, defaulting to issues', {
+    path: primaryPath,
+  });
   return 'issues';
 }
