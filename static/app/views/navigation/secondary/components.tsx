@@ -1,8 +1,8 @@
 import {useRef, type ReactNode} from 'react';
 import type {To} from 'react-router-dom';
-import {css, type Theme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
@@ -35,6 +35,7 @@ import {
   NavigationTour,
   NavigationTourElement,
   useNavigationTour,
+  type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -133,13 +134,24 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   );
 }
 
-const SecondarySidebarWrapper = styled(NavigationTourElement)`
-  background: ${p => p.theme.tokens.background.secondary};
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  position: relative;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
-  height: 100%;
-`;
+function SecondarySidebarWrapper(props: NavigationTourElementProps) {
+  const theme = useTheme();
+  return (
+    <Container
+      background="secondary"
+      borderRight="primary"
+      position="relative"
+      height="100%"
+    >
+      {p => (
+        <NavigationTourElement
+          {...mergeProps(p, props)}
+          style={{zIndex: theme.zIndex.sidebarPanel}}
+        />
+      )}
+    </Container>
+  );
+}
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
   z-index: ${p => p.theme.zIndex.drawer + 2};

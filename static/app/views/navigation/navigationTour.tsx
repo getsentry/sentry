@@ -99,10 +99,12 @@ export function useNavigationTour(): TourContextType<NavigationTour> {
   return tourContext;
 }
 
-export function NavigationTourElement({
-  children,
-  ...props
-}: Omit<TourElementProps<NavigationTour>, 'tourContext'>) {
+export interface NavigationTourElementProps extends Omit<
+  TourElementProps<NavigationTour>,
+  'tourContext'
+> {}
+
+export function NavigationTourElement({children, ...props}: NavigationTourElementProps) {
   return (
     <TourElement<NavigationTour>
       tourContext={NavigationTourContext}
