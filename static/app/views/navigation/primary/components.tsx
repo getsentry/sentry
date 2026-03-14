@@ -153,7 +153,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       aria-selected={props['aria-selected']}
       aria-current={props['aria-current']}
-      isMobile={layout === 'mobile'}
+      layout={layout}
       onMouseEnter={props.onMouseEnter}
       onMouseLeave={props.onMouseLeave}
       onClick={e => {
@@ -204,12 +204,11 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization();
-  const showLabel = layout === 'mobile';
 
   return (
     <Tooltip
       title={props.label}
-      disabled={showLabel}
+      disabled={layout === 'mobile'}
       position="right"
       skipWrapper
       delay={600}
@@ -217,7 +216,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
       <NavigationButton
         {...props.buttonProps}
         analyticsParams={props.analyticsParams}
-        aria-label={showLabel ? undefined : props.label}
+        aria-label={layout === 'mobile' ? undefined : props.label}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           trackAnalytics('navigation.primary_item_clicked', {
             item: props.analyticsKey,
@@ -240,7 +239,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {showLabel ? props.label : null}
+        {layout === 'mobile' ? props.label : null}
         {props.children}
       </NavigationButton>
     </Tooltip>
@@ -255,13 +254,12 @@ const PrimaryNavigationUnreadIndicator = styled(
   (props: PrimaryNavigationUnreadIndicatorProps) => {
     const theme = useTheme();
     const {layout} = usePrimaryNavigation();
-    const showLabel = layout === 'mobile';
     return (
       <Container
         position="absolute"
-        top={showLabel ? `-${theme.space.xs}` : '0'}
-        right={showLabel ? 'auto' : '0px'}
-        left={showLabel ? '11px' : 'auto'}
+        top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
+        right={layout === 'mobile' ? 'auto' : '0px'}
+        left={layout === 'mobile' ? '11px' : 'auto'}
         width="10px"
         height="10px"
         radius="full"
@@ -294,7 +292,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
 
-  const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -315,14 +312,14 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
           <TriggerWrap>
             <Tooltip
               title={props.label}
-              disabled={showLabel}
+              disabled={layout === 'mobile'}
               position="right"
               skipWrapper
               delay={600}
             >
               <NavigationButton
                 {...triggerProps}
-                aria-label={showLabel ? undefined : props.label}
+                aria-label={layout === 'mobile' ? undefined : props.label}
                 size={props.size}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   if (organization) {
@@ -346,7 +343,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   )
                 }
               >
-                {showLabel ? (
+                {layout === 'mobile' ? (
                   <Fragment>
                     {props.label}
                     {props.children}
@@ -369,11 +366,11 @@ function NavigationButton(props: ButtonProps) {
 
   return (
     <Flex
+      align="center"
       height={layout === 'mobile' ? 'auto' : '44px'}
       width={layout === 'mobile' ? '100%' : '44px'}
       padding={layout === 'mobile' ? 'md 2xl' : 'xs'}
       justify={layout === 'mobile' ? 'start' : 'center'}
-      align="center"
     >
       {p => (
         <Button
@@ -424,26 +421,33 @@ function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
 
-const NavigationLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'isMobile' && prop !== 'size',
-})<{isMobile: boolean; size?: ButtonProps['size']}>`
-  display: flex;
-  position: relative;
-  width: 100%;
-  flex-direction: ${p => (p.isMobile ? 'row' : 'column')};
-  justify-content: ${p => (p.isMobile ? 'flex-start' : 'center')};
-  align-items: center;
-
-  padding: ${p =>
-    p.isMobile
-      ? `${p.theme.space.md} ${p.theme.space['2xl']}`
-      : `${p.theme.space.sm} ${p.theme.space.lg}`};
-
-  /* On mobile, the buttons are horizontal, so we need a gap between the icon and label */
-  gap: ${p => (p.isMobile ? p.theme.space.md : p.theme.space.xs)};
-
+const NavigationLink = styled(
+  (props: LinkProps) => {
+    const {layout} = usePrimaryNavigation();
+    return (
+      <Flex
+        position="relative"
+        width="100%"
+        align="center"
+        direction={layout === 'mobile' ? 'row' : 'column'}
+        justify={layout === 'mobile' ? 'start' : 'center'}
+        gap={layout === 'mobile' ? 'md' : 'xs'}
+        padding={layout === 'mobile' ? 'md 2xl' : 'sm lg'}
+      >
+        {p => <Link {...mergeProps(p, props)} />}
+      </Flex>
+    );
+  },
+  {
+    shouldForwardProp: prop => prop !== 'layout' && prop !== 'size',
+  }
+)<{layout: 'mobile' | 'sidebar'; size?: ButtonProps['size']}>`
   /* Disable default link styles and only apply them to the icon container */
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  color: ${p =>
+    p.layout === 'mobile'
+      ? p.theme.tokens.content.primary
+      : p.theme.tokens.interactive.link.neutral.rest};
+
   outline: none;
   box-shadow: none;
   transition: none;
@@ -459,8 +463,8 @@ const NavigationLink = styled(Link, {
     content: '';
     position: absolute;
     /* We align the active state indicator to the top of the icon container, not to the center of the button */
-    top: ${p => (p.isMobile ? '50%' : '12px')};
-    transform: ${p => (p.isMobile ? 'translateY(-50%)' : 'none')};
+    top: ${p => (p.layout === 'mobile' ? '50%' : '12px')};
+    transform: ${p => (p.layout === 'mobile' ? 'translateY(-50%)' : 'none')};
     left: 0px;
     width: 4px;
     height: 20px;

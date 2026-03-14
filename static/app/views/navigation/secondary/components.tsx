@@ -373,7 +373,7 @@ function SecondaryNavigationLink({
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
-    <Item
+    <NavigationLink
       state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       {...linkProps}
       to={to}
@@ -391,7 +391,6 @@ function SecondaryNavigationLink({
         // When this is rendered inside a hovercard (when the nav is collapsed)
         // this will dismiss it when clicking on a link.
         closeCollapsedNavigationHovercard();
-
         onClick?.(e);
       }}
     >
@@ -399,9 +398,11 @@ function SecondaryNavigationLink({
       {showInteractionStateLayer && (
         <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
       )}
-      <ItemText>{children}</ItemText>
+      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+        {children}
+      </Text>
       {trailingItems}
-    </Item>
+    </NavigationLink>
   );
 }
 
@@ -416,7 +417,7 @@ function SecondaryNavigationFooter(props: SecondaryNavigationFooterProps) {
 
 function SecondaryNavigationSeparator() {
   return (
-    <Container padding="md lg">
+    <Container padding="md xl">
       <Separator orientation="horizontal" border="muted" />
     </Container>
   );
@@ -564,7 +565,7 @@ const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
   ${p =>
     p.layout === 'sidebar' &&
     css`
-      padding: 0 ${p.theme.space.md};
+      padding: 0 ${p.theme.space.sm};
     `}
 
   &:first-child {
@@ -579,7 +580,7 @@ const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
   color: ${p.theme.tokens.content.primary};
-  padding: ${p.theme.space.sm} ${p.theme.space.md};
+  padding: ${p.theme.space.sm} ${p.theme.space.lg};
   width: 100%;
   ${p.isMobile &&
   css`
@@ -617,11 +618,11 @@ const SectionTitleLabelWrap = styled('div')`
   text-align: left;
 `;
 
-interface ItemProps extends LinkProps {
+interface SidebarLink extends LinkProps {
   layout: 'mobile' | 'sidebar';
 }
 
-const Item = styled(Link)<ItemProps>`
+const NavigationLink = styled(Link)<SidebarLink>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
@@ -631,7 +632,7 @@ const Item = styled(Link)<ItemProps>`
   padding: ${p =>
     p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
-      : `${p.theme.space.sm} ${p.theme.space.lg}`};
+      : `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
 
   /* Disable interaction state layer */
@@ -644,10 +645,10 @@ const Item = styled(Link)<ItemProps>`
     content: '';
     position: absolute;
     top: 50%;
-    transform: translateY(-50%) translateX(100%);
+    transform: translateY(-50%);
     width: 4px;
     height: 20px;
-    left: -${p => p.theme.space.lg};
+    left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     transition: opacity 0.1s ease-in-out;
@@ -675,14 +676,6 @@ const Item = styled(Link)<ItemProps>`
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
-`;
-
-const ItemText = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const Footer = styled('div')<{layout: 'mobile' | 'sidebar'}>`
