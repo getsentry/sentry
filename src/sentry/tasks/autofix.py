@@ -268,19 +268,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         bulk_set_project_preferences(organization_id, preferences_to_set)
 
         if features.has("organizations:seer-project-settings-dual-write", organization):
-            validated_preferences = []
-            for pref in preferences_to_set:
-                try:
-                    validated_preferences.append(SeerProjectPreference.validate(pref))
-                except Exception:
-                    logger.exception(
-                        "seer.write_preferences.validation_failed",
-                        extra={
-                            "project_id": pref.get("project_id"),
-                            "organization_id": organization_id,
-                        },
-                    )
             try:
+                validated_preferences = [
+                    SeerProjectPreference.validate(pref) for pref in preferences_to_set
+                ]
                 bulk_write_preferences_to_sentry_db(projects, validated_preferences)
             except Exception:
                 logger.exception(
