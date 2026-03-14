@@ -583,6 +583,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         set_project_seer_preference(preference)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        return
 
     if features.has("organizations:seer-project-settings-dual-write", organization):
         try:
