@@ -449,7 +449,7 @@ def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) ->
 
     cell_config = (us1_cell, us2_cell, dead_cell)
 
-    def mock_gethostbyname_for_regions(hostname):
+    def mock_gethostbyname_for_cells(hostname):
         if hostname == us1_cell_address.split("//")[1].split(":")[0]:
             return "172.31.10.1"
         elif hostname == us2_cell_address.split("//")[1].split(":")[0]:
@@ -464,7 +464,7 @@ def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) ->
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):
-        mock_gethostbyname.side_effect = mock_gethostbyname_for_regions
+        mock_gethostbyname.side_effect = mock_gethostbyname_for_cells
         result = get_cell_ip_addresses()
         expected = frozenset(
             [ipaddress.ip_address("172.31.10.1"), ipaddress.ip_address("172.31.20.1")]
