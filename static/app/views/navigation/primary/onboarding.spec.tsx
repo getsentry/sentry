@@ -84,7 +84,8 @@ describe('Onboarding Status', () => {
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
+    const onboardingButton = screen.getByRole('button', {name: 'Onboarding'});
+    expect(onboardingButton.querySelector('[data-unread-indicator]')).toBeInTheDocument();
     expect(mutateUserOptionsMock).not.toHaveBeenCalled();
 
     // Next fetch should return the task as seen
@@ -109,7 +110,9 @@ describe('Onboarding Status', () => {
 
     // Pending indicator should go away
     await waitFor(() =>
-      expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument()
+      expect(
+        onboardingButton.querySelector('[data-unread-indicator]')
+      ).not.toBeInTheDocument()
     );
   });
 });
