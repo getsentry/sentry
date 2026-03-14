@@ -349,8 +349,11 @@ export default function SentryAppDetailedView() {
             onConfirming={recordUninstallClicked} // called when the confirm modal opens
             priority="danger"
           >
-            <StyledButton size="sm" data-test-id="sentry-app-uninstall">
-              <IconSubtract style={{marginRight: theme.space.sm}} />
+            <StyledButton
+              icon={<IconSubtract />}
+              size="sm"
+              data-test-id="sentry-app-uninstall"
+            >
               {t('Uninstall')}
             </StyledButton>
           </Confirm>
