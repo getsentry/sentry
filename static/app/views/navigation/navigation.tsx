@@ -16,7 +16,7 @@ import {
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {SecondarySidebar} from 'sentry/views/navigation/secondary/secondarySidebar';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 
@@ -62,10 +62,10 @@ export function Navigation() {
           background="primary"
           {...sidebarAnimationProps}
         >
-          <SecondaryNavigation.Sidebar />
+          <SecondarySidebar />
         </CollapsedSecondaryWrapper>
       ) : (
-        <SecondaryNavigation.Sidebar />
+        <SecondarySidebar />
       )}
     </Fragment>
   );

@@ -57,7 +57,7 @@ function UserAndOrganizationNavigation() {
 
 function UserOnlyNavigation() {
   return (
-    <PrimaryNavigation.Sidebar>
+    <PrimaryNavigation.Sidebar data-test-id="no-organization-sidebar">
       <UserDropdown />
     </PrimaryNavigation.Sidebar>
   );

@@ -34,7 +34,7 @@ import {useNavigation} from 'sentry/views/navigation/navigationContext';
 
 interface PrimaryNavigationSidebarProps extends Omit<FlexProps, 'aria-label' | 'as'> {}
 
-function PrimaryNavigationSidebar(props: PrimaryNavigationSidebarProps) {
+function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
   return (
     <Flex
@@ -48,8 +48,9 @@ function PrimaryNavigationSidebar(props: PrimaryNavigationSidebarProps) {
       justify="between"
       aria-label={t('Primary Navigation')}
       style={{zIndex: theme.zIndex.sidebarPanel}}
+      {...props}
     >
-      {props.children}
+      {children}
     </Flex>
   );
 }
