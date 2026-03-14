@@ -42,8 +42,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import (
     assume_test_silo_mode,
     assume_test_silo_mode_of,
+    cell_silo_test,
     control_silo_test,
-    region_silo_test,
 )
 from sentry.types.region import find_cells_for_user
 from sentry.users.models.user import User
@@ -364,7 +364,7 @@ def setup_cross_db_deletion_data(
     )
 
 
-@region_silo_test
+@cell_silo_test
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -481,7 +481,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
 
 
-@region_silo_test
+@cell_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -636,7 +636,7 @@ def reserve_model_ids(model: type[Model], minimum_id: int) -> None:
                 last_id = cursor.fetchone()[0]
 
 
-@region_silo_test
+@cell_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
     def setUp(self) -> None:
         super().setUp()

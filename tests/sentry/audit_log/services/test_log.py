@@ -5,7 +5,7 @@ import pytest
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_service
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
@@ -15,8 +15,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
-    region_silo_test,
 )
 from sentry.users.models.userip import UserIP
 
@@ -38,7 +38,7 @@ def test_audit_log_event() -> None:
     )
 
     with assume_test_silo_mode(SiloMode.CELL):
-        RegionOutbox(
+        CellOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
 
@@ -63,7 +63,7 @@ def test_audit_log_event_bad_actor_user_id() -> None:
         )
 
     with assume_test_silo_mode(SiloMode.CELL):
-        RegionOutbox(
+        CellOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
 
@@ -88,7 +88,7 @@ def test_audit_log_event_bad_target_user_id() -> None:
     )
 
     with assume_test_silo_mode(SiloMode.CELL):
-        RegionOutbox(
+        CellOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=organization.id
         ).drain_shard()
 
@@ -111,7 +111,7 @@ def test_user_ip_event() -> None:
     )
 
     with assume_test_silo_mode(SiloMode.CELL):
-        RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
+        CellOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     log_service.record_user_ip(
         event=UserIpEvent(
@@ -121,7 +121,7 @@ def test_user_ip_event() -> None:
     )
 
     with assume_test_silo_mode(SiloMode.CELL):
-        RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
+        CellOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert UserIP.objects.get(ip_address="1.0.0.5")
@@ -165,12 +165,12 @@ def test_invalid_skip_list(mock_logger: MagicMock) -> None:
 
 
 @django_db_all
-@region_silo_test
+@cell_silo_test
 def test_skip_list_rpc_call_with_invalid_data_passed() -> None:
     log_service.record_audit_log(event=AuditLogEvent(event_id=100))
 
     with pytest.raises(OutboxFlushError):
-        RegionOutbox(shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=-1).drain_shard()
+        CellOutbox(shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=-1).drain_shard()
 
     with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": [100]}):
-        RegionOutbox(shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=-1).drain_shard()
+        CellOutbox(shard_scope=OutboxScope.AUDIT_LOG_SCOPE, shard_identifier=-1).drain_shard()

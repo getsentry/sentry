@@ -14,6 +14,8 @@ export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -30,6 +32,16 @@ export function IssuesSecondaryNavigation() {
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
+          {hasTopIssuesUI && (
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/supergroups/`}
+                analyticsItemName="issues_supergroups"
+              >
+                {t('Supergroups')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">

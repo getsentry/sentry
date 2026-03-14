@@ -51,38 +51,6 @@ class DatabaseBackedHookService(HookService):
                 deletions.exec_sync_many(list(hooks))
                 return []
 
-    def update_webhook_and_events_for_app_by_region(
-        self,
-        *,
-        application_id: int | None,
-        webhook_url: str | None,
-        events: list[str],
-        region_name: str,
-    ) -> list[RpcServiceHook]:
-        with transaction.atomic(router.db_for_write(ServiceHook)):
-            hooks = ServiceHook.objects.filter(application_id=application_id)
-            hook_count = hooks.count()
-            if webhook_url:
-                expanded_events = expand_events(events)
-                updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
-
-                if hook_count != updated_hook_count:
-                    sentry_sdk.set_context(
-                        "hook info",
-                        {
-                            "application_id": application_id,
-                            "updated_hook_count": updated_hook_count,
-                            "expected_hook_count": hook_count,
-                        },
-                    )
-                    sentry_sdk.capture_message(
-                        "failed_to_update_all_hooks_for_app", level="warning"
-                    )
-                return [serialize_service_hook(h) for h in hooks]
-            else:
-                deletions.exec_sync_many(list(hooks))
-                return []
-
     def create_or_update_webhook_and_events_for_installation(
         self,
         *,

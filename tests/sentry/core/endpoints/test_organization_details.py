@@ -40,7 +40,7 @@ from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFac
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_regions
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -86,7 +86,7 @@ class MockAccess:
 regions = create_test_regions("us", "de")
 
 
-@region_silo_test(regions=regions, include_monolith_run=True)
+@cell_silo_test(regions=regions, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -673,7 +673,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
-@region_silo_test(regions=regions)
+@cell_silo_test(regions=regions)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 

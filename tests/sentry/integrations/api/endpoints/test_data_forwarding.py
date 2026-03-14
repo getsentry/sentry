@@ -3,10 +3,10 @@ from django.urls import reverse
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-forwarding"
 
@@ -22,7 +22,7 @@ class DataForwardingIndexEndpointTest(APITestCase):
             return super().get_response(*args, **kwargs)
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
     def test_without_data_forwarding_feature_flag_access(self) -> None:
         with self.feature({"organizations:data-forwarding": False}):
@@ -133,7 +133,7 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert response.data[0]["isEnabled"] is False
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
     method = "POST"
 

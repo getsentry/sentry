@@ -29,7 +29,7 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.silo.base import SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
@@ -633,7 +633,7 @@ def perform_request(payload: WebhookPayload) -> None:
 
 def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     try:
-        client = RegionSiloClient(region=region)
+        client = CellSiloClient(region=region)
         with metrics.timer(
             "hybridcloud.deliver_webhooks.send_request",
             tags={"destination_region": region.name},

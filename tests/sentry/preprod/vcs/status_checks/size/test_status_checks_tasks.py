@@ -18,11 +18,11 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@cell_silo_test
 class CreatePreprodStatusCheckTaskTest(TestCase):
     def setUp(self):
         super().setUp()
