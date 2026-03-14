@@ -6,6 +6,7 @@ from typing import Any, NotRequired, TypedDict
 import orjson
 import pydantic
 from django.conf import settings
+from django.db import router, transaction
 from pydantic import BaseModel
 from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
@@ -430,6 +431,11 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
         project.update_option(
             "sentry:seer_automation_handoff_auto_create_pr", handoff.auto_create_pr
         )
+    else:
+        project.update_option("sentry:seer_automation_handoff_point", None)
+        project.update_option("sentry:seer_automation_handoff_target", None)
+        project.update_option("sentry:seer_automation_handoff_integration_id", None)
+        project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
 
 
 def _write_preferences_to_sentry_db(
@@ -439,13 +445,7 @@ def _write_preferences_to_sentry_db(
 
     Replaces all existing SeerProjectRepository rows for the given projects.
     """
-    # Delete all existing SeerProjectRepository and SeerProjectRepositoryBranchOverride rows for the given projects
-    project_ids = {project.id for project, _ in project_preferences}
-    SeerProjectRepository.objects.filter(project_id__in=project_ids).delete()
-
-    # Write ProjectOptions and collect project repos to create
-    project_repos_to_create: list[SeerProjectRepository] = []
-    repo_defs: list[SeerRepoDefinition] = []
+    validated_project_preferences: list[tuple[Project, SeerProjectPreference]] = []
     for project, pref in project_preferences:
         if project.id != pref.project_id:
             logger.warning(
@@ -453,47 +453,60 @@ def _write_preferences_to_sentry_db(
                 extra={"project_id": project.id, "preference_project_id": pref.project_id},
             )
             continue
+        validated_project_preferences.append((project, pref))
 
-        _write_preference_project_options(project, pref)
+    if not validated_project_preferences:
+        return
 
-        for repo_def in pref.repositories:
-            if repo_def.repository_id is None:
-                logger.warning(
-                    "seer.write_preferences.repo_missing_id",
-                    extra={
-                        "project_id": project.id,
-                        "organization_id": project.organization_id,
-                        "external_id": repo_def.external_id,
-                    },
+    with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
+        # Delete existing rows
+        validated_project_ids = {project.id for project, _ in validated_project_preferences}
+        SeerProjectRepository.objects.filter(project_id__in=validated_project_ids).delete()
+
+        # Write ProjectOptions and collect project repos to create
+        project_repos_to_create: list[SeerProjectRepository] = []
+        repo_defs: list[SeerRepoDefinition] = []
+        for project, pref in validated_project_preferences:
+            _write_preference_project_options(project, pref)
+
+            for repo_def in pref.repositories:
+                if repo_def.repository_id is None:
+                    logger.warning(
+                        "seer.write_preferences.repo_missing_id",
+                        extra={
+                            "project_id": project.id,
+                            "organization_id": project.organization_id,
+                            "external_id": repo_def.external_id,
+                        },
+                    )
+                    continue
+
+                project_repos_to_create.append(
+                    SeerProjectRepository(
+                        project=project,
+                        repository_id=repo_def.repository_id,
+                        branch_name=repo_def.branch_name,
+                        instructions=repo_def.instructions,
+                    )
                 )
-                continue
+                repo_defs.append(repo_def)
 
-            project_repos_to_create.append(
-                SeerProjectRepository(
-                    project=project,
-                    repository_id=repo_def.repository_id,
-                    branch_name=repo_def.branch_name,
-                    instructions=repo_def.instructions,
+        # Create project repos
+        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+
+        # Create branch overrides
+        overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
+        for seer_project_repo, repo_def in zip(created_project_repos, repo_defs):
+            for override in repo_def.branch_overrides:
+                overrides_to_create.append(
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override.tag_name,
+                        tag_value=override.tag_value,
+                        branch_name=override.branch_name,
+                    )
                 )
-            )
-            repo_defs.append(repo_def)
-
-    # Create project repos
-    created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
-
-    # Create branch overrides
-    overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
-    for seer_project_repo, repo_def in zip(created_project_repos, repo_defs):
-        for override in repo_def.branch_overrides:
-            overrides_to_create.append(
-                SeerProjectRepositoryBranchOverride(
-                    seer_project_repository=seer_project_repo,
-                    tag_name=override.tag_name,
-                    tag_value=override.tag_value,
-                    branch_name=override.branch_name,
-                )
-            )
-    SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
+        SeerProjectRepositoryBranchOverride.objects.bulk_create(overrides_to_create)
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
