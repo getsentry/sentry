@@ -121,7 +121,7 @@ function setupMocks() {
   mockUsingCustomerDomain.mockReturnValue(false);
 }
 
-describe('Desktop Navigation', () => {
+describe('desktop navigation', () => {
   beforeEach(setupMocks);
 
   it('renders user-only navigation when there is no organization', () => {
@@ -140,7 +140,7 @@ describe('Desktop Navigation', () => {
     ).not.toBeInTheDocument();
   });
 
-  describe('HTML Structure', () => {
+  describe('HTML structure', () => {
     it('primary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
       render(
         <Navigation />,
@@ -173,7 +173,7 @@ describe('Desktop Navigation', () => {
     });
   });
 
-  describe('Accessibility', () => {
+  describe('accessibility', () => {
     it('primary navigation links have correct accessible names and hrefs', () => {
       render(
         <Navigation />,
@@ -228,7 +228,7 @@ describe('Desktop Navigation', () => {
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
-    describe('Route Inference', () => {
+    describe('route inference', () => {
       async function assertRouteActivatesLinks(
         pathname: string,
         activePrimaryLink: string,
