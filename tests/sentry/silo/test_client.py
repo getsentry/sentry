@@ -328,7 +328,7 @@ class SiloClientTest(TestCase):
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, CellResolutionError)
-        assert err.args == ("Disallowed Region Silo IP address: 172.31.255.255",)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.255",)
 
         with (
             override_regions((cell,)),
@@ -347,7 +347,7 @@ class SiloClientTest(TestCase):
         assert mock_capture_exception.call_count == 1
         err = mock_capture_exception.call_args.args[0]
         assert isinstance(err, CellResolutionError)
-        assert err.args == ("Disallowed Region Silo IP address: 172.31.255.31",)
+        assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_allowed_cell_silo_ip_addresses("172.31.255.255")
