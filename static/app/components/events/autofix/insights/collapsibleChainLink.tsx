@@ -99,9 +99,8 @@ export function CollapsibleChainLink({
                       size="sm"
                       onClick={handleCancel}
                       tooltipProps={{title: t('Cancel')}}
-                    >
-                      <IconClose size="sm" />
-                    </Button>
+                      icon={<IconClose size="sm" />}
+                    />
                     <Button
                       type="submit"
                       priority="primary"

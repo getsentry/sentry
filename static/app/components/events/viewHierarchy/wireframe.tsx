@@ -330,12 +330,18 @@ function Wireframe({
     <Stack>
       <InteractionContainer>
         <Controls>
-          <Button size="xs" ref={setZoomIn} aria-label={t('Zoom In on wireframe')}>
-            <IconAdd size="xs" />
-          </Button>
-          <Button size="xs" ref={setZoomOut} aria-label={t('Zoom Out on wireframe')}>
-            <IconSubtract size="xs" />
-          </Button>
+          <Button
+            size="xs"
+            ref={setZoomIn}
+            aria-label={t('Zoom In on wireframe')}
+            icon={<IconAdd size="xs" />}
+          />
+          <Button
+            size="xs"
+            ref={setZoomOut}
+            aria-label={t('Zoom Out on wireframe')}
+            icon={<IconSubtract size="xs" />}
+          />
         </Controls>
         <InteractionOverlayCanvas
           data-test-id="view-hierarchy-wireframe-overlay"

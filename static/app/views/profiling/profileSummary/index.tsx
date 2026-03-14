@@ -577,9 +577,8 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         size="xs"
         onClick={props.onHideRegressionsClick}
         tooltipProps={{title: t('Expand or collapse the view')}}
-      >
-        <IconPanel size="xs" direction="right" />
-      </Button>
+        icon={<IconPanel size="xs" direction="right" />}
+      />
     </AggregateFlamegraphToolbarContainer>
   );
 }

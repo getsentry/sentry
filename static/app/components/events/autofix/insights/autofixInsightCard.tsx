@@ -173,9 +173,8 @@ export function AutofixInsightCard({
                   onClick={handleCancel}
                   tooltipProps={{title: t('Cancel')}}
                   aria-label={t('Cancel')}
-                >
-                  <IconClose size="sm" />
-                </Button>
+                  icon={<IconClose size="sm" />}
+                />
                 <Button
                   type="submit"
                   priority="primary"

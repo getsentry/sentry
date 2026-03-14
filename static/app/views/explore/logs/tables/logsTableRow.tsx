@@ -606,6 +606,7 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
       <Button
         priority="link"
         size="sm"
+        icon={<IconAdd size="md" />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -613,7 +614,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: theme.space.xs}} />
         {t('Add to filter')}
       </Button>
       <Button
@@ -641,7 +641,6 @@ function LogRowDetailsActions({
   fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
   tableDataRow: LogTableRowItem;
 }) {
-  const theme = useTheme();
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
@@ -678,10 +677,10 @@ function LogRowDetailsActions({
         <Button
           priority="link"
           size="sm"
+          icon={<IconJson size="md" />}
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: theme.space.xs}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>
