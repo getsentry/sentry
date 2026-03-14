@@ -30,7 +30,6 @@ import {
   SECONDARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NAVIGATION_TOUR_CONTENT,
   NavigationTour,
@@ -38,6 +37,7 @@ import {
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 interface SecondarySidebarProps {
@@ -65,7 +65,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     },
   });
 
-  const {activeGroup} = useNavigation();
+  const {activeGroup} = usePrimaryNavigation();
 
   return (
     <SecondarySidebarWrapper
@@ -211,7 +211,7 @@ interface SecondaryNavigationHeaderProps {
 }
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
 
@@ -253,7 +253,7 @@ interface SecondaryNavigationBodyProps {
 }
 
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Container
@@ -275,7 +275,7 @@ interface SectionTitleProps {
 }
 
 function SectionTitle(props: SectionTitleProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   if (props.canCollapse) {
     return (
@@ -325,7 +325,7 @@ interface SecondaryNavigationSectionProps {
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const collapsible = props.collapsible ?? true;
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
@@ -369,7 +369,7 @@ function SecondaryNavigationLink({
   const isActive =
     incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
 
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
   return (
@@ -410,7 +410,7 @@ interface SecondaryNavigationFooterProps {
 }
 
 function SecondaryNavigationFooter(props: SecondaryNavigationFooterProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   return <Footer layout={layout}>{props.children}</Footer>;
 }
 

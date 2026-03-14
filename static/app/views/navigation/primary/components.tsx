@@ -31,7 +31,7 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 interface PrimaryNavigationSidebarProps extends Omit<FlexProps, 'aria-label' | 'as'> {}
 
@@ -97,7 +97,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
 interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
 function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Stack
@@ -122,7 +122,7 @@ interface PrimaryNavigationItemBaseProps {
 }
 
 function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
       <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
@@ -141,7 +141,7 @@ interface PrimaryNavigationLinkProps
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
@@ -202,7 +202,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const organization = useOrganization();
   const showLabel = layout === 'mobile';
 
@@ -254,7 +254,7 @@ const PrimaryNavigationUnreadIndicator = styled(
     } & React.HTMLAttributes<HTMLSpanElement>
   ) => {
     const theme = useTheme();
-    const {layout} = useNavigation();
+    const {layout} = usePrimaryNavigation();
     const showLabel = layout === 'mobile';
     return (
       <Container
@@ -292,7 +292,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const TriggerWrap = props.triggerWrap ?? Fragment;
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   const showLabel = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
@@ -365,7 +365,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
 }
 
 function NavigationButton(props: ButtonProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Flex
@@ -400,7 +400,7 @@ interface PrimaryNavigationFooterItemsProps {
 }
 
 function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <Flex
@@ -514,7 +514,7 @@ type PrimaryNavigationButtonOverlayProps = {
 };
 
 export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
 
   return useOverlay({
     offset: 8,
@@ -546,7 +546,7 @@ function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayPro
 
 function ScrollableOverlay(props: OverlayProps) {
   const theme = useTheme();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   return (
     <Container
       overflowY="auto"

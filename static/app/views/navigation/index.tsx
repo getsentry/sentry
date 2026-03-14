@@ -13,20 +13,20 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
-  NavigationContextProvider,
-  useNavigation,
-} from 'sentry/views/navigation/navigationContext';
-import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
+import {
+  PrimaryNavigationContextProvider,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
   const organization = useOrganization();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const {visible} = useGlobalModal();
 
   useGlobalCommandPaletteActions();
@@ -65,7 +65,7 @@ function UserOnlyNavigation() {
 
 function NavigationLayout({children}: {children: React.ReactNode}) {
   const theme = useTheme();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
 
@@ -94,10 +94,10 @@ export function Navigation() {
   }
 
   return (
-    <NavigationContextProvider>
+    <PrimaryNavigationContextProvider>
       <NavigationTourProvider>
         <UserAndOrganizationNavigation />
       </NavigationTourProvider>
-    </NavigationContextProvider>
+    </PrimaryNavigationContextProvider>
   );
 }

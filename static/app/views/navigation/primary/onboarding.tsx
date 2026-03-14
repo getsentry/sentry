@@ -17,11 +17,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 function OnboardingItem({
@@ -38,7 +38,7 @@ function OnboardingItem({
   refetch: () => void;
 }) {
   const theme = useTheme();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');

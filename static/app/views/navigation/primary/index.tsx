@@ -24,7 +24,7 @@ import {
   NavigationTourElement,
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
+import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
@@ -210,7 +210,7 @@ export function PrimaryNavigationItems() {
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationWhatsNew />
           </ErrorBoundary>
-          <PrimaryNavigationHelp />
+          <PrimaryNavigationHelpMenu />
         </PrimaryNavigation.FooterItems>
         <PrimaryNavigation.FooterItems>
           <UserDropdown />

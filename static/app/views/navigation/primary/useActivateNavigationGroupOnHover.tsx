@@ -5,11 +5,10 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import type {NavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -32,7 +31,7 @@ interface UseActivateNavigationGroupOnHoverProps {
 export function useActivateNavigationGroupOnHover({
   ref,
 }: UseActivateNavigationGroupOnHoverProps) {
-  const {layout, setActiveGroup, activeGroup} = useNavigation();
+  const {layout, setActiveGroup, activeGroup} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const location = useLocation();
 
@@ -44,7 +43,7 @@ export function useActivateNavigationGroupOnHover({
   const windowHeight = useWindowHeight();
 
   return function makeNavigationItemProps(
-    group: NavigationGroup,
+    group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
     to: string,
     activeTo?: string
   ): Omit<Partial<LinkProps>, 'to'> {

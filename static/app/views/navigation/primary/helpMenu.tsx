@@ -14,7 +14,7 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
-export function PrimaryNavigationHelp() {
+export function PrimaryNavigationHelpMenu() {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();

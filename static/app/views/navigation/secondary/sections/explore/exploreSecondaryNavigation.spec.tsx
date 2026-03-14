@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Navigation} from 'sentry/views/navigation';
-import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
@@ -38,10 +38,10 @@ describe('ExploreSecondaryNavigation', () => {
 
   it('renders', () => {
     render(
-      <NavigationContextProvider>
+      <PrimaryNavigationContextProvider>
         <Navigation />
         <div id="main" />
-      </NavigationContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {
         organization,
         initialRouterConfig: {

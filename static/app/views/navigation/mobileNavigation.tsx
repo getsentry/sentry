@@ -16,10 +16,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 
 export function MobileNavigation() {
@@ -28,7 +28,7 @@ export function MobileNavigation() {
   const organization = useOrganization();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<'primary' | 'secondary' | 'closed'>('closed');
-  const {layout, activeGroup} = useNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
   const {currentStepId, endTour} = useNavigationTour();
 
   /** Close menu after any location pathname change */
