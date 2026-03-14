@@ -590,10 +590,7 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
         except Exception:
             logger.exception(
                 "seer.write_preferences.failed",
-                extra={
-                    "project_id": project.id,
-                    "organization_id": organization.id,
-                },
+                extra={"project_id": project.id, "organization_id": organization.id},
                 exc_info=True,
             )
 
