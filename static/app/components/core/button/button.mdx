@@ -160,38 +160,43 @@ The following table defines standardized call to action copy and icon pairings f
 
 ## Icon Padding Balance
 
-When a button includes an icon, the left padding is proportionally reduced by one step to
-achieve visual balance. This compensates for the optical weight the icon adds on the left side.
+When a button has both an icon and a label, the left padding is proportionally reduced by one
+step to achieve visual balance. Icon-only buttons retain symmetric padding.
 
 <Storybook.Demo>
   <Button size="md" icon={<IconAdd />}>
-    Medium with icon
+    With label
   </Button>
-  <Button size="md">Medium without icon</Button>
+  <Button size="md">No icon</Button>
+  <Button size="md" icon={<IconAdd />} aria-label="Add" />
 </Storybook.Demo>
 <Storybook.Demo>
   <Button size="sm" icon={<IconAdd />}>
-    Small with icon
+    With label
   </Button>
-  <Button size="sm">Small without icon</Button>
+  <Button size="sm">No icon</Button>
+  <Button size="sm" icon={<IconAdd />} aria-label="Add" />
 </Storybook.Demo>
 <Storybook.Demo>
   <Button size="xs" icon={<IconAdd />}>
-    XSmall with icon
+    With label
   </Button>
-  <Button size="xs">XSmall without icon</Button>
+  <Button size="xs">No icon</Button>
+  <Button size="xs" icon={<IconAdd />} aria-label="Add" />
 </Storybook.Demo>
 <Storybook.Demo>
   <Button size="zero" icon={<IconAdd />}>
-    Zero with icon
+    With label
   </Button>
-  <Button size="zero">Zero without icon</Button>
+  <Button size="zero">No icon</Button>
+  <Button size="zero" icon={<IconAdd />} aria-label="Add" />
 </Storybook.Demo>
-```jsx // Left padding is reduced by one step when icon is present
+```jsx // Left padding reduced when icon + label — icon-only stays symmetric
 <Button size="md" icon={<IconAdd />}>
-  Medium with icon
+  With label
 </Button>
-<Button size="md">Medium without icon</Button>
+<Button size="md">No icon</Button>
+<Button size="md" icon={<IconAdd />} aria-label="Add" />
 ```
 
 ## Disabled and Busy Buttons

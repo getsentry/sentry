@@ -45,7 +45,7 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'icon'> & {
+  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'icon' | 'children'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -81,8 +81,9 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'not-allowed',
     },
 
-    padding: getButtonSizeTheme(p.size, p.theme, !!p.icon).padding,
-    borderRadius: getButtonSizeTheme(p.size, p.theme, !!p.icon).borderRadius,
+    padding: getButtonSizeTheme(p.size, p.theme, !!p.icon && !!p.children).padding,
+    borderRadius: getButtonSizeTheme(p.size, p.theme, !!p.icon && !!p.children)
+      .borderRadius,
     border: 'none',
     color: buttonTheme.color,
 
