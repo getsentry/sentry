@@ -298,13 +298,13 @@ describe('desktop navigation', () => {
           [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
-          // ['/settings/org-slug/', 'Settings', 'General Settings'],
-          // [
-          //   '/settings/projects/project-slug/',
-          //   'Settings',
-          //   'General Settings',
-          //   '/settings/projects/:projectId/',
-          // ],
+          [`/settings/org-slug/`, 'Settings', 'General Settings'],
+          [
+            `/settings/org-slug/projects/project-slug/teams/`,
+            'Settings',
+            'Project Teams',
+            '/settings/:orgId/projects/:projectId/teams/',
+          ],
         ];
 
         for (const [pathname, primary, secondary, route] of cases) {
