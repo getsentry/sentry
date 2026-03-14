@@ -268,10 +268,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         bulk_set_project_preferences(organization_id, preferences_to_set)
 
         if features.has("organizations:seer-project-settings-dual-write", organization):
-            validated = []
+            validated_preferences = []
             for pref in preferences_to_set:
                 try:
-                    validated.append(SeerProjectPreference.validate(pref))
+                    validated_preferences.append(SeerProjectPreference.validate(pref))
                 except Exception:
                     logger.exception(
                         "seer.write_preferences.validation_failed",
@@ -280,8 +280,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                             "organization_id": organization_id,
                         },
                     )
-            if validated:
-                bulk_write_preferences_to_sentry_db(projects, validated)
+            if validated_preferences:
+                bulk_write_preferences_to_sentry_db(projects, validated_preferences)
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated

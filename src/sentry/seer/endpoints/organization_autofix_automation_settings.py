@@ -330,10 +330,10 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 bulk_set_project_preferences(organization.id, preferences_to_set)
 
                 if features.has("organizations:seer-project-settings-dual-write", organization):
-                    validated = []
+                    validated_preferences = []
                     for pref in preferences_to_set:
                         try:
-                            validated.append(SeerProjectPreference.validate(pref))
+                            validated_preferences.append(SeerProjectPreference.validate(pref))
                         except Exception:
                             logger.exception(
                                 "seer.write_preferences.validation_failed",
@@ -342,8 +342,8 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                                     "organization_id": organization.id,
                                 },
                             )
-                    if validated:
-                        bulk_write_preferences_to_sentry_db(projects, validated)
+                    if validated_preferences:
+                        bulk_write_preferences_to_sentry_db(projects, validated_preferences)
 
         self.create_audit_entry(
             request=request,
