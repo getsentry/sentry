@@ -40,6 +40,8 @@ import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/com
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
+const MotionContainer = motion.create(Container);
+
 interface SecondarySidebarProps {
   children: ReactNode;
 }
@@ -74,7 +76,10 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
       title={NAVIGATION_TOUR_CONTENT[stepId].title}
     >
       {({ref, ...props}) => (
-        <ResizeWrapper
+        <Container
+          width={SECONDARY_SIDEBAR_WIDTH}
+          height="100%"
+          right="0"
           {...props}
           ref={mergeRefs(resizableContainerRef, ref)}
           {...{
@@ -82,7 +87,9 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
           }}
         >
           <AnimatePresence mode="popLayout" initial={false}>
-            <MotionDiv
+            <MotionContainer
+              width="100%"
+              height="100%"
               key={activeGroup}
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
@@ -97,18 +104,30 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               >
                 {children}
               </Grid>
-              <ResizeHandle
-                ref={resizeHandleRef}
-                onMouseDown={handleStartResize}
-                onDoubleClick={() => {
-                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                }}
-                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-              />
-            </MotionDiv>
+              <Container
+                position="absolute"
+                right="0"
+                top="0"
+                bottom="0"
+                width="8px"
+                radius="lg"
+              >
+                {p => (
+                  <ResizeHandle
+                    {...p}
+                    ref={resizeHandleRef}
+                    onMouseDown={handleStartResize}
+                    onDoubleClick={() => {
+                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                    }}
+                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+                  />
+                )}
+              </Container>
+            </MotionContainer>
           </AnimatePresence>
-        </ResizeWrapper>
+        </Container>
       )}
     </SecondarySidebarWrapper>
   );
@@ -122,24 +141,7 @@ const SecondarySidebarWrapper = styled(NavigationTourElement)`
   height: 100%;
 `;
 
-const ResizeWrapper = styled('div')`
-  right: 0;
-  height: 100%;
-  width: ${SECONDARY_SIDEBAR_WIDTH}px;
-`;
-
-const MotionDiv = styled(motion.div)`
-  height: 100%;
-  width: 100%;
-`;
-
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
-  position: absolute;
-  right: 0px;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  border-radius: 8px;
   z-index: ${p => p.theme.zIndex.drawer + 2};
   cursor: ${p => (p.atMinWidth ? 'e-resize' : p.atMaxWidth ? 'w-resize' : 'ew-resize')};
 
@@ -374,8 +376,8 @@ function SecondaryNavigationLink({
 
   return (
     <NavigationLink
-      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       {...linkProps}
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       to={to}
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
@@ -404,15 +406,6 @@ function SecondaryNavigationLink({
       {trailingItems}
     </NavigationLink>
   );
-}
-
-interface SecondaryNavigationFooterProps {
-  children: ReactNode;
-}
-
-function SecondaryNavigationFooter(props: SecondaryNavigationFooterProps) {
-  const {layout} = usePrimaryNavigation();
-  return <Footer layout={layout}>{props.children}</Footer>;
 }
 
 function SecondaryNavigationSeparator() {
@@ -472,6 +465,7 @@ interface CollapsibleProps {
   collapsed: boolean;
   disabled?: boolean;
 }
+
 function Collapsible(props: CollapsibleProps) {
   if (props.disabled) {
     return props.children;
@@ -579,8 +573,8 @@ const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
 
 const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   font-weight: ${p.theme.font.weight.sans.medium};
-  color: ${p.theme.tokens.content.primary};
   padding: ${p.theme.space.sm} ${p.theme.space.lg};
+  color: ${p.theme.tokens.content.primary};
   width: 100%;
   ${p.isMobile &&
   css`
@@ -598,9 +592,6 @@ const SectionTitleCollapsible = styled(Button, {
   shouldForwardProp: (prop: string) => !['isMobile', 'isCollapsed'].includes(prop),
 })<{isCollapsed: boolean; isMobile: boolean}>`
   ${sectionTitleStyles}
-  display: flex;
-  justify-content: space-between;
-  font-size: ${p => p.theme.font.size.md};
 
   & > span:last-child {
     flex: 1;
@@ -618,11 +609,11 @@ const SectionTitleLabelWrap = styled('div')`
   text-align: left;
 `;
 
-interface SidebarLink extends LinkProps {
+interface NavigationLink extends LinkProps {
   layout: 'mobile' | 'sidebar';
 }
 
-const NavigationLink = styled(Link)<SidebarLink>`
+const NavigationLink = styled(Link)<NavigationLink>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
@@ -678,17 +669,6 @@ const NavigationLink = styled(Link)<SidebarLink>`
   }
 `;
 
-const Footer = styled('div')<{layout: 'mobile' | 'sidebar'}>`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-
-  ${p =>
-    p.layout === 'mobile' &&
-    css`
-      padding: ${p.theme.space.md} 0;
-    `}
-`;
-
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
   Body: SecondaryNavigationBody,
@@ -697,7 +677,6 @@ export const SecondaryNavigation = {
   List: SecondaryNavigationList,
   ListItem: SecondaryNavigationListItem,
   Link: SecondaryNavigationLink,
-  Footer: SecondaryNavigationFooter,
   ProjectIcon: SecondaryNavigationProjectIcon,
   Sidebar: SecondarySidebar,
 };
