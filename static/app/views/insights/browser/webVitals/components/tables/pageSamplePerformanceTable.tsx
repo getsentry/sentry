@@ -427,9 +427,11 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           <AlignCenter>
             {profileTarget && profileExists(profileId) ? (
               <Tooltip title={t('View Profile')}>
-                <LinkButton to={profileTarget} size="xs">
-                  <IconProfiling size="xs" />
-                </LinkButton>
+                <LinkButton
+                  icon={<IconProfiling size="xs" />}
+                  to={profileTarget}
+                  size="xs"
+                />
               </Tooltip>
             ) : (
               <NoValue>{NO_VALUE}</NoValue>
@@ -466,9 +468,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           Object.keys(replayTarget).length > 0 &&
           replayExists(row[key]) ? (
             <Tooltip title={t('View Replay')}>
-              <LinkButton to={replayTarget} size="xs">
-                <IconPlay size="xs" />
-              </LinkButton>
+              <LinkButton icon={<IconPlay size="xs" />} to={replayTarget} size="xs" />
             </Tooltip>
           ) : (
             <NoValue>{NO_VALUE}</NoValue>

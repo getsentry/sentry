@@ -106,9 +106,12 @@ export function EventSamplesTable({
         <IconWrapper>
           {profileTarget && (
             <Tooltip title={t('View Profile')}>
-              <LinkButton to={profileTarget} size="xs" aria-label={t('View Profile')}>
-                <IconProfiling size="xs" />
-              </LinkButton>
+              <LinkButton
+                icon={<IconProfiling size="xs" />}
+                to={profileTarget}
+                size="xs"
+                aria-label={t('View Profile')}
+              />
             </Tooltip>
           )}
         </IconWrapper>
