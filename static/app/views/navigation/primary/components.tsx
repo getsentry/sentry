@@ -247,12 +247,12 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
+interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant: 'accent' | 'danger' | 'warning';
+}
+
 const PrimaryNavigationUnreadIndicator = styled(
-  (
-    props: {
-      variant: 'accent' | 'danger' | 'warning';
-    } & React.HTMLAttributes<HTMLSpanElement>
-  ) => {
+  (props: PrimaryNavigationUnreadIndicatorProps) => {
     const theme = useTheme();
     const {layout} = usePrimaryNavigation();
     const showLabel = layout === 'mobile';
@@ -405,7 +405,6 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
   return (
     <Flex
       display="flex"
-      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
       align="center"
       justify={layout === 'mobile' ? 'start' : 'center'}
       width={layout === 'mobile' ? '100%' : 'auto'}
