@@ -158,11 +158,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
             except Exception:
                 logger.exception(
                     "seer.write_preferences.failed",
-                    extra={
-                        "project_id": project.id,
-                        "organization_id": project.organization.id,
-                    },
-                    exc_info=True,
+                    extra={"project_id": project.id, "organization_id": project.organization.id},
                 )
 
         return Response(status=204)

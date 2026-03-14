@@ -275,9 +275,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 bulk_write_preferences_to_sentry_db(projects, validated_preferences)
             except Exception:
                 logger.exception(
-                    "seer.write_preferences.failed",
-                    extra={"organization_id": organization_id},
-                    exc_info=True,
+                    "seer.write_preferences.failed", extra={"organization_id": organization_id}
                 )
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
