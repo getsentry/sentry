@@ -501,11 +501,11 @@ def write_preference_to_sentry_db(project: Project, preference: SeerProjectPrefe
     _write_preferences_to_sentry_db([(project, preference)])
 
 
-def bulk_write_preferences_to_sentry_db(preferences: list[SeerProjectPreference]) -> None:
+def bulk_write_preferences_to_sentry_db(
+    projects: list[Project], preferences: list[SeerProjectPreference]
+) -> None:
     """Write multiple Seer project preferences using bulk operations."""
-    projects_by_id = {
-        p.id: p for p in Project.objects.filter(id__in=[pref.project_id for pref in preferences])
-    }
+    projects_by_id = {p.id: p for p in projects}
 
     project_preferences: list[tuple[Project, SeerProjectPreference]] = []
     for pref in preferences:
@@ -521,10 +521,8 @@ def bulk_write_preferences_to_sentry_db(preferences: list[SeerProjectPreference]
     _write_preferences_to_sentry_db(project_preferences)
 
 
-def set_project_seer_preference(
-    preference: SeerProjectPreference, organization: Organization, project: Project
-) -> None:
-    """Set Seer project preference for a single project."""
+def set_project_seer_preference(preference: SeerProjectPreference) -> None:
+    """Set Seer project preference for a single project via Seer API."""
     response = make_set_project_preference_request(
         SetProjectPreferenceRequest(preference=preference.dict()),
         timeout=15,
@@ -532,18 +530,6 @@ def set_project_seer_preference(
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        try:
-            write_preference_to_sentry_db(project, preference)
-        except Exception:
-            logger.exception(
-                "seer.write_preference.dual_write_failed",
-                extra={
-                    "project_id": project.id,
-                    "organization_id": organization.id,
-                },
-            )
 
 
 def has_project_connected_repos(
@@ -607,36 +593,20 @@ def bulk_get_project_preferences(organization_id: int, project_ids: list[int]) -
     return result.get("preferences", {})
 
 
-def bulk_set_project_preferences(organization: Organization, preferences: list[dict]) -> None:
-    """Bulk set Seer project preferences for multiple projects."""
+def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:
+    """Bulk set Seer project preferences for multiple projects via Seer API."""
     if not preferences:
         return
 
-    viewer_context = SeerViewerContext(organization_id=organization.id)
+    viewer_context = SeerViewerContext(organization_id=organization_id)
     response = make_bulk_set_project_preferences_request(
-        BulkSetProjectPreferencesRequest(organization_id=organization.id, preferences=preferences),
+        BulkSetProjectPreferencesRequest(organization_id=organization_id, preferences=preferences),
         timeout=15,
         viewer_context=viewer_context,
     )
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        validated_preferences = []
-        for pref in preferences:
-            try:
-                validated_preferences.append(SeerProjectPreference.validate(pref))
-            except Exception:
-                logger.exception(
-                    "seer.write_preferences.validation_failed",
-                    extra={
-                        "project_id": pref.get("project_id"),
-                        "organization_id": organization.id,
-                    },
-                )
-        if validated_preferences:
-            bulk_write_preferences_to_sentry_db(validated_preferences)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:

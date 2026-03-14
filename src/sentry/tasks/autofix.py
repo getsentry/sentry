@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
@@ -18,10 +18,12 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    bulk_write_preferences_to_sentry_db,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_seer_seat_based_tier_cache_key,
 )
+from sentry.seer.models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
@@ -263,7 +265,23 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
         )
 
     if len(preferences_to_set) > 0:
-        bulk_set_project_preferences(organization, preferences_to_set)
+        bulk_set_project_preferences(organization_id, preferences_to_set)
+
+        if features.has("organizations:seer-project-settings-dual-write", organization):
+            validated = []
+            for pref in preferences_to_set:
+                try:
+                    validated.append(SeerProjectPreference.validate(pref))
+                except Exception:
+                    logger.exception(
+                        "seer.write_preferences.validation_failed",
+                        extra={
+                            "project_id": pref.get("project_id"),
+                            "organization_id": organization_id,
+                        },
+                    )
+            if validated:
+                bulk_write_preferences_to_sentry_db(projects, validated)
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated

@@ -625,7 +625,7 @@ class TestSetProjectSeerPreference(TestCase):
             automated_run_stopping_point="code_changes",
         )
 
-        set_project_seer_preference(preference, self.organization, self.project)
+        set_project_seer_preference(preference)
 
         mock_make_request.assert_called_once()
         call = mock_make_request.call_args
@@ -652,7 +652,7 @@ class TestSetProjectSeerPreference(TestCase):
             automated_run_stopping_point="open_pr",
         )
 
-        set_project_seer_preference(preference, self.organization, self.project)
+        set_project_seer_preference(preference)
 
         call = mock_make_request.call_args
         actual_body = orjson.loads(call.kwargs["body"])
@@ -673,7 +673,7 @@ class TestSetProjectSeerPreference(TestCase):
         )
 
         with pytest.raises(SeerApiError):
-            set_project_seer_preference(preference, self.organization, self.project)
+            set_project_seer_preference(preference)
 
 
 class TestWritePreferencesToSentryDb(TestCase):
@@ -922,7 +922,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ),
         ]
 
-        bulk_write_preferences_to_sentry_db(preferences)
+        bulk_write_preferences_to_sentry_db([self.project, project2], preferences)
 
         p1_repos = SeerProjectRepository.objects.filter(project=self.project)
         assert len(p1_repos) == 1
@@ -937,8 +937,6 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
 
     def test_bulk_write_replaces_per_project(self):
-        # When bulk writing, existing repos for included projects are replaced,
-        # but repos for projects NOT in the preferences list are untouched.
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(
             project=project2,
@@ -955,6 +953,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         )
 
         bulk_write_preferences_to_sentry_db(
+            [self.project, project2],
             [
                 SeerProjectPreference(
                     organization_id=self.organization.id,
@@ -970,9 +969,11 @@ class TestWritePreferencesToSentryDb(TestCase):
                         ),
                     ],
                 ),
-            ]
+            ],
         )
 
+        # When bulk writing, existing repos for included projects are replaced,
+        # but repos for projects NOT in the preferences list are untouched.
         p1_repo = SeerProjectRepository.objects.get(project=self.project)
         assert p1_repo.branch_name == "new-branch"
         p2_repo = SeerProjectRepository.objects.get(project=project2)

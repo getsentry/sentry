@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.db import router, transaction
@@ -8,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -24,11 +25,14 @@ from sentry.seer.autofix.utils import (
     SeerAutofixSettingsSerializer,
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    bulk_write_preferences_to_sentry_db,
     default_seer_project_preference,
 )
 from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
+
+logger = logging.getLogger(__name__)
 
 
 def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
@@ -323,7 +327,23 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                     )
 
             if preferences_to_set:
-                bulk_set_project_preferences(organization, preferences_to_set)
+                bulk_set_project_preferences(organization.id, preferences_to_set)
+
+                if features.has("organizations:seer-project-settings-dual-write", organization):
+                    validated = []
+                    for pref in preferences_to_set:
+                        try:
+                            validated.append(SeerProjectPreference.validate(pref))
+                        except Exception:
+                            logger.exception(
+                                "seer.write_preferences.validation_failed",
+                                extra={
+                                    "project_id": pref.get("project_id"),
+                                    "organization_id": organization.id,
+                                },
+                            )
+                    if validated:
+                        bulk_write_preferences_to_sentry_db(projects, validated)
 
         self.create_audit_entry(
             request=request,
