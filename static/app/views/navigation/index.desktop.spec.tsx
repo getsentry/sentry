@@ -239,7 +239,7 @@ describe('desktop navigation', () => {
           <Navigation />,
           navigationContext({
             organization: {features: ALL_AVAILABLE_FEATURES},
-            initialRouterConfig: {location: {pathname}, route},
+            initialRouterConfig: {location: {pathname}, route: route ?? ''},
           })
         );
 
