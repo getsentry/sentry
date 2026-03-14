@@ -342,8 +342,14 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                                     "organization_id": organization.id,
                                 },
                             )
-                    if validated_preferences:
+                    try:
                         bulk_write_preferences_to_sentry_db(projects, validated_preferences)
+                    except Exception:
+                        logger.exception(
+                            "seer.write_preferences.failed",
+                            extra={"organization_id": organization.id},
+                            exc_info=True,
+                        )
 
         self.create_audit_entry(
             request=request,

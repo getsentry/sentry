@@ -157,11 +157,12 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                 write_preference_to_sentry_db(project, preference)
             except Exception:
                 logger.exception(
-                    "seer.write_preference.failed",
+                    "seer.write_preferences.failed",
                     extra={
                         "project_id": project.id,
                         "organization_id": project.organization.id,
                     },
+                    exc_info=True,
                 )
 
         return Response(status=204)

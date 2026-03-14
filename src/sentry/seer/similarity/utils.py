@@ -589,11 +589,12 @@ def set_default_project_auto_open_prs(organization: Organization, project: Proje
             write_preference_to_sentry_db(project, preference)
         except Exception:
             logger.exception(
-                "seer.write_preference.dual_write_failed",
+                "seer.write_preferences.failed",
                 extra={
                     "project_id": project.id,
                     "organization_id": organization.id,
                 },
+                exc_info=True,
             )
 
 

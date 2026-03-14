@@ -449,7 +449,7 @@ def _write_preferences_to_sentry_db(
     for project, pref in project_preferences:
         if project.id != pref.project_id:
             logger.warning(
-                "seer.write_preference.project_id_mismatch",
+                "seer.write_preferences.project_id_mismatch",
                 extra={"project_id": project.id, "preference_project_id": pref.project_id},
             )
             continue
@@ -459,7 +459,7 @@ def _write_preferences_to_sentry_db(
         for repo_def in pref.repositories:
             if repo_def.repository_id is None:
                 logger.warning(
-                    "seer.write_preference.repo_missing_id",
+                    "seer.write_preferences.repo_missing_id",
                     extra={
                         "project_id": project.id,
                         "organization_id": project.organization_id,
@@ -518,7 +518,8 @@ def bulk_write_preferences_to_sentry_db(
             continue
         project_preferences.append((project, pref))
 
-    _write_preferences_to_sentry_db(project_preferences)
+    if project_preferences:
+        _write_preferences_to_sentry_db(project_preferences)
 
 
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
