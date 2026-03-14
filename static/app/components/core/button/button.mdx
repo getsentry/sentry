@@ -158,6 +158,42 @@ The following table defines standardized call to action copy and icon pairings f
 | <IconZoom />                               | `zoom`      | Zoom Out                               | Applies to charts and zooms out (i.e. 200%)               |
 | <IconStar />                               | `star`      | Favorite                               | Hoisting item to primary view                             |
 
+## Icon Padding Balance
+
+When a button includes an icon, the left padding is proportionally reduced by one step to
+achieve visual balance. This compensates for the optical weight the icon adds on the left side.
+
+<Storybook.Demo>
+  <Button size="md" icon={<IconAdd />}>
+    Medium with icon
+  </Button>
+  <Button size="md">Medium without icon</Button>
+</Storybook.Demo>
+<Storybook.Demo>
+  <Button size="sm" icon={<IconAdd />}>
+    Small with icon
+  </Button>
+  <Button size="sm">Small without icon</Button>
+</Storybook.Demo>
+<Storybook.Demo>
+  <Button size="xs" icon={<IconAdd />}>
+    XSmall with icon
+  </Button>
+  <Button size="xs">XSmall without icon</Button>
+</Storybook.Demo>
+<Storybook.Demo>
+  <Button size="zero" icon={<IconAdd />}>
+    Zero with icon
+  </Button>
+  <Button size="zero">Zero without icon</Button>
+</Storybook.Demo>
+```jsx // Left padding is reduced by one step when icon is present
+<Button size="md" icon={<IconAdd />}>
+  Medium with icon
+</Button>
+<Button size="md">Medium without icon</Button>
+```
+
 ## Disabled and Busy Buttons
 
 Disabled and busy buttons are used to indicate the status of an item. Busy buttons should be used to indicate that an action is in progress. Disabled buttons should be used to indicate that an action is not available.

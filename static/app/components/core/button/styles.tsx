@@ -45,7 +45,7 @@ const elevation = {
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
-  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
+  p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled' | 'icon'> & {
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -81,8 +81,8 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'not-allowed',
     },
 
-    padding: getButtonSizeTheme(p.size, p.theme).padding,
-    borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
+    padding: getButtonSizeTheme(p.size, p.theme, !!p.icon).padding,
+    borderRadius: getButtonSizeTheme(p.size, p.theme, !!p.icon).borderRadius,
     border: 'none',
     color: buttonTheme.color,
 
@@ -295,27 +295,39 @@ function getButtonTheme(type: ButtonType, theme: Theme) {
   }
 }
 
-function getButtonSizeTheme(size: ButtonProps['size'], theme: Theme): StrictCSSObject {
+function getButtonSizeTheme(
+  size: ButtonProps['size'],
+  theme: Theme,
+  hasIcon = false
+): StrictCSSObject {
   switch (size) {
     case 'md':
       return {
         borderRadius: theme.radius.lg,
-        padding: `${theme.space.md} ${theme.space.xl}`,
+        padding: hasIcon
+          ? `${theme.space.md} ${theme.space.xl} ${theme.space.md} ${theme.space.lg}`
+          : `${theme.space.md} ${theme.space.xl}`,
       };
     case 'sm':
       return {
         borderRadius: theme.radius.md,
-        padding: `${theme.space.md} ${theme.space.lg}`,
+        padding: hasIcon
+          ? `${theme.space.md} ${theme.space.lg} ${theme.space.md} ${theme.space.md}`
+          : `${theme.space.md} ${theme.space.lg}`,
       };
     case 'xs':
       return {
         borderRadius: theme.radius.sm,
-        padding: `${theme.space.sm} ${theme.space.md}`,
+        padding: hasIcon
+          ? `${theme.space.sm} ${theme.space.md} ${theme.space.sm} ${theme.space.sm}`
+          : `${theme.space.sm} ${theme.space.md}`,
       };
     case 'zero':
       return {
         borderRadius: theme.radius.xs,
-        padding: `${theme.space.xs} ${theme.space.sm}`,
+        padding: hasIcon
+          ? `${theme.space.xs} ${theme.space.sm} ${theme.space.xs} ${theme.space.xs}`
+          : `${theme.space.xs} ${theme.space.sm}`,
       };
     default:
       return {};
