@@ -166,7 +166,7 @@ export function PrimaryNavigationWhatsNew() {
       <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
-        indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
+        indicator="accent"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,

@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
+import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -247,7 +248,11 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
 }
 
 const PrimaryNavigationUnreadIndicator = styled(
-  (props: {variant: 'accent' | 'danger' | 'warning'}) => {
+  (
+    props: {
+      variant: 'accent' | 'danger' | 'warning';
+    } & React.HTMLAttributes<HTMLSpanElement>
+  ) => {
     const theme = useTheme();
     const {layout} = useNavigation();
     const showLabel = layout === 'mobile';
@@ -261,16 +266,7 @@ const PrimaryNavigationUnreadIndicator = styled(
         height="10px"
         radius="full"
       >
-        {p => {
-          return (
-            <PrimaryNavigationUnreadIndicator
-              {...p}
-              {...props}
-              data-unread-indicator
-              variant={props.variant}
-            />
-          );
-        }}
+        {p => <div {...mergeProps(p, props)} data-unread-indicator />}
       </Container>
     );
   }
