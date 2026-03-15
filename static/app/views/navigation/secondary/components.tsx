@@ -1,13 +1,12 @@
-import {useRef, type ReactNode} from 'react';
+import {Fragment, useRef, type ReactNode} from 'react';
 import type {To} from 'react-router-dom';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
@@ -282,56 +281,60 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
 
 interface SectionTitleProps {
   canCollapse: boolean;
+  children: ReactNode;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  title: ReactNode;
   trailingItems?: ReactNode;
 }
 
 function SectionTitle(props: SectionTitleProps) {
-  const {layout} = usePrimaryNavigation();
-
   if (props.canCollapse) {
     return (
-      <SectionTitleCollapsible
-        size="sm"
-        priority="transparent"
-        isMobile={layout === 'mobile'}
-        onClick={() => {
-          props.setIsCollapsed(!props.isCollapsed);
-        }}
-        isCollapsed={props.isCollapsed}
-      >
-        <SectionTitleLabelWrap>{props.title}</SectionTitleLabelWrap>
-        <Flex align="center" flexShrink={0}>
-          {props.trailingItems ? (
-            <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
-          ) : (
-            props.canCollapse && (
-              <IconChevron
-                direction={props.isCollapsed ? 'down' : 'up'}
-                size="xs"
-                variant="muted"
-              />
-            )
-          )}
-        </Flex>
-      </SectionTitleCollapsible>
+      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+        {p => (
+          <Button
+            {...p}
+            size="sm"
+            priority="transparent"
+            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+          >
+            <Text bold ellipsis align="left">
+              {props.children}
+            </Text>
+            <Flex align="center" flexShrink={0}>
+              {props.trailingItems ? (
+                <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
+              ) : (
+                props.canCollapse && (
+                  <IconChevron
+                    direction={props.isCollapsed ? 'down' : 'up'}
+                    size="xs"
+                    variant="muted"
+                  />
+                )
+              )}
+            </Flex>
+          </Button>
+        )}
+      </Grid>
     );
   }
 
   return (
-    <SectionTitleUnCollapsible isMobile={layout === 'mobile'}>
-      {props.title}
-      {props.trailingItems}
-    </SectionTitleUnCollapsible>
+    <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      <Text bold ellipsis align="left">
+        {props.children}
+      </Text>
+      <Flex justify="end" align="center" flexShrink={0}>
+        {props.trailingItems}
+      </Flex>
+    </Grid>
   );
 }
 
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
-  className?: string;
   collapsible?: boolean;
   title?: ReactNode;
   trailingItems?: ReactNode;
@@ -348,20 +351,21 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Section className={props.className} layout={layout} data-nav-section>
+    <Container padding="md sm" data-nav-section>
       {props.title ? (
         <SectionTitle
-          title={props.title}
           trailingItems={props.trailingItems}
           canCollapse={canCollapse}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}
-        />
+        >
+          {props.title}
+        </SectionTitle>
       ) : null}
       <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
         {props.children}
       </Collapsible>
-    </Section>
+    </Container>
   );
 }
 
@@ -373,7 +377,6 @@ function SecondaryNavigationLink({
   isActive: incomingIsActive,
   end = false,
   leadingItems,
-  showInteractionStateLayer = true,
   trailingItems,
   onClick,
   ...linkProps
@@ -409,9 +412,6 @@ function SecondaryNavigationLink({
       }}
     >
       {leadingItems}
-      {showInteractionStateLayer && (
-        <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
-      )}
       <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
         {children}
       </Text>
@@ -422,7 +422,7 @@ function SecondaryNavigationLink({
 
 function SecondaryNavigationSeparator() {
   return (
-    <Container padding="md xl">
+    <Container padding="0 xl">
       <Separator orientation="horizontal" border="muted" />
     </Container>
   );
@@ -434,40 +434,42 @@ interface SecondaryNavigationProjectIconProps {
 }
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
-  let renderedIcons: React.ReactNode;
+  let icons: React.ReactNode;
 
   switch (props.projectPlatforms.length) {
     case 0:
-      renderedIcons = props.allProjects ? (
+      icons = props.allProjects ? (
         <IconAllProjects size="md" />
       ) : (
         <IconMyProjects size="md" />
       );
       break;
     case 1:
-      renderedIcons = (
-        <IconContainer>
-          <StyledPlatformIcon platform={props.projectPlatforms[0]!} size={18} />
-          <BorderOverlay />
-        </IconContainer>
-      );
+      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={18} />;
       break;
     default:
-      renderedIcons = (
-        <IconContainer>
-          {props.projectPlatforms.slice(0, 2).map((platform, index) => (
-            <PlatformIconWrapper key={platform} index={index}>
-              <StyledPlatformIcon platform={platform} size={14} />
-              <BorderOverlay />
-            </PlatformIconWrapper>
-          ))}
-        </IconContainer>
+      icons = (
+        <Fragment>
+          <Container position="absolute" top="0" left="0" width="14px" height="14px">
+            {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
+          </Container>
+          <Container position="absolute" bottom="0" right="0" width="14px" height="14px">
+            {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
+          </Container>
+        </Fragment>
       );
   }
 
   return (
-    <Stack justify="center" align="center" flexShrink={0} data-project-icon>
-      {renderedIcons}
+    <Stack
+      flexShrink={0}
+      justify="center"
+      align="center"
+      width="18px"
+      height="18px"
+      data-project-icon
+    >
+      {icons}
     </Stack>
   );
 }
@@ -486,7 +488,10 @@ function Collapsible(props: CollapsibleProps) {
   return (
     <AnimatePresence mode="wait" initial={false}>
       {!props.collapsed && (
-        <CollapsibleWrapper
+        <MotionFlex
+          // This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
+          // when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
+          direction="column-reverse"
           key="collapsible-content"
           variants={{
             collapsed: {
@@ -494,7 +499,6 @@ function Collapsible(props: CollapsibleProps) {
               overflow: 'hidden',
             },
             expanded: {
-              // overflow: 'visible',
               height: 'auto',
             },
           }}
@@ -514,112 +518,13 @@ function Collapsible(props: CollapsibleProps) {
             from applying to the children, which may cause the children's order to be reversed
           */}
           <div>{props.children}</div>
-        </CollapsibleWrapper>
+        </MotionFlex>
       )}
     </AnimatePresence>
   );
 }
 
-const CollapsibleWrapper = styled(motion.div)`
-  display: flex;
-  /*
-    This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
-    when un-collapsed, and are "sucked in" to the header when collapsed, rather than a standard accordion effect.
-  */
-  flex-direction: column-reverse;
-  margin: 0;
-`;
-
-const IconContainer = styled('div')`
-  position: relative;
-  display: grid;
-  width: 18px;
-  height: 18px;
-`;
-
-const BorderOverlay = styled('div')`
-  position: absolute;
-  inset: 0;
-  border: 1px solid ${p => p.theme.colors.gray100};
-  border-radius: 3px;
-  pointer-events: none;
-`;
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  display: block;
-`;
-
-const PlatformIconWrapper = styled('div')<{index: number}>`
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  ${p =>
-    p.index === 0 &&
-    css`
-      top: 0;
-      left: 0;
-    `}
-  ${p =>
-    p.index === 1 &&
-    css`
-      bottom: 0;
-      right: 0;
-    `}
-`;
-
-const Section = styled('div')<{layout: 'mobile' | 'sidebar'}>`
-  ${p =>
-    p.layout === 'sidebar' &&
-    css`
-      padding: 0 ${p.theme.space.sm};
-    `}
-
-  &:first-child {
-    padding-top: ${p => p.theme.space.md};
-  }
-
-  &:last-child {
-    padding-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const sectionTitleStyles = (p: {isMobile: boolean; theme: Theme}) => css`
-  font-weight: ${p.theme.font.weight.sans.medium};
-  padding: ${p.theme.space.sm} ${p.theme.space.lg};
-  color: ${p.theme.tokens.content.primary};
-  width: 100%;
-  ${p.isMobile &&
-  css`
-    padding: ${p.theme.space.md} ${p.theme.space.lg} ${p.theme.space.md} 48px;
-  `}
-`;
-
-const SectionTitleUnCollapsible = styled('div')<{isMobile: boolean}>`
-  ${sectionTitleStyles}
-  display: flex;
-  justify-content: space-between;
-`;
-
-const SectionTitleCollapsible = styled(Button, {
-  shouldForwardProp: (prop: string) => !['isMobile', 'isCollapsed'].includes(prop),
-})<{isCollapsed: boolean; isMobile: boolean}>`
-  ${sectionTitleStyles}
-
-  & > span:last-child {
-    flex: 1;
-    justify-content: space-between;
-    white-space: nowrap;
-  }
-`;
-
-const SectionTitleLabelWrap = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left;
-`;
+const MotionFlex = motion.create(Flex);
 
 interface NavigationLink extends LinkProps {
   layout: 'mobile' | 'sidebar';

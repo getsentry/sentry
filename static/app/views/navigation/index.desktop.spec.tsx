@@ -346,15 +346,21 @@ describe('desktop navigation', () => {
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
-        expect(
-          await within(secondaryNav).findByRole('link', {name: 'Organizations'})
-        ).toBeInTheDocument();
-        expect(
-          within(secondaryNav).getByRole('link', {name: 'Projects'})
-        ).toBeInTheDocument();
-        expect(
-          within(secondaryNav).getByRole('link', {name: 'Users'})
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Organizations'})
+          ).toBeInTheDocument();
+        });
+        await waitFor(() => {
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Projects'})
+          ).toBeInTheDocument();
+        });
+        await waitFor(() => {
+          expect(
+            within(secondaryNav).getByRole('link', {name: 'Users'})
+          ).toBeInTheDocument();
+        });
       });
 
       it('customer domain', async () => {
