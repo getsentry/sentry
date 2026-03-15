@@ -3,24 +3,37 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
+import {GroupSearchViewVisibility} from 'sentry/views/issueList/types';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('EditableIssueViewHeader', () => {
   const mockView: GroupSearchView = {
     id: '1',
     name: 'My Custom View',
     query: 'is:unresolved',
-    querySort: 'date',
+    querySort: IssueSortOptions.DATE,
     projects: [],
     environments: [],
-    timeFilters: {},
+    timeFilters: {
+      end: null,
+      period: '14d',
+      start: null,
+      utc: null,
+    },
     createdBy: {
       id: '1',
       name: 'Test User',
       email: 'test@example.com',
+      ip_address: '',
+      username: 'testuser',
     },
     dateCreated: '2024-01-01T00:00:00Z',
     dateUpdated: '2024-01-01T00:00:00Z',
+    lastVisited: null,
+    stars: 0,
+    starred: false,
+    visibility: GroupSearchViewVisibility.OWNER,
   };
 
   beforeEach(() => {

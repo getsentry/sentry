@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 
 import * as Storybook from 'sentry/stories';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
+import {GroupSearchViewVisibility} from 'sentry/views/issueList/types';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export default Storybook.story('EditableIssueViewHeader', story => {
   story('Default View', () => {
@@ -10,17 +12,28 @@ export default Storybook.story('EditableIssueViewHeader', story => {
       id: '1',
       name: 'My Custom View',
       query: 'is:unresolved',
-      querySort: 'date',
+      querySort: IssueSortOptions.DATE,
       projects: [],
       environments: [],
-      timeFilters: {},
+      timeFilters: {
+        end: null,
+        period: '14d',
+        start: null,
+        utc: null,
+      },
       createdBy: {
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
+        ip_address: '',
+        username: 'testuser',
       },
       dateCreated: '2024-01-01T00:00:00Z',
       dateUpdated: '2024-01-01T00:00:00Z',
+      lastVisited: null,
+      stars: 0,
+      starred: false,
+      visibility: GroupSearchViewVisibility.OWNER,
     };
 
     return (
@@ -62,17 +75,28 @@ export default Storybook.story('EditableIssueViewHeader', story => {
       id: '2',
       name: 'Production Errors',
       query: 'is:unresolved environment:production',
-      querySort: 'freq',
+      querySort: IssueSortOptions.FREQ,
       projects: [],
       environments: ['production'],
-      timeFilters: {},
+      timeFilters: {
+        end: null,
+        period: '14d',
+        start: null,
+        utc: null,
+      },
       createdBy: {
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
+        ip_address: '',
+        username: 'testuser',
       },
       dateCreated: '2024-01-01T00:00:00Z',
       dateUpdated: '2024-01-01T00:00:00Z',
+      lastVisited: null,
+      stars: 0,
+      starred: false,
+      visibility: GroupSearchViewVisibility.OWNER,
     };
 
     return (
@@ -96,17 +120,28 @@ export default Storybook.story('EditableIssueViewHeader', story => {
       id: '3',
       name: 'This is a very long view name that demonstrates how the component handles text overflow and wrapping in the edit mode',
       query: 'is:unresolved',
-      querySort: 'date',
+      querySort: IssueSortOptions.DATE,
       projects: [],
       environments: [],
-      timeFilters: {},
+      timeFilters: {
+        end: null,
+        period: '14d',
+        start: null,
+        utc: null,
+      },
       createdBy: {
         id: '1',
         name: 'Test User',
         email: 'test@example.com',
+        ip_address: '',
+        username: 'testuser',
       },
       dateCreated: '2024-01-01T00:00:00Z',
       dateUpdated: '2024-01-01T00:00:00Z',
+      lastVisited: null,
+      stars: 0,
+      starred: false,
+      visibility: GroupSearchViewVisibility.OWNER,
     };
 
     return (
