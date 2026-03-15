@@ -33,6 +33,9 @@ const ALL_AVAILABLE_FEATURES = [
 
 const mockUsingCustomerDomain = jest.fn();
 
+// Navigation inference tests are slow and will exceed the default 5 second timeout.
+jest.setTimeout(30_000);
+
 jest.mock('sentry/constants', () => {
   const sentryConstant = jest.requireActual('sentry/constants');
   return {
