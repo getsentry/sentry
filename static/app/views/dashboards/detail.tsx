@@ -174,6 +174,7 @@ function getDashboardLocation({
     'statsPeriod',
     'start',
     'end',
+    'interval',
   ]);
 
   const commonPath = defined(dashboardId)
