@@ -327,7 +327,6 @@ def _run_errors_query(errors_query: DiscoverQueryBuilder):
     return error_data
 
 
-@sentry_sdk.tracing.trace
 def _run_errors_query_eap(
     snuba_params: SnubaParams,
     trace_id: str,
