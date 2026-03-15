@@ -445,7 +445,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       );
       break;
     case 1:
-      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={18} />;
+      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={16} />;
       break;
     default:
       icons = (
