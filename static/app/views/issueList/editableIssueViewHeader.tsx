@@ -4,10 +4,12 @@ import {mergeRefs} from '@react-aria/utils';
 
 import {Button} from '@sentry/scraps/button';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconEdit} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconClose, IconEdit} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -20,11 +22,14 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   const [isEditing, setIsEditing] = useState(false);
   const user = useUser();
 
-  const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
+  const updateGroupSearchViewMutation = useUpdateGroupSearchView();
 
   const handleOnSave = (title: string) => {
-    if (title !== view.name) {
-      updateGroupSearchView(
+    const oldName = view.name;
+    if (title === oldName) {
+      setIsEditing(false);
+    } else {
+      updateGroupSearchViewMutation.mutate(
         {
           name: title,
           id: view.id,
@@ -42,13 +47,17 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
               ownership: user?.id === view.createdBy?.id ? 'personal' : 'organization',
               surface: 'issue-view-details',
             });
+            addSuccessMessage(
+              tct('Renamed view from [oldName] to [newName]', {
+                oldName,
+                newName: title,
+              })
+            );
+            setIsEditing(false);
           },
         }
       );
     }
-    requestAnimationFrame(() => {
-      setIsEditing(false);
-    });
   };
 
   const handleBeginEditing = () => {
@@ -62,6 +71,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
       stopEditing={() => {
         setIsEditing(false);
       }}
+      isPending={updateGroupSearchViewMutation.isPending}
     />
   ) : (
     <ViewTitleWrapper>
@@ -81,8 +91,10 @@ function EditingViewTitle({
   initialTitle,
   onSave,
   stopEditing,
+  isPending,
 }: {
   initialTitle: string;
+  isPending: boolean;
   onSave: (title: string) => void;
   stopEditing: () => void;
 }) {
@@ -93,13 +105,25 @@ function EditingViewTitle({
     setTitle(e.target.value);
   };
 
+  const handleSave = () => {
+    if (title.trim()) {
+      onSave(title.trim());
+    }
+  };
+
+  const handleCancel = () => {
+    stopEditing();
+  };
+
   const handleOnKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'Enter':
-        onSave(title);
+        e.preventDefault();
+        handleSave();
         break;
       case 'Escape':
-        stopEditing();
+        e.preventDefault();
+        handleCancel();
         break;
       default:
         break;
@@ -116,14 +140,37 @@ function EditingViewTitle({
   });
 
   return (
-    <StyledGrowingInput
-      value={title}
-      ref={mergeRefs(inputRef, autosizeInputRef)}
-      onChange={handleOnChange}
-      onKeyDown={handleOnKeyDown}
-      onBlur={() => stopEditing()}
-      maxLength={128}
-    />
+    <EditingContainer>
+      <StyledGrowingInput
+        value={title}
+        ref={mergeRefs(inputRef, autosizeInputRef)}
+        onChange={handleOnChange}
+        onKeyDown={handleOnKeyDown}
+        maxLength={128}
+        disabled={isPending}
+      />
+      <ButtonGroup gap="xs">
+        <Button
+          size="xs"
+          onClick={handleCancel}
+          disabled={isPending}
+          icon={<IconClose />}
+          aria-label={t('Cancel')}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          size="xs"
+          priority="primary"
+          onClick={handleSave}
+          busy={isPending}
+          disabled={!title.trim() || isPending}
+          aria-label={t('Save')}
+        >
+          {t('Save')}
+        </Button>
+      </ButtonGroup>
+    </EditingContainer>
   );
 }
 
@@ -156,6 +203,17 @@ const ViewTitle = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const EditingContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
+  align-items: flex-start;
+`;
+
+const ButtonGroup = styled(Flex)`
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const StyledGrowingInput = styled(Input)`
