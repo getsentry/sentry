@@ -327,7 +327,7 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the pull request description.")
+        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
