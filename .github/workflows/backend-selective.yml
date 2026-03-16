@@ -3,7 +3,7 @@
 # existing backend.yml — not required for merge.
 #
 # Once validated, this will replace prepare-selective-tests in backend.yml.
-name: backend (selective via getsentry)
+name: backend (NOT REQUIRED - selective via getsentry)
 
 on:
   pull_request:
