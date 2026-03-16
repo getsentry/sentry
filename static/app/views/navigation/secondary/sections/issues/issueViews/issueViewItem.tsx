@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGrabbable} from 'sentry/icons';
@@ -127,7 +127,6 @@ export function IssueViewItem({
                 e.preventDefault();
               }}
             >
-              <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <IconGrabbable variant="muted" />
             </GrabHandleWrapper>
             <SecondaryNavigation.ProjectIcon
@@ -157,7 +156,9 @@ export function IssueViewItem({
         analyticsItemName="issues_view_starred"
       >
         <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-          <TruncatedTitle>{view.label}</TruncatedTitle>
+          <Text ellipsis variant="muted">
+            {view.label}
+          </Text>
         </Tooltip>
         {isActive && hasUnsavedChanges && changedParams && (
           <Tooltip
@@ -200,7 +201,7 @@ const constructUnsavedTooltipTitle = (changedParams: {
     <Fragment>
       {t(
         "This view's %s filters have not been saved.",
-        <BoldTooltipText>{oxfordizeArray(changedParamsArray)}</BoldTooltipText>
+        <Text bold>{oxfordizeArray(changedParamsArray)}</Text>
       )}
     </Fragment>
   );
@@ -216,15 +217,7 @@ const StyledReorderItem = styled(Reorder.Item, {
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: 120%;
-  border-radius: 4px;
-`;
-
 const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
-  position: relative;
-  padding-right: ${p => p.theme.space.xs};
-
   /* Hide the project icon on hover in favor of the drag handle */
   :hover {
     [data-project-icon] {
@@ -237,10 +230,6 @@ const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
       ${p => p.theme.visuallyHidden}
     }
   }
-`;
-
-const BoldTooltipText = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
@@ -272,12 +261,4 @@ const GrabHandleWrapper = styled(motion.div)`
   &:active {
     cursor: grabbing;
   }
-`;
-
-const TruncatedTitle = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
