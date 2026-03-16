@@ -1012,6 +1012,50 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[1].repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
 
+    def test_deduplicates_repos_by_project_and_repository_id(self):
+        """Duplicate (project_id, repository_id) entries should be deduplicated, last entry wins."""
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="first-branch",
+                    branch_overrides=[
+                        BranchOverride(
+                            tag_name="environment",
+                            tag_value="production",
+                            branch_name="main",
+                        ),
+                    ],
+                ),
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="second-branch",
+                ),
+            ],
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(repos) == 1
+        assert repos[0].branch_name == "second-branch"
+        assert (
+            SeerProjectRepositoryBranchOverride.objects.filter(
+                seer_project_repository__project=self.project
+            ).count()
+            == 0
+        )
+
     def test_bulk_write_multiple_projects(self):
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(

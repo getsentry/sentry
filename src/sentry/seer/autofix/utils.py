@@ -490,13 +490,13 @@ def _write_preferences_to_sentry_db(
         return
 
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
-        # Delete existing rows
+        # Delete existing rows.
         SeerProjectRepository.objects.filter(
             project_id__in={project.id for project, _ in project_preferences}
         ).delete()
 
-        # Collect project repos to create and map overrides by (project_id, repository_id)
-        project_repos_to_create: list[SeerProjectRepository] = []
+        # Collect project repos to create, deduplicating by (project_id, repository_id).
+        project_repos_by_key: dict[tuple[int, int], SeerProjectRepository] = {}
         overrides_by_key: dict[tuple[int, int], list[BranchOverride]] = {}
         for project, pref in project_preferences:
             for repo_def in pref.repositories:
@@ -511,23 +511,27 @@ def _write_preferences_to_sentry_db(
                     )
                     continue
 
-                project_repos_to_create.append(
-                    SeerProjectRepository(
-                        project=project,
-                        repository_id=repo_def.repository_id,
-                        branch_name=repo_def.branch_name,
-                        instructions=repo_def.instructions,
-                    )
+                key = (project.id, repo_def.repository_id)
+
+                project_repos_by_key[key] = SeerProjectRepository(
+                    project=project,
+                    repository_id=repo_def.repository_id,
+                    branch_name=repo_def.branch_name,
+                    instructions=repo_def.instructions,
                 )
+
                 if repo_def.branch_overrides:
-                    overrides_by_key[(project.id, repo_def.repository_id)] = (
-                        repo_def.branch_overrides
-                    )
+                    overrides_by_key[key] = repo_def.branch_overrides
+                else:
+                    # Clear any stale overrides from past duplicates.
+                    overrides_by_key.pop(key, None)
 
-        # Create project repos
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        # Create project repos.
+        created_project_repos = SeerProjectRepository.objects.bulk_create(
+            project_repos_by_key.values()
+        )
 
-        # Create branch overrides, keying on (project_id, repository_id)
+        # Create branch overrides using the created project repos.
         overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
         for seer_project_repo in created_project_repos:
             for override in overrides_by_key.get(
