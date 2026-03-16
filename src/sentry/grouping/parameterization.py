@@ -310,8 +310,11 @@ class Parameterizer:
                     return f"<{key}>"
             return ""
 
-        with metrics.timer("grouping.parameterize", tags={"experimental": self._experimental}):
+        with metrics.timer(
+            "grouping.parameterize", tags={"experimental": self._experimental}
+        ) as metric_tags:
             parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            metric_tags["changed"] = parameterized != input_str
 
         metrics.incr(
             "grouping.parameterizer_called",
