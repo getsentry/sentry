@@ -3,7 +3,13 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
@@ -387,6 +393,23 @@ describe('MetricSelector', () => {
       await screen.findByRole('listbox');
 
       expect((await screen.findAllByText('millisecond')).length).toBeGreaterThan(0);
+    });
+
+    it('does not show a unit badge when the metric unit is none', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'tracemetrics-units-ui'],
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+
+      const requestCountOption = await screen.findByRole('option', {
+        name: 'request_count',
+      });
+
+      expect(within(requestCountOption).queryByText('none')).not.toBeInTheDocument();
     });
 
     it('does not show side panel without tracemetrics-attributes-dropdown-side-panel feature', async () => {
