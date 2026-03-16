@@ -128,6 +128,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
 
     def create_organization_in_cell(
         self,
+        *,
         cell_name: str,
         organization_id: int,
         provision_payload: OrganizationProvisioningOptions,
