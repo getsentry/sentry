@@ -29,6 +29,7 @@ describe('Onboarding', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    sessionStorage.clear();
     jest.clearAllMocks();
   });
 
@@ -554,6 +555,38 @@ describe('Onboarding', () => {
       features: ['onboarding-scm'],
     });
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/config/integrations/`,
+        body: {
+          providers: [
+            {
+              key: 'github',
+              slug: 'github',
+              name: 'GitHub',
+              canAdd: true,
+              canDisable: false,
+              features: ['commits'],
+              metadata: {
+                description: '',
+                features: [{featureGate: 'integrations-commits'}],
+                author: '',
+                noun: 'Installation',
+                issue_url: '',
+                source_url: '',
+                aspects: {},
+              },
+              setupDialog: {url: '/github-setup/', width: 600, height: 600},
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/integrations/`,
+        body: [],
+      });
+    });
+
     function renderOnboarding(step: string) {
       return render(
         <OnboardingContextProvider>
@@ -584,9 +617,61 @@ describe('Onboarding', () => {
     });
 
     it('renders scm-connect step and advances to scm-platform-features', async () => {
+      // Mock an active integration so Continue is enabled
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/config/integrations/`,
+        body: {
+          providers: [
+            {
+              key: 'github',
+              slug: 'github',
+              name: 'GitHub',
+              canAdd: true,
+              canDisable: false,
+              features: ['commits'],
+              metadata: {
+                description: '',
+                features: [{featureGate: 'integrations-commits'}],
+                author: '',
+                noun: 'Installation',
+                issue_url: '',
+                source_url: '',
+                aspects: {},
+              },
+              setupDialog: {url: '/github-setup/', width: 600, height: 600},
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/integrations/`,
+        body: [
+          {
+            id: '1',
+            name: 'getsentry',
+            domainName: 'github.com/getsentry',
+            accountType: null,
+            icon: null,
+            gracePeriodEnd: null,
+            status: 'active',
+            organizationIntegrationStatus: 'active',
+            provider: {
+              key: 'github',
+              slug: 'github',
+              name: 'GitHub',
+              canAdd: true,
+              canDisable: false,
+              features: ['commits'],
+              aspects: {},
+            },
+          },
+        ],
+      });
+
       const {router} = renderOnboarding('scm-connect');
 
-      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+      expect(await screen.findByText('Connect your repository')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -689,6 +774,9 @@ describe('Onboarding', () => {
 
     it('navigates back from scm-connect to welcome', async () => {
       const {router} = renderOnboarding('scm-connect');
+
+      // Wait for the step to render
+      await screen.findByText('Connect your repository');
 
       await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
