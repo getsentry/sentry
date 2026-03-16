@@ -5,8 +5,15 @@ from collections.abc import Generator, MutableMapping
 
 import psutil
 import pytest
+import pytest_rerunfailures
 import responses
 import sentry_sdk
+
+# Disable crash recovery server in pytest-rerunfailures. Under xdist, Sentry's
+# global socket.setdefaulttimeout(5) causes the server's per-worker recv threads
+# to die during Django init (~10s), silently breaking crash recovery anyway.
+# Normal --reruns (in-memory retry) is unaffected.
+pytest_rerunfailures.HAS_PYTEST_HANDLECRASHITEM = False  # type: ignore[attr-defined]
 from django.core.cache import cache
 from django.db import connections
 
