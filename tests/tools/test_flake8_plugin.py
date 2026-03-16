@@ -243,14 +243,22 @@ def test(monkeypatch) -> None: pass
     assert _run(src) == expected
 
 
-def test_S015_current_year_only() -> None:
+def test_S015_current_or_future_year() -> None:
     cy = datetime.now(timezone.utc).year
     msg = _s015_msg(cy)
+    # Current year at module scope is flagged
     assert _run(
         f"from datetime import datetime, timezone\n\n"
         f"X = datetime({cy}, 1, 1, tzinfo=timezone.utc)\n",
         filename="tests/x.py",
     ) == [f"t.py:3:0: {msg}"]
+    # Future year at module scope is flagged
+    assert _run(
+        f"from datetime import datetime, timezone\n\n"
+        f"X = datetime({cy + 1}, 1, 1, tzinfo=timezone.utc)\n",
+        filename="tests/x.py",
+    ) == [f"t.py:3:0: {msg}"]
+    # Older year at module scope is allowed
     assert (
         _run(
             "from datetime import datetime, timezone\n\n"
@@ -259,6 +267,7 @@ def test_S015_current_year_only() -> None:
         )
         == []
     )
+    # Datetime inside function body is allowed
     assert (
         _run(
             f"def f():\n    x = datetime({cy}, 1, 1)\n",
@@ -266,9 +275,27 @@ def test_S015_current_year_only() -> None:
         )
         == []
     )
+    # freeze_time with current year is flagged
     assert _run(
         f"from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
         f"@freeze_time(datetime({cy}, 1, 1, tzinfo=timezone.utc))\n"
         f"def t():\n    pass\n",
         filename="tests/x.py",
     ) == [f"t.py:4:1: {msg}"]
+    # freeze_time with future year is flagged
+    assert _run(
+        f"from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+        f"@freeze_time(datetime({cy + 1}, 1, 1, tzinfo=timezone.utc))\n"
+        f"def t():\n    pass\n",
+        filename="tests/x.py",
+    ) == [f"t.py:4:1: {msg}"]
+    # freeze_time with older year is allowed
+    assert (
+        _run(
+            "from freezegun import freeze_time\nfrom datetime import datetime, timezone\n\n"
+            "@freeze_time(datetime(2020, 1, 1, tzinfo=timezone.utc))\n"
+            "def t():\n    pass\n",
+            filename="tests/x.py",
+        )
+        == []
+    )
