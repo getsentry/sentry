@@ -137,9 +137,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
           {tct(
             `If the guide does not help, [link:contact support] — include as many of these details as you can:`,
             {
-              link: (
-                <ExternalLink href="https://sentry.zendesk.com/hc/en-us/requests/new" />
-              ),
+              link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us" />,
             }
           )}
         </p>
