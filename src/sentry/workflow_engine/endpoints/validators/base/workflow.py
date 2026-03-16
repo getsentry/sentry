@@ -23,6 +23,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.endpoints.validators.utils import (
     log_alerting_quota_hit,
     remove_items_by_api_input,
+    update_owner,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
@@ -253,21 +254,13 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # Handle owner field update
             if "owner" in validated_data:
-                owner = validated_data.pop("owner")
-                if owner:
-                    if owner.is_user:
-                        instance.owner_user_id = owner.id
-                        instance.owner_team_id = None
-                    elif owner.is_team:
-                        instance.owner_user_id = None
-                        instance.owner_team_id = owner.id
-                else:
-                    # Clear owner if None is passed
-                    instance.owner_user_id = None
-                    instance.owner_team_id = None
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.get("owner")
+                )
 
             # Update the workflow
             instance.update(**validated_data)
+            instance.save()
             return instance
 
     def _validate_workflow_limits(self) -> None:

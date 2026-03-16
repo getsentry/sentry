@@ -160,8 +160,8 @@ class TestWorkflowValidatorCreate(TestCase):
         self.valid_data["owner"] = f"user:{self.user.id}"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
-
         workflow = validator.create(validator.validated_data)
+        workflow.refresh_from_db()
         assert workflow.owner_user_id == self.user.id
 
     def test_team_owner(self) -> None:
@@ -170,6 +170,7 @@ class TestWorkflowValidatorCreate(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
         workflow = validator.create(validator.validated_data)
+        workflow.refresh_from_db()
         assert workflow.owner_team_id == team.id
         assert workflow.owner_user_id is None
 
@@ -825,12 +826,14 @@ class TestWorkflowValidatorUpdate(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=context)
         assert validator.is_valid() is True
         workflow = validator.update(self.workflow, validator.validated_data)
+        workflow.refresh_from_db()
         assert workflow.owner_team_id == team.id
         assert workflow.owner_user_id is None
 
         self.valid_data["owner"] = f"user:{self.user.id}"
         validator = WorkflowValidator(data=self.valid_data, context=context)
         assert validator.is_valid() is True
+        workflow.refresh_from_db()
         workflow = validator.update(self.workflow, validator.validated_data)
         assert workflow.owner_user_id == self.user.id
         assert workflow.owner_team_id is None
