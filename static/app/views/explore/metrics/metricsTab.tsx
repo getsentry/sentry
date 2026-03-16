@@ -90,11 +90,15 @@ function MetricsQueryBuilderSection() {
   const addMetricQuery = useAddMetricQuery();
   const reorderMetricQueries = useReorderMetricQueries();
 
+  const counterRef = useRef(0);
   const dragIdsRef = useRef<number[]>([]);
-  while (dragIdsRef.current.length < metricQueries.length) {
-    dragIdsRef.current.push(dragIdsRef.current.length + 1);
+  if (metricQueries.length < dragIdsRef.current.length) {
+    dragIdsRef.current = [];
   }
-  dragIdsRef.current.length = metricQueries.length;
+  while (dragIdsRef.current.length < metricQueries.length) {
+    counterRef.current += 1;
+    dragIdsRef.current.push(counterRef.current);
+  }
   const dragIds = [...dragIdsRef.current];
 
   const sensors = useSensors(
