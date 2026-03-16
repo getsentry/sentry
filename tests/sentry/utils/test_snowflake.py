@@ -37,7 +37,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
         region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
+        with override_settings(SILO_MODE=SiloMode.CELL), override_regions([region], region):
             snowflake_id = generate_snowflake_id("test_redis_key")
             expected_value = (16 << 48) + (
                 int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
@@ -48,7 +48,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self) -> None:
         region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.REGION), override_regions([region], region):
+        with override_settings(SILO_MODE=SiloMode.CELL), override_regions([region], region):
             snowflake_id = generate_snowflake_id("test_redis_key")
 
             for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
