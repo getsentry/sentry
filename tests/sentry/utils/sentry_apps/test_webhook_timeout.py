@@ -11,11 +11,11 @@ from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
-@region_silo_test
+@cell_silo_test
 class WebhookTimeoutTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization()
