@@ -102,11 +102,31 @@ def mcp_json(request):
 @all_silo_view
 @cache_control(max_age=3600, public=True)
 def oauth_authorization_server_metadata(request: HttpRequest) -> HttpResponse:
-    """
-    OAuth 2.0 Authorization Server Metadata endpoint per RFC 8414.
+    """OAuth 2.0 Authorization Server Metadata endpoint (RFC 8414).
 
-    Returns JSON metadata document describing the authorization server's
-    configuration, supported grant types, PKCE methods, and endpoints.
+    Purpose
+    - Publishes Sentry's authorization server metadata so OAuth clients can
+      discover the issuer, endpoint URLs, supported grant types, PKCE methods,
+      client authentication methods, and available scopes without hardcoding
+      configuration.
+
+    Request
+    - `GET /.well-known/oauth-authorization-server`
+    - No authentication is required (RFC 8414 §3).
+
+    Response
+    - Success: 200 JSON metadata document including:
+      `issuer`, `authorization_endpoint`, `token_endpoint`,
+      `userinfo_endpoint`, `device_authorization_endpoint`,
+      `response_types_supported`, `grant_types_supported`,
+      `code_challenge_methods_supported`,
+      `token_endpoint_auth_methods_supported`, and `scopes_supported`.
+    - Cache headers: `Cache-Control: max-age=3600, public`.
+
+    Notes
+    - `issuer` is published as Sentry's canonical base URL.
+    - `response_types_supported` is limited to `code`.
+    - `code_challenge_methods_supported` is limited to `S256`.
     """
     # Build sorted scopes list for consistent output
     scopes = sorted(settings.SENTRY_SCOPES)
