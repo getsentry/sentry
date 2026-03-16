@@ -154,6 +154,14 @@ wheels = [
 ]
 
 [[package]]
+name = "cfgv"
+version = "3.4.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/cfgv-3.4.0-py2.py3-none-any.whl", hash = "sha256:b7265b1f29fd3316bfcd2b330d63d024f2bfd8bcb8b0272f8e19a504856c48f9" },
+]
+
+[[package]]
 name = "chardet"
 version = "5.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -278,6 +286,14 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.2.4-py3-none-any.whl", hash = "sha256:637055d5dae3dd01899ba066d511aa14537d791ed7f997292bc6a72dd5ddf416" },
+]
+
+[[package]]
+name = "distlib"
+version = "0.4.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/distlib-0.4.0-py2.py3-none-any.whl", hash = "sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16" },
 ]
 
 [[package]]
@@ -959,6 +975,14 @@ wheels = [
 ]
 
 [[package]]
+name = "identify"
+version = "2.6.9"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/identify-2.6.9-py2.py3-none-any.whl", hash = "sha256:c98b4322da415a8e5a70ff6e51fbc2d2932c015532d77e9f8537b4ba7813b150" },
+]
+
+[[package]]
 name = "idna"
 version = "3.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1263,6 +1287,14 @@ wheels = [
 ]
 
 [[package]]
+name = "nodeenv"
+version = "1.9.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/nodeenv-1.9.1-py2.py3-none-any.whl", hash = "sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9" },
+]
+
+[[package]]
 name = "oauthlib"
 version = "3.1.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1508,11 +1540,34 @@ wheels = [
 ]
 
 [[package]]
+name = "platformdirs"
+version = "4.5.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/platformdirs-4.5.1-py3-none-any.whl", hash = "sha256:d03afa3963c806a9bed9d5125c8f4cb2fdaf74a55ab60e5d59b3fde758104d31" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669" },
+]
+
+[[package]]
+name = "pre-commit"
+version = "4.2.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "cfgv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "identify", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "nodeenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "virtualenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/pre_commit-4.2.0-py2.py3-none-any.whl", hash = "sha256:a009ca7205f1eb497d10b845e52c838a98b6cdd2102a6c8e4540e94ee75c58bd" },
 ]
 
 [[package]]
@@ -2183,6 +2238,7 @@ dev = [
     { name = "openapi-pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pip", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pip-tools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "pre-commit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "prek", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-cov", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2349,6 +2405,7 @@ dev = [
     { name = "openapi-pydantic", specifier = ">=0.4.0" },
     { name = "pip", specifier = ">=23.3.1" },
     { name = "pip-tools", specifier = ">=7.1.0" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "prek", specifier = ">=0.3.6" },
     { name = "pytest", specifier = ">=8.1.2" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
@@ -3024,6 +3081,19 @@ wheels = [
 [package.optional-dependencies]
 socks = [
     { name = "pysocks", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+
+[[package]]
+name = "virtualenv"
+version = "20.36.1"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "distlib", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "filelock", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "platformdirs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/virtualenv-20.36.1-py3-none-any.whl", hash = "sha256:575a8d6b124ef88f6f51d56d656132389f961062a9177016a50e4f507bbcc19f" },
 ]
 
 [[package]]
