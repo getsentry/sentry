@@ -70,7 +70,10 @@ REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
 }
 
-PULL_REQUEST_STATE_CREATE_MAP: dict[PullRequestState, str] = {"open": "opened", "closed": "closed"}
+PULL_REQUEST_STATE_RETRIEVE_MAP: dict[PullRequestState, list[str]] = {
+    "open": ["opened"],
+    "closed": ["closed", "merged"],
+}
 PULL_REQUEST_STATE_UPDATE_MAP: dict[PullRequestState, str] = {"open": "reopen", "closed": "close"}
 
 
@@ -398,8 +401,14 @@ class GitLabProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]:
-        gitlab_state = PULL_REQUEST_STATE_CREATE_MAP[state] if state else None
-        raw = self.client.get_merge_requests(self._repo_id, state=gitlab_state)
+        raw = []
+        gitlab_states: list[str] | list[None]
+        if state:
+            gitlab_states = PULL_REQUEST_STATE_RETRIEVE_MAP[state]
+        else:
+            gitlab_states = [None]
+        for gitlab_state in gitlab_states:
+            raw.extend(self.client.get_merge_requests(self._repo_id, state=gitlab_state))
         return make_paginated_result(map_pull_request, raw)
 
     @catch_provider_exception
