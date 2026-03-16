@@ -13,7 +13,7 @@ const AutoSaveContext = createContext<AutoSaveContextValue | null>(null);
 
 /**
  * Hook to access auto-save context
- * Returns null if not within AutoSaveField
+ * Returns null if not within AutoSaveForm
  */
 export function useAutoSaveContext() {
   return useContext(AutoSaveContext);

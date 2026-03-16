@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import type {SelectValue} from 'sentry/types/core';
 
@@ -75,7 +75,7 @@ function AutoSaveTestForm({
   label = 'Favorite Fruit',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="fruit"
       schema={testSchema}
       initialValue={initialValue}
@@ -90,7 +90,7 @@ function AutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -756,7 +756,7 @@ function MultiAutoSaveTestForm({
   label = 'Tags',
 }: MultiAutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="tags"
       schema={multiTestSchema}
       initialValue={initialValue}
@@ -773,7 +773,7 @@ function MultiAutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 

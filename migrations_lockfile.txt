@@ -33,7 +33,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0004_pending_delete_seerorganizationsettings
 
-sentry: 1052_rename_regionoutbox_to_celloutbox
+sentry: 1053_protect_projectdebugfile_file
 
 social_auth: 0003_social_auth_json_field
 
