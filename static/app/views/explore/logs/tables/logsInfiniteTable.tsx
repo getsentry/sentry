@@ -454,8 +454,10 @@ export function LogsInfiniteTable({
     <Fragment>
       <Table
         ref={tableRef}
-        style={initialTableStyles}
-        css={tableStaticCSS}
+        style={{...initialTableStyles, height: '100%'}}
+        // TODO: cleaning up in this PR soon, I hope
+        // eslint-disable-next-line @emotion/syntax-preference
+        css={{...tableStaticCSS, height: '100%', marginBottom: 0}}
         hideBorder={embedded}
         data-test-id="logs-table"
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
