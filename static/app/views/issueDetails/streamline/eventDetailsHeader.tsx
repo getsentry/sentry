@@ -266,7 +266,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       <EnvironmentPageFilter
         disabled
         triggerProps={{
-          label: detectorEnvironment ?? eventEnvironment ?? t('All Envs'),
+          label: eventEnvironment ?? detectorEnvironment ?? t('All Envs'),
           title: t('This issue only occurs in a single environment'),
           style,
         }}
