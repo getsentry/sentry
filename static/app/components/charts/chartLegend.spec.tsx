@@ -23,7 +23,8 @@ function mockDimensions(wrapperWidth: number) {
 }
 
 /**
- * Mock each legend item child to report 80px width via getBoundingClientRect.
+ * Mock each legend item child to report 80px width via getBoundingClientRect,
+ * and mock the always-present trigger button to report 60px width.
  */
 function mockChildWidths() {
   const itemsContainer = screen.getByTestId('legend-items');
@@ -32,9 +33,22 @@ function mockChildWidths() {
       width: 80,
     } as DOMRect);
   });
+
+  // The trigger button is always in the DOM (hidden when no overflow).
+  // Mock its width so the overflow algorithm can measure it.
+  const triggerButton = screen.getByText(/more/);
+  jest.spyOn(triggerButton, 'getBoundingClientRect').mockReturnValue({
+    width: 60,
+  } as DOMRect);
 }
 
 describe('ChartLegend', () => {
+  beforeEach(() => {
+    // The CompactSelect trigger is always in the DOM (even when hidden),
+    // which causes react-popper to fire state updates outside of act().
+    jest.spyOn(console, 'error').mockImplementation();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -114,7 +128,6 @@ describe('ChartLegend', () => {
     // 100px wrapper can only fit 1 item at 80px each (with 8px inner gap),
     // so 2 items overflow into the "+2 more" trigger.
     mockDimensions(100);
-    jest.spyOn(console, 'error').mockImplementation();
 
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
     mockChildWidths();
@@ -123,16 +136,20 @@ describe('ChartLegend', () => {
     // (first render has no children yet for getBoundingClientRect)
   });
 
-  it('does not show overflow trigger when nothing overflows', () => {
+  it('hides overflow trigger when nothing overflows', () => {
     mockDimensions(1000);
     render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
     mockChildWidths();
 
-    expect(screen.queryByText(/more/)).not.toBeInTheDocument();
+    // The trigger is always in the DOM but hidden with aria-hidden when
+    // there is no overflow. aria-hidden is on the button element.
+    const triggerText = screen.getByText(/more/);
+    const triggerButton = triggerText.closest('button')!;
+    expect(triggerButton).toHaveAttribute('aria-hidden', 'true');
+    expect(triggerButton).not.toBeVisible();
   });
 
   it('fires callback when an overflow item is toggled via the dropdown', async () => {
-    jest.spyOn(console, 'error').mockImplementation();
     mockDimensions(100);
     const onSelectionChange = jest.fn();
 
@@ -165,5 +182,17 @@ describe('ChartLegend', () => {
       'series-b': false,
       'series-c': true,
     });
+  });
+
+  it('does not crash at exact boundary conditions', () => {
+    // Width that barely fits 2 items (80 + 8 + 80 = 168) but not with trigger
+    // space for the third. This is the boundary where oscillation used to occur.
+    mockDimensions(170);
+
+    // Should not throw "Maximum update depth exceeded"
+    expect(() => {
+      render(<ChartLegend items={ITEMS} selected={{}} onSelectionChange={jest.fn()} />);
+      mockChildWidths();
+    }).not.toThrow();
   });
 });

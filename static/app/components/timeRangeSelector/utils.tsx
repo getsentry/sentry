@@ -11,7 +11,7 @@ import {
   getFormattedDate,
 } from 'sentry/utils/dates';
 
-import TimeRangeItemLabel from './timeRangeItemLabel';
+import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';

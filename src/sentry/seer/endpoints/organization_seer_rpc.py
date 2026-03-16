@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcResolutionException
@@ -148,7 +148,7 @@ class SeerRpcPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
     Public RPC endpoint for organization members to call read-only seer methods.

@@ -60,5 +60,4 @@ const storeConfig: ModalStoreDefinition = {
   },
 };
 
-const ModalStore = createStore(storeConfig);
-export default ModalStore;
+export const ModalStore = createStore(storeConfig);

@@ -194,7 +194,7 @@ def group_was_recently_resolved(group: Group) -> bool:
     namespace=integrations_tasks,
     processing_deadline_duration=150,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation

@@ -9,7 +9,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
@@ -44,7 +44,7 @@ function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
 }
 
-export default function EAPMetricsField({
+export function EAPMetricsField({
   aggregate,
   onChange,
   onLoadingChange,
@@ -125,11 +125,13 @@ export default function EAPMetricsField({
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="promotion">
-                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-              </Tag>
-            )}
+            {hasMetricUnitsUI &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
+                <Tag variant="promotion">
+                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+                </Tag>
+              )}
           </Fragment>
         ),
       })) ?? []),

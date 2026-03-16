@@ -3,6 +3,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 
+from sentry.utils import metrics
+
 
 @dataclasses.dataclass
 class ParameterizationRegex:
@@ -267,7 +269,6 @@ class Parameterizer:
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
-        self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
@@ -297,14 +298,31 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
+        matches_counter: defaultdict[str, int] = defaultdict(int)
+
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Find the first (should be only) non-None match entry, and sub in the placeholder. For
             # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
             # replacement for the original value in the string.
             for key, value in match.groupdict().items():
                 if value is not None:
-                    self.matches_counter[key] += 1
+                    matches_counter[key] += 1
                     return f"<{key}>"
             return ""
 
-        return self._parameterization_regex.sub(_handle_regex_match, input_str)
+        parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+
+        metrics.incr(
+            "grouping.parameterizer_called",
+            tags={"changed": parameterized != input_str, "experimental": self._experimental},
+        )
+
+        for key, value in matches_counter.items():
+            # Track the kinds of replacements being made
+            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+
+        return parameterized
+
+
+parameterizer = Parameterizer(use_experimental_regexes=False)
+experimental_parameterizer = Parameterizer(use_experimental_regexes=True)

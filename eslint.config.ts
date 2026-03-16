@@ -383,6 +383,11 @@ export default typescript.config([
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
         },
+        {
+          selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+          message:
+            "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+        },
         // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
         {
           selector:
@@ -598,6 +603,7 @@ export default typescript.config([
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
+          '@sentry/no-default-export-components': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
@@ -1102,7 +1108,7 @@ export default typescript.config([
         },
         {
           type: 'story-book',
-          pattern: 'static/app/stories',
+          pattern: ['static/app/stories', '**/__stories__'],
         },
         // --- debug tools (e.g. notifications) ---
         {

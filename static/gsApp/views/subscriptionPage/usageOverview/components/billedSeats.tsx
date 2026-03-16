@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -25,7 +25,7 @@ import {
 } from 'getsentry/types';
 import {normalizeMetricHistory} from 'getsentry/utils/billing';
 
-function BilledSeats({
+export function BilledSeats({
   selectedProduct,
   subscription,
   organization,
@@ -120,8 +120,6 @@ function BilledSeats({
     </Fragment>
   );
 }
-
-export default BilledSeats;
 
 const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;

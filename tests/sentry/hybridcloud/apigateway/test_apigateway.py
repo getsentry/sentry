@@ -104,7 +104,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
-        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+        with override_settings(SILO_MODE=SiloMode.CELL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url)
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
@@ -158,7 +158,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
-        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+        with override_settings(SILO_MODE=SiloMode.CELL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url_slug)
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
@@ -173,7 +173,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
-        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+        with override_settings(SILO_MODE=SiloMode.CELL, MIDDLEWARE=tuple(self.middleware)):
             resp = self.client.get(region_url_id)
             assert resp.status_code == 200
             assert resp.data["proxy"] is False

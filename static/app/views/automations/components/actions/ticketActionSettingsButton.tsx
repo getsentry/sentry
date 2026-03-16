@@ -1,7 +1,7 @@
 import {Button} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';

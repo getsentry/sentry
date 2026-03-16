@@ -9,7 +9,7 @@ import {
 import styled from '@emotion/styled';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 
 interface PlainTextQueryInputProps {
   label?: string;

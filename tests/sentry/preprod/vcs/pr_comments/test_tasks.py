@@ -15,12 +15,12 @@ from sentry.preprod.models import (
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 _sentinel = object()
 
 
-@region_silo_test
+@cell_silo_test
 class CreatePreprodPrCommentTaskTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -536,3 +536,17 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             create_preprod_pr_comment_task(artifact.id)
 
         # No comment posted — task returns early because artifact is not installable
+
+    @patch("sentry.preprod.vcs.pr_comments.tasks.get_commit_context_client")
+    def test_skips_xcarchive_with_app_store_codesigning(self, mock_get_client):
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        artifact = self._create_artifact(
+            extras={"is_code_signature_valid": True, "codesigning_type": "app-store"}
+        )
+
+        with self.feature(self._pr_comment_feature):
+            create_preprod_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()

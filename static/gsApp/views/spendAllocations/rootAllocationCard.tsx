@@ -29,7 +29,7 @@ type Props = {
   rootAllocation?: SpendAllocation;
 };
 
-function RootAllocationCard({
+export function RootAllocationCard({
   createRootAllocation,
   rootAllocation,
   selectedMetric,
@@ -212,8 +212,6 @@ function Cell({children}: {children?: React.ReactNode}) {
   const theme = useTheme();
   return <td style={{padding: theme.space.md}}>{children}</td>;
 }
-
-export default RootAllocationCard;
 
 const Table = styled('table')`
   tr:nth-child(even) {

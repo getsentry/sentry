@@ -14,7 +14,7 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.rule_snooze import RuleSnoozed, RuleUnSnoozed
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
@@ -232,7 +232,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
         raise NotImplementedError()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -287,7 +287,7 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     owner = ApiOwner.ISSUES
     publish_status = {

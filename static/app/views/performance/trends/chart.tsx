@@ -5,7 +5,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,12 +16,12 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 import type {ViewProps} from 'sentry/views/performance/types';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 

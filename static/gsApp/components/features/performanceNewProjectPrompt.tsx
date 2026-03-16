@@ -14,7 +14,7 @@ type Props = React.PropsWithChildren<{
   organization: Organization;
 }>;
 
-function PerformanceNewProjectPrompt({organization}: Props) {
+export function PerformanceNewProjectPrompt({organization}: Props) {
   return (
     <Alert.Container>
       <StyledAlert variant="info">
@@ -75,5 +75,3 @@ const StyledAlert = styled(Alert)`
     align-items: flex-start;
   }
 `;
-
-export default PerformanceNewProjectPrompt;

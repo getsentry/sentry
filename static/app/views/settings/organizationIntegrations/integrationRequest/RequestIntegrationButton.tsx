@@ -7,7 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
 
-import RequestIntegrationModal from './RequestIntegrationModal';
+import {RequestIntegrationModal} from './RequestIntegrationModal';
 
 type Props = {
   name: string;
@@ -15,7 +15,7 @@ type Props = {
   type: IntegrationType;
 };
 
-export default function RequestIntegrationButton(props: Props) {
+export function RequestIntegrationButton(props: Props) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSent, setIsSent] = useState<boolean>(false);
 

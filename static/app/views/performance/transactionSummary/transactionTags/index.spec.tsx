@@ -2,9 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';

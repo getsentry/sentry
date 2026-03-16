@@ -43,7 +43,7 @@ type State = {
   rawOptions: Column[];
 };
 
-export default class ArithmeticInput extends PureComponent<Props, State> {
+export class ArithmeticInput extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     options: [],
   };

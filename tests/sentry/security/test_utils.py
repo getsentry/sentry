@@ -21,7 +21,7 @@ def test_logs_app_activity(
 
     # Create an organization. This has to be done not in the control mode.
     # Turn the organization into an RPC organization.
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         organization = Factories.create_organization(owner=user)
 
     # Create a Sentry App using the creator. This needs to be run in control mode.
@@ -69,7 +69,7 @@ def test_logs_with_installation_context(mock_logger: MagicMock) -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
         user = Factories.create_user(email="test@example.com")
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         organization = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -111,7 +111,7 @@ def test_handles_different_activity_types(mock_logger: MagicMock) -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
         user = Factories.create_user(email="test@example.com")
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         organization = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -159,7 +159,7 @@ def test_context_with_multiple_fields(mock_logger: MagicMock) -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
         user = Factories.create_user(email="test@example.com")
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         organization = Factories.create_organization(owner=user)
 
     with assume_test_silo_mode(SiloMode.CONTROL):

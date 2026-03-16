@@ -34,17 +34,17 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type GroupEventCarouselProps = {

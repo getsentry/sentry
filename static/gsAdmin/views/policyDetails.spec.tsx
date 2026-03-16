@@ -2,7 +2,7 @@ import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {PolicyRevisionsFixture} from 'getsentry-test/fixtures/policyRevisions';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import PolicyDetails from 'admin/views/policyDetails';
+import {PolicyDetails} from 'admin/views/policyDetails';
 
 describe('PolicyDetails', () => {
   const revisions = PolicyRevisionsFixture();

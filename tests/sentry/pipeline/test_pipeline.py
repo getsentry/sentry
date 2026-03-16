@@ -56,7 +56,7 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
 class PipelineTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org = serialize_rpc_organization(self.create_organization())
         self.request = HttpRequest()
         self.request.session = SessionBase()

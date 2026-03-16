@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Self
 
+from sentry.grouping.parameterization import experimental_parameterizer
+from sentry.grouping.parameterization import parameterizer as default_parameterizer
+from sentry.grouping.utils import get_canonical_message_from_event
+from sentry.options.rollout import in_rollout_group
+
 if TYPE_CHECKING:
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.services.eventstore.models import Event
-
-
-# XXX: Want to make ContextDict typeddict but also want to type/overload dict
-# API on GroupingContext
-ContextValue = Any
-ContextDict = dict[str, ContextValue]
 
 
 class GroupingContext:
@@ -43,20 +42,43 @@ class GroupingContext:
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.event = event
+
+        # Store the event's message, in both raw and parameterized form, as well as the
+        # parameterizer. This will save us having to recheck which parameterizer to use, and save us
+        # from having to reparameterize the message if it's used in multiple places during grouping
+        # (in the error value component and a custom fingerprint, for example).
+        event_message = get_canonical_message_from_event(event)
+        parameterizer = (
+            experimental_parameterizer
+            if in_rollout_group("grouping.experimental_parameterization", event.project_id)
+            else default_parameterizer
+        )
+        self.parameterizer = parameterizer
+        # "Canonical" because it's the message which is used for the `{{ message }}` variable and
+        # for message-based grouping. (When grouping is based on error message, in case of an error
+        # chain we use all messages.)
+        self.canonical_event_message = event_message
+        self.canonical_message_parameterized = parameterizer.parameterize(event_message)
+
+        # Track use of the cached values for metrics purposes. Any use past the first one signifies
+        # a reuse of the value, thus proving caching worthwhile.
+        self.cached_parameterizer_used = False
+        self.cached_param_result_used = False
+
         self._push_context_layer()
 
-    def __setitem__(self, key: str, value: ContextValue) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         # Add the key-value pair to the context layer at the top of the stack
         self._stack[-1][key] = value
 
-    def __getitem__(self, key: str) -> ContextValue:
+    def __getitem__(self, key: str) -> Any:
         # Walk down the stack from the top and return the first instance of `key` found
         for d in reversed(self._stack):
             if key in d:
                 return d[key]
         raise KeyError(key)
 
-    def get(self, key: str, default: ContextValue | None = None) -> ContextValue | None:
+    def get(self, key: str, default: Any = None) -> Any | None:
         try:
             return self[key]
         except KeyError:

@@ -5,7 +5,7 @@ import OnboardingDrawerStore, {
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Please be careful when using 'activateSidebar' function as a hook dependency,

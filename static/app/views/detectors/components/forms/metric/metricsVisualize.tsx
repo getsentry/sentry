@@ -13,10 +13,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -129,11 +129,13 @@ export function MetricsVisualize() {
         trailingItems: (
           <Fragment>
             <MetricTypeBadge metricType={option[TraceMetricKnownFieldKey.METRIC_TYPE]} />
-            {hasMetricUnitsUI && option[TraceMetricKnownFieldKey.METRIC_UNIT] && (
-              <Tag variant="promotion">
-                {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
-              </Tag>
-            )}
+            {hasMetricUnitsUI &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] &&
+              option[TraceMetricKnownFieldKey.METRIC_UNIT] !== NONE_UNIT && (
+                <Tag variant="promotion">
+                  {option[TraceMetricKnownFieldKey.METRIC_UNIT]}
+                </Tag>
+              )}
           </Fragment>
         ),
       })) ?? []),

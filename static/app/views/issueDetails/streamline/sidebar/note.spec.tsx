@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 
 describe('StreamlinedNoteInput', () => {

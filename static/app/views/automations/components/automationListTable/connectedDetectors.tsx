@@ -5,7 +5,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';

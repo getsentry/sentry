@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -20,7 +20,7 @@ import {
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 
-import DurationPercentileChart from './durationPercentileChart/chart';
+import {Chart as DurationPercentileChart} from './durationPercentileChart/chart';
 
 const REFERRER = 'transaction-summary-charts-widget';
 

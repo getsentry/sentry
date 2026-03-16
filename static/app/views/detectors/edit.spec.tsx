@@ -17,8 +17,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   DataConditionGroupLogicType,
   DataConditionType,

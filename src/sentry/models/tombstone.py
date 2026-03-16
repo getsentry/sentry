@@ -7,8 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.silo.base import SiloMode
@@ -35,7 +35,7 @@ class TombstoneBase(Model):
 
     @staticmethod
     def class_for_silo_mode(silo_mode: SiloMode) -> type[TombstoneBase] | None:
-        if silo_mode == SiloMode.REGION:
+        if silo_mode == SiloMode.CELL:
             return RegionTombstone
         if silo_mode == SiloMode.CONTROL:
             return ControlTombstone
@@ -50,7 +50,7 @@ class TombstoneBase(Model):
             pass
 
 
-@region_silo_model
+@cell_silo_model
 class RegionTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"

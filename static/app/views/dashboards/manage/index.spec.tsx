@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import localStorage from 'sentry/utils/localStorage';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
@@ -58,7 +58,7 @@ describe('Dashboards > Detail', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    localStorage.clear();
+    localStorageWrapper.clear();
   });
 
   it('renders', async () => {
@@ -228,13 +228,13 @@ describe('Dashboards > Detail', () => {
     expect(await screen.findByTestId('table')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('table'));
 
-    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('grid'));
 
-    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
     expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 
@@ -246,7 +246,7 @@ describe('Dashboards > Detail', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     // mock the view type to table
-    localStorage.setItem(LAYOUT_KEY, '"table"');
+    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
 
     render(<ManageDashboards />, {
       organization: org,
@@ -266,7 +266,7 @@ describe('Dashboards > Detail', () => {
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     // mock the view type to table
-    localStorage.setItem(LAYOUT_KEY, '"table"');
+    localStorageWrapper.setItem(LAYOUT_KEY, '"table"');
 
     render(<ManageDashboards />, {
       organization: org,

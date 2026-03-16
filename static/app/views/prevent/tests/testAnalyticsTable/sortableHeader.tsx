@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,7 +43,7 @@ function WrapToggle() {
   );
 }
 
-function SortableHeader({
+export function SortableHeader({
   fieldName,
   label,
   sort,
@@ -125,5 +125,3 @@ const StyledLink = styled(Link)`
 const NonSortableHeader = styled('span')`
   color: inherit;
 `;
-
-export default SortableHeader;

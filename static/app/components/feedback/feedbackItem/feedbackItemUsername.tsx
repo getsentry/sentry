@@ -11,8 +11,8 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackIssue: FeedbackIssue;
@@ -20,7 +20,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
+export function FeedbackItemUsername({className, feedbackIssue, style}: Props) {
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 

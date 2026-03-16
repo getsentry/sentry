@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import TextOverflow from 'sentry/components/textOverflow';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';

@@ -33,7 +33,7 @@ __all__ = (
     "sane_repr",
     "get_model_if_available",
     "control_silo_model",
-    "region_silo_model",
+    "cell_silo_model",
 )
 
 
@@ -392,11 +392,11 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
         )
 
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)
-    elif issubclass(sender, ReplicatedRegionModel):
+    elif issubclass(sender, ReplicatedCellModel):
         sender.category.connect_region_model_updates(sender)
 
 
@@ -500,7 +500,7 @@ Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-region_silo_model = ModelSiloLimit(SiloMode.REGION)
+cell_silo_model = ModelSiloLimit(SiloMode.CELL)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.

@@ -1,4 +1,4 @@
-function BarPreview() {
+export function BarPreview() {
   return (
     <svg
       viewBox="0 0 140 48"
@@ -24,5 +24,3 @@ function BarPreview() {
     </svg>
   );
 }
-
-export default BarPreview;

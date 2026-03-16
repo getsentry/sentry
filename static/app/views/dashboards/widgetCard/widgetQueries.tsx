@@ -85,7 +85,7 @@ function WidgetQueriesWithOnDemandControl({
   return children(props);
 }
 
-function WidgetQueries({
+export function WidgetQueries({
   children,
   widget,
   dashboardFilters,
@@ -223,5 +223,3 @@ function WidgetQueries({
     </OnDemandControlConsumer>
   );
 }
-
-export default WidgetQueries;

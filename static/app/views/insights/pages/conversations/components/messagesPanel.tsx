@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';

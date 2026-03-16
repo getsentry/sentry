@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunctionsWidget';
 
 describe('SlowestFunctionsWidget', () => {

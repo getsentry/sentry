@@ -426,7 +426,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.RegionOutbox"],
+    "REGION": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
@@ -959,7 +959,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
-    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",

@@ -91,17 +91,17 @@ class SentryAppTest(TestCase):
         outboxes = ControlOutbox.objects.filter(category=OutboxCategory.SENTRY_APP_UPDATE).all()
         assert len(outboxes) == 2
         assert outboxes[0].shard_identifier == self.sentry_app.id
-        assert outboxes[0].region_name
+        assert outboxes[0].cell_name
 
-    def test_regions_with_installations(self) -> None:
+    def test_cells_with_installations(self) -> None:
         self.us_org = self.create_organization(name="us test name", region="us")
         self.create_sentry_app_installation(
             organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installations() == {"us"}
+        assert self.sentry_app.cells_with_installations() == {"us"}
 
         self.eu_org = self.create_organization(name="eu test name", region="eu")
         self.create_sentry_app_installation(
             organization=self.eu_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installations() == {"us", "eu"}
+        assert self.sentry_app.cells_with_installations() == {"us", "eu"}

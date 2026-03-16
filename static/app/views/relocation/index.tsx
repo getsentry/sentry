@@ -4,7 +4,7 @@ import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 
-import RelocationOnboarding from './relocation';
+import {RelocationOnboarding} from './relocation';
 
 export default function RelocationOnboardingContainer() {
   return (

@@ -337,7 +337,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
     @classmethod
@@ -352,7 +352,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.delete_replicated_api_token(
             apitoken_id=identifier,
-            region_name=region_name,
+            cell_name=region_name,
         )
 
     @classmethod

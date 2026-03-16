@@ -10,7 +10,7 @@ import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   TourContextProvider,
   TourElement,

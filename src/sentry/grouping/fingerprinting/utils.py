@@ -10,11 +10,13 @@ from sentry.grouping.utils import get_canonical_message_from_event, normalize_me
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
+from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -206,38 +208,39 @@ def get_fingerprint_type(
     )
 
 
-def get_custom_fingerprint_type(
-    fingerprint_info: FingerprintInfo,
-) -> Literal["built-in", "custom client", "custom server"]:
+def get_custom_fingerprint_description(
+    fingerprint_info: FingerprintInfo, pretty: bool = False
+) -> str:
+    """
+    Get a string describing the type of custom fingerprint as either built-in, from the client, or
+    from the server.
+
+    If `pretty` is true, format the result as separate words (useful for titles, etc.). Otherwise,
+    use underscores so it can be used programmatically, for things like dict keys.
+    """
     matched_server_rule = fingerprint_info.get("matched_rule")
+
     if matched_server_rule:
-        return "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+        fingerprint_type = "built-in" if matched_server_rule.get("is_builtin") else "custom server"
     else:
-        return "custom client"
+        fingerprint_type = "custom client"
+
+    description = f"{fingerprint_type} fingerprint"
+
+    return description if pretty else description.replace("-", "_").replace(" ", "_")
 
 
 def resolve_fingerprint_variable(
     variable_key: str,
     event: Event,
     use_legacy_unknown_variable_handling: bool,
-    parameterize_message: bool = True,
 ) -> str | None:
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
         message = get_canonical_message_from_event(event)
-
-        # Fingerprint variables can be used in custom titles, and there we want the original message
-        if not parameterize_message:
-            return message or "<no-message>"
-
-        normalized_message = (
-            normalize_message_for_grouping(message, event, reason="fingerprint", trim_message=False)
-            if message
-            else None
-        )
-        return normalized_message or "<no-message>"
+        return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
         exception_type = get_path(event.data, "exception", "values", -1, "type")
@@ -300,7 +303,10 @@ def resolve_fingerprint_variable(
 
 
 def resolve_fingerprint_values(
-    fingerprint: list[str], event: Event, use_legacy_unknown_variable_handling: bool = False
+    fingerprint: list[str],
+    event: Event,
+    context: GroupingContext,
+    use_legacy_unknown_variable_handling: bool = False,
 ) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
@@ -310,8 +316,7 @@ def resolve_fingerprint_values(
             return entry
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
+        # can remove `use_legacy_unknown_variable_handling`
         resolved_value = resolve_fingerprint_variable(
             variable_key, event, use_legacy_unknown_variable_handling
         )
@@ -320,6 +325,12 @@ def resolve_fingerprint_values(
         # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
+
+        if variable_key == "message" and resolved_value != "<no-message>":
+            return normalize_message_for_grouping(
+                resolved_value, context, reason="fingerprint", trim_message=False
+            )
+
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
@@ -330,6 +341,9 @@ def expand_title_template(
 ) -> str:
     def _handle_match(match: re.Match[str]) -> str:
         variable_key = match.group(1)
+        if variable_key == "message":
+            metrics.incr("grouping.message_used", tags={"reason": "custom_title"})
+
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`
@@ -337,9 +351,6 @@ def expand_title_template(
             variable_key,
             event,
             use_legacy_unknown_variable_handling,
-            # Parameterization is useful for grouping, but we want to show the real error message in
-            # the event/issue title
-            parameterize_message=False,
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we

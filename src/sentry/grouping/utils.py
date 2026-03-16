@@ -8,13 +8,12 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.grouping.parameterization import Parameterizer
-from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -56,35 +55,39 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, reason: str, trim_message: bool
+    message: str, context: GroupingContext, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-    parameterizer = Parameterizer(
-        use_experimental_regexes=in_rollout_group(
-            "grouping.experimental_parameterization", event.project_id
-        ),
-    )
+    if message == context.canonical_event_message:
+        parameterized = context.canonical_message_parameterized
 
-    if trim_message:
-        # If there are multiple lines, grab the first two non-empty ones
-        trimmed = _trim_extra_lines(message)
-        normalized = parameterizer.parameterize(trimmed)
+        # Before we mark the value as having been used, check if it's already marked that way. If
+        # so, that means our use of the value here is at least the second use, thus proving the
+        # caching worthwhile.
+        if context.cached_param_result_used:
+            # This represents a saved call to `parameterizer.parameterize`
+            metrics.incr("grouping.cached_param_result_used")
+
+        context.cached_param_result_used = True
     else:
-        normalized = parameterizer.parameterize(message)
+        parameterized = context.parameterizer.parameterize(message)
 
-    parameterization_counts = parameterizer.matches_counter.items()
-    if parameterization_counts:
-        metrics.incr("grouping.message_parameterized", tags={"source": reason})
+        # Before we mark the parameterizer as having been used, check if it's already marked that
+        # way. If so, that means our use of it here is at least the second use, thus proving the
+        # caching worthwhile.
+        if context.cached_parameterizer_used:
+            # This represents a saved call to `in_rollout_group` on the project vis-à-vis
+            # experimental parameterization
+            metrics.incr("grouping.cached_parameterizer_used")
 
-        for key, value in parameterization_counts:
-            # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-            # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-            metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+        context.cached_parameterizer_used = True
 
-    return normalized
+    metrics.incr("grouping.message_used", tags={"reason": reason})
+
+    return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
 def _trim_extra_lines(input_str: str) -> str:

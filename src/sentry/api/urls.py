@@ -40,6 +40,7 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
+    OrganizationTraceItemAttributeValidateEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
 )
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
@@ -153,6 +154,9 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
+)
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGenerateEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
@@ -287,6 +291,9 @@ from sentry.integrations.api.endpoints.organization_repository_commits import (
 )
 from sentry.integrations.api.endpoints.organization_repository_details import (
     OrganizationRepositoryDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization_repository_platforms import (
+    OrganizationRepositoryPlatformsEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
@@ -732,7 +739,6 @@ from .endpoints.organization_events_meta import (
     OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
-from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
 from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansExamplesEndpoint,
     OrganizationEventsSpansPerformanceEndpoint,
@@ -1563,6 +1569,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-starred-order",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/generate/$",
+        OrganizationDashboardGenerateEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboards-generate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/$",
         OrganizationDashboardDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-details",
@@ -1733,6 +1744,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",
+        OrganizationTraceItemAttributeValidateEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes-validate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
         OrganizationTraceItemAttributeValuesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attribute-values",
@@ -1836,11 +1852,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-histogram/$",
         OrganizationEventsHistogramEndpoint.as_view(),
         name="sentry-api-0-organization-events-histogram",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-spans-histogram/$",
-        OrganizationEventsSpansHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-spans-histogram",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-trends/$",
@@ -2217,6 +2228,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/commits/$",
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-commits",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms/$",
+        OrganizationRepositoryPlatformsEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-platforms",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/plugins/$",

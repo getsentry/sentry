@@ -5,7 +5,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const ASSET_DESCRIPTION_WIDGET: Widget = {
   id: 'domain-widget',
@@ -302,4 +302,5 @@ export const FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...THIRD_ROW_WIDGETS,
     ASSETS_TABLE_WIDGET,
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.RESOURCE},
 };

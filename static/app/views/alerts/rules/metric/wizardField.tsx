@@ -10,8 +10,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import EAPMetricsField from 'sentry/views/alerts/rules/metric/eapMetricsField';
+import {EAPField} from 'sentry/views/alerts/rules/metric/eapField';
+import {EAPMetricsField} from 'sentry/views/alerts/rules/metric/eapMetricsField';
 import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -48,7 +48,7 @@ type Props = Omit<FormFieldProps, 'children'> & {
   onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
-export default function WizardField({
+export function WizardField({
   organization,
   project,
   columnWidth,

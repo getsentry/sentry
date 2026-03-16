@@ -9,12 +9,12 @@ import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import type {RequestOptions} from 'sentry/api';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
@@ -33,10 +33,10 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {
   AlertType,
@@ -44,8 +44,8 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
-import InstalledIntegration from 'sentry/views/settings/organizationIntegrations/installedIntegration';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 // Show the features tab if the org has features for the integration
@@ -236,12 +236,26 @@ export default function IntegrationDetailedView() {
 
   const onInstall = useCallback(
     (integration: Integration) => {
-      // send the user to the configure integration view for that integration
+      if (provider?.features.includes('coding-agent')) {
+        queryClient.invalidateQueries({
+          queryKey: makeIntegrationQueryKey({
+            orgSlug: organization.slug,
+            integrationSlug,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: [
+            getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+          ],
+        });
+      }
       navigate(
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       );
     },
-    [organization.slug, navigate]
+    [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
   );
 
   const onRemove = useCallback(

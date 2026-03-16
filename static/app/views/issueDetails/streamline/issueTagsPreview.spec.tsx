@@ -4,7 +4,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import IssueTagsPreview from './issueTagsPreview';
+import {IssueTagsPreview} from './issueTagsPreview';
 
 describe('IssueTagsPreview', () => {
   beforeEach(() => {

@@ -14,7 +14,7 @@ import {
   ReplayAccessMembersField,
 } from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-function OrganizationMembershipSettingsForm({
+export function OrganizationMembershipSettingsForm({
   organization,
   onSave,
 }: MembershipSettingsProps) {
@@ -315,5 +315,3 @@ function OrganizationMembershipSettingsForm({
     </Fragment>
   );
 }
-
-export default OrganizationMembershipSettingsForm;

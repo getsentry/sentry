@@ -9,7 +9,7 @@ import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
-import Legend from 'sentry/components/charts/components/legend';
+import {Legend} from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
@@ -30,7 +30,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';

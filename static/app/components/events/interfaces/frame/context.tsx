@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {IconFlag} from 'sentry/icons';
@@ -18,9 +18,9 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {Assembly} from './assembly';
 import ContextLineNumber from './contextLineNumber';

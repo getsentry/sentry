@@ -7,8 +7,8 @@ import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestin
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 const projects = [

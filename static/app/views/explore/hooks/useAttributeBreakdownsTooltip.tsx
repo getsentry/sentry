@@ -3,7 +3,7 @@ import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {
   useAddSearchFilter,
   useSetQueryParamsGroupBys,

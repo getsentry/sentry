@@ -5,20 +5,20 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import useReplayBulkDeleteAuditLog from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {useReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 interface Props {
   projectId: string;
   onDidHide?: () => void;
 }
 
-export default function BulkDeleteAlert({projectId, onDidHide}: Props) {
+export function BulkDeleteAlert({projectId, onDidHide}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
   const shouldRender = useShouldRenderBulkDeleteAlert({organization, project});

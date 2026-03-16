@@ -9,9 +9,9 @@ import {
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('SentryAppExternalIssueForm', () => {
