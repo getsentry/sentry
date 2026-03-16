@@ -439,10 +439,10 @@ def test_get_cell_ip_addresses() -> None:
 @mock.patch("sentry.utils.metrics.incr")
 def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
     us1_cell_address = "http://i.am.us1.internal.hostname:9000"
-    us1_cell = Cell("eu", 1, us1_cell_address, RegionCategory.MULTI_TENANT)
+    us1_cell = Cell("us1", 1, us1_cell_address, RegionCategory.MULTI_TENANT)
 
     us2_cell_address = "http://i.am.us2.internal.hostname:9000"
-    us2_cell = Cell("us", 1, us2_cell_address, RegionCategory.MULTI_TENANT)
+    us2_cell = Cell("us2", 1, us2_cell_address, RegionCategory.MULTI_TENANT)
 
     dead_cell_address = "http://i.am.dead.internal.hostname:9000"
     dead_cell = Cell("dead", 1, dead_cell_address, RegionCategory.MULTI_TENANT)
