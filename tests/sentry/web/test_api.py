@@ -18,6 +18,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
 
 class RobotsTxtTest(TestCase):
@@ -705,7 +706,7 @@ class McpJsonTest(TestCase):
 class OAuthAuthorizationServerMetadataTest(TestCase):
     @cached_property
     def path(self) -> str:
-        return reverse("sentry-oauth-authorization-server-metadata")
+        return "/.well-known/oauth-authorization-server"
 
     def test_metadata_response(self) -> None:
         response = self.client.get(self.path)
@@ -720,10 +721,10 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         assert "authorization_endpoint" in data
         assert "token_endpoint" in data
 
-        assert data["authorization_endpoint"].endswith("/oauth/authorize/")
-        assert data["token_endpoint"].endswith("/oauth/token/")
-        assert data["userinfo_endpoint"].endswith("/oauth/userinfo/")
-        assert data["device_authorization_endpoint"].endswith("/oauth/device/code/")
+        assert data["authorization_endpoint"] == absolute_uri("/oauth/authorize/")
+        assert data["token_endpoint"] == absolute_uri("/oauth/token/")
+        assert data["userinfo_endpoint"] == absolute_uri("/oauth/userinfo/")
+        assert data["device_authorization_endpoint"] == absolute_uri("/oauth/device/code/")
 
         assert data["grant_types_supported"] == [
             "authorization_code",
