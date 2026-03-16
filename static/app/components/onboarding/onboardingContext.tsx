@@ -57,9 +57,22 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
     () => ({
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
-        // If platform is undefined, remove the item from session storage
         if (selectedPlatform === undefined) {
-          removeOnboarding();
+          // Clear platform but preserve other SCM state (integration, repos, features).
+          // Full reset only happens if no other state remains.
+          const nextState = {
+            ...onboarding,
+            selectedPlatform: undefined,
+          };
+          const hasOtherState =
+            nextState.selectedIntegration ||
+            nextState.selectedRepositories ||
+            nextState.selectedFeatures;
+          if (hasOtherState) {
+            setOnboarding(nextState);
+          } else {
+            removeOnboarding();
+          }
         } else {
           setOnboarding({...onboarding, selectedPlatform});
         }

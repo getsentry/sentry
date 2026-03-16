@@ -191,13 +191,12 @@ export function OnboardingWithoutContext() {
         p => p.id === location.query.platform
       );
 
-      // if no platform found, we redirect the user to the platform select page
+      // if no platform found, redirect to the appropriate platform selection step
       if (!platform) {
-        navigate(
-          normalizeUrl(
-            `/onboarding/${organization.slug}/${OnboardingStepId.SELECT_PLATFORM}/`
-          )
-        );
+        const fallbackStep = hasScmOnboarding
+          ? OnboardingStepId.SCM_PLATFORM_FEATURES
+          : OnboardingStepId.SELECT_PLATFORM;
+        navigate(normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`));
         return;
       }
 
@@ -215,7 +214,14 @@ export function OnboardingWithoutContext() {
         name: platform.name,
       });
     }
-  }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
+  }, [
+    location.query,
+    navigate,
+    onboardingContext,
+    organization.slug,
+    location.pathname,
+    hasScmOnboarding,
+  ]);
 
   const shallProjectBeDeleted =
     stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
