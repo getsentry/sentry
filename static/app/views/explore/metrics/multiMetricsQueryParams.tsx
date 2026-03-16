@@ -192,26 +192,6 @@ export function useMultiMetricsQueryParams() {
   return metricQueries;
 }
 
-export function useReorderMetricQueries() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {metricQueries} = useMultiMetricsQueryParamsContext();
-
-  return function (oldIndex: number, newIndex: number) {
-    const reordered = [...metricQueries];
-    const [removed] = reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, removed!);
-
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        metric: reordered.map(encodeMetricQueryParams).filter(Boolean),
-      },
-    });
-  };
-}
-
 export function useAddMetricQuery() {
   const location = useLocation();
   const navigate = useNavigate();

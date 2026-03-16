@@ -7,7 +7,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
-  useReorderMetricQueries,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -166,99 +165,6 @@ describe('MultiMetricsQueryParamsProvider', () => {
         }),
       }),
     ]);
-  });
-
-  describe('useReorderMetricQueries', () => {
-    function useReorderHook() {
-      return {
-        metricQueries: useMultiMetricsQueryParams(),
-        reorder: useReorderMetricQueries(),
-      };
-    }
-
-    function makeMetricParam(name: string, type: string) {
-      return JSON.stringify({
-        metric: {name, type},
-        query: '',
-        aggregateFields: [{yAxes: [`per_second(value,${name},${type},-)`]}],
-        aggregateSortBys: [],
-        mode: 'samples',
-      });
-    }
-
-    it('reverses order when reordering two metrics', () => {
-      const {result} = renderHookWithProviders(useReorderHook, {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/metrics/',
-            query: {
-              metric: [
-                makeMetricParam('alpha', 'counter'),
-                makeMetricParam('beta', 'gauge'),
-              ],
-            },
-          },
-        },
-      });
-
-      act(() => result.current.reorder(0, 1));
-
-      expect(result.current.metricQueries.map(q => q.metric)).toEqual([
-        {name: 'beta', type: 'gauge'},
-        {name: 'alpha', type: 'counter'},
-      ]);
-    });
-
-    it('shifts remaining metrics when moving first to last', () => {
-      const {result} = renderHookWithProviders(useReorderHook, {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/metrics/',
-            query: {
-              metric: [
-                makeMetricParam('alpha', 'counter'),
-                makeMetricParam('beta', 'gauge'),
-                makeMetricParam('gamma', 'distribution'),
-              ],
-            },
-          },
-        },
-      });
-
-      act(() => result.current.reorder(0, 2));
-
-      expect(result.current.metricQueries.map(q => q.metric)).toEqual([
-        {name: 'beta', type: 'gauge'},
-        {name: 'gamma', type: 'distribution'},
-        {name: 'alpha', type: 'counter'},
-      ]);
-    });
-
-    it('preserves order when reordering to the same index', () => {
-      const {result} = renderHookWithProviders(useReorderHook, {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/metrics/',
-            query: {
-              metric: [
-                makeMetricParam('alpha', 'counter'),
-                makeMetricParam('beta', 'gauge'),
-              ],
-            },
-          },
-        },
-      });
-
-      act(() => result.current.reorder(0, 0));
-
-      expect(result.current.metricQueries.map(q => q.metric)).toEqual([
-        {name: 'alpha', type: 'counter'},
-        {name: 'beta', type: 'gauge'},
-      ]);
-    });
   });
 
   describe('with tracemetrics-overlay-charts-ui feature', () => {

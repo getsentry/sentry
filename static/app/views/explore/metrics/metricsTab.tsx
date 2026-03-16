@@ -1,18 +1,4 @@
-import {useCallback, useRef} from 'react';
-import type {DragEndEvent} from '@dnd-kit/core';
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -23,7 +9,10 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
@@ -31,9 +20,14 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import {
+  encodeMetricQueryParams,
+  type BaseMetricQuery,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -41,7 +35,6 @@ import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
-  useReorderMetricQueries,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   FilterBarWithSaveAsContainer,
@@ -88,72 +81,55 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
-  const reorderMetricQueries = useReorderMetricQueries();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const counterRef = useRef(0);
-  const dragIdsRef = useRef<number[]>([]);
-  if (metricQueries.length < dragIdsRef.current.length) {
-    dragIdsRef.current = [];
-  }
-  while (dragIdsRef.current.length < metricQueries.length) {
-    counterRef.current += 1;
-    dragIdsRef.current.push(counterRef.current);
-  }
-  const dragIds = [...dragIdsRef.current];
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+  const columns = useMemo(
+    () => metricQueries.map(mq => ({metric: mq.metric, queryParams: mq.queryParams})),
+    [metricQueries]
   );
 
-  const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const {active, over} = event;
-      if (active.id !== over?.id) {
-        const ids = dragIdsRef.current;
-        const oldIndex = ids.indexOf(active.id as number);
-        const newIndex = ids.indexOf(over?.id as number);
-        if (oldIndex >= 0 && newIndex >= 0) {
-          const [removed] = ids.splice(oldIndex, 1);
-          ids.splice(newIndex, 0, removed!);
-          reorderMetricQueries(oldIndex, newIndex);
-        }
-      }
+  const setColumns = useCallback(
+    (newColumns: BaseMetricQuery[], _op: 'insert' | 'update' | 'delete' | 'reorder') => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          metric: newColumns.map(encodeMetricQueryParams).filter(defined).filter(Boolean),
+        },
+      });
     },
-    [reorderMetricQueries]
+    [location, navigate]
   );
 
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={dragIds} strategy={verticalListSortingStrategy}>
-            {metricQueries.map((metricQuery, index) => {
-              return (
-                <MetricsQueryParamsProvider
-                  key={`queryBuilder-${dragIds[index]}`}
-                  queryParams={metricQuery.queryParams}
-                  setQueryParams={metricQuery.setQueryParams}
-                  traceMetric={metricQuery.metric}
-                  setTraceMetric={metricQuery.setTraceMetric}
-                  removeMetric={metricQuery.removeMetric}
-                >
-                  <MetricToolbar
+        <DragNDropContext columns={columns} setColumns={setColumns}>
+          {({editableColumns}) => (
+            <Fragment>
+              {editableColumns.map((column, index) => {
+                const metricQuery = metricQueries[index]!;
+                return (
+                  <MetricsQueryParamsProvider
+                    key={column.uniqueId}
+                    queryParams={metricQuery.queryParams}
+                    setQueryParams={metricQuery.setQueryParams}
                     traceMetric={metricQuery.metric}
-                    queryIndex={index}
-                    dragId={dragIds[index]!}
-                  />
-                </MetricsQueryParamsProvider>
-              );
-            })}
-          </SortableContext>
-        </DndContext>
+                    setTraceMetric={metricQuery.setTraceMetric}
+                    removeMetric={metricQuery.removeMetric}
+                  >
+                    <MetricToolbar
+                      traceMetric={metricQuery.metric}
+                      queryIndex={index}
+                      dragId={column.id}
+                    />
+                  </MetricsQueryParamsProvider>
+                );
+              })}
+            </Fragment>
+          )}
+        </DragNDropContext>
         <ToolbarVisualizeAddChart
           add={addMetricQuery}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
