@@ -28,7 +28,6 @@ from sentry.seer.autofix.utils import (
     bulk_write_preferences_to_sentry_db,
     default_seer_project_preference,
 )
-from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
 
@@ -48,6 +47,12 @@ def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
             merged.append(repo)
             existing_keys.add(_unique_repo_key(repo))
     return merged
+
+
+class BranchOverrideSerializer(CamelSnakeSerializer):
+    tag_name = serializers.CharField(required=True)
+    tag_value = serializers.CharField(required=True)
+    branch_name = serializers.CharField(required=True)
 
 
 class RepositorySerializer(CamelSnakeSerializer):

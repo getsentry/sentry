@@ -22,6 +22,12 @@ from sentry.seer.autofix.utils import (
     make_set_project_preference_request,
     write_preference_to_sentry_db,
 )
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    BranchOverrideSerializer,
+)
+from sentry.seer.endpoints.organization_autofix_automation_settings import (
+    RepositorySerializer as BaseRepositorySerializer,
+)
 from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext, seer_autofix_default_connection_pool
 from sentry.seer.utils import filter_repo_by_provider
@@ -30,41 +36,10 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 
-class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(required=True)
-    tag_value = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=True)
-
-
-class RepositorySerializer(CamelSnakeSerializer):
+class RepositorySerializer(BaseRepositorySerializer):
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
-    provider = serializers.CharField(required=True)
-    owner = serializers.CharField(required=True)
-    name = serializers.CharField(required=True)
-    external_id = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(
-        many=True,
-        required=False,
-        allow_null=True,
-    )
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    base_commit_sha = serializers.CharField(required=False, allow_null=True)
-    provider_raw = serializers.CharField(required=False, allow_null=True)
-
-    def validate_branch_overrides(self, value):
-        if not value:
-            return value
-        seen = set()
-        for override in value:
-            key = (override["tag_name"], override["tag_value"])
-            if key in seen:
-                raise serializers.ValidationError(
-                    f"Duplicate branch override for tag {key[0]}={key[1]}"
-                )
-            seen.add(key)
-        return value
+    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=True)
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
