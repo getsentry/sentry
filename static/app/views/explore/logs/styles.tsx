@@ -142,6 +142,10 @@ export const LogTableBody = styled(TableBody)<{
     padding-bottom: ${p.theme.space.md};
     `}
   overflow-y: auto;
+
+  /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
+  min-height: 1px;
+
   max-height: ${p =>
     p.expanded
       ? `calc(95vh - ${GRID_BODY_ROW_HEIGHT * 1.5}px)`
