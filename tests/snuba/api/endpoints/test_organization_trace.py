@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.issues.grouptype import (
+from sentry.issue_detection.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceSlowDBQueryGroupType,
 )

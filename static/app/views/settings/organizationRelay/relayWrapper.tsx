@@ -3,7 +3,7 @@ import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -81,7 +81,7 @@ export function RelayWrapper() {
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
         <FieldGroup title={t('Data Authenticity')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="ingestThroughTrustedRelaysOnly"
             schema={relaySchema}
             initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
@@ -122,7 +122,7 @@ export function RelayWrapper() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       )}
       <TextBlock>

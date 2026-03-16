@@ -45,11 +45,11 @@ Notes:
 - Tests should ALWAYS be procedural with NO branching logic. It is very rare
   that you will need an if statement as part of a backend test.
 
-## Date-stable tests (this year only)
+## Date-stable tests (current or future year)
 
-Do not use the **current UTC calendar year** as a hardcoded test “now” at **module or class** scope (or in `freeze_time(datetime(...))`)—that date drifts into Snuba retention. Use **`before_now(...)`** (or `now - timedelta`) for relative time. Fixed timestamps in **function bodies** (fixtures, assertions) are fine.
+Do not use the **current or future UTC calendar year** as a hardcoded test “now” at **module or class** scope (or in `freeze_time(datetime(...))`)—that date drifts into Snuba retention. Use **`before_now(...)`** (or `now - timedelta`) for relative time, or an older fixed year for intentional historical fixtures. Fixed timestamps in **function bodies** (fixtures, assertions) are fine.
 
-Flake8 **S015** flags only literals equal to the current UTC year in those scopes.
+Flake8 **S015** flags literals with year greater than or equal to the current UTC year in those scopes.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 

@@ -62,7 +62,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -212,7 +212,7 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToQueryParams(widget);
 
     navigate(
       normalizeUrl({

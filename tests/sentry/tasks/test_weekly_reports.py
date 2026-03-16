@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry.analytics.events.weekly_report import WeeklyReportSent
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organizationmember import OrganizationMember
@@ -25,6 +25,8 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
+    _project_key_errors_eap,
+    _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
     organization_project_issue_substatus_summaries,
@@ -364,6 +366,61 @@ class WeeklyReportsTest(
         user_project_ownership(ctx)
         key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
         assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
+
+    def test_project_key_errors_eap_matches_snuba(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+
+        ts = self.now.timestamp()
+
+        group_a = self.store_events_to_snuba_and_eap(
+            "key-errors-a",
+            count=3,
+            timestamp=ts,
+            extra_event_data={"level": "error"},
+        )[0].group
+        group_b = self.store_events_to_snuba_and_eap(
+            "key-errors-b",
+            count=2,
+            timestamp=ts,
+            extra_event_data={"level": "error"},
+        )[0].group
+        group_c = self.store_events_to_snuba_and_eap(
+            "key-errors-c",
+            count=4,
+            timestamp=ts,
+            extra_event_data={"level": "info"},
+        )[0].group
+        group_d = self.store_events_to_snuba_and_eap(
+            "key-errors-d",
+            count=1,
+            timestamp=ts,
+            extra_event_data={"level": "error"},
+        )[0].group
+        assert group_a is not None
+        assert group_b is not None
+        assert group_c is not None
+        assert group_d is not None
+
+        # Excluded in both paths due to unresolved filter
+        group_b.update(
+            status=GroupStatus.RESOLVED,
+            substatus=None,
+            resolved_at=self.now - timedelta(minutes=1),
+        )
+
+        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
+        referrer = Referrer.REPORTS_KEY_ERRORS.value
+
+        snuba_rows = _project_key_errors_snuba(ctx, self.project, referrer)
+        eap_rows = _project_key_errors_eap(ctx, self.project, referrer)
+
+        expected_rows = [
+            {"events.group_id": group_a.id, "count()": 3},
+            {"events.group_id": group_d.id, "count()": 1},
+        ]
+        assert snuba_rows == expected_rows
+        assert eap_rows == expected_rows
 
     def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)

@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -229,6 +230,7 @@ class IntegrationProviderSerializer(Serializer):
             existing = integration_service.get_integrations(
                 organization_id=organization.id,
                 providers=[obj.key],
+                status=ObjectStatus.ACTIVE,
             )
             if existing:
                 can_add = False

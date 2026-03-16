@@ -148,13 +148,21 @@ def _encode_attribute_data(attr_data: Mapping[str, Any]) -> Mapping[str, AnyValu
     return {k: _encode_value(v) for k, v in attr_data.items() if v is not None}
 
 
-def _extract_from_event(event: Event | GroupEvent) -> Mapping[str, float | int]:
-    out: dict[str, float | int] = {}
+def _extract_from_event(event: Event | GroupEvent) -> Mapping[str, float | int | str]:
+    out: dict[str, float | int | str] = {}
     if event.group_id:
         out["group_id"] = event.group_id
     if isinstance(event, GroupEvent):
         out["group_first_seen"] = event.group.first_seen.timestamp()
+        occurrence = event.occurrence
+        if occurrence is not None:
+            out["issue_occurrence_id"] = str(occurrence.id)
+            out["group_type_id"] = int(occurrence.type.type_id)
     return out
+
+
+def format_attr_key(key: str) -> str:
+    return f"attr[{key}]"
 
 
 def _extract_tags_and_contexts(
@@ -167,9 +175,8 @@ def _extract_tags_and_contexts(
         "dist": event_data.get("dist"),
     }
 
-    # From a user's perspective, "attributes" are tags + contexts.
+    # From a user's perspective, "attributes" are tags + contexts (+ flags, from ctx).
     # Yes, it's confusing with the general EAP attributes.
-    format_attr_key = lambda key: f"attr[{key}]"
 
     attr_keys = set()
     tags = event_data.get("tags")
@@ -414,7 +421,6 @@ def _encode_value(value: Any, _depth: int = 0) -> AnyValue:
     elif isinstance(value, float):
         return AnyValue(double_value=value)
     elif isinstance(value, list) or isinstance(value, tuple):
-        # Not yet processed on EAP side
         return AnyValue(
             array_value=ArrayValue(values=[_encode_value(v, _depth + 1) for v in value])
         )

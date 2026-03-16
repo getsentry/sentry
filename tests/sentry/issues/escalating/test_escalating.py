@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
@@ -19,7 +20,7 @@ from sentry.issues.escalating.escalating import (
     query_groups_past_counts,
 )
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.services.eventstore.models import Event, GroupEvent

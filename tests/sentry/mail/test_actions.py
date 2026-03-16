@@ -2,7 +2,7 @@ from django.core import mail
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.models.organizationmember import OrganizationMember

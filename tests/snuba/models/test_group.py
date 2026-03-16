@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase

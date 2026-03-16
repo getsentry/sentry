@@ -4,7 +4,7 @@ import hashlib
 import logging
 from datetime import timedelta
 
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issue_detection.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project

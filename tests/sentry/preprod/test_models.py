@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class PreprodArtifactModelTestBase(TestCase):
@@ -17,7 +17,7 @@ class PreprodArtifactModelTestBase(TestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
     """Tests for get_sibling_artifacts_for_commit method."""
 
@@ -236,7 +236,7 @@ class PreprodArtifactSiblingArtifactsTest(PreprodArtifactModelTestBase):
         assert set(siblings_from_adhoc) == {release_artifact, adhoc_artifact}
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
     """Tests for base artifact related methods."""
 
@@ -1217,7 +1217,7 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         assert len(result_artifacts) == 0
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
     """Tests for get_base_artifacts_for_commit classmethod."""
 

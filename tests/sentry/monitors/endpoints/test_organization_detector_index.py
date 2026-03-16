@@ -7,11 +7,11 @@ from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
-@region_silo_test
+@cell_silo_test
 class BaseDetectorTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -44,7 +44,7 @@ class BaseDetectorTestCase(APITestCase):
         self.create_data_source_detector(data_source=self.data_source, detector=self.detector)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-index"
 
@@ -85,7 +85,7 @@ class OrganizationDetectorIndexGetTest(BaseDetectorTestCase):
         }
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-index"
     method = "post"
@@ -212,7 +212,7 @@ class OrganizationDetectorIndexPostTest(APITestCase):
         assert monitor.config["recovery_threshold"] == 2
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-details"
     method = "put"
@@ -281,7 +281,7 @@ class OrganizationDetectorIndexPutTest(BaseDetectorTestCase):
         assert self.monitor.config["max_runtime"] == 60
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDeleteTest(BaseDetectorTestCase):
     endpoint = "sentry-api-0-organization-detector-details"
     method = "delete"

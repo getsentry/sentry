@@ -110,7 +110,6 @@ def test_run_check_run_listener():
         "check_run",
         stream=scm,
         get_current_time=lambda: 0.0,
-        report_error=lambda e: None,
         record_count=lambda a, b, c: None,
         record_timer=lambda a, b, c: None,
     )
@@ -149,7 +148,6 @@ def test_run_comment_listener():
         "comment",
         stream=scm,
         get_current_time=lambda: 0.0,
-        report_error=lambda e: None,
         record_count=lambda a, b, c: None,
         record_timer=lambda a, b, c: None,
     )
@@ -196,7 +194,6 @@ def test_run_pull_request_listener():
         "pull_request",
         stream=scm,
         get_current_time=lambda: 0.0,
-        report_error=lambda e: None,
         record_count=lambda a, b, c: None,
         record_timer=lambda a, b, c: None,
     )
@@ -246,7 +243,6 @@ def test_run_listener_metrics_recorded():
         "check_run",
         stream=scm,
         get_current_time=lambda: 200.0,
-        report_error=lambda e: None,
         record_count=record_count,
         record_distribution=record_distribution,
         record_timer=record_timer,
@@ -287,7 +283,6 @@ def test_run_listener_not_found():
         "check_run",
         stream=SourceCodeManagerEventStream(),
         get_current_time=lambda: 0.0,
-        report_error=lambda e: None,
         record_count=record_count,
         record_timer=lambda a, b, c: None,
     )
@@ -328,7 +323,6 @@ def test_run_listener_exception_propagates():
             "check_run",
             stream=scm,
             get_current_time=lambda: 0.0,
-            report_error=lambda e: None,
             record_count=record_count,
             record_timer=lambda a, b, c: None,
         )
@@ -341,29 +335,22 @@ def test_run_listener_exception_propagates():
 
 
 def test_run_listener_malformed_input():
-    error = None
     metrics = []
-
-    def report_error(e):
-        nonlocal error
-        error = e
 
     def record_count(a, b, c):
         metrics.append((a, b, c))
 
-    # Implicitly tests no exception was raised.
-    run_listener(
-        "t",
-        "",
-        "check_run",
-        stream=SourceCodeManagerEventStream(),
-        get_current_time=lambda: 0.0,
-        report_error=report_error,
-        record_count=record_count,
-        record_timer=lambda a, b, c: None,
-    )
+    with pytest.raises(msgspec.MsgspecError):
+        run_listener(
+            "t",
+            "",
+            "check_run",
+            stream=SourceCodeManagerEventStream(),
+            get_current_time=lambda: 0.0,
+            record_count=record_count,
+            record_timer=lambda a, b, c: None,
+        )
 
-    assert isinstance(error, msgspec.MsgspecError)
     assert metrics == [("sentry.scm.run_listener.failed", 1, {"reason": "parse", "fn": "t"})]
 
 
