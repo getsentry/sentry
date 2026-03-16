@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,6 +14,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
@@ -70,20 +70,22 @@ export function UserDropdown() {
         isMobile ? (
           <Flex justify="start" padding="md 2xl">
             {props => (
-              <Button
+              <PrimaryNavigation.Button
                 {...props}
                 {...triggerProps}
                 aria-label={user.email}
-                icon={<UserAvatar user={user} size={16} />}
-                priority="transparent"
-                size="xs"
-                onClick={e => {
-                  handleTriggerClick();
-                  triggerProps.onClick?.(e);
+                analyticsKey="user-settings"
+                label={t('User Settings')}
+                buttonProps={{
+                  size: 'xs',
+                  priority: 'transparent',
+                  onClick: e => {
+                    handleTriggerClick();
+                    triggerProps.onClick?.(e);
+                  },
+                  icon: <UserAvatar user={user} size={16} />,
                 }}
-              >
-                {t('User Settings')}
-              </Button>
+              />
             )}
           </Flex>
         ) : (

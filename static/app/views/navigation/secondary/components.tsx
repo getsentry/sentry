@@ -539,7 +539,7 @@ const NavigationLink = styled(Link)<NavigationLink>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === 'mobile'
-      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} 48px`
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
       : `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
 

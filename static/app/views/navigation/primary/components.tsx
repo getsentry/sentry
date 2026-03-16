@@ -369,7 +369,7 @@ function NavigationButton(props: ButtonProps) {
       align="center"
       height={layout === 'mobile' ? 'auto' : '44px'}
       width={layout === 'mobile' ? '100%' : '44px'}
-      padding={layout === 'mobile' ? 'md 2xl' : 'xs'}
+      padding={layout === 'mobile' ? 'md lg' : 'xs'}
       justify={layout === 'mobile' ? 'start' : 'center'}
     >
       {p => (
@@ -432,7 +432,7 @@ const NavigationLink = styled(
         direction={layout === 'mobile' ? 'row' : 'column'}
         justify={layout === 'mobile' ? 'start' : 'center'}
         gap={layout === 'mobile' ? 'md' : 'xs'}
-        padding={layout === 'mobile' ? 'md 2xl' : 'sm lg'}
+        padding={layout === 'mobile' ? 'md lg' : 'sm lg'}
       >
         {p => <Link {...mergeProps(p, props)} />}
       </Flex>
@@ -448,6 +448,8 @@ const NavigationLink = styled(
       ? p.theme.tokens.content.primary
       : p.theme.tokens.interactive.link.neutral.rest};
 
+  font-weight: ${p =>
+    p.layout === 'mobile' ? p.theme.font.weight.sans.medium : undefined};
   outline: none;
   box-shadow: none;
   transition: none;
