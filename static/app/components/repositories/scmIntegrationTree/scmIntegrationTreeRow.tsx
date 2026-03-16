@@ -390,9 +390,13 @@ const RowContainer = styled('div')`
   top: 0;
   left: 0;
   width: 100%;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-  &:last-child {
-    border-bottom: 1px solid transparent;
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
   }
 `;
 
