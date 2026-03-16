@@ -18,10 +18,10 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Cell, RegionCategory
 

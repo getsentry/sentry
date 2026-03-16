@@ -9,8 +9,8 @@ from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketSer
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_webhook_payloads_for_mailbox, outbox_runner
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 

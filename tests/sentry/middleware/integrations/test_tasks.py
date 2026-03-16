@@ -13,7 +13,7 @@ from sentry.middleware.integrations.tasks import (
     convert_to_async_slack_response,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import override_cells
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 from sentry.utils import json

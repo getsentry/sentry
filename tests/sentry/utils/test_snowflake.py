@@ -9,8 +9,8 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.region import override_cells
 from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.user import User
 from sentry.utils import snowflake

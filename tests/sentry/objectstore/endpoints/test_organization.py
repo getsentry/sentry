@@ -12,8 +12,8 @@ from pytest_django.live_server_helper import LiveServer
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_objectstore
 from sentry.types.region import Cell

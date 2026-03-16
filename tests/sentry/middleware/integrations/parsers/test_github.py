@@ -16,9 +16,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 

@@ -28,8 +28,8 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.types.region import Cell, RegionCategory
 from sentry.users.services.user import RpcUser

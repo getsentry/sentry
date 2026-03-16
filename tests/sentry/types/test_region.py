@@ -12,7 +12,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import get_test_env_directory
+from sentry.testutils.cell import get_test_env_directory
 from sentry.types.region import (
     Cell,
     CellConfigurationError,

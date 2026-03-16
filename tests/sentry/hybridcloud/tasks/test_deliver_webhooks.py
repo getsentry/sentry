@@ -21,9 +21,9 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     schedule_webhook_delivery,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, CellResolutionError, RegionCategory
 

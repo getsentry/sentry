@@ -15,8 +15,8 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import cell_silo_test
 from sentry.types.region import Cell
 from sentry.utils import json

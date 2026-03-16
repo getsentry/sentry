@@ -12,8 +12,8 @@ from fixtures.integrations.stub_service import StubService
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 

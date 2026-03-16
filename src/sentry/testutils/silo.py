@@ -22,7 +22,7 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
-from sentry.testutils.region import get_test_env_directory, override_cells
+from sentry.testutils.cell import get_test_env_directory, override_cells
 from sentry.types.region import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 

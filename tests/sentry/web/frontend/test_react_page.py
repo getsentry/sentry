@@ -8,8 +8,8 @@ from django.urls import URLResolver, get_resolver, reverse
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.region import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin

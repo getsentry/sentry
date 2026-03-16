@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.region import override_cells
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Cell, RegionCategory
 

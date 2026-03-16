@@ -16,11 +16,11 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
+from sentry.testutils.cell import get_test_env_directory
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.region import get_test_env_directory
 from sentry.testutils.requests import (
     RequestFactory,
     make_request,

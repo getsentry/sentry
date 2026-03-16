@@ -11,7 +11,7 @@ from sentry.hybridcloud.rpc.resolvers import (
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import override_cells
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Cell, CellResolutionError, RegionCategory
 
