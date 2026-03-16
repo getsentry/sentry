@@ -116,22 +116,22 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_cell_silo(self, region: Cell) -> HttpResponseBase:
+    def get_response_from_cell_silo(self, cell: Cell) -> HttpResponseBase:
         with metrics.timer(
             "integration_proxy.control.get_response_from_cell_silo",
-            tags={"destination_region": region.name},
+            tags={"destination_cell": cell.name},
             sample_rate=1.0,
         ):
-            cell_client = CellSiloClient(region, retry=True)
+            cell_client = CellSiloClient(cell, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,
-                region=region.name,
+                region=cell.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
                     {
                         "path": self.request.path,
-                        "region": region.name,
+                        "region": cell.name,
                     }
                 )
 
