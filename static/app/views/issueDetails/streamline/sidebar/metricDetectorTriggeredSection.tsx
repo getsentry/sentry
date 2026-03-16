@@ -28,7 +28,6 @@ import type {
   SnubaQueryDataSource,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,7 +45,6 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -102,6 +100,7 @@ interface RelatedIssuesProps {
   eventDateCreated: string | undefined;
   projectId: string | number;
   query: string;
+  snubaQuery: SnubaQuery;
   start: string;
 }
 
@@ -229,9 +228,36 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
   );
 }
 
+function withEnvironmentInLocationDescriptor(
+  destination: LocationDescriptor,
+  environment?: string
+): LocationDescriptor {
+  if (!environment) {
+    return destination;
+  }
+
+  if (typeof destination === 'string') {
+    const [pathname, search = ''] = destination.split('?');
+    const searchParams = new URLSearchParams(search);
+    searchParams.set('environment', environment);
+
+    const queryString = searchParams.toString();
+    return queryString ? `${pathname}?${queryString}` : pathname;
+  }
+
+  return {
+    ...destination,
+    query: {
+      ...destination.query,
+      environment,
+    },
+  };
+}
+
 function ContributingIssues({
   projectId,
   query,
+  snubaQuery,
   eventDateCreated,
   aggregate,
   end,
@@ -267,18 +293,16 @@ function ContributingIssues({
     groupStatsPeriod: 'auto',
   };
 
-  const discoverUrl: LocationDescriptor = {
-    pathname: makeDiscoverPathname({
+  const discoverUrl = withEnvironmentInLocationDescriptor(
+    getDetectorOpenInDestination({
       organization,
-      path: '/results/',
-    }),
-    query: {
-      query,
-      dataset: SavedQueryDatasets.ERRORS,
+      projectId,
+      snubaQuery,
       start,
       end,
-    },
-  };
+    })?.to ?? '',
+    snubaQuery.environment
+  );
 
   return (
     <InterimSection
@@ -341,7 +365,10 @@ function OpenInDestinationButton({
   }
 
   return (
-    <LinkButton size="xs" to={destination.to}>
+    <LinkButton
+      size="xs"
+      to={withEnvironmentInLocationDescriptor(destination.to, snubaQuery.environment)}
+    >
       {destination.buttonText}
     </LinkButton>
   );
@@ -502,6 +529,7 @@ function TriggeredConditionDetails({
           <ContributingIssues
             projectId={projectId}
             query={issueSearchQuery}
+            snubaQuery={snubaQuery}
             eventDateCreated={eventDateCreated}
             aggregate={snubaQuery.aggregate}
             start={startDate}

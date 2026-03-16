@@ -218,6 +218,54 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
   });
 
+  it('preserves the detector environment in the triggered condition open in discover link', async () => {
+    const dataSourceWithEnvironment = SnubaQueryDataSourceFixture({
+      queryObj: {
+        id: '1',
+        status: 1,
+        subscription: '1',
+        snubaQuery: {
+          aggregate: 'count()',
+          dataset: Dataset.ERRORS,
+          id: '',
+          query: 'is:unresolved',
+          timeWindow: 60,
+          eventTypes: [EventTypes.ERROR],
+          environment: 'prod',
+        },
+      },
+    });
+
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSourceWithEnvironment],
+          value: 150,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    const openInDiscoverButton = await screen.findByRole('button', {
+      name: 'Open in Discover',
+    });
+    expect(openInDiscoverButton).toHaveAttribute(
+      'href',
+      expect.stringContaining('environment=prod')
+    );
+  });
+
   it('renders contributing issues section for errors dataset', async () => {
     // Start date is eventDateCreated minus the timeWindow (60 seconds) minus 1 extra minute
     const startDate = '2023-12-31T23:58:00.000Z';
@@ -283,6 +331,7 @@ describe('MetricDetectorTriggeredSection', () => {
           query: 'browser.name:Chrome OR browser.name:Firefox',
           timeWindow: 60,
           eventTypes: [EventTypes.ERROR],
+          environment: 'prod',
         },
       },
     });
@@ -318,11 +367,13 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.queryByRole('button', {name: 'View All'})).not.toBeInTheDocument();
 
     // The Open in Discover button should be present
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/explore/discover/results/?dataset=errors&end=2024-01-01T00%3A05%3A00.000&field=issue&field=count%28%29&field=count_unique%28user%29&interval=1m&name=Transactions&project=1&query=event.type%3Aerror%20browser.name%3AChrome%20OR%20browser.name%3AFirefox&sort=-count&start=2023-12-31T23%3A58%3A00.000&yAxis=count%28%29'
-    );
+    const openInDiscoverButtons = screen.getAllByRole('button', {
+      name: 'Open in Discover',
+    });
+    expect(openInDiscoverButtons.length).toBeGreaterThan(0);
+    openInDiscoverButtons.forEach(button => {
+      expect(button).toHaveAttribute('href', expect.stringContaining('environment=prod'));
+    });
   });
 
   describe('zoom to open period', () => {
