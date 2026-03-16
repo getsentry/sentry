@@ -8,7 +8,7 @@ When a model is migrated to use outboxes (or its replication logic changes), exi
 
 ## `replication_version` Mechanism
 
-Every `RegionOutboxProducingModel` and `ControlOutboxProducingModel` has a class variable:
+Every `CellOutboxProducingModel` and `ControlOutboxProducingModel` has a class variable:
 
 ```python
 replication_version: int = 1  # Default
@@ -58,7 +58,7 @@ f"outbox_backfill.{model._meta.db_table}"
 **To trigger a backfill**: Bump `replication_version` on the model class:
 
 ```python
-class MyModel(ReplicatedRegionModel):
+class MyModel(ReplicatedCellModel):
     replication_version = 2  # Was 1; bumping triggers backfill
 ```
 

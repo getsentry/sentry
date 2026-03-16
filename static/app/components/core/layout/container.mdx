@@ -14,6 +14,8 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/container');
 
+import {SIZES} from './__stories__/consts';
+
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
 You can specialize the `Container` component yourself and tailor it to your use case if neither `Grid` nor `Flex` are sufficient, but that should be an exception and you should try to use the higher order components instead.
@@ -54,7 +56,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
 
 <Storybook.Demo>
   <Flex gap="md">
-    {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+    {SIZES.map(size => (
       <Container
         key={size}
         background="primary"

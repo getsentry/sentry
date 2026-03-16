@@ -14,6 +14,8 @@ export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -26,6 +28,14 @@ export function IssuesSecondaryNavigation() {
           >
             {t('Feed')}
           </SecondaryNavigation.Item>
+          {hasTopIssuesUI && (
+            <SecondaryNavigation.Item
+              to={`${baseUrl}/supergroups/`}
+              analyticsItemName="issues_supergroups"
+            >
+              {t('Supergroups')}
+            </SecondaryNavigation.Item>
+          )}
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Section id="issues-types">
           {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
