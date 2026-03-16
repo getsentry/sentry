@@ -37,11 +37,14 @@ import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar
 import {NewWelcomeUI} from './components/newWelcome';
 import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
+import {ScmConnect} from './scmConnect';
+import {ScmPlatformFeatures} from './scmPlatformFeatures';
+import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import {TargetedOnboardingWelcome} from './welcome';
 
-export const onboardingSteps: StepDescriptor[] = [
+const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
@@ -53,6 +56,40 @@ export const onboardingSteps: StepDescriptor[] = [
     title: t('Select platform'),
     Component: PlatformSelection,
     hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SETUP_DOCS,
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
+
+const scmOnboardingSteps: StepDescriptor[] = [
+  {
+    id: OnboardingStepId.WELCOME,
+    title: t('Welcome'),
+    Component: WelcomeVariable,
+    cornerVariant: 'top-right',
+  },
+  {
+    id: OnboardingStepId.SCM_CONNECT,
+    title: t('Connect repository'),
+    Component: ScmConnect,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    title: t('Platform & features'),
+    Component: ScmPlatformFeatures,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_PROJECT_DETAILS,
+    title: t('Project details'),
+    Component: ScmProjectDetails,
     cornerVariant: 'top-left',
   },
   {
@@ -126,6 +163,8 @@ export function OnboardingWithoutContext() {
   const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+  const hasScmOnboarding = organization.features.includes('onboarding-scm');
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
@@ -144,7 +183,7 @@ export function OnboardingWithoutContext() {
   useEffect(() => {
     if (
       normalizeUrl(location.pathname, {forceCustomerDomain: true}) ===
-        `/onboarding/${onboardingSteps[2]!.id}/` &&
+        `/onboarding/${OnboardingStepId.SETUP_DOCS}/` &&
       location.query?.platform &&
       onboardingContext.selectedPlatform === undefined
     ) {
@@ -155,7 +194,9 @@ export function OnboardingWithoutContext() {
       // if no platform found, we redirect the user to the platform select page
       if (!platform) {
         navigate(
-          normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[1]!.id}/`)
+          normalizeUrl(
+            `/onboarding/${organization.slug}/${OnboardingStepId.SELECT_PLATFORM}/`
+          )
         );
         return;
       }
@@ -201,6 +242,7 @@ export function OnboardingWithoutContext() {
 
   const {handleGoBack} = useBackActions({
     stepIndex,
+    onboardingSteps,
     goToStep,
     recentCreatedProject,
     isRecentCreatedProjectActive: isProjectActive,
@@ -211,13 +253,17 @@ export function OnboardingWithoutContext() {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      if (nextStep.id === 'setup-docs' && !platform) {
+      if (
+        nextStep.id === OnboardingStepId.SETUP_DOCS &&
+        !platform &&
+        !onboardingContext.selectedPlatform
+      ) {
         return;
       }
 
       navigate(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
-    [organization.slug, navigate]
+    [organization.slug, navigate, onboardingSteps, onboardingContext.selectedPlatform]
   );
 
   const genSkipOnboardingLink = () => {
