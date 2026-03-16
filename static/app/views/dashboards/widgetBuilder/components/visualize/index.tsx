@@ -13,7 +13,7 @@ import {Radio} from '@sentry/scraps/radio';
 
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconDelete, IconLink} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -33,9 +33,9 @@ import {
   FieldValueType,
   prettifyTagKey,
 } from 'sentry/utils/fields';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
 import {
@@ -45,7 +45,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import SortableVisualizeFieldWrapper from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
+import {SortableVisualizeFieldWrapper} from 'sentry/views/dashboards/widgetBuilder/components/common/sortableFieldWrapper';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
@@ -53,18 +53,19 @@ import {
   SelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
-import VisualizeGhostField from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
+import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 
 export const NONE = 'none';
@@ -284,9 +285,25 @@ function Visualize({error, setError}: VisualizeProps) {
   if (state.dataset === WidgetType.TRACEMETRICS) {
     hiddenKeys = HiddenTraceMetricSearchFields;
   }
-  const {tags: numericSpanTags} = useTraceItemTags('number', hiddenKeys);
-  const {tags: stringSpanTags} = useTraceItemTags('string', hiddenKeys);
-  const {tags: booleanSpanTags} = useTraceItemTags('boolean', hiddenKeys);
+  const {traceItemType, ...traceItemOptions} = useWidgetBuilderTraceItemConfig();
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'number',
+    hiddenKeys
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'string',
+    hiddenKeys
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    traceItemOptions,
+    'boolean',
+    hiddenKeys
+  );
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -462,9 +479,6 @@ function Visualize({error, setError}: VisualizeProps) {
 
   const draggableFieldIds = fields?.map((_field, index) => index.toString()) ?? [];
 
-  const hasExploreEquations = organization.features.includes(
-    'visibility-explore-equations'
-  );
   const hasDrillDownFlows = useHasDrillDownFlows();
 
   // Default field to add to the widget query when adding a new field.
@@ -1057,7 +1071,12 @@ function Visualize({error, setError}: VisualizeProps) {
             onClick={() => {
               dispatch({
                 type: updateAction,
-                payload: [...(fields ?? []), cloneDeep(defaultField)],
+                payload: [
+                  ...(fields ?? []),
+                  state.dataset === WidgetType.TRACEMETRICS && fields?.length
+                    ? cloneDeep(fields?.[fields.length - 1] as QueryFieldValue)
+                    : cloneDeep(defaultField),
+                ],
               });
 
               trackAnalytics('dashboards_views.widget_builder.change', {
@@ -1077,36 +1096,34 @@ function Visualize({error, setError}: VisualizeProps) {
                 ? t('+ Add Field')
                 : t('+ Add Column')}
           </AddButton>
-          {datasetConfig.enableEquations &&
-            (state.dataset !== WidgetType.SPANS ||
-              (state.dataset === WidgetType.SPANS && hasExploreEquations)) && (
-              <AddButton
-                priority="link"
-                disabled={disableTransactionWidget}
-                aria-label={t('Add Equation')}
-                onClick={() => {
-                  dispatch({
-                    type: updateAction,
-                    payload: [
-                      ...(fields ?? []),
-                      {kind: FieldValueKind.EQUATION, field: ''},
-                    ],
-                  });
+          {datasetConfig.enableEquations && (
+            <AddButton
+              priority="link"
+              disabled={disableTransactionWidget}
+              aria-label={t('Add Equation')}
+              onClick={() => {
+                dispatch({
+                  type: updateAction,
+                  payload: [
+                    ...(fields ?? []),
+                    {kind: FieldValueKind.EQUATION, field: ''},
+                  ],
+                });
 
-                  trackAnalytics('dashboards_views.widget_builder.change', {
-                    builder_version: WidgetBuilderVersion.SLIDEOUT,
-                    field: 'visualize.addEquation',
-                    from: source,
-                    new_widget: !isEditing,
-                    value: '',
-                    widget_type: state.dataset ?? '',
-                    organization,
-                  });
-                }}
-              >
-                {t('+ Add Equation')}
-              </AddButton>
-            )}
+                trackAnalytics('dashboards_views.widget_builder.change', {
+                  builder_version: WidgetBuilderVersion.SLIDEOUT,
+                  field: 'visualize.addEquation',
+                  from: source,
+                  new_widget: !isEditing,
+                  value: '',
+                  widget_type: state.dataset ?? '',
+                  organization,
+                });
+              }}
+            >
+              {t('+ Add Equation')}
+            </AddButton>
+          )}
         </AddButtons>
       )}
     </Fragment>

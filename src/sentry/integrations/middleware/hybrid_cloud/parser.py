@@ -30,8 +30,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError
-from sentry.types.region import Region, find_regions_for_orgs, get_cell_by_name
+from sentry.silo.client import CellSiloClient, SiloClientError
+from sentry.types.region import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -116,13 +116,13 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
+    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
         with metrics.timer(
             "integration_proxy.control.get_response_from_region_silo",
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = RegionSiloClient(region, retry=True)
+            region_client = CellSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,
@@ -138,7 +138,7 @@ class BaseRequestParser(ABC):
                 http_response = region_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_region_silos(self, regions: list[Region]) -> dict[str, RegionResult]:
+    def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
         """
         Used to handle the requests on a given list of regions (synchronously).
         Returns a dict of region name to response/exception.
@@ -165,7 +165,7 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        regions: list[Region],
+        regions: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
     ) -> HttpResponseBase:
@@ -364,7 +364,7 @@ class BaseRequestParser(ABC):
 
     def get_regions_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
-    ) -> list[Region]:
+    ) -> list[Cell]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
         """
@@ -374,7 +374,7 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        region_names = find_regions_for_orgs([org.id for org in organizations])
+        region_names = find_cells_for_orgs([org.id for org in organizations])
         return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
@@ -386,6 +386,9 @@ class BaseRequestParser(ABC):
         self,
         external_id: str | None = None,
     ):
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
+
         rollout_rate = options.get("codecov.forward-webhooks.rollout")
 
         # we don't want to emit metrics unless we've started to roll this out

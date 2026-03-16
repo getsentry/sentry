@@ -9,7 +9,7 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -27,7 +27,7 @@ interface Props {
   renderContextMenu?: () => React.ReactNode;
 }
 
-function DashboardCard({
+export function DashboardCard({
   title,
   detail,
   createdBy,
@@ -204,5 +204,3 @@ const StyledButton = styled(Button)`
   margin-right: -10px;
   padding: 5px;
 `;
-
-export default DashboardCard;

@@ -10,17 +10,16 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import NotAvailable from 'sentry/components/notAvailable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   DataCategory,
   DataCategoryExact,
@@ -36,7 +35,8 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -52,7 +52,7 @@ import UsageChart, {
   ChartDataTransform,
   SeriesTypes,
 } from './usageChart';
-import UsageStatsPerMin from './usageStatsPerMin';
+import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
 type ChartData = {
@@ -145,7 +145,6 @@ export function getChartProps({
     | 'chartDateStartDisplay'
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
-    | 'chartStats'
     | 'cardStats'
   >;
   dataCategory: DataCategory;
@@ -325,7 +324,7 @@ export interface UsageStatsOrganizationProps {
     ) => void;
     orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
     usageChart: React.ReactNode;
-  }) => React.ReactNode | React.ReactNode;
+  }) => React.ReactNode;
   clientDiscard?: boolean;
   clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
@@ -355,7 +354,8 @@ function UsageStatsOrganization({
   children,
   endpointQuery,
 }: UsageStatsOrganizationProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const orgStatsQuery = useMemo(() => {
     return (
       endpointQuery ??
@@ -406,11 +406,9 @@ function UsageStatsOrganization({
     (event: ReactMouseEvent) => {
       event.preventDefault();
       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-      if (router) {
-        navigateTo(url, router);
-      }
+      navigateTo(url, navigate, location);
     },
-    [router, organization]
+    [navigate, location, organization]
   );
 
   const chartDataTransform = useMemo(() => {
@@ -644,7 +642,7 @@ export default UsageStatsOrganization;
 const PageGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, 1fr);
@@ -668,8 +666,8 @@ const Footer = styled('div')`
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: ${space(1.5)};
-  padding: ${space(1)} ${space(3)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   > *:first-child {
     flex-grow: 1;
@@ -682,7 +680,7 @@ const FooterDate = styled('div')`
   align-items: center;
 
   > ${SectionHeading} {
-    margin-right: ${space(1.5)};
+    margin-right: ${p => p.theme.space.lg};
   }
 
   > span:last-child {

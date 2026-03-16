@@ -4,6 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
@@ -273,7 +274,7 @@ const TRANSACTIONS_TABLE: Widget = {
     x: 0,
     w: 6,
     h: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     y: 7,
   },
 };
@@ -300,4 +301,9 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
     TRANSACTIONS_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with backend tracing',
+  },
 };

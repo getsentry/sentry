@@ -10,9 +10,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -23,7 +23,7 @@ import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
@@ -113,7 +113,6 @@ interface SpanTabProps {
 export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
-  const organization = useOrganization();
   const [controlSectionExpanded, setControlSectionExpanded] = useControlSectionExpanded();
 
   return (
@@ -123,10 +122,7 @@ export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
           <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
         </ExploreBodySearch>
         <ExploreBodyContent>
-          <SpanTabControlSection
-            organization={organization}
-            controlSectionExpanded={controlSectionExpanded}
-          />
+          <SpanTabControlSection controlSectionExpanded={controlSectionExpanded} />
           <SpanTabContentSection
             setControlSectionExpanded={setControlSectionExpanded}
             controlSectionExpanded={controlSectionExpanded}
@@ -149,18 +145,10 @@ function useVisitExplore() {
 
 interface SpanTabControlSectionProps {
   controlSectionExpanded: boolean;
-  organization: Organization;
 }
 
-function SpanTabControlSection({
-  controlSectionExpanded,
-  organization,
-}: SpanTabControlSectionProps) {
-  const toolbarExtras = [
-    ...(organization?.features?.includes('visibility-explore-equations')
-      ? ['equations' as const]
-      : []),
-  ];
+function SpanTabControlSection({controlSectionExpanded}: SpanTabControlSectionProps) {
+  const toolbarExtras: Array<'equations'> = ['equations'];
 
   return (
     <ExploreControlSection expanded={controlSectionExpanded}>

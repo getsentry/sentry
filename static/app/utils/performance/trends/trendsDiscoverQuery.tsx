@@ -4,7 +4,7 @@ import type {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {
   TrendChangeType,
   TrendFunctionField,
@@ -18,7 +18,7 @@ import {
   getCurrentTrendParameter,
   getTopTrendingEvents,
 } from 'sentry/views/performance/trends/utils';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
 type TrendsRequest = {
   eventView: Partial<TrendView>;

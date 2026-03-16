@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import (
@@ -26,12 +26,11 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     update_coding_agent_state,
 )
-from sentry.seer.models import SeerApiError
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class CursorWebhookEndpoint(Endpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -232,26 +231,17 @@ class CursorWebhookEndpoint(Endpoint):
         agent_url: str | None = None,
         result: CodingAgentResult | None = None,
     ):
-        try:
-            update_coding_agent_state(
-                agent_id=agent_id,
-                status=status,
-                agent_url=agent_url,
-                result=result,
-            )
-            logger.info(
-                "cursor_webhook.status_updated_to_seer",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                    "has_result": result is not None,
-                },
-            )
-        except SeerApiError:
-            logger.warning(
-                "cursor_webhook.seer_update_error",
-                extra={
-                    "agent_id": agent_id,
-                    "status": status.value,
-                },
-            )
+        update_coding_agent_state(
+            agent_id=agent_id,
+            status=status,
+            agent_url=agent_url,
+            result=result,
+        )
+        logger.info(
+            "cursor_webhook.status_updated_to_seer",
+            extra={
+                "agent_id": agent_id,
+                "status": status.value,
+                "has_result": result is not None,
+            },
+        )

@@ -72,5 +72,4 @@ const storeConfig: TagStoreDefinition = {
   },
 };
 
-const TagStore = createStore(storeConfig);
-export default TagStore;
+export const TagStore = createStore(storeConfig);

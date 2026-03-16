@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
 const LOCALSTORAGE_KEY = 'feature-flag-overrides';

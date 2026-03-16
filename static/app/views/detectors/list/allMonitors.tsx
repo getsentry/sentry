@@ -1,5 +1,5 @@
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import WorkflowEngineListLayout from 'sentry/components/workflowEngine/layout/list';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import {AlertsRedirectNotice} from 'sentry/views/detectors/list/common/alertsRedirectNotice';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';

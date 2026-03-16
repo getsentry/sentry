@@ -27,7 +27,7 @@ from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
 from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
-from sentry.types.region import RegionResolutionError, get_locality_name_for_cell
+from sentry.types.region import CellResolutionError, get_locality_name_for_cell
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -102,7 +102,7 @@ class SetupWizardView(BaseView):
 
         org_mappings_map = {}
         for mapping in org_mappings:
-            region_data_map[mapping.region_name]["org_ids"].append(mapping.organization_id)
+            region_data_map[mapping.cell_name]["org_ids"].append(mapping.organization_id)
             serialized_mapping = serialize_org_mapping(mapping)
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
@@ -199,7 +199,7 @@ def serialize_org_mapping(mapping: OrganizationMapping):
         "id": mapping.organization_id,
         "name": mapping.name,
         "slug": mapping.slug,
-        "region": mapping.region_name,
+        "region": mapping.cell_name,
         "status": {"id": status.name.lower(), "name": status.label},
     }
 
@@ -269,9 +269,9 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
 def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
     try:
         token_str = generate_token(
-            mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.region_name))
+            mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.cell_name))
         )
-    except (SystemUrlPrefixMissingException, RegionResolutionError):
+    except (SystemUrlPrefixMissingException, CellResolutionError):
         return None
 
     token_hashed = hash_token(token_str)

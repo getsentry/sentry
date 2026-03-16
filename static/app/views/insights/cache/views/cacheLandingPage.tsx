@@ -15,7 +15,6 @@ import {
 } from 'sentry/views/insights/cache/components/tables/transactionsTable';
 import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
-import {useHasPlatformizedCaches} from 'sentry/views/insights/cache/utils/useHasPlatformizedCaches';
 import {PlatformizedCachesOverview} from 'sentry/views/insights/cache/views/platformizedOverview';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -26,6 +25,7 @@ import CacheMissRateChartWidget from 'sentry/views/insights/common/components/wi
 import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {combineMeta} from 'sentry/views/insights/common/utils/combineMeta';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -139,12 +139,12 @@ export function CacheLandingPage() {
 }
 
 function PageWithProviders() {
-  const hasPlatformizedCaches = useHasPlatformizedCaches();
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
 
-  if (hasPlatformizedCaches) {
+  if (hasPlatformizedInsights) {
     return <PlatformizedCachesOverview />;
   }
 

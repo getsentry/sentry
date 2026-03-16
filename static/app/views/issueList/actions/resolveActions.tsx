@@ -1,6 +1,6 @@
-import ResolveActions from 'sentry/components/actions/resolve';
-import useProjects from 'sentry/utils/useProjects';
-import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
+import {ResolveActions} from 'sentry/components/actions/resolve';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 
 import type {getConfirm, getLabel} from './utils';
 import {ConfirmAction} from './utils';
@@ -14,7 +14,7 @@ type Props = {
   selectedProjectSlug: string | undefined;
 };
 
-function ResolveActionsContainer({
+export function ResolveActionsContainer({
   anySelected,
   onShouldConfirm,
   onUpdate,
@@ -67,5 +67,3 @@ function ResolveActionsContainer({
     />
   );
 }
-
-export default ResolveActionsContainer;

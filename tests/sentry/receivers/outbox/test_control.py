@@ -10,10 +10,10 @@ from sentry.receivers.outbox.control import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.identity import Identity
 
-_TEST_REGION = Region("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
+_TEST_REGION = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 
 @control_silo_test(regions=[_TEST_REGION])
@@ -45,7 +45,7 @@ class ProcessControlOutboxTest(TestCase):
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
         )
 
-    @patch("sentry.sentry_apps.tasks.sentry_apps.region_caching_service")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.cell_caching_service")
     def test_process_sentry_app_updates(self, mock_caching: MagicMock) -> None:
         org = self.create_organization()
         sentry_app = self.create_sentry_app()

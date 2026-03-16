@@ -12,7 +12,7 @@ import {
 
 import type {Project} from 'sentry/types/project';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
 

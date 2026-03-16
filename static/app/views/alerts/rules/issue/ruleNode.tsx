@@ -10,11 +10,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -34,7 +33,7 @@ import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -361,10 +360,6 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      label = t('The issue changes state from archived to escalating');
-    }
-
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
         return <Separator key={i}>{part}</Separator>;
@@ -637,9 +632,9 @@ const InlineSelectControl = styled(Select)`
 `;
 
 const Separator = styled('span')`
-  margin-right: ${space(1)};
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
+  margin-right: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`

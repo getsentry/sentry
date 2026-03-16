@@ -10,16 +10,15 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingError} from 'sentry/components/loadingError';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -28,19 +27,19 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import FilterBar from 'sentry/views/alerts/filterBar';
-import AlertHeader from 'sentry/views/alerts/list/header';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FilterBar} from 'sentry/views/alerts/filterBar';
+import {AlertHeader} from 'sentry/views/alerts/list/header';
 import type {CombinedAlerts} from 'sentry/views/alerts/types';
 import {AlertRuleType, CombinedAlertType} from 'sentry/views/alerts/types';
 import {getTeamParams, isIssueAlert} from 'sentry/views/alerts/utils';
 
-import RuleListRow from './row';
+import {RuleListRow} from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
 const defaultSort: SortField = ['incident_status', 'date_triggered'];
@@ -343,7 +342,7 @@ export default function AlertRulesList() {
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   border-radius: 0;
   border-width: 1px 0;
 `;
@@ -352,7 +351,7 @@ const StyledSortLink = styled(Link)`
   color: inherit;
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   :hover {
     color: inherit;

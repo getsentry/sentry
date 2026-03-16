@@ -8,7 +8,7 @@ import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/type
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   canWrite: boolean;
@@ -16,7 +16,7 @@ interface Props {
   project: Project;
 }
 
-export default function SeerAgentSettings({canWrite, preference, project}: Props) {
+export function SeerAgentSettings({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
   const disabledReason = canWrite
@@ -69,13 +69,10 @@ export default function SeerAgentSettings({canWrite, preference, project}: Props
         )
       }
       onChange={value => {
-        const newValue: ProjectSeerPreferences['automated_run_stopping_point'] = value
-          ? 'open_pr'
-          : 'code_changes';
         updateProjectSeerPreferences(
           {
             repositories: preference?.repositories || [],
-            automated_run_stopping_point: newValue, // Seer Agent "Create PR" setting
+            automated_run_stopping_point: value ? 'open_pr' : 'code_changes', // Seer Agent "Create PR" setting
             automation_handoff: preference?.automation_handoff, // External coding agent "Create PR" setting is in here
           },
           {

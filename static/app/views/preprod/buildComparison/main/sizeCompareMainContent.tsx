@@ -9,15 +9,15 @@ import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
@@ -109,7 +109,8 @@ export function SizeCompareMainContent() {
         !!mainArtifactComparison?.head_size_metric_id &&
         !!mainArtifactComparison?.base_size_metric_id &&
         !!organization.slug &&
-        !!baseArtifactId,
+        !!baseArtifactId &&
+        mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
     }
   );
 

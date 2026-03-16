@@ -33,7 +33,9 @@ def test_backpressure() -> None:
         flusher = SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=append,
+            produce_to_pipe=lambda project_id, payload, dropped: append(
+                (project_id, payload, dropped)
+            ),
         )
 
         try:
@@ -161,15 +163,14 @@ def test_multi_producer_sliced_integration_with_arroyo_local_producer() -> None:
     manager.close()
 
 
-def test_flusher_waits_for_processes_to_start() -> None:
+def test_flusher_waits_for_exited_processes_during_startup() -> None:
     """Test that the flusher waits for all processes to become healthy during initialization."""
     buffer = SpansBuffer(assigned_shards=[0])
 
-    # Patch SpanFlusher.main to never set healthy_since, simulating a process that fails to start
+    # exit without setting healthy_since, simulating a process that fails early
     def never_healthy_main(
         buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
     ):
-        # Don't set healthy_since.value, simulating a process that never becomes healthy
         return
 
     with (
@@ -179,11 +180,39 @@ def test_flusher_waits_for_processes_to_start() -> None:
                 "spans.buffer.flusher.max-unhealthy-seconds": 0.5,
                 "spans.buffer.flusher.use-stuck-detector": False,
             }
-        ),  # Should raise RuntimeError because the process never reports as healthy
+        ),
+        pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) exited during startup"),
+    ):
+        SpanFlusher(
+            buffer,
+            next_step=Noop(),
+            produce_to_pipe=lambda project_id, payload, dropped: None,
+        )
+
+
+def test_flusher_timeout_waiting_for_processes_startup() -> None:
+    """Test that the flusher times out when a process stays alive but never becomes healthy."""
+    buffer = SpansBuffer(assigned_shards=[0])
+
+    # block without setting healthy_since, simulating a process that hangs during startup
+    def hang_main(
+        buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
+    ):
+        while not stopped.value:
+            sleep(0.05)
+
+    with (
+        mock.patch.object(SpanFlusher, "main", hang_main),
+        override_options(
+            {
+                "spans.buffer.flusher.max-unhealthy-seconds": 0.5,
+                "spans.buffer.flusher.use-stuck-detector": False,
+            }
+        ),
         pytest.raises(RuntimeError, match="process 0 \\(shards \\[0\\]\\) didn't start up"),
     ):
         SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=lambda _: None,
+            produce_to_pipe=lambda project_id, payload, dropped: None,
         )

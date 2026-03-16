@@ -14,8 +14,8 @@ import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -25,17 +25,16 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   DisplayModes,
@@ -51,14 +50,14 @@ import {
 
 import {ReleaseContext} from '..';
 
-import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
-import Deploys from './sidebar/deploys';
-import OtherProjects from './sidebar/otherProjects';
-import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
-import ReleaseAdoption from './sidebar/releaseAdoption';
-import ReleaseStats from './sidebar/releaseStats';
-import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
-import ReleaseArchivedNotice from './releaseArchivedNotice';
+import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
+import {Deploys} from './sidebar/deploys';
+import {OtherProjects} from './sidebar/otherProjects';
+import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
+import {ReleaseAdoption} from './sidebar/releaseAdoption';
+import {ReleaseStats} from './sidebar/releaseStats';
+import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
+import {ReleaseArchivedNotice} from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
 import ReleaseIssues from './releaseIssues';
 
@@ -92,7 +91,7 @@ function ReleaseOverview() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const api = useApi();
 
   const {commitCount, version} = release;
@@ -237,7 +236,7 @@ function ReleaseOverview() {
       pathname: location.pathname,
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
-    browserHistory.push(target);
+    navigate(target);
   };
 
   const handleDateChange = (datetime: ChangeData) => {
@@ -246,7 +245,7 @@ function ReleaseOverview() {
     if (start && end) {
       const parser = utc ? moment.utc : moment;
 
-      router.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -259,7 +258,7 @@ function ReleaseOverview() {
       return;
     }
 
-    router.push({
+    navigate({
       ...location,
       query: {
         ...location.query,

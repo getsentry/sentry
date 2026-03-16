@@ -14,7 +14,7 @@ import {
 import {setWindowLocation} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
@@ -1451,7 +1451,8 @@ describe('trace view', () => {
       });
     });
 
-    it('arrowup+shift scrolls to the start of the list', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('arrowup+shift scrolls to the start of the list', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);

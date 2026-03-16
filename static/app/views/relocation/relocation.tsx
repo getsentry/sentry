@@ -5,25 +5,25 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LogoSentry from 'sentry/components/logoSentry';
-import Redirect from 'sentry/components/redirect';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {LogoSentry} from 'sentry/components/logoSentry';
+import {Redirect} from 'sentry/components/redirect';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import testableTransition from 'sentry/utils/testableTransition';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import PageCorners from 'sentry/views/onboarding/components/pageCorners';
-import Stepper from 'sentry/views/onboarding/components/stepper';
+import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
+import {Stepper} from 'sentry/views/onboarding/components/stepper';
 
 import {EncryptBackup} from './encryptBackup';
-import GetStarted from './getStarted';
+import {GetStarted} from './getStarted';
 import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
@@ -70,7 +70,7 @@ enum LoadingState {
   ERROR = 2,
 }
 
-export default function RelocationOnboarding() {
+export function RelocationOnboarding() {
   const navigate = useNavigate();
   const {step: stepId} = useParams<{step: string}>();
   const onboardingSteps = getRelocationOnboardingSteps();

@@ -12,12 +12,12 @@ import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import Accordion from 'sentry/components/container/accordion';
+import {Accordion} from 'sentry/components/container/accordion';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -31,7 +31,7 @@ interface Props {
   project: Project;
 }
 
-export default function DevKitSettings({organization, project}: Props) {
+export function DevKitSettings({organization, project}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedAccordionIndex, setExpandedAccordionIndex] = useState<number>(-1);
@@ -67,7 +67,6 @@ export default function DevKitSettings({organization, project}: Props) {
                   initialStep={decodeInteger(location.query.guidedStep)}
                   onStepChange={step => {
                     navigate({
-                      pathname: location.pathname,
                       query: {
                         ...location.query,
                         guidedStep: step,

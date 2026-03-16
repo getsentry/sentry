@@ -49,10 +49,25 @@ export class SQLishFormatter {
       tokens = this.parser.parse(sql);
     } catch (error: any) {
       Sentry.withScope(scope => {
-        scope.setFingerprint(['sqlish-parse-error']);
-        // Get the last 100 characters of the error message
-        scope.setExtra('message', error.message?.slice(-100));
-        scope.setExtra('found', error.found);
+        const fingerprint = ['sqlish-parse-error'];
+
+        if (error?.message) {
+          // The error message might be a PEG grammar error, or some kind of
+          // other parser error. They're usually too long to be useful since PEG
+          // errors contain the entire current grammar. Take the last 100
+          // characters instead.
+          scope.setExtra('message', error.message?.slice(-100));
+          scope.setExtra('found', error.found);
+
+          // Grammar error. Group these by the specific missing grammar, so we
+          // can make case-by-case decisions whether we should amend the
+          // grammar.
+          if (error.message.includes('Expected')) {
+            fingerprint.push(error.message.slice(-10));
+          }
+        }
+
+        scope.setFingerprint(fingerprint);
         Sentry.captureException(error);
       });
       // If we fail to parse the SQL, return the original string

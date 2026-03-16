@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading} from '@sentry/scraps/text';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';

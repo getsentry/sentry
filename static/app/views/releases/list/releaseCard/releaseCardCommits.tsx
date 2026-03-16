@@ -15,7 +15,7 @@ type Props = {
   withHeading: boolean;
 };
 
-function ReleaseCardCommits({release, withHeading = true}: Props) {
+export function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;
   const authorCount = release.authors?.length || 0;
 
@@ -58,5 +58,3 @@ const ReleaseSummaryHeading = styled('div')`
   text-transform: uppercase;
   margin-bottom: ${p => p.theme.space.xs};
 `;
-
-export default ReleaseCardCommits;

@@ -1,32 +1,32 @@
 import {lazy} from 'react';
 
-import LazyLoad from 'sentry/components/lazyLoad';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
-import AiSetupConfiguration from 'getsentry/components/ai/aiSetupConfiguration';
-import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
+import {AiSetupConfiguration} from 'getsentry/components/ai/aiSetupConfiguration';
+import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
-import DashboardBanner from 'getsentry/components/dashboardBanner';
+import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
-import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
+import {DataConsentOrgCreationCheckbox} from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
-import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
-import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
-import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
-import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
+import {DisabledAlertWizard} from 'getsentry/components/features/disabledAlertWizard';
+import {DisabledAuthProvider} from 'getsentry/components/features/disabledAuthProvider';
+import {DisabledCustomInboundFilters} from 'getsentry/components/features/disabledCustomInboundFilters';
+import {DisabledDataForwarding} from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
-import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
+import {DisabledDiscardGroup} from 'getsentry/components/features/disabledDiscardGroup';
+import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
-import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
-import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
+import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
+import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
 import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
-import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
-import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
+import {HelpSearchFooter} from 'getsentry/components/helpSearchFooter';
+import {InviteMembersButtonCustomization} from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {
@@ -35,7 +35,7 @@ import {
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
-import PrimaryNavSeerConfigReminder from 'getsentry/components/primaryNavSeerConfigReminder';
+import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
@@ -43,38 +43,38 @@ import SuperuserWarning, {
   shouldExcludeOrg,
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
-import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
+import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
 import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
-import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
+import {DisabledCustomSymbolSources} from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
-import FirstPartyIntegrationAdditionalCTA from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
-import FirstPartyIntegrationAlertHook from 'getsentry/hooks/firstPartyIntegrationAlertHook';
+import {FirstPartyIntegrationAdditionalCTA} from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
+import {FirstPartyIntegrationAlertHook} from 'getsentry/hooks/firstPartyIntegrationAlertHook';
 import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
-import handleGuideUpdate from 'getsentry/hooks/handleGuideUpdate';
+import {handleGuideUpdate} from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
 import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
-import legacyOrganizationRedirectRoutes from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
+import {legacyOrganizationRedirectRoutes} from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
 import MemberListHeader from 'getsentry/hooks/memberListHeader';
-import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
+import {OrganizationMembershipSettingsForm} from 'getsentry/hooks/organizationMembershipSettingsForm';
 import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
-import OrgStatsProfilingBanner from 'getsentry/hooks/orgStatsProfilingBanner';
-import hookRootRoutes from 'getsentry/hooks/rootRoutes';
-import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedIndex';
-import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
-import subscriptionSettingsRoutes from 'getsentry/hooks/subscriptionSettingsRoutes';
-import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
+import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
+import {rootRoutes} from 'getsentry/hooks/rootRoutes';
+import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
+import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
+import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
+import {SuperuserAccessCategory} from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/hooks/useDashboardDatasetRetentionLimit';
 import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
-import trackMetric from 'getsentry/utils/trackMetric';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {trackMetric} from 'getsentry/utils/trackMetric';
 
 import {CodecovSettingsLink} from './components/codecovSettingsLink';
-import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
-import OpenInDiscoverBtn from './components/openInDiscoverBtn';
+import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
+import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
@@ -82,11 +82,11 @@ import {
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
-import ReplaySettingsAlert from './components/replaySettingsAlert';
-import useButtonTracking from './hooks/useButtonTracking';
-import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
+import {ReplaySettingsAlert} from './components/replaySettingsAlert';
+import {useButtonTracking} from './hooks/useButtonTracking';
+import {useGetMaxRetentionDays} from './hooks/useGetMaxRetentionDays';
 import {useDefaultMaxPickableDays, useMaxPickableDays} from './hooks/useMaxPickableDays';
-import useRouteActivatedHook from './hooks/useRouteActivatedHook';
+import {useRouteActivatedHook} from './hooks/useRouteActivatedHook';
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
 const DisabledDiscover2Page = lazy(
@@ -107,7 +107,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    * Additional routes to be inserted into sentrys route tree
    */
-  'routes:root': hookRootRoutes,
+  'routes:root': rootRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**
@@ -119,7 +119,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Analytics functionality
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
-  'analytics:init-user': hookAnalyticsInitUser,
+  'analytics:init-user': analyticsInitUser,
   'metrics:event': trackMetric,
 
   /**
@@ -370,7 +370,5 @@ const entries = Object.entries as <T>(
   o: T
 ) => Array<[Extract<keyof T, string>, T[keyof T]]>;
 
-const registerHooks = () =>
+export const registerHooks = () =>
   entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
-
-export default registerHooks;

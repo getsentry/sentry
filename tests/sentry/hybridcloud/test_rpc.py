@@ -31,14 +31,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 
 _REGIONS = [
-    Region("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("north_america", 1, "http://na.sentry.io", RegionCategory.MULTI_TENANT),
+    Cell("europe", 2, "http://eu.sentry.io", RegionCategory.MULTI_TENANT),
 ]
 
 
@@ -56,7 +56,7 @@ class RpcServiceTest(TestCase):
                 defaults={
                     "slug": organization.slug,
                     "name": organization.name,
-                    "region_name": target_region.name,
+                    "cell_name": target_region.name,
                 },
             )
 
@@ -108,7 +108,7 @@ class RpcServiceTest(TestCase):
             role=None,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.key, "add_organization_member", serial_arguments)
 
@@ -163,7 +163,7 @@ class DispatchRemoteCallTest(TestCase):
         assert result == response_value
 
     @responses.activate
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_region_to_control_null_result(self) -> None:
         self._set_up_mock_response("organization/get_organization_by_id", None)
 

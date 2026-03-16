@@ -4,14 +4,14 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 

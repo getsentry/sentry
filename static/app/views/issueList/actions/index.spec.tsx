@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';

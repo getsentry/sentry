@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -13,18 +14,53 @@ from slack_sdk.web import SlackResponse
 
 from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+    get_object_id_from_fake_id,
+)
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import (
+    EventFrequencyCondition,
+    EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
+)
+from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
+from sentry.rules.filters.assigned_to import AssignedToFilter
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
+from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
+from sentry.rules.filters.latest_release import LatestReleaseFilter
+from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class ProjectRuleBaseTestCase(APITestCase):
+class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rules"
 
     def setUp(self) -> None:
@@ -64,11 +100,38 @@ class ProjectRuleBaseTestCase(APITestCase):
             {
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
+                "workspace": self.slack_integration.id,
                 "channel": "#team-team-team",
-                "input_channel_id": self.channel_id,
+                "channel_id": self.channel_id,
             }
         ]
+        # create single written workflow
+        self.detector = self.create_detector(project=self.project)
+        self.workflow_triggers = self.create_data_condition_group()
+        self.workflow = self.create_workflow(
+            when_condition_group=self.workflow_triggers,
+            organization=self.detector.project.organization,
+        )
+        self.detector_workflow = self.create_detector_workflow(
+            detector=self.detector, workflow=self.workflow
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 100},
+            condition_result=True,
+        )
+        self.workflow_filters = self.create_data_condition_group()
+        self.workflow_dcg = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+        self.create_data_condition(  # filter condition
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
 
 
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
@@ -79,6 +142,108 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_200_OK,
         )
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        is_rule_resp = False
+        workflow_resp_1 = response.data[0]
+        workflow_resp_2 = response.data[1]
+
+        if workflow_resp_1["id"] == str(self.rule.id):
+            is_rule_resp = True
+
+        if not is_rule_resp:
+            assert workflow_resp_1["id"] == str(get_fake_id_from_object_id(self.workflow.id))
+            assert workflow_resp_2["id"] == str(self.rule.id)
+        else:
+            assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
+            assert workflow_resp_1["id"] == str(self.rule.id)
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_unsupported_condition(self) -> None:
+        """Test with an unsupported condition e.g. IssueResolvedTriggerCondition
+        we should return what we can - the supported ones, and skip over the unsupported ones
+        """
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow_filters = self.create_data_condition_group()
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=workflow_filters
+        )
+        self.create_data_condition(  # filter condition
+            condition_group=workflow_filters,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        self.create_workflow_action(workflow)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        issue_resolved_trigger_resp = None
+
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                issue_resolved_trigger_resp = resp
+
+        assert issue_resolved_trigger_resp
+        # assert we skipped over Condition.ISSUE_RESOLVED_TRIGGER and only have Condition.EXISTING_HIGH_PRIORITY_ISSUE
+        assert len(issue_resolved_trigger_resp["conditions"]) == 1
+        assert (
+            issue_resolved_trigger_resp["conditions"][0]["id"]
+            == ExistingHighPriorityIssueCondition.id
+        )
+        assert len(issue_resolved_trigger_resp["filters"]) == 1
+        assert (
+            issue_resolved_trigger_resp["errors"][0]["detail"]
+            == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_only_fetch_workflows_in_project(self) -> None:
+        another_rule = self.create_project_rule(
+            project=self.create_project(), name="other project rule"
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        for resp in response.data:
+            assert not resp["name"] == another_rule.label
 
 
 class GetMaxAlertsTest(ProjectRuleBaseTestCase):
@@ -845,6 +1010,28 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
         assert call_args == kwargs
 
+    def test_condition_with_zero_value(self) -> None:
+        condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "interval": "1h",
+            "value": 0,
+        }
+        actions: list[dict[str, object]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
+        self.run_test(
+            actions=actions,
+            conditions=[condition],
+            expected_conditions=[
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 0,
+                    "comparisonType": "count",
+                }
+            ],
+        )
+
     def test_comparison_condition(self) -> None:
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -1100,3 +1287,218 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         clean_rule = Rule.objects.get(id=response.data.get("id"))
         assert not clean_rule.data.get("comparisonInterval")
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    @responses.activate
+    @mock.patch("sentry.integrations.slack.actions.form.validate_slack_entity_id")
+    def test_workflow_engine(self, mock_validate_slack_entity_id: mock.MagicMock) -> None:
+        conditions = [
+            {"id": ExistingHighPriorityIssueCondition.id},
+            {"id": NewHighPriorityIssueCondition.id},
+            {"id": FirstSeenEventCondition.id},
+            {"id": LevelCondition.id, "match": "eq", "level": "50"},
+            {
+                "id": EventAttributeCondition.id,
+                "attribute": "message",
+                "match": "eq",
+                "value": "test",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventUniqueUserFrequencyCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "count",
+            },
+            {
+                "id": EventFrequencyPercentCondition.id,
+                "interval": "1h",
+                "value": 50,
+                "comparisonType": "percent",
+                "comparisonInterval": "1d",
+            },
+        ]
+        filters = [
+            {
+                "id": TaggedEventFilter.id,
+                "match": "is",
+                "key": "environment",
+                "value": "",  # initializing RuleBase requires "value" key
+            },
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": "older",
+                "value": 10,
+                "time": "hour",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            },
+            {
+                "id": IssueCategoryFilter.id,
+                "value": "1",
+                "include": "true",
+            },
+            {
+                "id": IssueOccurrencesFilter.id,
+                "value": "10",
+            },
+            {
+                "id": IssueTypeFilter.id,
+                "value": "error",
+            },
+            {
+                "id": LatestAdoptedReleaseFilter.id,
+                "oldest_or_newest": "oldest",
+                "older_or_newer": "newer",
+                "environment": self.environment.name + "fake",
+            },
+            {
+                "id": LatestReleaseFilter.id,
+            },
+            {
+                "id": LevelFilter.id,
+                "match": "eq",
+                "level": "50",
+            },
+            {
+                "id": EventAttributeFilter.id,
+                "attribute": "message",
+                "match": "ns",
+                "value": "",
+            },
+            {
+                "id": AssignedToFilter.id,
+                "targetType": "Unassigned",
+                "targetIdentifier": "",
+            },
+        ]
+        payload = {
+            "name": "Owner Alert",
+            "frequency": 1440,
+            "environment": self.environment.name,
+            "status": "active",
+            "snooze": False,
+            "conditions": conditions,
+            "filters": filters,
+            "actions": [
+                {
+                    "targetType": "Member",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": self.user.id,
+                },
+                {
+                    "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                    "settings": self.sentry_app_settings_payload,
+                    "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                    "hasSchemaFormConfig": True,
+                    "uuid": str(uuid4()),
+                },
+                self.notify_issue_owners_action[0],
+                self.notify_event_action[0],
+                self.slack_actions[0],
+            ],
+            "actionMatch": "any",
+            "filterMatch": "all",
+            "owner": f"team:{self.team.id}",
+            "projects": [self.project.slug],
+        }
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=status.HTTP_202_ACCEPTED,
+        )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **payload,
+        )
+        assert len(response.data["conditions"]) == len(conditions)
+        assert len(response.data["filters"]) == len(filters)
+        assert len(response.data["actions"]) == len(payload["actions"])
+
+        workflow = Workflow.objects.get(id=get_object_id_from_fake_id(int(response.data["id"])))
+        assert workflow.environment is not None
+        assert workflow.environment.name == payload["environment"]
+        assert workflow.name == payload["name"]
+        assert workflow.enabled is True
+
+        assert DetectorWorkflow.objects.filter(
+            workflow=workflow, detector__type=IssueStreamGroupType.slug
+        ).exists()
+
+        triggers = DataCondition.objects.filter(condition_group=workflow.when_condition_group)
+        assert len(triggers) == len(payload["conditions"])
+        # spot check
+        event_attr_trigger = None
+        for trigger in triggers:
+            if trigger.type == Condition.EVENT_ATTRIBUTE.value:
+                event_attr_trigger = trigger
+
+        assert event_attr_trigger
+        assert event_attr_trigger.comparison == {
+            "match": "eq",
+            "attribute": "message",
+            "value": "test",
+        }
+        assert event_attr_trigger.condition_result is True
+
+        wdcg = WorkflowDataConditionGroup.objects.get(workflow=workflow)
+        dcgs = DataConditionGroup.objects.filter(id=wdcg.condition_group_id)
+        dc_filters = DataCondition.objects.filter(condition_group__in=dcgs)
+        assert len(dc_filters) == len(payload["filters"])
+        # spot check
+        tagged_event_filter = None
+        for f in dc_filters:
+            if f.type == Condition.TAGGED_EVENT.value:
+                tagged_event_filter = f
+
+        assert tagged_event_filter
+        assert tagged_event_filter.comparison == {
+            "match": "is",
+            "key": "environment",
+        }
+        assert tagged_event_filter.condition_result is True
+
+        dcgas = DataConditionGroupAction.objects.filter(condition_group__in=[dcg for dcg in dcgs])
+        # spot check
+        slack_action = None
+        for action in [dcga.action for dcga in dcgas]:
+            if action.type == "slack":
+                slack_action = action
+
+        assert slack_action
+        assert slack_action.data == {"notes": "", "tags": ""}
+        assert slack_action.config == {
+            "target_type": 0,
+            "target_display": "team-team-team",
+            "target_identifier": "CSVK0921",
+        }

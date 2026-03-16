@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-function EventTitleError() {
+export function EventTitleError() {
   return (
     <Flex as="span" wrap="wrap">
       <Title>{t('<unknown>')}</Title>
@@ -12,8 +12,6 @@ function EventTitleError() {
     </Flex>
   );
 }
-
-export default EventTitleError;
 
 const Title = styled('span')`
   margin-right: ${p => p.theme.space.xs};

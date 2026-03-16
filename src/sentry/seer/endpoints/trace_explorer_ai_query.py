@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
@@ -41,13 +41,13 @@ def send_translate_request(
         project_ids=project_ids,
         natural_language_query=natural_language_query,
     )
-    response = make_translate_query_request(body, viewer_context=viewer_context)
+    response = make_translate_query_request(body, timeout=30, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TraceExplorerAIQuery(OrganizationEndpoint):
     """
     This endpoint is called when a user visits the trace explorer with the correct flags enabled.

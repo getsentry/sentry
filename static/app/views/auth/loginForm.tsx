@@ -10,9 +10,9 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -51,7 +51,8 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function LoginForm({authConfig}: Props) {
+export function LoginForm({authConfig}: Props) {
+  const navigate = useNavigate();
   const [error, setError] = useState('');
 
   const {githubLoginLink, vstsLoginLink} = authConfig;
@@ -71,7 +72,7 @@ function LoginForm({authConfig}: Props) {
 
           // TODO(epurkhiser): Reconfigure sentry SDK identity
 
-          browserHistory.push({pathname: response.nextUri});
+          navigate({pathname: response.nextUri});
         }}
         onSubmitError={response => {
           // TODO(epurkhiser): Need much better error handling here
@@ -159,5 +160,3 @@ const LostPasswordLink = styled(Link)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default LoginForm;

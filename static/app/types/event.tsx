@@ -191,6 +191,8 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  parentIndex?: number | null;
+  sampleCount?: number | null;
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };

@@ -11,15 +11,14 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconGeneric} from 'sentry/icons/iconGeneric';
 import {IconGithub} from 'sentry/icons/iconGithub';
 import {IconProject} from 'sentry/icons/iconProject';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
@@ -27,11 +26,11 @@ import type {
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
-import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
+import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
 export type IntegrationTab = 'overview' | 'configurations' | 'features';
 export interface AlertType extends AlertProps {
@@ -120,8 +119,8 @@ const Capitalized = styled('div')`
 `;
 
 const TabsContainer = styled('div')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function Body({
@@ -173,7 +172,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     <span>{reason}</span>
   </div>
 ))`
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
   font-size: 0.9em;
 `;
 
@@ -317,24 +316,24 @@ const IntegrationDescription = styled('div')`
 const Name = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const StatusWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-  padding-left: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 const StyledTag = styled(Tag)`
   text-transform: none;
   &:not(:first-child) {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
 const IconCloseCircle = styled(IconClose)`
   color: ${p => p.theme.tokens.content.danger};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const DisableWrapper = styled('div')`
@@ -355,21 +354,21 @@ const Metadata = styled('div')`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: 0.9em;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space['3xl']};
   margin-right: 100px;
   align-self: flex-start;
   flex-shrink: 0;
 `;
 
 const AuthorInfo = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
@@ -378,6 +377,6 @@ const CreatedContainer = styled('div')`
 const ExternalLinkContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

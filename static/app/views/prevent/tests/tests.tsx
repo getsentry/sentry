@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
@@ -19,8 +19,8 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TestsPreOnboardingPage} from 'sentry/views/prevent/tests/preOnboarding';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import {
   useInfiniteTestResults,

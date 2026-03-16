@@ -4,14 +4,13 @@ import isEqual from 'lodash/isEqual';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import ArchivedBox from 'sentry/components/archivedBox';
-import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
+import {GroupEventDetailsLoadingError} from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import ResolutionBox from 'sentry/components/resolutionBox';
-import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
-import {space} from 'sentry/styles/space';
+import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -19,15 +18,15 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
-import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
+import {GroupEventHeader} from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-import ReprocessingProgress from 'sentry/views/issueDetails/reprocessingProgress';
+import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
@@ -246,14 +245,14 @@ const StyledLayoutBody = styled(Layout.Body)`
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -263,10 +262,11 @@ const StyledLayoutMain = styled(Layout.Main)`
 `;
 
 const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding-right: ${space(4)};
+    padding-right: ${p => p.theme.space['3xl']};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

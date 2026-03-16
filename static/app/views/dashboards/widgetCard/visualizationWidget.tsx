@@ -6,20 +6,17 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
-import {
-  SERIES_NAME_PART_DELIMITER,
-  transformLegacySeriesToTimeSeries,
-} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {
   WidgetType,
@@ -32,13 +29,13 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -54,6 +51,7 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {WidgetCardConfidenceFooter} from './confidenceFooter';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
@@ -72,6 +70,7 @@ interface VisualizationWidgetProps {
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
@@ -87,6 +86,7 @@ export function VisualizationWidget({
   widgetInterval,
   renderErrorMessage,
   showReleaseAs = 'bubble',
+  showConfidenceWarning,
 }: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
@@ -115,6 +115,10 @@ export function VisualizationWidget({
         tableResults,
         errorMessage,
         loading,
+        confidence,
+        dataScanned,
+        isSampled,
+        sampleCount,
       }) => {
         return (
           <VisualizationWidgetContent
@@ -129,6 +133,11 @@ export function VisualizationWidget({
             showReleaseAs={showReleaseAs}
             renderErrorMessage={renderErrorMessage}
             dashboardFilters={dashboardFilters}
+            showConfidenceWarning={showConfidenceWarning}
+            confidence={confidence}
+            dataScanned={dataScanned}
+            isSampled={isSampled}
+            sampleCount={sampleCount}
           />
         );
       }}
@@ -142,9 +151,14 @@ interface VisualizationWidgetContentProps {
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
   timeseriesResults: Series[];
   widget: Widget;
+  confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
+  dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  isSampled?: boolean | null;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
+  sampleCount?: number;
+  showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -162,6 +176,11 @@ function VisualizationWidgetContent({
   showReleaseAs,
   renderErrorMessage,
   dashboardFilters,
+  showConfidenceWarning,
+  confidence,
+  dataScanned,
+  isSampled,
+  sampleCount,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -174,39 +193,22 @@ function VisualizationWidgetContent({
 
   const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
-      const seriesName = series.seriesName ?? aggregates[0] ?? '';
-      const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
-
-      const yAxis =
-        aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
-        aggregates[0];
-
-      const alias =
-        widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
-        undefined;
-
-      const timeSeries = transformLegacySeriesToTimeSeries(
+      const transformed = transformWidgetSeriesToTimeSeries(
         series,
+        widget,
         timeseriesResultsTypes,
-        timeseriesResultsUnits,
-        columns,
-        yAxis,
-        alias
+        timeseriesResultsUnits
       );
 
-      if (!timeSeries) {
+      if (!transformed) {
         return null;
       }
 
-      const labelParts = [alias, formatTimeSeriesLabel(timeSeries)];
-      // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
-      if (aggregates.length > 1 && columns.length > 1) {
-        labelParts.push(timeSeries.yAxis);
-      }
+      const {timeSeries, label, seriesName} = transformed;
       const plottable = createPlottableFromTimeSeries(
         timeSeries,
         widget,
-        labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
+        label,
         seriesName,
         timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
       );
@@ -394,6 +396,20 @@ function VisualizationWidgetContent({
     );
   }
 
+  const confidenceFooter = showConfidenceWarning ? (
+    <WidgetCardConfidenceFooter
+      confidence={confidence}
+      dataScanned={dataScanned}
+      isSampled={isSampled}
+      loading={loading}
+      sampleCount={sampleCount}
+      series={timeseriesResults}
+      timeseriesResults={timeseriesResults}
+      widget={widget}
+      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+    />
+  ) : null;
+
   if (showBreakdownData) {
     return (
       <Flex direction="column" height="100%">
@@ -406,6 +422,7 @@ function VisualizationWidgetContent({
             axisRange={widget.axisRange}
           />
         </Container>
+        <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
         <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
@@ -416,14 +433,17 @@ function VisualizationWidgetContent({
   }
 
   return (
-    <Container flex={1} {...timeseriesContainerPadding}>
-      <TimeSeriesWidgetVisualization
-        plottables={plottables}
-        releases={releases}
-        showReleaseAs={showReleaseAs}
-        axisRange={widget.axisRange}
-      />
-    </Container>
+    <Flex direction="column" height="100%">
+      <Container flex={1} {...timeseriesContainerPadding}>
+        <TimeSeriesWidgetVisualization
+          plottables={plottables}
+          releases={releases}
+          showReleaseAs={showReleaseAs}
+          axisRange={widget.axisRange}
+        />
+      </Container>
+      <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
+    </Flex>
   );
 }
 

@@ -4,10 +4,9 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 type Props = {
@@ -84,7 +83,7 @@ const AvatarWrapper = styled('span')`
 const QueryCardContent = styled('div')`
   flex-grow: 1;
   overflow: hidden;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledQueryCard = styled(Card)`
@@ -98,7 +97,7 @@ const StyledQueryCard = styled(Card)`
 
 const QueryCardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const QueryTitle = styled('div')`
@@ -139,12 +138,12 @@ const QueryCardFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -155,7 +154,7 @@ const DateSelected = styled('div')`
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledErrorBoundary = styled(ErrorBoundary)`

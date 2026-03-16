@@ -9,7 +9,7 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 
-function QueryTokens({
+export function QueryTokens({
   groupBys,
   query,
   sort,
@@ -111,8 +111,6 @@ function QueryTokens({
 
   return <TokenContainer>{tokens}</TokenContainer>;
 }
-
-export default QueryTokens;
 
 const TokenContainer = styled('div')`
   display: flex;

@@ -40,6 +40,8 @@ export const EventDrawerContainer = styled('div')`
 export const EventDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
+  min-height: ${MIN_NAV_HEIGHT}px;
+  align-items: center;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow: hidden;

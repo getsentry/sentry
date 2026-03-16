@@ -6,7 +6,7 @@ import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
@@ -24,8 +24,8 @@ import {
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const MAX_STACK_DEPTH = 8;
@@ -411,7 +411,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
   const frames: Frame[] = [];
 
   while (node && !node.isRoot) {
-    const frame = {
+    const frame: Frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
       context: [],
@@ -422,8 +422,10 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
       lineNo: node.frame.line ?? null,
       module: node.frame.module ?? null,
       package: node.frame.package ?? null,
+      parentIndex: null,
       platform,
       rawFunction: null,
+      sampleCount: null,
       symbol: node.frame.symbol ?? null,
       symbolAddr: node.frame.symbolAddr ?? null,
       symbolicatorStatus: node.frame.symbolicatorStatus,

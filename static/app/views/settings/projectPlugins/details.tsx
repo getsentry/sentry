@@ -9,18 +9,18 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PluginConfig from 'sentry/components/pluginConfig';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PluginConfig} from 'sentry/components/pluginConfig';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {useTogglePluginMutation} from './useTogglePluginMutation';

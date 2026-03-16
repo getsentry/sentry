@@ -30,7 +30,7 @@ from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.silo.safety import unguarded_write
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 from sentry.types.token import AuthTokenType
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -329,22 +329,22 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return super().update(*args, **kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
-        return list(find_all_region_names())
+        return list(find_all_cell_names())
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token
         from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
-            region_name=region_name,
+            cell_name=cell_name,
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
@@ -352,7 +352,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         region_replica_service.delete_replicated_api_token(
             apitoken_id=identifier,
-            region_name=region_name,
+            cell_name=cell_name,
         )
 
     @classmethod
@@ -417,11 +417,14 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
                 # Validate redirect_uri binding (RFC 6749 §4.1.3)
                 # Only validate if redirect_uri was provided in the token request (not None)
-                # This maintains backward compatibility with direct from_grant() calls
+                # This maintains backward compatibility with direct from_grant() calls.
+                # Compare normalized forms so that cosmetic differences (trailing
+                # slash, percent-encoding case) don't cause spurious mismatches.
+                normalize = grant.application.normalize_url
                 if (
                     redirect_uri is not None
                     and grant.redirect_uri
-                    and grant.redirect_uri != redirect_uri
+                    and normalize(grant.redirect_uri) != normalize(redirect_uri)
                 ):
                     # RFC 6749 §10.5: Authorization codes are single-use and must be invalidated
                     # on failed exchange attempts to prevent authorization code replay attacks

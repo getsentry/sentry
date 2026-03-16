@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]
@@ -25,8 +25,8 @@ pytestmark = [requires_snuba]
 REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry issue"
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
-us = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
-de = Region("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
+us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+de = Cell("de", 2, "https://de.testserver", RegionCategory.MULTI_TENANT)
 region_config = (us, de)
 
 
@@ -193,7 +193,7 @@ class JiraIssueHookControlTest(APITestCase):
             },
         )
 
-        with assume_test_silo_mode(SiloMode.REGION, region_name="us"):
+        with assume_test_silo_mode(SiloMode.CELL, region_name="us"):
             self.us_org = self.create_organization(region="us")
             self.us_project = Project.objects.create(organization=self.us_org)
             self.first_release = self.create_release(
@@ -215,7 +215,7 @@ class JiraIssueHookControlTest(APITestCase):
                 integration=self.integration,
                 key=self.issue_key,
             )
-        with assume_test_silo_mode(SiloMode.REGION, region_name="de"):
+        with assume_test_silo_mode(SiloMode.CELL, region_name="de"):
             self.de_org = self.create_organization(region="de")
             self.de_project = Project.objects.create(organization=self.de_org)
             self.de_group = self.create_group(

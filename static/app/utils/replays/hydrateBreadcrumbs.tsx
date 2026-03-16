@@ -2,7 +2,7 @@ import invariant from 'invariant';
 
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
 import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';

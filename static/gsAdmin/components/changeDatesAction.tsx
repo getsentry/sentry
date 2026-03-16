@@ -127,10 +127,8 @@ function ChangeDatesModal({
 
 type Options = Omit<ChangeDatesModalProps, keyof ModalRenderProps>;
 
-const triggerChangeDatesModal = (opts: Options) =>
+export const triggerChangeDatesModal = (opts: Options) =>
   openModal(deps => <ChangeDatesModal {...deps} {...opts} />);
-
-export default triggerChangeDatesModal;
 
 const DateField = styled(InputField)`
   padding-left: 0px;

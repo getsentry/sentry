@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconBusiness, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -19,7 +19,7 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledCustomSymbolSources({organization}: Props) {
+export function DisabledCustomSymbolSources({organization}: Props) {
   return (
     <Content
       data-test-id={`disabled-${FEATURE}`}
@@ -70,8 +70,6 @@ function DisabledCustomSymbolSources({organization}: Props) {
     </Content>
   );
 }
-
-export default DisabledCustomSymbolSources;
 
 const Content = styled(EmptyMessage)`
   padding: 0;

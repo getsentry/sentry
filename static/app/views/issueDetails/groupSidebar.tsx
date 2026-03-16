@@ -8,7 +8,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
-import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -17,12 +17,11 @@ import TagFacets, {
   MOBILE_TAGS,
   TAGS_FORMATTER,
 } from 'sentry/components/group/tagFacets';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {space} from 'sentry/styles/space';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -42,7 +41,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type Props = {
@@ -315,12 +314,12 @@ const Container = styled('div')`
 const ExternalIssues = styled('div')`
   display: grid;
   grid-template-columns: auto max-content;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const TitleNumber = styled('span')`

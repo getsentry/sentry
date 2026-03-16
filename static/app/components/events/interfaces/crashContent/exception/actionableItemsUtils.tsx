@@ -1,7 +1,7 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
+import {getThreadException} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import type {HttpProcessingErrors} from 'sentry/constants/eventErrors';
 import {
@@ -21,7 +21,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =

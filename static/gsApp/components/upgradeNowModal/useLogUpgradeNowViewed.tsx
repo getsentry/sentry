@@ -14,7 +14,7 @@ type Props = {
   surface: AM2UpdateSurfaces;
 };
 
-export default function useLogUpgradeNowViewed({
+export function useLogUpgradeNowViewed({
   hasPriceChange,
   organization,
   subscription,

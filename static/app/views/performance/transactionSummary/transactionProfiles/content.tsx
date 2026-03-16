@@ -7,14 +7,13 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -29,7 +28,7 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -347,8 +346,8 @@ const RequestStateMessageContainer = styled('div')`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header

@@ -5,9 +5,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 
 import {useOwners} from './useOwners';
 

@@ -13,22 +13,21 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
@@ -159,6 +158,7 @@ function TagDetailsRow({
   tag: Tag;
   tagValue: TagValue;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -202,7 +202,7 @@ function TagDetailsRow({
       <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
       <RightAlignedValue>{displayPercentage}</RightAlignedValue>
       {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: space(1.5)}} />
+        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
       ) : (
         '--'
       )}
@@ -343,12 +343,12 @@ function TagValueActionsMenu({
 const Table = styled('div')`
   display: grid;
   grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
-  column-gap: ${space(1)};
-  row-gap: ${space(0.5)};
-  margin: 0 -${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${space(2)};
+    column-gap: ${p => p.theme.space.xl};
   }
 `;
 
@@ -364,7 +364,7 @@ const ShareColumnTitle = styled(ColumnTitle)`
 
 const ColumnSort = styled(Link)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.tokens.content.secondary};
@@ -385,7 +385,7 @@ const Body = styled('div')`
 
 const Header = styled(Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const Row = styled(Body)`
@@ -394,7 +394,7 @@ const Row = styled(Body)`
   }
   align-items: center;
   border-radius: 4px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
     visibility: hidden;

@@ -245,3 +245,37 @@ class TestCreatePerformanceDetectors(TestCase):
             assert not Detector.objects.filter(
                 project=project, type=mapping.wfe_detector_type
             ).exists()
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS",
+        {
+            "slow_db_queries_detection_enabled": True,
+            "large_http_payload_detection_enabled": True,
+            "db_query_injection_detection_enabled": False,
+        },
+    )
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.get_disabled_platforms_by_detector_type",
+        return_value={
+            "performance_slow_db_query": frozenset({"ruby", "php"}),
+        },
+    )
+    def test_respects_default_enabled_state(self, mock_disabled_platforms):
+        """Test that detectors respect both platform-specific disabling and default enabled state."""
+        with disable_default_detector_creation():
+            project = self.create_project(platform="ruby")
+
+        ensure_performance_detectors(project)
+
+        # Disabled because platform is in the disabled list
+        detector = Detector.objects.get(project=project, type="performance_slow_db_query")
+        assert detector.enabled is False
+
+        # Enabled: platform not in any disabled list and default is True
+        detector = Detector.objects.get(project=project, type="performance_large_http_payload")
+        assert detector.enabled is True
+
+        # Disabled because default setting is False (regardless of platform)
+        detector = Detector.objects.get(project=project, type="query_injection_vulnerability")
+        assert detector.enabled is False

@@ -8,9 +8,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 

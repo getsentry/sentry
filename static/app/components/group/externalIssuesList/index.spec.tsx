@@ -9,11 +9,11 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {Group} from 'sentry/types/group';
-import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
-import ExternalIssuesList from '.';
+import {ExternalIssueList as ExternalIssuesList} from '.';
 
 jest.mock('sentry/utils/useSentryAppComponentsStore');
 const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);

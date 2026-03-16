@@ -15,10 +15,11 @@ import {
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -107,7 +108,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('3XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_3XX],
           aggregates: [PERCENTAGE_3XX],
           columns: [],
@@ -125,7 +126,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('4XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_4XX],
           aggregates: [PERCENTAGE_4XX],
           columns: [],
@@ -143,7 +144,7 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('5XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_5XX],
           aggregates: [PERCENTAGE_5XX],
           columns: [],
@@ -300,7 +301,7 @@ const TRANSACTIONS_TABLE: Widget = {
   layout: {
     x: 0,
     y: 4,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     h: 5,
     w: 6,
   },
@@ -329,4 +330,5 @@ export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...CHART_ROW_WIDGETS,
     TRANSACTIONS_TABLE,
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

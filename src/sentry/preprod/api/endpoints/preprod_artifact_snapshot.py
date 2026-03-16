@@ -13,10 +13,9 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.paginator import OffsetPaginator
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -39,6 +38,9 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.status_checks.snapshots.tasks import (
+    create_preprod_snapshot_status_check_task,
+)
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -52,7 +54,7 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": ImageMetadata.schema(),
-            "maxProperties": 1000,
+            "maxProperties": 50000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -82,7 +84,7 @@ def validate_preprod_snapshot_post_schema(request_body: bytes) -> tuple[dict[str
         return {}, "Invalid json body"
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -250,15 +252,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 duration_ms=int(duration.total_seconds() * 1000),
             )
 
-        def on_results(images: list[SnapshotImageResponse]) -> dict[str, Any]:
-            return SnapshotDetailsApiResponse(
+        return Response(
+            SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
                 project_id=str(artifact.project_id),
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
-                images=images,
+                images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
@@ -266,24 +268,18 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 added_count=len(categorized.added),
                 removed=categorized.removed,
                 removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
                 unchanged=categorized.unchanged,
                 unchanged_count=len(categorized.unchanged),
                 errored=categorized.errored,
                 errored_count=len(categorized.errored),
                 comparison_run_info=run_info,
             ).dict()
-
-        return self.paginate(
-            request=request,
-            queryset=image_list,
-            paginator_cls=OffsetPaginator,
-            on_results=on_results,
-            default_per_page=20,
-            max_per_page=100,
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -383,6 +379,13 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
+            },
+        )
+
+        create_preprod_snapshot_status_check_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact.id,
+                "caller": "upload_completion",
             },
         )
 

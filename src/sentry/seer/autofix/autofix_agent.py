@@ -25,6 +25,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_pre
 from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
+from sentry.seer.models import SeerRepoDefinition
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -105,7 +106,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -117,12 +118,23 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    return config.prompt_fn(
+    prompt = config.prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
     )
+
+    parts = [prompt]
+
+    user_context = user_context or ""
+    user_context = user_context.strip()
+    if user_context:
+        parts.append("")
+        parts.append("Use the following user context to aid your thinking")
+        parts.append(user_context)
+
+    return "\n".join(parts)
 
 
 def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerActionType:
@@ -178,6 +190,7 @@ def trigger_autofix_explorer(
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
+    user_context: str | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -199,7 +212,7 @@ def trigger_autofix_explorer(
         enable_coding=config.enable_coding,
     )
 
-    prompt = build_step_prompt(step, group)
+    prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {"step": step.value}
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
@@ -375,13 +388,11 @@ def trigger_coding_agent_handoff(
     """
     # Fetch project preferences for repos and auto_create_pr setting
     auto_create_pr = False
-    repos: list[str] = []
+    repo_definitions: list[SeerRepoDefinition] = []
     try:
         preference_response = get_project_seer_preferences(group.project_id)
         if preference_response and preference_response.preference:
-            repos = [
-                f"{repo.owner}/{repo.name}" for repo in preference_response.preference.repositories
-            ]
+            repo_definitions = list(preference_response.preference.repositories)
             if preference_response.preference.automation_handoff:
                 auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
     except Exception:
@@ -394,7 +405,7 @@ def trigger_coding_agent_handoff(
             },
         )
 
-    if not repos:
+    if not repo_definitions:
         return {
             "successes": [],
             "failures": [{"error_message": "No repositories configured in project preferences"}],
@@ -418,7 +429,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repos,
+        repos=repo_definitions,
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

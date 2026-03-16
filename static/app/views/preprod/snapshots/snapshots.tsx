@@ -1,19 +1,18 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
@@ -25,26 +24,19 @@ import type {
 
 import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
+import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import {SnapshotMainContent} from './main/snapshotMainContent';
 import {SnapshotSidebarContent} from './sidebar/snapshotSidebarContent';
 
 export default function SnapshotsPage() {
   const organization = useOrganization();
+  const theme = useTheme();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
 
-  const {
-    data,
-    isPending,
-    isError,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    refetch,
-  } = useInfiniteApiQuery<SnapshotDetailsApiResponse>({
-    queryKey: [
-      'infinite',
+  const {data, isPending, isError, refetch} = useApiQuery<SnapshotDetailsApiResponse>(
+    [
       getApiUrl(
         '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
         {
@@ -54,17 +46,22 @@ export default function SnapshotsPage() {
           },
         }
       ),
-      {query: {per_page: 20}},
     ],
-    staleTime: 0,
-    enabled: !!snapshotId,
-  });
+    {
+      staleTime: 0,
+      enabled: !!snapshotId,
+    }
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayColor, setOverlayColor] = useState('#00cc44');
+  const [overlayColor, setOverlayColor] = useState<string>(() => {
+    const palette = theme.chart.getColorPalette(10);
+    return palette.at(-1) ?? '#67C800';
+  });
+  const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
   const {
     size: sidebarWidth,
@@ -79,40 +76,38 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const firstPageData = data?.pages[0]?.[0];
-  const comparisonType = firstPageData?.comparison_type ?? 'solo';
-  const comparisonRunInfo = firstPageData?.comparison_run_info;
+  const comparisonType = data?.comparison_type ?? 'solo';
+  const comparisonRunInfo = data?.comparison_run_info;
 
   const sidebarItems = useMemo(() => {
-    if (!data?.pages) {
+    if (!data) {
       return [];
     }
 
-    if (comparisonType === 'diff' && firstPageData) {
+    if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      for (const pair of firstPageData.changed) {
+      for (const pair of data.changed) {
         items.push({type: 'changed', name: getImageName(pair.head_image), pair});
       }
-      for (const img of firstPageData.added) {
+      for (const img of data.added) {
         items.push({type: 'added', name: getImageName(img), image: img});
       }
-      for (const img of firstPageData.removed) {
+      for (const img of data.removed) {
         items.push({type: 'removed', name: getImageName(img), image: img});
       }
-      for (const img of firstPageData.renamed ?? []) {
+      for (const img of data.renamed ?? []) {
         items.push({type: 'renamed', name: getImageName(img), image: img});
       }
-      for (const img of firstPageData.unchanged) {
+      for (const img of data.unchanged) {
         items.push({type: 'unchanged', name: getImageName(img), image: img});
       }
 
       return items;
     }
 
-    const allImages = data.pages.flatMap(page => page[0].images);
     const groups = new Map<string, SnapshotImage[]>();
-    for (const image of allImages) {
+    for (const image of data.images) {
       const name = getImageName(image);
       const existing = groups.get(name);
       if (existing) {
@@ -125,7 +120,7 @@ export default function SnapshotsPage() {
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, images]) => ({type: 'solo' as const, name, images}));
-  }, [data?.pages, comparisonType, firstPageData]);
+  }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) {
@@ -141,18 +136,57 @@ export default function SnapshotsPage() {
       : (filteredItems[0]?.name ?? null);
   const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
 
-  useEffect(() => {
-    setVariantIndex(0);
-  }, [currentItemName]);
+  // Clamp variantIndex to valid range when the selected item changes implicitly
+  // (e.g. search filtering selects a new item with fewer variants)
+  const safeVariantIndex =
+    currentItem?.type === 'solo'
+      ? Math.min(variantIndex, currentItem.images.length - 1)
+      : variantIndex;
 
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);
     setVariantIndex(0);
   };
 
-  const imageBaseUrl = `/api/0/projects/${organization.slug}/${firstPageData?.project_id ?? ''}/files/images/`;
-  const diffImageBaseUrl = firstPageData
-    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${firstPageData.project_id}/${organization.id}/${firstPageData.project_id}/`
+  // Ref so the keydown handler reads current state without re-registering
+  const stateRef = useRef({filteredItems, currentItemName});
+  stateRef.current = {filteredItems, currentItemName};
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      e.preventDefault();
+
+      const {filteredItems: items, currentItemName: current} = stateRef.current;
+      const currentIndex = items.findIndex(i => i.name === current);
+      const nextIndex =
+        e.key === 'ArrowDown'
+          ? Math.min(currentIndex + 1, items.length - 1)
+          : Math.max(currentIndex - 1, 0);
+
+      if (nextIndex !== currentIndex && items[nextIndex]) {
+        setSelectedItemName(items[nextIndex].name);
+        setVariantIndex(0);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Defer the item passed to main content so the sidebar stays responsive
+  // while the expensive image rendering catches up
+  const deferredItem = useDeferredValue(currentItem);
+
+  const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
+  const diffImageBaseUrl = data
+    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
     : '';
 
   if (isPending) {
@@ -167,7 +201,7 @@ export default function SnapshotsPage() {
     );
   }
 
-  if (isError || !firstPageData) {
+  if (isError || !data) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Layout.Page>
@@ -183,71 +217,34 @@ export default function SnapshotsPage() {
     <SentryDocumentTitle title={t('Snapshot')}>
       <Layout.Page>
         <Layout.Header>
-          <SnapshotHeaderContent
-            projectId={firstPageData.project_id}
-            data={firstPageData}
-          />
+          <SnapshotHeaderContent projectId={data.project_id} data={data} />
           <Layout.HeaderActions>
             <SnapshotDevTools
               organizationSlug={organization.slug}
-              projectSlug={firstPageData.project_id}
               snapshotId={snapshotId}
               comparisonRunInfo={comparisonRunInfo}
-              hasBaseArtifact={firstPageData.base_artifact_id !== null}
+              hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
             />
           </Layout.HeaderActions>
         </Layout.Header>
 
-        {comparisonType === 'diff' && (
-          <Flex
-            align="center"
-            justify="between"
-            gap="lg"
-            padding="lg xl"
-            background="secondary"
-          >
-            <Text size="sm" bold>
-              {t('Comparison')}
-            </Text>
-            <Text size="sm" variant="muted">
-              {t(
-                '%s changed, %s added, %s removed, %s renamed, %s unchanged',
-                firstPageData.changed_count,
-                firstPageData.added_count,
-                firstPageData.removed_count,
-                firstPageData.renamed_count ?? 0,
-                firstPageData.unchanged_count
-              )}
-            </Text>
-            <Flex align="center" gap="sm">
-              <Button
-                size="xs"
-                priority={showOverlay ? 'primary' : 'default'}
-                onClick={() => setShowOverlay(!showOverlay)}
-              >
-                {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
-              </Button>
-              <ColorInput
-                type="color"
-                value={overlayColor}
-                onChange={e => setOverlayColor(e.target.value)}
-              />
-            </Flex>
-          </Flex>
-        )}
-
-        <Flex direction="row" height="100%" width="100%" overflow="hidden">
-          <Flex flexShrink={0} overflow="hidden" style={{width: sidebarWidth}}>
+        <Flex
+          direction="row"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          overflow="hidden"
+          style={{maxHeight: 'calc(100vh - 205px)'}}
+        >
+          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
               items={filteredItems}
+              totalItemCount={sidebarItems.length}
               currentItemName={currentItemName}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSelectItem={handleSelectItem}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
             />
           </Flex>
           <DragHandle
@@ -259,13 +256,17 @@ export default function SnapshotsPage() {
           </DragHandle>
           <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
-              selectedItem={currentItem}
-              variantIndex={variantIndex}
+              selectedItem={deferredItem}
+              variantIndex={safeVariantIndex}
               onVariantChange={setVariantIndex}
               imageBaseUrl={imageBaseUrl}
               diffImageBaseUrl={diffImageBaseUrl}
               showOverlay={showOverlay}
+              onShowOverlayChange={setShowOverlay}
               overlayColor={overlayColor}
+              onOverlayColorChange={setOverlayColor}
+              diffMode={diffMode}
+              onDiffModeChange={setDiffMode}
             />
           </Flex>
         </Flex>
@@ -277,7 +278,7 @@ export default function SnapshotsPage() {
 const DragHandle = styled('div')`
   display: grid;
   place-items: center;
-  width: ${space(2)};
+  width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
   user-select: inherit;
@@ -291,13 +292,4 @@ const DragHandle = styled('div')`
     user-select: none;
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
-`;
-
-const ColorInput = styled('input')`
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0;
 `;

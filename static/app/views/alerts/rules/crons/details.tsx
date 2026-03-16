@@ -7,19 +7,18 @@ import {Flex} from '@sentry/scraps/layout';
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
@@ -195,5 +194,5 @@ export default function MonitorDetails() {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

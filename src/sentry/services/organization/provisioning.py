@@ -18,7 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_region
+from sentry.types.region import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):
@@ -33,7 +33,7 @@ class OrganizationProvisioningService:
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_region()
+            local_region = get_local_cell()
 
             assert not region_name or region_name == local_region.name, (
                 "Cannot provision an organization in another region"
@@ -55,7 +55,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                region_name=region_name, org_provision_args=provisioning_options
+                cell_name=region_name, org_provision_args=provisioning_options
             )
         )
 
@@ -106,7 +106,7 @@ class OrganizationProvisioningService:
                 organization_id=organization_id,
                 desired_slug=slug,
                 require_exact=True,
-                region_name=destination_region_name,
+                cell_name=destination_region_name,
             )
         )
 
@@ -161,7 +161,7 @@ class OrganizationProvisioningService:
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            slug_mapping=slug_mapping, region_name=destination_region_name
+            slug_mapping=slug_mapping, cell_name=destination_region_name
         )
 
 
@@ -200,10 +200,10 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
+    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
-        region_name=region_name,
+        cell_name=region_name,
     )
 
     if not able_to_provision:
@@ -262,7 +262,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
 
     able_to_update_slug = (
         region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-            region_name=region_name,
+            cell_name=region_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
             ),
@@ -291,7 +291,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
                     organization_id=org_slug_reservation.organization_id,
                     reservation_type=OrganizationSlugReservationType.PRIMARY,
                     user_id=org_slug_reservation.user_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                 ).save(unsafe_write=True)
 
 

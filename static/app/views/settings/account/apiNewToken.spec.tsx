@@ -1,5 +1,5 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 

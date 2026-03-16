@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -10,9 +10,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   DEFAULT_RELEASES_SORT,
   RELEASES_SORT_OPTIONS,
@@ -27,7 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
@@ -180,12 +180,46 @@ export default function FiltersBar({
     [];
 
   const [activeGlobalFilters, setActiveGlobalFilters] = useState<GlobalFilter[]>(() => {
-    return (
-      dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      filters?.[DashboardFilterKeys.GLOBAL_FILTER] ??
-      []
+    const savedFilters = filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
+    const initialFilters =
+      savedFilters.length > 0 ? savedFilters : prebuiltDashboardFilters;
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    if (!urlFilters) {
+      return initialFilters;
+    }
+
+    // Empty array means user explicitly cleared all filters — respect that
+    if (urlFilters.length === 0) {
+      return urlFilters;
+    }
+
+    const nonOverlapping = initialFilters.filter(
+      saved => !urlFilters.some(url => globalFilterKeysAreEqual(saved, url))
     );
+
+    return [...nonOverlapping, ...urlFilters];
   });
+
+  // Sync merged filters to the URL on mount so widgets see the same filters
+  // as the filter bar. Without this, the filter bar shows merged [saved + URL]
+  // filters but widgets only query with raw URL filters.
+  useEffect(() => {
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+
+    // Only sync if URL has non-empty filters AND saved filters were merged in
+    if (
+      urlFilters &&
+      urlFilters.length > 0 &&
+      activeGlobalFilters.length > urlFilters.length
+    ) {
+      onDashboardFilterChange({
+        [DashboardFilterKeys.RELEASE]: selectedReleases,
+        [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
@@ -249,57 +283,52 @@ export default function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {organization.features.includes('dashboards-global-filters') && (
-          <Fragment>
-            {activeGlobalFilters.map(filter => (
-              <GenericFilterSelector
-                disableRemoveFilter={
-                  isPrebuiltDashboard &&
-                  prebuiltDashboardFilters.some(
-                    prebuiltFilter =>
-                      prebuiltFilter.tag.key === filter.tag.key &&
-                      prebuiltFilter.dataset === filter.dataset
-                  )
-                }
-                key={filter.tag.key + filter.value}
-                globalFilter={filter}
-                searchBarData={getSearchBarData(filter.dataset)}
-                onUpdateFilter={updatedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.map(f =>
-                      globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                    )
-                  );
-                }}
-                onRemoveFilter={removedFilter => {
-                  updateGlobalFilters(
-                    activeGlobalFilters.filter(
-                      f => !globalFilterKeysAreEqual(f, removedFilter)
-                    )
-                  );
-                  trackAnalytics('dashboards2.global_filter.remove', {
-                    organization,
-                  });
-                }}
-              />
-            ))}
-            <AddFilter
-              globalFilters={activeGlobalFilters}
-              getSearchBarData={getSearchBarData}
-              onAddFilter={newFilter => {
-                updateGlobalFilters([...activeGlobalFilters, newFilter]);
-                trackAnalytics('dashboards2.global_filter.add', {
-                  organization,
-                });
-              }}
-            />
-          </Fragment>
-        )}
+        {activeGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
+              )
+            }
+            key={filter.tag.key + filter.value}
+            globalFilter={filter}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                )
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
+                organization,
+              });
+            }}
+          />
+        ))}
+        <AddFilter
+          globalFilters={activeGlobalFilters}
+          getSearchBarData={getSearchBarData}
+          onAddFilter={newFilter => {
+            updateGlobalFilters([...activeGlobalFilters, newFilter]);
+            trackAnalytics('dashboards2.global_filter.add', {
+              organization,
+            });
+          }}
+        />
         {!hasTemporaryFilters &&
           hasUnsavedChanges &&
           !isEditingDashboard &&
-          !isPreview &&
-          !isPrebuiltDashboard && (
+          !isPreview && (
             <Grid flow="column" align="center" gap="md">
               <Button
                 tooltipProps={{
@@ -315,13 +344,20 @@ export default function FiltersBar({
                 disabled={!hasEditAccess}
                 busy={shouldBusySaveButton}
               >
-                {t('Save')}
+                {isPrebuiltDashboard ? t('Save for Everyone') : t('Save')}
               </Button>
               <Button
                 data-test-id="filter-bar-cancel"
                 onClick={() => {
                   onCancel?.();
-                  setActiveGlobalFilters(filters.globalFilter ?? []);
+                  // Reset local display state, falling back to prebuilt
+                  // defaults when no saved filters exist
+                  const displayFilters = filters.globalFilter?.length
+                    ? filters.globalFilter
+                    : prebuiltDashboardFilters;
+                  setActiveGlobalFilters(displayFilters);
+                  // Push saved filters (not display fallback) to avoid a
+                  // URL/DB mismatch that re-triggers hasUnsavedFilterChanges
                   onDashboardFilterChange(filters);
                 }}
               >

@@ -12,14 +12,13 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
-import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
+import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
@@ -709,7 +708,7 @@ const StyledIconWarning = styled(IconWarning)`
 const DatasetRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   max-width: 425px;
 `;
 
@@ -740,7 +739,7 @@ const DirectionField = styled(SelectField)`
 
 const DetectionTypeField = styled(SegmentedRadioField)`
   padding-left: 0;
-  padding-block: ${space(1)};
+  padding-block: ${p => p.theme.space.md};
   border-bottom: none;
   max-width: 840px;
 
@@ -808,5 +807,5 @@ const PriorityLabel = styled('span')`
 
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
 `;

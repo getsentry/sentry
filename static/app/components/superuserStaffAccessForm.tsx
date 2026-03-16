@@ -8,14 +8,13 @@ import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 interface WebAuthnParams {
   challenge: string;
@@ -249,5 +248,5 @@ export default withApi(SuperuserStaffAccessFormContent);
 
 const BackWrapper = styled('div')`
   width: 100%;
-  margin-left: ${space(4)};
+  margin-left: ${p => p.theme.space['3xl']};
 `;

@@ -29,9 +29,9 @@ from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import control_silo_view, region_silo_view
+from sentry.web.frontend.base import cell_silo_view, control_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
 from . import UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
@@ -97,7 +97,7 @@ def build_context(group: Group) -> dict[str, Any]:
     }
 
 
-@region_silo_view
+@cell_silo_view
 class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
     """
     Handles requests (from the Sentry integration in Jira) for HTML to display when you
@@ -239,7 +239,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
                 status=ObjectStatus.ACTIVE,
             ).values_list("organization_id", flat=True)
         )
-        org_regions = find_regions_for_orgs(organization_ids)
+        org_regions = find_cells_for_orgs(organization_ids)
         for region_name in org_regions:
             region_groups = issue_service.get_external_issue_groups(
                 region_name=region_name, external_issue_key=issue_key, integration_id=integration.id
