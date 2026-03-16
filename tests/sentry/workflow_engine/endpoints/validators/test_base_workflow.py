@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.serializers import ValidationError
 
+from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
@@ -153,6 +154,96 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.config == self.valid_data["config"]
         assert workflow.organization_id == self.organization.id
         assert workflow.created_by_id == self.user.id
+
+    def test_create__owner_user_id(self) -> None:
+        self.valid_data["owner"] = f"user:{self.user.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+        workflow = validator.create(validator.validated_data)
+        assert workflow.owner_user_id == self.user.id
+
+    def test_create__owner_team_id(self) -> None:
+        self.valid_data["owner"] = f"team:{self.team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+
+        workflow = validator.create(validator.validated_data)
+        assert workflow.owner_team_id == self.team.id
+
+    def test_owner_perms(self) -> None:
+        other_user = self.create_user()
+        self.valid_data["owner"] = f"user:{other_user.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+        assert str(validator.errors["owner"][0]) == "User is not a member of this organization"
+
+        other_team = self.create_team(self.create_organization())
+        self.valid_data["owner"] = f"team:{other_team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+        assert str(validator.errors["owner"][0]) == "Team is not a member of this organization"
+
+    def test_team_owner(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+        assert workflow.owner_team_id == team.id
+        assert workflow.owner_user_id is None
+
+    def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+
+        context = {
+            "organization": self.organization,
+            "request": self.make_request(user=member_user),
+        }
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is False
+        assert str(validator.errors["owner"][0]) == "You can only assign teams you are a member of"
+
+    def test_team_owner_not_member_with_team_admin_scope(self) -> None:
+        team = self.create_team(organization=self.organization)
+
+        context = {
+            "organization": self.organization,
+            "request": self.make_request(user=self.user),
+            "access": SystemAccess(),
+        }
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+        assert workflow.owner_team_id == team.id
+        assert workflow.owner_user_id is None
+
+    def test_user_owner_another_member(self) -> None:
+        other_user = self.create_user()
+        self.create_member(
+            user=other_user,
+            organization=self.organization,
+            role="member",
+        )
+
+        self.valid_data["owner"] = f"user:{other_user.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+        assert workflow.owner_user_id == other_user.id
+        assert workflow.owner_team_id is None
 
     def test_create__validate_triggers_empty(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
@@ -732,3 +823,118 @@ class TestWorkflowValidatorUpdate(TestCase):
         workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
         assert workflow_condition_group is not None
         assert workflow_condition_group.condition_group.dataconditiongroupaction_set.count() == 0
+
+    def test_update_owner_type(self, mock_action_validator: mock.MagicMock) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        context = {**self.context, "request": self.make_request(user=self.user)}
+
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is True
+        workflow = validator.update(self.workflow, validator.validated_data)
+        assert workflow.owner_team_id == team.id
+        assert workflow.owner_user_id is None
+
+        self.valid_data["owner"] = f"user:{self.user.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is True
+        workflow = validator.update(self.workflow, validator.validated_data)
+        assert workflow.owner_user_id == self.user.id
+        assert workflow.owner_team_id is None
+
+    def test_team_owner_not_member(self, mock_action_validator: mock.MagicMock) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
+        )
+
+        context = {**self.context, "request": self.make_request(user=member_user)}
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is False
+        assert str(validator.errors["owner"][0]) == "You can only assign teams you are a member of"
+
+    def test_team_owner_not_member_with_team_admin_scope(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        team = self.create_team(organization=self.organization)
+
+        context = {**self.context, "access": SystemAccess()}
+        self.valid_data["owner"] = f"team:{team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is True
+        workflow = validator.update(self.workflow, validator.validated_data)
+        assert workflow.owner_team_id == team.id
+        assert workflow.owner_user_id is None
+
+    def test_reassign_owner_from_own_team_to_any_team(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        from sentry.types.actor import Actor
+
+        member_team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+        target_team = self.create_team(organization=self.organization)
+
+        self.workflow.owner_team_id = member_team.id
+        self.workflow.save()
+
+        current_owner = Actor.from_id(user_id=None, team_id=member_team.id)
+        context = {
+            **self.context,
+            "request": self.make_request(user=member_user),
+            "current_owner": current_owner,
+        }
+        self.valid_data["owner"] = f"team:{target_team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is True
+        workflow = validator.update(self.workflow, validator.validated_data)
+        assert workflow.owner_team_id == target_team.id
+
+    def test_cannot_reassign_owner_from_other_team(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        from sentry.types.actor import Actor
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        other_team = self.create_team(organization=self.organization)
+        member_team = self.create_team(organization=self.organization)
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[member_team],
+        )
+        target_team = self.create_team(organization=self.organization)
+
+        self.workflow.owner_team_id = other_team.id
+        self.workflow.save()
+
+        current_owner = Actor.from_id(user_id=None, team_id=other_team.id)
+        context = {
+            **self.context,
+            "request": self.make_request(user=member_user),
+            "current_owner": current_owner,
+        }
+        self.valid_data["owner"] = f"team:{target_team.id}"
+        validator = WorkflowValidator(data=self.valid_data, context=context)
+        assert validator.is_valid() is False
+        assert str(validator.errors["owner"][0]) == "You can only assign teams you are a member of"
+        self.workflow.refresh_from_db()
+        assert self.workflow.owner_team_id == other_team.id
