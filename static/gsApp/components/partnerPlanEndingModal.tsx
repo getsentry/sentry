@@ -14,10 +14,9 @@ import {Client} from 'sentry/api';
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getContractDaysLeft, isTeamPlanFamily} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -190,7 +189,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 }
 
 const PartnerPlanHeading = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
     font-size: ${p => p.theme.font.size.lg};
@@ -203,7 +202,7 @@ const PartnerPlanHeading = styled('div')`
 `;
 
 const PathContainer = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   grid-auto-rows: max-content;
   border: 1px solid ${p => p.theme.colors.gray400};
   margin-left: auto;
@@ -217,7 +216,7 @@ const PathContainer = styled('div')`
 `;
 
 const StyledButtonBar = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: row;
   column-gap: 20px;
@@ -226,7 +225,8 @@ const StyledButtonBar = styled('div')`
 `;
 
 const ImageHeader = styled('div')`
-  margin: -${space(4)} -${space(4)} 0 -${space(4)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+    0 -${p => p.theme.space['3xl']};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   background-image: url(${partnerMigrationHero});
   background-size: cover;
@@ -235,7 +235,8 @@ const ImageHeader = styled('div')`
   height: 200px;
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      0 -${p => p.theme.space['3xl']};
   }
 `;
 
@@ -243,10 +244,10 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PathHeading = styled('h5')`

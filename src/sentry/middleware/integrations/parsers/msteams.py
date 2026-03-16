@@ -16,7 +16,7 @@ from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.silo.base import control_silo_function
-from sentry.types.region import Region, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class MsTeamsRequestParser(BaseRequestParser):
             )
             return self.get_response_from_control_silo()
 
-        regions: Sequence[Region] = []
+        regions: Sequence[Cell] = []
         try:
             integration = self.get_integration_from_request()
             if not integration:
@@ -110,7 +110,7 @@ class MsTeamsRequestParser(BaseRequestParser):
                 # Since self.can_infer_integration is True, we should be able to resolve a non-empty set of regions.
                 # If the list of regions is empty, then we need to investigate.
                 sentry_sdk.capture_exception(
-                    RegionResolutionError(
+                    CellResolutionError(
                         f"Regions list is empty for {self.provider}.request_parser."
                     )
                 )

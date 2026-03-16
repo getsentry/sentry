@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -18,14 +18,14 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import ChangeARRAction from 'admin/components/changeARRAction';
-import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
-import CustomerContact from 'admin/components/customerContact';
-import CustomerStatus from 'admin/components/customerStatus';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import ExtendProductTrialAction from 'admin/components/extendProductTrialAction';
+import {ChangeARRAction} from 'admin/components/changeARRAction';
+import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
@@ -49,9 +49,9 @@ import {
   getReservedBudgetDisplayName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
@@ -85,7 +85,7 @@ function SoftCapTypeDetail({
                 capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
-              {`${softCapName}`}
+              {softCapName}
             </small>
             <br />
           </Fragment>
@@ -130,7 +130,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
                   onAction={onAction}
                 />
               )) ||
-              `${moment(customer.contractPeriodEnd).format('ll')}`}
+              moment(customer.contractPeriodEnd).format('ll')}
 
             <br />
             <small>{customer.contractInterval}</small>
@@ -458,7 +458,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 }
 
-function CustomerOverview({customer, onAction, organization}: Props) {
+export function CustomerOverview({customer, onAction, organization}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -946,5 +946,3 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 const ThresholdValue = styled('dd')<{positive: boolean}>`
   color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
-
-export default CustomerOverview;

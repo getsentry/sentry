@@ -3,11 +3,11 @@ from django.db.models import F, Value
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@region_silo_model
+@cell_silo_model
 class DetectorState(DefaultFieldsModel):
     """
     This table can be seen as a denormalization of the latest open period state
@@ -41,5 +41,12 @@ class DetectorState(DefaultFieldsModel):
                 F("detector"),
                 Coalesce("detector_group_key", Value("")),
                 name="detector_state_unique_group_key",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["is_triggered", "date_updated"],
+                condition=models.Q(is_triggered=True),
+                name="detector_state_triggered_date",
             ),
         ]

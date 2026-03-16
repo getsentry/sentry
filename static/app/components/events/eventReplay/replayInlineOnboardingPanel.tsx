@@ -11,12 +11,11 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -120,8 +119,8 @@ const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)};
-  margin: ${space(1)} 0;
+  padding: ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space.md} 0;
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
@@ -132,20 +131,20 @@ const BannerWrapper = styled('div')`
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const BannerDescription = styled('div')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   max-width: 340px;
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   color: ${p => p.theme.colors.white};
   cursor: pointer;
   z-index: 1;

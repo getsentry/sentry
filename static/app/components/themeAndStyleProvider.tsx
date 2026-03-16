@@ -3,11 +3,11 @@ import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
-import printConsoleBanner from 'sentry/bootstrap/printConsoleBanner';
+import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import GlobalStyles from 'sentry/styles/global';
+import {GlobalStyles} from 'sentry/styles/global';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';

@@ -14,7 +14,7 @@ from rest_framework.serializers import ValidationError
 from sentry import audit_log, features, quotas, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
@@ -81,7 +81,7 @@ Configures the team role of the member. The two roles are:
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

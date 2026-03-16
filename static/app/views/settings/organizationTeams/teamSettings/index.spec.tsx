@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', () => {
@@ -142,10 +142,7 @@ describe('TeamSettings', () => {
         "This team is managed through your organization's identity provider. These settings cannot be modified."
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toBeDisabled();
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 });

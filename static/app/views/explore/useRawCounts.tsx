@@ -1,9 +1,10 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type QueryResultItem<K extends string> = Record<K, number | null>;
@@ -27,27 +28,30 @@ interface UseRawCountsOptions {
   /**
    * Optional custom aggregate function. If not provided, a default aggregate
    * will be determined based on the dataset.
-   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,-)`.
+   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,<unit>)`.
    */
   aggregate?: string;
   enabled?: boolean;
+  selection?: PageFilters;
 }
 
 export function useRawCounts({
   dataset,
   aggregate,
   enabled,
+  selection,
 }: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection: pageFilterSelection} = usePageFilters();
+  const effectiveSelection = selection ?? pageFilterSelection;
 
   const count = aggregate ?? getAggregateForDataset(dataset);
 
   const baseQueryParams = {
     dataset,
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
+    project: effectiveSelection.projects,
+    environment: effectiveSelection.environments,
+    ...normalizeDateTimeParams(effectiveSelection.datetime),
     field: [count],
     disableAggregateExtrapolation: '1',
   };

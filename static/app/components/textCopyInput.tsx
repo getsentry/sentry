@@ -6,7 +6,6 @@ import type {InputProps} from '@sentry/scraps/input';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
@@ -24,7 +23,7 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   style?: React.CSSProperties;
 }
 
-function TextCopyInput({
+export function TextCopyInput({
   className,
   disabled,
   style,
@@ -86,14 +85,12 @@ function TextCopyInput({
   );
 }
 
-export default TextCopyInput;
-
 const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
 `;
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   min-height: 0;
   height: auto;
 `;

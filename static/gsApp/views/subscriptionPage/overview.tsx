@@ -4,25 +4,25 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
-import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
-import UsageOverview from 'getsentry/views/subscriptionPage/usageOverview';
+import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
-import TrialEnded from './trial/trialEnded';
-import OnDemandDisabled from './ondemandDisabled';
-import RecurringCredits from './recurringCredits';
-import SubscriptionHeader from './subscriptionHeader';
-import UsageAlert from './usageAlert';
+import {TrialEnded} from './trial/trialEnded';
+import {OnDemandDisabled} from './ondemandDisabled';
+import {RecurringCredits} from './recurringCredits';
+import {SubscriptionHeader} from './subscriptionHeader';
+import {UsageAlert} from './usageAlert';
 
 type Props = {
   subscription: Subscription;

@@ -118,7 +118,7 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/file-filters.yml                                @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-eslint.config.mjs                                        @getsentry/owners-js-build
+eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
@@ -200,7 +200,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/data-browsing
@@ -220,7 +219,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
@@ -499,8 +497,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/autopilot/                                                         @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py    @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
@@ -514,28 +510,28 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
-/static/app/components/onboarding/                                               @getsentry/telemetry-experience
-/static/app/data/platformCategories.tsx                                          @getsentry/telemetry-experience
-/static/app/data/platformPickerCategories.tsx                                    @getsentry/telemetry-experience
-/static/app/data/platforms.tsx                                                   @getsentry/telemetry-experience
-/static/app/gettingStartedDocs/                                                  @getsentry/telemetry-experience
-/static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
-/static/app/views/onboarding*                                                    @getsentry/telemetry-experience
-/static/app/views/projectInstall/                                                @getsentry/telemetry-experience
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 /static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
+## Value Discovery
+/static/app/data/platformCategories.tsx                                          @getsentry/value-discovery
+/static/app/data/platformPickerCategories.tsx                                    @getsentry/value-discovery
+/static/app/data/platforms.tsx                                                   @getsentry/value-discovery
+/static/app/gettingStartedDocs/                                                  @getsentry/value-discovery
+/static/app/types/project.tsx                                                    @getsentry/value-discovery
+## End of Value Discovery
+
 ## ML & AI
 /static/app/components/events/autofix/                      @getsentry/machine-learning-ai
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
 /tests/sentry/seer/                                         @getsentry/machine-learning-ai
-/src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows
-/tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows
+/src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
+/tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
 ## End of ML & AI
 
 ## Issues
@@ -631,6 +627,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
+## Onboarding (Value Discovery)
+# These must come after /src/sentry/api/endpoints/ catch-all above
+/src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
+/src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
+/src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
+## End of Onboarding
+
 ## AI Conversations (Telemetry Experience)
 # These must come after /src/sentry/api/endpoints/ catch-all above
 /src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
@@ -707,6 +710,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
+/static/app/views/navigation/                         @getsentry/design-engineering
 
 # LLM Agent guidelines
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
@@ -719,14 +723,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Frontend Platform
 
 # Coding Workflows
-/static/app/components/prevent/                           @getsentry/coding-workflows
-/static/app/views/prevent/                                @getsentry/coding-workflows
-/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
-/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows
-/src/sentry/prevent/                                      @getsentry/coding-workflows
-/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
-/src/sentry/seer/code_review/                                                @getsentry/coding-workflows
-/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+/static/app/components/prevent/                           @getsentry/coding-workflows-sentry-frontend
+/static/app/views/prevent/                                @getsentry/coding-workflows-sentry-frontend
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows-sentry-frontend
+/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows-sentry-frontend
+/src/sentry/prevent/                                      @getsentry/coding-workflows-sentry-backend
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows-sentry-backend
+/src/sentry/seer/code_review/                                                @getsentry/coding-workflows-sentry-backend
+/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows-sentry-backend
 
 ## SCM
 /src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm

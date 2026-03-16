@@ -24,16 +24,15 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
@@ -249,14 +248,14 @@ function AutofixHighlightPopupContent({
       const lastServerMessage = serverMessages[serverMessages.length - 1];
 
       // If the last server message is from the assistant, clear all pending messages
-      if (lastServerMessage && lastServerMessage.role === 'assistant') {
+      if (lastServerMessage?.role === 'assistant') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(false);
       }
 
       // If the last server message is from the user, keep loading assistant state
       // but clear the pending user message
-      if (lastServerMessage && lastServerMessage.role === 'user') {
+      if (lastServerMessage?.role === 'user') {
         setPendingUserMessage(null);
         setShowLoadingAssistant(true);
       }
@@ -552,7 +551,7 @@ function getOptimalPosition(
   return {left, top};
 }
 
-function AutofixHighlightPopup(props: Props) {
+export function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{
@@ -673,8 +672,8 @@ const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-right: ${space(1)};
-  gap: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
   max-width: 300px;
   min-width: 200px;
   position: fixed;
@@ -687,7 +686,7 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top right;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
   transform: scale(${p => (p.isFocused ? 1 : 0.9)});
   transition: transform 200ms ease;
 `;
@@ -725,7 +724,7 @@ const Container = styled(motion.div, {
 
 const InputWrapper = styled('form')`
   display: flex;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.secondary};
   position: relative;
 `;
@@ -733,9 +732,9 @@ const InputWrapper = styled('form')`
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
   border-color: ${p => p.theme.tokens.border.secondary};
-  padding-right: ${space(4)};
-  padding-top: ${space(0.75)};
-  padding-bottom: ${space(0.75)};
+  padding-right: ${p => p.theme.space['3xl']};
+  padding-top: ${p => p.theme.space.sm};
+  padding-bottom: ${p => p.theme.space.sm};
   resize: none;
 
   &:hover {
@@ -745,7 +744,7 @@ const StyledInput = styled(TextArea)`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;
@@ -759,7 +758,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.secondary};
   word-break: break-word;
   overflow-wrap: break-word;
@@ -795,10 +794,10 @@ const Arrow = styled('div')`
 `;
 
 const MessagesContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   max-height: 200px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -806,14 +805,14 @@ const MessagesContainer = styled('div')`
 
 const Message = styled('div')<{role: CommentThreadMessage['role']}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: flex-start;
 `;
 
 const MessageContent = styled('div')`
   flex-grow: 1;
   border-radius: ${p => p.theme.radius.md};
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   word-break: break-word;
@@ -844,7 +843,7 @@ const CircularSeerIcon = styled('div')`
 `;
 
 const ResolveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const ReworkHeaderSection = styled('div')`
@@ -889,5 +888,3 @@ function getScrollParents(element: HTMLElement): Element[] {
 
   return scrollParents;
 }
-
-export default AutofixHighlightPopup;

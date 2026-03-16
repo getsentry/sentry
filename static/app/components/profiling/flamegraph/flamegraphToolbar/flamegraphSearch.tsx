@@ -6,7 +6,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
@@ -226,7 +225,7 @@ function sortFrameResults(
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
   let sid = -1;
-  const spans: Array<SpanChartNode | FlamegraphFrame> = new Array(results.spans.size);
+  const spans = new Array<SpanChartNode | FlamegraphFrame>(results.spans.size);
   for (const n of results.spans.values()) {
     spans[++sid] = n.span;
   }
@@ -481,7 +480,7 @@ const StyledSearchBar = styled(SearchBar)`
   flex: 1 1 100%;
 
   > div > div:last-child {
-    gap: ${space(0.25)};
+    gap: ${p => p.theme.space['2xs']};
   }
 `;
 

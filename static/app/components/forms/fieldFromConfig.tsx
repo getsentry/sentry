@@ -3,11 +3,11 @@ import CollapsibleSection, {
 } from 'sentry/components/forms/collapsibleSection';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {SentryMemberSelectorField} from 'sentry/components/forms/fields/sentryMemberSelectorField';
-import SeparatorField from 'sentry/components/forms/fields/separatorField';
+import {SeparatorField} from 'sentry/components/forms/fields/separatorField';
 import type {Field} from 'sentry/components/forms/types';
 import type {Scope} from 'sentry/types/core';
 
-import BlankField from './fields/blankField';
+import {BlankField} from './fields/blankField';
 import BooleanField, {type BooleanFieldProps} from './fields/booleanField';
 import ChoiceMapperField, {type ChoiceMapperFieldProps} from './fields/choiceMapperField';
 import DateTimeField, {type DateTimeFieldProps} from './fields/dateTimeField';
@@ -21,7 +21,7 @@ import RangeField, {type RangeFieldProps} from './fields/rangeField';
 import SecretField, {type SecretFieldProps} from './fields/secretField';
 import SelectAsyncField, {type SelectAsyncFieldProps} from './fields/selectAsyncField';
 import SelectField, {type SelectFieldProps} from './fields/selectField';
-import SentryOrganizationRoleSelectorField from './fields/sentryOrganizationRoleSelectorField';
+import {SentryOrganizationRoleSelectorField} from './fields/sentryOrganizationRoleSelectorField';
 import SentryProjectSelectorField, {
   type RenderFieldProps,
 } from './fields/sentryProjectSelectorField';

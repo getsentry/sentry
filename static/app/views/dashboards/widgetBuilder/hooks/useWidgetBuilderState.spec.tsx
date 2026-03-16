@@ -2,14 +2,15 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import type {Column} from 'sentry/utils/discover/fields';
+import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useWidgetBuilderState, {
+import {
   BuilderStateAction,
   serializeFields,
+  useWidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -1969,13 +1970,11 @@ describe('useWidgetBuilderState', () => {
       // p50 and p90 are now invalid for counter, so they should be replaced with per_second
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
         },
       ]);
@@ -2017,8 +2016,7 @@ describe('useWidgetBuilderState', () => {
       // Aggregate should be updated to valid one for counter (per_second is the first valid option)
       expect(result.current.state.fields).toEqual([
         {
-          function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           kind: 'function',
         },
       ]);
@@ -2057,11 +2055,10 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      // sum is valid for distribution, so it should remain unchanged
+      // sum is valid for distribution, so it should remain but with updated args
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', undefined, undefined],
-          alias: undefined,
+          function: ['sum', 'value', 'my.metric', 'distribution', '-'],
           kind: 'function',
         },
       ]);
@@ -2111,23 +2108,112 @@ describe('useWidgetBuilderState', () => {
       });
 
       // sum and count should remain, but p99 should be replaced with per_second (first valid option)
+      // All aggregates get updated args for the new trace metric
       expect(result.current.state.yAxis).toEqual([
         {
-          function: ['sum', 'value', undefined, undefined],
+          function: ['sum', 'value', 'my.metric', 'counter', '-'],
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
+          kind: 'function',
+        },
+        {
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('preserves trace metric args when switching from line to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: [
+              'sum(value,my.metric,counter,-)',
+              'per_second(value,my.metric,counter,-)',
+            ],
+            traceMetric: JSON.stringify({name: 'my.metric', type: 'counter'}),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Verify initial yAxis has args preserved from deserialization.
+      // explodeFieldString puts the first 3 args into function[1..3] and
+      // stores all args in the args array when there are more than 3.
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['sum', 'value', 'my.metric', 'counter', '-'],
           alias: undefined,
           kind: 'function',
         },
         {
-          function: ['per_second', 'value', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-        {
-          function: ['per_second', 'value', undefined, undefined],
+          function: ['per_second', 'value', 'my.metric', 'counter', '-'],
           alias: undefined,
           kind: 'function',
         },
       ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // yAxis should be cleared
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: [],
+          }),
+        }),
+        expect.anything()
+      );
+
+      // fields should contain the default X-axis (project) plus both aggregates with args
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'project'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['sum', 'value', 'my.metric', 'counter', '-'],
+              },
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: [
+                  'per_second' as AggregationKeyWithAlias,
+                  'value',
+                  'my.metric',
+                  'counter',
+                  '-',
+                ],
+              },
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // sort should reference the full aggregate string with args
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-per_second(value,my.metric,counter,-)'],
+          }),
+        }),
+        expect.anything()
+      );
     });
 
     it('only applies validation for trace metrics dataset', () => {
@@ -2301,6 +2387,247 @@ describe('useWidgetBuilderState', () => {
       );
     });
 
+    it('preserves equation as aggregate when switching to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: ['event.type', 'equation|count() / 5'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Equation should be preserved as the aggregate
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'event.type'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should use equation[0] alias format
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-equation[0]'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves equation aggregate and equation sort when X-axis changes', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+            sort: ['-equation[0]'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'release',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Equation should be preserved in fields
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'release'},
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should NOT be reset since equation[0] is still valid
+      expect(mockNavigate).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: expect.anything(),
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('resets sort when X-axis changes and sort was on a stale equation alias', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+            sort: ['-equation[0]'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CATEGORICAL_X_AXIS,
+          payload: 'release',
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Sort should be reset to first aggregate since there are no equations in fields
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-count()'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('preserves all aggregates and equations when switching from line to categorical bar', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: [],
+            yAxis: ['count()', 'equation|count() / 5'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.CATEGORICAL_BAR,
+        });
+      });
+
+      jest.runAllTimers();
+
+      // Both the function and equation should be preserved
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'title'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          }),
+        }),
+        expect.anything()
+      );
+
+      // Sort should be on the last aggregate (equation) by default
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sort: ['-equation[0]'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    it('selectedAggregate defaults to last aggregate for categorical bar with multiple aggregates', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+              {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // selectedAggregate should default to the last aggregate index (1, since
+      // there are 2 aggregates: count() and equation)
+      expect(result.current.state.selectedAggregate).toBe(1);
+    });
+
+    it('selectedAggregate is undefined for categorical bar with single aggregate', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.CATEGORICAL_BAR,
+            field: serializeFields([
+              {kind: FieldValueKind.FIELD, field: 'transaction'},
+              {
+                kind: FieldValueKind.FUNCTION,
+                function: ['count', '', undefined, undefined],
+              },
+            ]),
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // selectedAggregate should be undefined when there's only one aggregate
+      expect(result.current.state.selectedAggregate).toBeUndefined();
+    });
+
     it('sets default X-axis and aggregate when dataset changes with categorical bar', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
@@ -2364,6 +2691,142 @@ describe('useWidgetBuilderState', () => {
         }),
         expect.anything()
       );
+    });
+  });
+  describe('text widget actions', () => {
+    it('clears fields, yAxis, query, sort, limit, and dataset when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            dataset: WidgetType.ERRORS,
+            field: ['event.type', 'count()'],
+            query: ['event.type:error'],
+            sort: ['-count()'],
+            limit: '5',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: FieldValueKind.FIELD},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: FieldValueKind.FUNCTION,
+        },
+      ]);
+      expect(result.current.state.query).toEqual(['event.type:error']);
+      expect(result.current.state.sort).toEqual([{field: 'count()', kind: 'desc'}]);
+      expect(result.current.state.limit).toBe(5);
+      expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TEXT);
+      expect(result.current.state.fields).toEqual([]);
+      expect(result.current.state.yAxis).toEqual([]);
+      expect(result.current.state.query).toEqual(['']);
+      expect(result.current.state.sort).toEqual([]);
+      expect(result.current.state.limit).toBeUndefined();
+      expect(result.current.state.dataset).toBeUndefined();
+    });
+
+    it('moves URL description into textContent when switching to text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            description: 'existing description',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.description).toBe('existing description');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TEXT,
+        });
+      });
+
+      // The URL description is moved into local textContent state
+      expect(result.current.state.textContent as string).toBe('existing description');
+      // And cleared from the URL-backed description field
+      expect(result.current.state.description).toBeUndefined();
+    });
+
+    it('clears textContent when switching away from text display type', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          payload: 'text widget content',
+        });
+      });
+
+      expect(result.current.state.textContent as string).toBe('text widget content');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.textContent).toBeUndefined();
+    });
+
+    it('SET_TEXT_CONTENT updates textContent without navigating', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TEXT,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_TEXT_CONTENT,
+          payload: 'new text content',
+        } as any);
+      });
+
+      jest.runAllTimers();
+
+      expect(result.current.state.textContent as string).toBe('new text content');
+      // Text content must not be written to the URL to avoid excessive URL length
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });

@@ -9,7 +9,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
@@ -205,7 +205,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -407,7 +407,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

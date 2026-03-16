@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   FormSearch,
@@ -20,24 +20,20 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AvatarChooser from 'sentry/components/avatarChooser';
-import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import organizationMembershipSettingsFields from 'sentry/data/forms/organizationMembershipSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {MembershipSettingsProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import slugify from 'sentry/utils/slugify';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {slugify} from 'sentry/utils/slugify';
+import {useMembers} from 'sentry/utils/useMembers';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
@@ -45,9 +41,7 @@ const HookCodecovSettingsLink = HookOrDefault({
 
 const HookOrganizationMembershipSettings = HookOrDefault({
   hookName: 'component:organization-membership-settings',
-  defaultComponent: (p: MembershipSettingsProps) => (
-    <JsonForm {...p.jsonFormSettings} forms={p.forms} />
-  ),
+  defaultComponent: OrganizationMembershipSettingsBase,
 });
 
 interface Props {
@@ -72,8 +66,354 @@ const generalSchema = z.object({
 type GeneralSchema = z.infer<typeof generalSchema>;
 type SlugSchema = z.infer<typeof slugSchema>;
 
+export const membershipSchema = z.object({
+  defaultRole: z.string(),
+  openMembership: z.boolean(),
+  allowMemberInvite: z.boolean(),
+  allowMemberProjectCreation: z.boolean(),
+  eventsMemberAdmin: z.boolean(),
+  alertsMemberWrite: z.boolean(),
+  attachmentsRole: z.string(),
+  debugFilesRole: z.string(),
+  hasGranularReplayPermissions: z.boolean(),
+  replayAccessMembers: z.array(z.string()),
+});
+
+type MembershipSchema = z.infer<typeof membershipSchema>;
+
+export function ReplayAccessMembersField({
+  organization,
+  onSave,
+  disabled,
+}: {
+  disabled: boolean;
+  onSave: (previous: Organization, updated: Organization) => void;
+  organization: Organization;
+}) {
+  const endpoint = `/organizations/${organization.slug}/`;
+  const {members, fetching} = useMembers();
+  const memberOptions = members.map(m => ({value: m.id, label: m.name}));
+
+  const replayMutationOpts = mutationOptions({
+    mutationFn: (data: {replayAccessMembers: string[]}) =>
+      fetchMutation<Organization>({
+        method: 'PUT',
+        url: endpoint,
+        data: {replayAccessMembers: data.replayAccessMembers.map(Number)},
+      }),
+    onSuccess: updated => onSave(organization, updated),
+  });
+
+  return (
+    <FormSearch route="/settings/organization/">
+      <AutoSaveForm
+        name="replayAccessMembers"
+        schema={membershipSchema}
+        initialValue={(organization.replayAccessMembers ?? []).map(String)}
+        mutationOptions={replayMutationOpts}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Replay Access Members')}
+            hintText={t('Select the members who will have access to replay data.')}
+          >
+            <field.Select
+              multiple
+              options={memberOptions}
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+              isLoading={fetching}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+    </FormSearch>
+  );
+}
+
+function OrganizationMembershipSettingsBase({
+  organization,
+  onSave,
+}: MembershipSettingsProps) {
+  const endpoint = `/organizations/${organization.slug}/`;
+  const features = new Set(organization.features);
+  const access = new Set(organization.access);
+  const hasOrgWrite = access.has('org:write');
+  const hasOrgAdmin = access.has('org:admin');
+
+  const hasGranularReplay = organization.hasGranularReplayPermissions ?? false;
+
+  const roleOptions = (organization.orgRoleList ?? []).map(r => ({
+    value: r.id,
+    label: r.name,
+  }));
+
+  const mutationOpts = mutationOptions({
+    mutationFn: (data: Partial<MembershipSchema>) =>
+      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
+    onSuccess: updated => onSave(organization, updated),
+  });
+
+  return (
+    <FormSearch route="/settings/organization/">
+      <FieldGroup title={t('Membership')}>
+        <AutoSaveForm
+          name="defaultRole"
+          schema={membershipSchema}
+          initialValue={organization.defaultRole ?? ''}
+          mutationOptions={mutationOpts}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Default Role')}
+              hintText={t('The default role new members will receive')}
+            >
+              <field.Select
+                options={roleOptions}
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgAdmin}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="openMembership"
+          schema={membershipSchema}
+          initialValue={organization.openMembership ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? t(
+                  'This will allow any members of your organization to freely join any team and access any project of your organization. Do you want to continue?'
+                )
+              : t(
+                  'This will disallow free access to any team and project within your organization. Do you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Open Team Membership')}
+              hintText={t('Allow organization members to freely join any team')}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="allowMemberInvite"
+          schema={membershipSchema}
+          initialValue={organization.allowMemberInvite ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? t(
+                  'This will allow any members of your organization to invite other members via email without needing org owner or manager approval. Do you want to continue?'
+                )
+              : undefined
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Let Members Invite Others')}
+              hintText={t(
+                'Allow organization members to invite other members via email without needing org owner or manager approval.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="allowMemberProjectCreation"
+          schema={membershipSchema}
+          initialValue={organization.allowMemberProjectCreation ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? t(
+                  'This will allow any members of your organization to create and configure new projects. Do you want to continue?'
+                )
+              : undefined
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Let Members Create Projects')}
+              hintText={t(
+                'Allow organization members to create and configure new projects.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="eventsMemberAdmin"
+          schema={membershipSchema}
+          initialValue={organization.eventsMemberAdmin ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? t(
+                  'This will allow any members of your organization to delete events. Do you want to continue?'
+                )
+              : undefined
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Let Members Delete Events')}
+              hintText={t(
+                'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="alertsMemberWrite"
+          schema={membershipSchema}
+          initialValue={organization.alertsMemberWrite ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? t(
+                  'This will allow any members of your organization to create, edit, and delete alert rules in all projects. Do you want to continue?'
+                )
+              : undefined
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Let Members Create and Edit Alerts')}
+              hintText={t(
+                'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        {features.has('event-attachments') && (
+          <AutoSaveForm
+            name="attachmentsRole"
+            schema={membershipSchema}
+            initialValue={organization.attachmentsRole ?? ''}
+            mutationOptions={mutationOpts}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Attachments Access')}
+                hintText={t(
+                  'Role required to download event attachments, such as native crash reports or log files.'
+                )}
+              >
+                <field.Select
+                  options={roleOptions}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={!hasOrgWrite}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        )}
+
+        <AutoSaveForm
+          name="debugFilesRole"
+          schema={membershipSchema}
+          initialValue={organization.debugFilesRole ?? ''}
+          mutationOptions={mutationOpts}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Debug Files Access')}
+              hintText={t(
+                'Role required to download debug information files, proguard mappings and source maps.'
+              )}
+            >
+              <field.Select
+                options={roleOptions}
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="hasGranularReplayPermissions"
+          schema={membershipSchema}
+          initialValue={organization.hasGranularReplayPermissions ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'This will allow all members of your organization to access replay data. Do you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Restrict Replay Access')}
+              hintText={t(
+                'Allow granular access to replay data by selecting specific members of your organization.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasOrgWrite}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        {hasGranularReplay && (
+          <ReplayAccessMembersField
+            organization={organization}
+            onSave={onSave}
+            disabled={!hasOrgWrite}
+          />
+        )}
+      </FieldGroup>
+    </FormSearch>
+  );
+}
+
 function OrganizationSettingsForm({initialData, onSave}: Props) {
-  const location = useLocation();
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
 
@@ -83,16 +423,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
-
-  const jsonFormSettings = useMemo(
-    () => ({
-      features: new Set(organization.features),
-      access,
-      location,
-      disabled: !hasWriteAccess,
-    }),
-    [access, location, organization.features, hasWriteAccess]
-  );
 
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
@@ -116,62 +446,57 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   return (
     <Fragment>
-      <FormSearch route="/settings/:orgId/">
+      <FormSearch route="/settings/organization/">
         <FieldGroup title={t('General')}>
           {/* Slug — explicit save with warning */}
-          <slugForm.AppForm>
-            <slugForm.FormWrapper>
-              <slugForm.AppField name="slug">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Organization Slug')}
-                    hintText={t('A unique ID used to identify this organization')}
-                    required
-                  >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={value => field.handleChange(slugify(value))}
-                      disabled={!hasWriteAccess}
-                    />
-                  </field.Layout.Row>
-                )}
-              </slugForm.AppField>
-              <slugForm.Subscribe
-                selector={state => state.values.slug !== initialData.slug}
-              >
-                {isDirty =>
-                  isDirty && (
-                    <Container paddingTop="lg">
-                      <Alert variant="info" showIcon={false}>
-                        {tct(
-                          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
-                          {
-                            link: (
-                              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
-                            ),
-                          }
-                        )}
-                      </Alert>
-                      <Flex gap="sm" justify="end" paddingTop="lg">
-                        <Button
-                          onClick={() => slugForm.reset()}
-                          disabled={!hasWriteAccess}
-                        >
-                          {t('Cancel')}
-                        </Button>
-                        <slugForm.SubmitButton disabled={!hasWriteAccess}>
-                          {t('Save')}
-                        </slugForm.SubmitButton>
-                      </Flex>
-                    </Container>
-                  )
-                }
-              </slugForm.Subscribe>
-            </slugForm.FormWrapper>
+          <slugForm.AppForm form={slugForm}>
+            <slugForm.AppField name="slug">
+              {field => (
+                <field.Layout.Row
+                  label={t('Organization Slug')}
+                  hintText={t('A unique ID used to identify this organization')}
+                  required
+                >
+                  <field.Input
+                    value={field.state.value}
+                    onChange={value => field.handleChange(slugify(value))}
+                    disabled={!hasWriteAccess}
+                  />
+                </field.Layout.Row>
+              )}
+            </slugForm.AppField>
+            <slugForm.Subscribe
+              selector={state => state.values.slug !== initialData.slug}
+            >
+              {isDirty =>
+                isDirty && (
+                  <Container paddingTop="lg">
+                    <Alert variant="info" showIcon={false}>
+                      {tct(
+                        'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
+                        {
+                          link: (
+                            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+                          ),
+                        }
+                      )}
+                    </Alert>
+                    <Flex gap="sm" justify="end" paddingTop="lg">
+                      <Button onClick={() => slugForm.reset()} disabled={!hasWriteAccess}>
+                        {t('Cancel')}
+                      </Button>
+                      <slugForm.SubmitButton disabled={!hasWriteAccess}>
+                        {t('Save')}
+                      </slugForm.SubmitButton>
+                    </Flex>
+                  </Container>
+                )
+              }
+            </slugForm.Subscribe>
           </slugForm.AppForm>
 
           {/* Display Name */}
-          <AutoSaveField
+          <AutoSaveForm
             name="name"
             schema={generalSchema}
             initialValue={initialData.name}
@@ -190,10 +515,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Organization ID — read-only */}
-          <AutoSaveField
+          <AutoSaveForm
             name="organizationId"
             schema={generalSchema}
             initialValue={organization.id}
@@ -213,11 +538,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Early Adopter — hidden for self-hosted errors-only */}
           {!ConfigStore.get('isSelfHostedErrorsOnly') && (
-            <AutoSaveField
+            <AutoSaveForm
               name="isEarlyAdopter"
               schema={generalSchema}
               initialValue={initialData.isEarlyAdopter}
@@ -242,11 +567,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           )}
 
           {/* Show Generative AI Features (inverted from hideAiFeatures) */}
-          <AutoSaveField
+          <AutoSaveForm
             name="hideAiFeatures"
             schema={generalSchema}
             initialValue={aiEnabled}
@@ -285,10 +610,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Enable Code Coverage Insights */}
-          <AutoSaveField
+          <AutoSaveForm
             name="codecovAccess"
             schema={generalSchema}
             initialValue={initialData.codecovAccess}
@@ -339,11 +664,11 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
 
           {/* Enable AI Code Review — visible when AI enabled and not using new Seer */}
           {!showNewSeer(organization) && aiEnabled && (
-            <AutoSaveField
+            <AutoSaveForm
               name="enablePrReviewTestGeneration"
               schema={generalSchema}
               initialValue={initialData.enablePrReviewTestGeneration ?? false}
@@ -393,27 +718,12 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           )}
         </FieldGroup>
       </FormSearch>
 
-      {/* Membership section — still uses legacy Form */}
-      <Form
-        data-test-id="organization-settings"
-        apiMethod="PUT"
-        apiEndpoint={endpoint}
-        saveOnBlur
-        allowUndo
-        initialData={initialData}
-        onSubmitSuccess={updated => onSave(initialData, updated)}
-        onSubmitError={() => addErrorMessage('Unable to save change')}
-      >
-        <HookOrganizationMembershipSettings
-          jsonFormSettings={jsonFormSettings}
-          forms={organizationMembershipSettingsFields}
-        />
-      </Form>
+      <HookOrganizationMembershipSettings organization={organization} onSave={onSave} />
 
       <AvatarChooser
         type="organization"
@@ -432,7 +742,7 @@ export default OrganizationSettingsForm;
 const PoweredByCodecov = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 
   & > span {
     display: flex;

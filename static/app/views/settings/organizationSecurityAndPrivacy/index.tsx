@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   FormSearch,
@@ -14,9 +14,9 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
@@ -27,10 +27,10 @@ import {
   SettingScope,
 } from 'sentry/utils/crashReports';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
-import DataSecrecy from 'sentry/views/settings/components/dataSecrecy/index';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const securitySchema = z.object({
   require2FA: z.boolean(),
@@ -99,7 +99,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
       <SettingsPageHeader title={title} />
 
       <FieldGroup title={t('Security & Privacy')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="require2FA"
           schema={securitySchema}
           initialValue={organization.require2FA}
@@ -131,9 +131,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowSharedIssues"
           schema={securitySchema}
           initialValue={organization.allowSharedIssues}
@@ -158,9 +158,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="enhancedPrivacy"
           schema={securitySchema}
           initialValue={organization.enhancedPrivacy}
@@ -187,9 +187,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="scrapeJavaScript"
           schema={securitySchema}
           initialValue={organization.scrapeJavaScript}
@@ -216,10 +216,10 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
         {features.has('event-attachments') && (
-          <AutoSaveField
+          <AutoSaveForm
             name="storeCrashReports"
             schema={securitySchema}
             initialValue={organization.storeCrashReports}
@@ -238,18 +238,18 @@ export default function OrganizationSecurityAndPrivacyContent() {
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
                     v => ({
-                      value: v,
+                      value: v!,
                       label: formatStoreCrashReports(v),
                     })
                   )}
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
 
         {!hasSsoEnabled && (
-          <AutoSaveField
+          <AutoSaveForm
             name="allowJoinRequests"
             schema={securitySchema}
             initialValue={organization.allowJoinRequests}
@@ -277,12 +277,12 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
       </FieldGroup>
 
       <FieldGroup title={t('Data Scrubbing')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="dataScrubber"
           schema={dataScrubBooleanSchema}
           initialValue={organization.dataScrubber}
@@ -310,9 +310,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="dataScrubberDefaults"
           schema={dataScrubBooleanSchema}
           initialValue={organization.dataScrubberDefaults}
@@ -342,9 +342,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="scrubIPAddresses"
           schema={dataScrubBooleanSchema}
           initialValue={organization.scrubIPAddresses}
@@ -374,7 +374,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       </FieldGroup>
 
       <ScrubbingConfigurationFieldGroup hasOrgWrite={hasOrgWrite} />
@@ -425,80 +425,78 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
 
   return (
     <FormSearch route="/settings/:orgId/security-and-privacy/">
-      <scrubbingConfiguration.AppForm>
-        <scrubbingConfiguration.FormWrapper>
-          <FieldGroup title={t('Scrubbing Configuration')}>
-            <scrubbingConfiguration.AppField name="sensitiveFields">
-              {field => (
-                <field.Layout.Row
-                  label={t('Global Sensitive Fields')}
-                  hintText={t(
-                    'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
-                  )}
-                >
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder="e.g. email"
-                    disabled={!hasOrgWrite}
-                    autosize
-                  />
-                </field.Layout.Row>
-              )}
-            </scrubbingConfiguration.AppField>
+      <scrubbingConfiguration.AppForm form={scrubbingConfiguration}>
+        <FieldGroup title={t('Scrubbing Configuration')}>
+          <scrubbingConfiguration.AppField name="sensitiveFields">
+            {field => (
+              <field.Layout.Row
+                label={t('Global Sensitive Fields')}
+                hintText={t(
+                  'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+                )}
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="e.g. email"
+                  disabled={!hasOrgWrite}
+                  autosize
+                />
+              </field.Layout.Row>
+            )}
+          </scrubbingConfiguration.AppField>
 
-            <scrubbingConfiguration.AppField name="safeFields">
-              {field => (
-                <field.Layout.Row
-                  label={t('Global Safe Fields')}
-                  hintText={t(
-                    'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
-                  )}
-                >
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder={t('e.g. business-email')}
-                    disabled={!hasOrgWrite}
-                    autosize
-                  />
-                </field.Layout.Row>
-              )}
-            </scrubbingConfiguration.AppField>
-            {hasOrgWrite ? (
-              <Flex gap="md" align="center" padding="sm">
-                <scrubbingConfiguration.Subscribe
-                  selector={state =>
-                    state.values.sensitiveFields !== initialSensitiveFields ||
-                    state.values.safeFields !== initialSafeFields
-                  }
-                >
-                  {hasChanged => (
-                    <Flex
-                      flex="1"
-                      minWidth={0}
-                      style={{visibility: hasChanged ? 'visible' : 'hidden'}}
-                    >
-                      <Alert variant="info">
-                        {t(
-                          'Changes to your scrubbing configuration will apply to all new events.'
-                        )}
-                      </Alert>
-                    </Flex>
-                  )}
-                </scrubbingConfiguration.Subscribe>
-                <Flex gap="sm" flexShrink={0}>
-                  <Button onClick={() => scrubbingConfiguration.reset()}>
-                    {t('Cancel')}
-                  </Button>
-                  <scrubbingConfiguration.SubmitButton>
-                    {t('Save')}
-                  </scrubbingConfiguration.SubmitButton>
-                </Flex>
+          <scrubbingConfiguration.AppField name="safeFields">
+            {field => (
+              <field.Layout.Row
+                label={t('Global Safe Fields')}
+                hintText={t(
+                  'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+                )}
+              >
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('e.g. business-email')}
+                  disabled={!hasOrgWrite}
+                  autosize
+                />
+              </field.Layout.Row>
+            )}
+          </scrubbingConfiguration.AppField>
+          {hasOrgWrite ? (
+            <Flex gap="md" align="center" padding="sm">
+              <scrubbingConfiguration.Subscribe
+                selector={state =>
+                  state.values.sensitiveFields !== initialSensitiveFields ||
+                  state.values.safeFields !== initialSafeFields
+                }
+              >
+                {hasChanged => (
+                  <Flex
+                    flex="1"
+                    minWidth={0}
+                    style={{visibility: hasChanged ? 'visible' : 'hidden'}}
+                  >
+                    <Alert variant="info">
+                      {t(
+                        'Changes to your scrubbing configuration will apply to all new events.'
+                      )}
+                    </Alert>
+                  </Flex>
+                )}
+              </scrubbingConfiguration.Subscribe>
+              <Flex gap="sm" flexShrink={0}>
+                <Button onClick={() => scrubbingConfiguration.reset()}>
+                  {t('Cancel')}
+                </Button>
+                <scrubbingConfiguration.SubmitButton>
+                  {t('Save')}
+                </scrubbingConfiguration.SubmitButton>
               </Flex>
-            ) : null}
-          </FieldGroup>
-        </scrubbingConfiguration.FormWrapper>
+            </Flex>
+          ) : null}
+        </FieldGroup>
       </scrubbingConfiguration.AppForm>
     </FormSearch>
   );

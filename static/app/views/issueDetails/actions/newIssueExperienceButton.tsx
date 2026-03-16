@@ -17,8 +17,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -153,7 +153,6 @@ export function NewIssueExperienceButton() {
   }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const hasNewUIOnly = Boolean(organization.streamlineOnly);
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -211,15 +210,6 @@ export function NewIssueExperienceButton() {
           },
         });
       },
-    },
-    {
-      key: 'switch-to-old-ui',
-      label: t('Switch to the old issue experience'),
-      // Do not show the toggle out of the new UI if any of these are true:
-      //  - The user is on the old UI
-      //  - The org has the new UI only option
-      hidden: !hasStreamlinedUI || hasNewUIOnly,
-      onAction: handleToggle,
     },
     {
       key: 'reset-tour-modal',

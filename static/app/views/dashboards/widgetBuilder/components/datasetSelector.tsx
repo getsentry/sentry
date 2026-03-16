@@ -6,19 +6,18 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
-function WidgetBuilderDatasetSelector() {
+export function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
@@ -82,13 +81,11 @@ function WidgetBuilderDatasetSelector() {
     details: t('Session data from releases'),
   });
 
-  if (organization.features.includes('preprod-app-size-dashboard')) {
-    datasetOptions.push({
-      value: WidgetType.PREPROD_APP_SIZE,
-      label: t('Mobile Builds'),
-      details: t('Mobile app size metrics'),
-    });
-  }
+  datasetOptions.push({
+    value: WidgetType.PREPROD_APP_SIZE,
+    label: t('Mobile Builds'),
+    details: t('Mobile app size metrics'),
+  });
 
   datasetOptions.push(transactionsOption);
 
@@ -136,8 +133,6 @@ function WidgetBuilderDatasetSelector() {
   );
 }
 
-export default WidgetBuilderDatasetSelector;
-
 const StyledSectionHeader = styled(SectionHeader)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

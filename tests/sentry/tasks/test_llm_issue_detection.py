@@ -24,7 +24,6 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.utils import json
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -45,7 +44,7 @@ class LLMIssueDetectionTest(TestCase):
         )
 
     @with_feature("organizations:gen-ai-features")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch(
         "sentry.tasks.llm_issue_detection.trace_data.get_project_top_transaction_traces_for_llm_detection"
     )
@@ -63,7 +62,7 @@ class LLMIssueDetectionTest(TestCase):
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     def test_detect_llm_issues_no_traces(self, mock_seer_request, mock_spans_query):
         mock_spans_query.side_effect = [
             # First call: Return a transaction
@@ -172,7 +171,7 @@ class LLMIssueDetectionTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
     @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     def test_detect_llm_issues_full_flow(
@@ -229,13 +228,11 @@ class LLMIssueDetectionTest(TestCase):
         assert mock_spans_query.call_count == 4  # 1 transactions, 2 traces, 1 span count
         assert mock_seer_request.call_count == 1  # Single batch request
 
-        seer_call = mock_seer_request.call_args.kwargs
-        assert seer_call["path"] == "/v1/automation/issue-detection/analyze"
-        request_body = json.loads(seer_call["body"].decode("utf-8"))
-        assert request_body["project_id"] == self.project.id
-        assert request_body["organization_id"] == self.project.organization_id
-        assert len(request_body["traces"]) == 2
-        trace_ids = {t["trace_id"] for t in request_body["traces"]}
+        seer_request = mock_seer_request.call_args[0][0]
+        assert seer_request.project_id == self.project.id
+        assert seer_request.organization_id == self.project.organization_id
+        assert len(seer_request.traces) == 2
+        trace_ids = {t.trace_id for t in seer_request.traces}
         assert trace_ids == {"trace_id_1", "trace_id_2"}
 
         assert mock_mark_processed.call_count == 1
@@ -244,7 +241,7 @@ class LLMIssueDetectionTest(TestCase):
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.mark_traces_as_processed")
     @patch("sentry.tasks.llm_issue_detection.detection._get_unprocessed_traces")
-    @patch("sentry.tasks.llm_issue_detection.detection.make_signed_seer_api_request")
+    @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")
     @patch("sentry.tasks.llm_issue_detection.trace_data.Spans.run_table_query")
     @patch("sentry.tasks.llm_issue_detection.detection.random.shuffle")
     @patch("sentry.tasks.llm_issue_detection.detection.logger.error")

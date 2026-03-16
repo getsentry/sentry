@@ -3,7 +3,7 @@ import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import WebVitalMetersWithIssues, {
   type ProjectData,
 } from 'sentry/views/insights/browser/webVitals/components/webVitalMetersWithIssues';

@@ -12,14 +12,13 @@ import displayRawContent from 'sentry/components/events/interfaces/crashContent/
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -564,5 +563,5 @@ const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

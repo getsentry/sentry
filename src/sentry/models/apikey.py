@@ -54,11 +54,11 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
 
     __repr__ = sane_repr("organization_id", "key")
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_key
 
         region_replica_service.upsert_replicated_api_key(
-            api_key=serialize_api_key(self), region_name=region_name
+            api_key=serialize_api_key(self), cell_name=cell_name
         )
 
     def __str__(self) -> str:

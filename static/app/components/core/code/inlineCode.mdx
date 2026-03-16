@@ -16,9 +16,7 @@ import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/code/inlineCode';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/code/inlineCode');
 
 The `<InlineCode>` component is designed for displaying short code snippets inline with text, such as variable names, function calls, or brief commands. It provides consistent monospace typography and subtle visual styling that distinguishes code from regular text.
 

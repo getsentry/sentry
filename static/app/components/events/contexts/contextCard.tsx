@@ -21,7 +21,7 @@ import type {Group, KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
   alias: string;

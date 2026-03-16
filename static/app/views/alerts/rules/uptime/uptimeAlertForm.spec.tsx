@@ -12,14 +12,15 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import * as indicators from 'sentry/actionCreators/indicator';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
-  ComparisonType,
-  OpType,
-  type Assertion,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAssertion,
 } from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 
@@ -466,19 +467,19 @@ describe('Uptime Alert Form', () => {
           url: 'http://example.com',
           assertion: {
             root: {
-              op: OpType.AND,
+              op: UptimeOpType.AND,
               id: expect.any(String),
               children: [
                 {
-                  op: OpType.STATUS_CODE_CHECK,
+                  op: UptimeOpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: ComparisonType.GREATER_THAN},
+                  operator: {cmp: UptimeComparisonType.GREATER_THAN},
                   value: 199,
                 },
                 {
-                  op: OpType.STATUS_CODE_CHECK,
+                  op: UptimeOpType.STATUS_CODE_CHECK,
                   id: expect.any(String),
-                  operator: {cmp: ComparisonType.LESS_THAN},
+                  operator: {cmp: UptimeComparisonType.LESS_THAN},
                   value: 300,
                 },
               ],
@@ -508,14 +509,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithAssertions);
 
-    const assertion: Assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -552,6 +553,8 @@ describe('Uptime Alert Form', () => {
   });
 
   it('displays assertion compilation errors', async () => {
+    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+
     const orgWithAssertions = OrganizationFixture({
       features: ['uptime-runtime-assertions'],
     });
@@ -576,22 +579,36 @@ describe('Uptime Alert Form', () => {
       body: {
         assertion: {
           error: 'compilation_error',
-          details: 'Invalid JSON path expression: syntax error at position 5',
+          compileError: {
+            type: 'invalid_json_path',
+            msg: 'Invalid JSON path expression: syntax error at position 5',
+            assertPath: ['0', '0'],
+          },
         },
       },
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
 
-    // The error message from the assertion compilation should be displayed with title
+    // Inline error message on assertion's input row
     expect(
       await screen.findByText(
-        'Compilation Error: Invalid JSON path expression: syntax error at position 5'
+        'Invalid JSON Path: Invalid JSON path expression: syntax error at position 5'
       )
     ).toBeInTheDocument();
+
+    // Error toast
+    await waitFor(() => {
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        'Failed to create monitor (Assertion Compilation Error)',
+        expect.anything()
+      );
+    });
   });
 
-  it('displays assertion serialization errors', async () => {
+  it('displays assertion serialization error toast', async () => {
+    const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
+
     const orgWithAssertions = OrganizationFixture({
       features: ['uptime-runtime-assertions'],
     });
@@ -623,12 +640,12 @@ describe('Uptime Alert Form', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Rule'}));
 
-    // The error message from the assertion serialization should be displayed with title
-    expect(
-      await screen.findByText(
-        'Serialization Error: unknown variant `invalid_op`, expected one of `and`, `or`'
-      )
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(addErrorMessageSpy).toHaveBeenCalledWith(
+        'Failed to create monitor (Assertion Serialization Error)',
+        expect.anything()
+      );
+    });
   });
 
   it('preserves null assertion when editing rule without assertions', async () => {
@@ -723,14 +740,14 @@ describe('Uptime Alert Form', () => {
     });
     OrganizationStore.onUpdate(orgWithoutAssertions);
 
-    const existingAssertion: Assertion = {
+    const existingAssertion: UptimeAssertion = {
       root: {
-        op: OpType.AND,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: OpType.STATUS_CODE_CHECK,
-            operator: {cmp: ComparisonType.EQUALS},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],

@@ -10,7 +10,7 @@ interface Props {
   timestampMs: number;
 }
 
-export default function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
+export function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
   return (
     <Fragment>
       <TooltipTime>

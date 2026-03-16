@@ -28,7 +28,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -36,7 +36,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.hybridcloud.services.organizationmember_mapping import (
@@ -185,8 +185,8 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
-@region_silo_model
-class OrganizationMember(ReplicatedRegionModel):
+@cell_silo_model
+class OrganizationMember(ReplicatedCellModel):
     """
     Identifies relationships between organizations and users.
 

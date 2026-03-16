@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 
 interface TriggerFormTypingAnimationParams {
   fieldName: string;

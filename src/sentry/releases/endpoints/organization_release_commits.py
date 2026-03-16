@@ -1,21 +1,27 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    @extend_schema(
+        operation_id="List an Organization Release's Commits",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, organization, version) -> Response:
         """
         List an Organization Release's Commits

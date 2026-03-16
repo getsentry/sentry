@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
+from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
@@ -52,7 +52,7 @@ class GroupEventsError(Exception):
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -72,6 +72,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
             EventParams.QUERY,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -17,7 +16,7 @@ import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWi
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensBarChart} from 'sentry/views/insights/mobile/screenload/components/charts/screenBarChart';
 import {
   CHART_TITLES,
@@ -213,6 +212,6 @@ export function ScreenCharts({additionalFilters}: Props) {
 const ChartContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.xl};
 `;

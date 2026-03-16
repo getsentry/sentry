@@ -7,16 +7,15 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import withProject from 'sentry/utils/withProject';
+import {withProject} from 'sentry/utils/withProject';
 
 type Props = {
   /**
@@ -138,7 +137,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 const Heading = styled('h1')`
   font-size: ${p => p.theme.font.size.lg};
   line-height: 1.4;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export default withProject(RouteError);

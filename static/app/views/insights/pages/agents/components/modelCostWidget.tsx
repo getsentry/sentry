@@ -6,7 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -30,7 +30,7 @@ import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {SpanFields} from 'sentry/views/insights/types';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export default function ModelCostWidget() {
+export function ModelCostWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({

@@ -9,14 +9,13 @@ import {removeProject} from 'sentry/actionCreators/projects';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
@@ -28,7 +27,7 @@ type Props = {
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -74,13 +73,14 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       }
     }
 
-    router.replace(
+    navigate(
       makeProjectsPathname({
         path: '/new/',
         organization,
-      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
+      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
+      {replace: true}
     );
-  }, [api, recentCreatedProject, organization, isProjectActive, router]);
+  }, [api, recentCreatedProject, organization, isProjectActive, navigate]);
 
   useBlocker(({historyAction}) => {
     if (historyAction === 'POP') {
@@ -115,7 +115,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
 const StyledPageHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 
   h2 {
     margin: 0;
@@ -126,7 +126,7 @@ const StyledPageHeader = styled('div')`
     align-items: flex-start;
 
     h2 {
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p => p.theme.space.xl};
     }
   }
 `;

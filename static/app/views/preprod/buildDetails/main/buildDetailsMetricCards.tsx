@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricCard} from 'sentry/views/preprod/components/metricCard';
 import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
@@ -122,7 +122,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
     baseArtifactId && projectId && artifactId
       ? getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: artifactId,
           baseArtifactId,
         })

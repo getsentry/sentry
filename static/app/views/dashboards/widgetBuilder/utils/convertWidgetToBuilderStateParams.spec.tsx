@@ -1,5 +1,10 @@
+import {WidgetFixture} from 'sentry-fixture/widget';
+
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  convertWidgetToBuilderState,
+  convertWidgetToQueryParams,
+} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
@@ -9,7 +14,7 @@ describe('convertWidgetToBuilderStateParams', () => {
       displayType: DisplayType.TABLE,
       aggregates: ['count()'],
     };
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.yAxis).toEqual([]);
   });
 
@@ -30,7 +35,7 @@ describe('convertWidgetToBuilderStateParams', () => {
         },
       ],
     };
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.field).toEqual(['{"field":"geo.country","alias":"test"}']);
   });
 
@@ -55,7 +60,7 @@ describe('convertWidgetToBuilderStateParams', () => {
         },
       ],
     };
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.legendAlias).toEqual(['test', 'test2']);
   });
 
@@ -81,7 +86,7 @@ describe('convertWidgetToBuilderStateParams', () => {
       ],
     };
 
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.query).toEqual(['one condition', 'second condition']);
     expect(params.yAxis).toEqual(['count()']);
   });
@@ -100,7 +105,7 @@ describe('convertWidgetToBuilderStateParams', () => {
         },
       ],
     };
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.selectedAggregate).toBe(0);
   });
 
@@ -115,9 +120,100 @@ describe('convertWidgetToBuilderStateParams', () => {
         unit: 'milliseconds',
       },
     };
-    const params = convertWidgetToBuilderStateParams(widget);
+    const params = convertWidgetToQueryParams(widget);
     expect(params.thresholds).toBe(
       '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}'
     );
+  });
+
+  it('defaults axisRange to auto when widget axisRange is null', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: null,
+    };
+
+    const params = convertWidgetToQueryParams(
+      widget as unknown as Parameters<typeof convertWidgetToQueryParams>[0]
+    );
+    expect(params.axisRange).toBe('auto');
+  });
+
+  it('defaults axisRange to auto when widget axisRange is invalid', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: 'invalid',
+    };
+
+    const params = convertWidgetToQueryParams(
+      widget as unknown as Parameters<typeof convertWidgetToQueryParams>[0]
+    );
+    expect(params.axisRange).toBe('auto');
+  });
+
+  describe('traceMetric', () => {
+    it('includes the trace metric in the builder params', () => {
+      const widget = WidgetFixture({
+        ...getDefaultWidget(WidgetType.TRACEMETRICS),
+        queries: [
+          {
+            aggregates: ['avg(value,test-metric,distribution,second)'],
+            columns: [],
+            conditions: '',
+            name: '',
+            orderby: '',
+          },
+        ],
+      });
+      const params = convertWidgetToQueryParams(widget);
+      expect(JSON.parse(params.traceMetric!)).toEqual({
+        name: 'test-metric',
+        type: 'distribution',
+        unit: 'second',
+      });
+    });
+  });
+
+  describe('text widget', () => {
+    it('does not include the description in the builder params', () => {
+      const widget = {
+        title: 'Text Widget',
+        displayType: DisplayType.TEXT,
+        interval: '',
+        queries: [],
+        description: 'Test Description',
+      };
+      const params = convertWidgetToQueryParams(widget);
+      expect(params.description).toBeUndefined();
+      expect(params.title).toBe('Text Widget');
+      expect(params.displayType).toBe(DisplayType.TEXT);
+      expect(params.field).toEqual([]);
+      expect(params.sort).toEqual([]);
+    });
+  });
+});
+
+describe('convertWidgetToBuilderState', () => {
+  it('includes textContent from description for text widgets', () => {
+    const widget = {
+      title: 'Text Widget',
+      displayType: DisplayType.TEXT,
+      interval: '',
+      queries: [],
+      description: 'My text content',
+    };
+    const params = convertWidgetToBuilderState(widget);
+    expect(params.textContent as string).toBe('My text content');
+    expect(params.description).toBeUndefined();
+  });
+
+  it('does not include textContent for non-text widgets', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      displayType: DisplayType.TABLE,
+      description: 'Widget description',
+    };
+    const params = convertWidgetToBuilderState(widget);
+    expect(params.textContent).toBeUndefined();
+    expect(params.description).toBe('Widget description');
   });
 });

@@ -6,14 +6,13 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 interface WidgetBuilderNameAndDescriptionProps {
@@ -21,7 +20,7 @@ interface WidgetBuilderNameAndDescriptionProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderNameAndDescription({
+export function WidgetBuilderNameAndDescription({
   error,
   setError,
 }: WidgetBuilderNameAndDescriptionProps) {
@@ -124,10 +123,8 @@ function WidgetBuilderNameAndDescription({
   );
 }
 
-export default WidgetBuilderNameAndDescription;
-
 const StyledTextField = styled(TextField)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   padding: 0;
   border: none;
 `;

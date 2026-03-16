@@ -1,8 +1,23 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.seer.explorer.coding_agent_handoff import launch_coding_agents
+import pytest
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
+from sentry.integrations.cursor.integration import CursorAgentIntegration
+from sentry.seer.explorer.coding_agent_handoff import _resolve_client, launch_coding_agents
+from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+
+
+def _repo(owner: str, name: str) -> SeerRepoDefinition:
+    """Minimal SeerRepoDefinition for tests."""
+    return SeerRepoDefinition(
+        provider="github",
+        owner=owner,
+        name=name,
+        external_id="123",
+    )
 
 
 class TestLaunchCodingAgents(TestCase):
@@ -30,7 +45,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
         )
 
         assert len(result["successes"]) == 1
@@ -41,10 +56,11 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
-    def test_invalid_repo_format(self, mock_validate, mock_store):
-        """Test that invalid repo format is handled as failure."""
+    def test_launch_raises_value_error(self, mock_validate, mock_store):
+        """Test that ValueError from integration launch is handled as failure."""
         mock_integration = MagicMock()
         mock_installation = MagicMock()
+        mock_installation.launch.side_effect = ValueError("Invalid repository name format")
         mock_validate.return_value = (mock_integration, mock_installation)
 
         result = launch_coding_agents(
@@ -52,13 +68,14 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["invalid-repo-no-slash"],
+            repos=[_repo("owner", "repo")],
         )
 
         assert len(result["successes"]) == 0
         assert len(result["failures"]) == 1
-        assert "Invalid repository name format" in result["failures"][0]["error_message"]
-        mock_installation.launch.assert_not_called()
+        assert result["failures"][0]["error_message"] == "Failed to launch coding agent"
+        assert result["failures"][0]["failure_type"] == "generic"
+        mock_installation.launch.assert_called_once()
 
     @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
@@ -81,7 +98,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo1", "owner/repo2"],
+            repos=[_repo("owner", "repo1"), _repo("owner", "repo2")],
         )
 
         assert len(result["successes"]) == 1
@@ -103,7 +120,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=1,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
             branch_name_base="my-fix",
         )
 
@@ -142,7 +159,7 @@ class TestLaunchCodingAgents(TestCase):
             integration_id=None,
             run_id=self.run_id,
             prompt="Fix the bug",
-            repos=["owner/repo"],
+            repos=[_repo("owner", "repo")],
             provider="github_copilot",
             user_id=1,
         )
@@ -152,3 +169,121 @@ class TestLaunchCodingAgents(TestCase):
         failure = result["failures"][0]
         assert failure["failure_type"] == "github_copilot_not_licensed"
         assert "Copilot license" in failure["error_message"]
+
+    @patch("sentry.seer.explorer.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.explorer.coding_agent_handoff._validate_and_get_integration")
+    def test_verify_branch_error_returns_cursor_github_access_failure_type(
+        self, mock_validate, mock_store
+    ):
+        """Test that a 400 ApiError with 'Failed to verify existence of branch' returns cursor_github_access failure_type.
+
+        When Cursor returns a 400 with this error, the Cursor GitHub App hasn't been
+        granted access to the target repository. We should show the Cursor GitHub
+        access modal instead of a generic error.
+        """
+        mock_integration = MagicMock()
+        mock_installation = MagicMock(spec=CursorAgentIntegration)
+        mock_installation.launch.side_effect = ApiError(
+            text='{"error":"Failed to verify existence of branch \'main\' in repository owner/repo. Please ensure the branch name is correct."}',
+            code=400,
+        )
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        result = launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        assert len(result["successes"]) == 0
+        assert len(result["failures"]) == 1
+        failure = result["failures"][0]
+        assert failure["failure_type"] == "cursor_github_access"
+        assert "Cursor does not have GitHub access" in failure["error_message"]
+        assert "install the Cursor GitHub App" in failure["error_message"]
+
+
+MOCK_HANDOFF_PATH = "sentry.seer.explorer.coding_agent_handoff"
+
+
+class TestResolveClient(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+
+    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    def test_returns_installation_for_cursor(self, mock_validate):
+        mock_integration = MagicMock()
+        mock_integration.provider = "cursor"
+        mock_installation = MagicMock()
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        client, installation = _resolve_client(
+            self.organization, integration_id=1, provider=None, user_id=None
+        )
+
+        assert client is None
+        assert installation is mock_installation
+        mock_validate.assert_called_once_with(self.organization, 1)
+
+    @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
+    def test_returns_client_for_claude_code(self, mock_validate):
+        mock_integration = MagicMock()
+        mock_integration.provider = "claude_code"
+        mock_installation = MagicMock()
+        mock_client = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        client, installation = _resolve_client(
+            self.organization, integration_id=1, provider=None, user_id=None
+        )
+
+        assert client is mock_client
+        assert installation is None
+        mock_installation.get_client.assert_called_once()
+
+    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
+    @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
+    def test_returns_client_for_github_copilot(self, mock_identity_service, mock_features):
+        mock_identity_service.get_access_token_for_user.return_value = "test-token"
+
+        client, installation = _resolve_client(
+            self.organization, integration_id=None, provider="github_copilot", user_id=1
+        )
+
+        assert client is not None
+        assert installation is None
+        mock_identity_service.get_access_token_for_user.assert_called_once_with(user_id=1)
+
+    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=False)
+    def test_raises_permission_denied_when_copilot_not_enabled(self, mock_features):
+        with pytest.raises(PermissionDenied):
+            _resolve_client(
+                self.organization, integration_id=None, provider="github_copilot", user_id=1
+            )
+
+    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
+    @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")
+    def test_raises_permission_denied_when_no_copilot_token(
+        self, mock_identity_service, mock_features
+    ):
+        mock_identity_service.get_access_token_for_user.return_value = None
+
+        with pytest.raises(PermissionDenied):
+            _resolve_client(
+                self.organization, integration_id=None, provider="github_copilot", user_id=1
+            )
+
+    @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
+    def test_raises_permission_denied_when_copilot_no_user_id(self, mock_features):
+        with pytest.raises(PermissionDenied):
+            _resolve_client(
+                self.organization, integration_id=None, provider="github_copilot", user_id=None
+            )
+
+    def test_raises_validation_error_when_no_integration_or_provider(self):
+        with pytest.raises(ValidationError):
+            _resolve_client(self.organization, integration_id=None, provider=None, user_id=None)

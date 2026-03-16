@@ -21,11 +21,10 @@ import {
   hasPullRequest,
 } from 'sentry/components/events/autofix/utils';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -112,7 +111,7 @@ export function SeerSectionCtaButton({
       step => step.type === AutofixStepType.DEFAULT
     );
 
-    if (processingStep && processingStep.status === AutofixStatus.COMPLETED) {
+    if (processingStep?.status === AutofixStatus.COMPLETED) {
       // Check if this is a new completion (wasn't completed in previous state)
       const prevProcessingStep = prevSteps.findLast(
         step => step.type === AutofixStepType.DEFAULT
@@ -246,13 +245,13 @@ export function SeerSectionCtaButton({
 }
 
 const StyledButton = styled(LinkButton)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   width: 100%;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 
   .loading-indicator {
     border-color: ${p => color(p.theme.colors.white).alpha(0.35).string()};
@@ -264,5 +263,5 @@ const ButtonPlaceholder = styled(Placeholder)`
   width: 100%;
   height: 38px;
   border-radius: ${p => p.theme.radius.md};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

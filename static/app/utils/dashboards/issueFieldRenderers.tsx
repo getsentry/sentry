@@ -6,11 +6,10 @@ import type {Location} from 'history';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {IssueAssignee} from 'sentry/utils/dashboards/issueAssignee';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -273,7 +272,7 @@ const StyledLink = styled(Link)`
 const SecondaryCount = styled(Count)`
   :before {
     content: '/';
-    padding-left: ${space(0.25)};
+    padding-left: ${p => p.theme.space['2xs']};
     padding-right: 2px;
   }
 `;
@@ -286,7 +285,7 @@ const WrappedCount = styled(({value, ...p}: any) => (
   text-align: right;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-variant-numeric: tabular-nums;
-  padding-left: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

@@ -10,7 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, control_silo_model, region_silo_model
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, control_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
@@ -150,7 +150,7 @@ class ScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_scheduleddeletion"
 
 
-@region_silo_model
+@cell_silo_model
 class RegionScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in region and monolith silo modes.  As new region silo test coverage

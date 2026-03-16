@@ -870,8 +870,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(self.alert_rule.snuba_query.event_types) == set(event_types)
         assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
-        assert self.alert_rule.projects.all().count() == 2
-        assert self.alert_rule.projects.all()[0] == updated_projects[0]
+        assert set(self.alert_rule.projects.all()) == set(updated_projects)
 
     def test_update_subscription(self) -> None:
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id

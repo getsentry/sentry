@@ -300,7 +300,7 @@ export function contentBlockToMarkdown(
         .join('\n\n');
 
     case 'custom':
-      return reactNodeToText(block.content);
+      return block.markdown ?? reactNodeToText(block.content);
 
     default:
       return '';

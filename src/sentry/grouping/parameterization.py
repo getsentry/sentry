@@ -1,13 +1,9 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
-__all__ = [
-    "ParameterizationCallable",
-    "ParameterizationRegex",
-    "Parameterizer",
-]
+from sentry.utils import metrics
 
 
 @dataclasses.dataclass
@@ -17,27 +13,27 @@ class ParameterizationRegex:
     raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
-    counter: int = 0
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
 
     @property
     def pattern(self) -> str:
-        return self._pattern(False)
+        return self._get_pattern(self.raw_pattern)
 
     @property
-    def experimental_pattern(self) -> str:
-        return self._pattern(self.raw_pattern_experimental is not None)
+    def experimental_pattern(self) -> str | None:
+        if not self.raw_pattern_experimental:
+            return None
+        return self._get_pattern(self.raw_pattern_experimental)
 
-    def _pattern(self, experimental: bool = False) -> str:
+    def _get_pattern(self, raw_pattern: str) -> str:
         """
         Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
-        pattern = self.raw_pattern_experimental if experimental else self.raw_pattern
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
-        return rf"{prefix}(?P<{self.name}>{pattern}){postfix}"
+        return rf"{prefix}(?P<{self.name}>{raw_pattern}){postfix}"
 
 
 DEFAULT_PARAMETERIZATION_REGEXES = [
@@ -62,6 +58,10 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
     ParameterizationRegex(
         name="ip",
         raw_pattern=r"""
+            # This negative lookbehind ensures two things (depending on the pattern):
+            #     - We don't match starting in the middle of a valid set of initial characters
+            #     - We don't match things like `::` when they appear in expressions like `SomeClass::someMethod()`
+            (?<![0-9a-zA-Z_])
             (
                 ([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
                 ([0-9a-fA-F]{1,4}:){1,7}:|
@@ -79,7 +79,12 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
                 ([0-9a-fA-F]{1,4}:){1,4}:
                 ((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
-            ) |
+            )
+            # This negative lookahead works with the negative lookbehind above to block false
+            # positives on expressions of the form `SomeClass::someMethod()`, ensuring that even if
+            # the class name is valid hex, the method name being invalid will block the match
+            (?![0-9a-zA-Z])
+            |
             (
                 \b((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}
                 (25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\b
@@ -121,11 +126,24 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # JavaScript
             ((?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{2}\s\d{4}\s\d{2}:\d{2}:\d{2}\sGMT[+-]\d{4}(?:\s\([^)]+\))?)
             |
-            # Datetime:
-            (\d{4}-?[01]\d-?[0-3]\d\s[0-2]\d:[0-5]\d:[0-5]\d)(\.\d+)?
+            # Datetime with timezone offset (Z=UTC):
+            # (Note: These come before plain datetimes so the offset is seen as part of the time and
+            # not a separate int value.)
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+([+-][0-2]\d:?[0-5]\d|Z))| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z))| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d([+-][0-2]\d:?[0-5]\d|Z)) # no seconds
+            )
+            |
+            # Datetime
+            (
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d\.\d+)| # decimal seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d:?[0-5]\d)| # seconds
+                (\d{4}-?[01]\d-?[0-3]\d[\sT][0-2]\d:?[0-5]\d) # no seconds
+            )
             |
             # Kitchen
-            ([1-9]\d?:\d{2}(:\d{2})?(?: [aApP][Mm])?)
+            ([1-9]\d?:\d{2}(:\d{2})?(?:\s?[aApP][Mm])?)
             |
             # Date
             (\d{4}-[01]\d-[0-3]\d)
@@ -134,11 +152,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             ([0-2]\d:[0-5]\d:[0-5]\d)
             |
             # Old Date Formats, TODO: possibly safe to remove?
-            (
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))|
-                (\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))
-            ) |
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
                 (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+
@@ -175,7 +188,7 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # the prefix pretty much guarantees it's hex).
             (\b0[xX][0-9a-fA-F]+\b) |
 
-            # Hex value without `0x/0X` prefix (including a number, either 8 or 16-128 digits, and
+            # Hex value without `0x/0X` prefix (between 8 and 128 digits, including a number, and
             # either all uppercase or all lowercase - we're more conservative here on all three
             # scores in order to reduce false positives).
             #
@@ -185,68 +198,77 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # then the <int> pattern would already have caught it. Given that we're here, it didn't,
             # so the only thing we need the lookahead to guard against is it being all letters.
             #
-            # Each regex consists of two parts:
-            # (?=.*[0-9])             The aforementioned lookahead - at least one `0-9` is present
-            # [0-9a-f/A-F]{8 | 16,64}   8 or 16-128 hex characters
-            (\b(?=.*[0-9])[0-9a-f]{8}\b) |
-            (\b(?=.*[0-9])[0-9a-f]{16,128}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{8}\b) |
-            (\b(?=.*[0-9])[0-9A-F]{16,128}\b)
+            # Each regex consists of two parts, the lookahead and the hex characters themselves. For
+            # example, for the lowercase pattern we have:
+            #     (?=[a-f]*[0-9])     The lookahead - there must be a digit, which may or may not be
+            #                         preceded by some number of hex letters
+            #     [0-9a-f]{8,128}     The matcher itself - between 8 and 128 hex characters
+            (\b(?=[a-f]*[0-9])[0-9a-f]{8,128}\b) |
+            (\b(?=[A-F]*[0-9])[0-9A-F]{8,128}\b)
+        """,
+    ),
+    ParameterizationRegex(
+        name="git_sha",
+        raw_pattern=r"""
+            # This is similar to the hex pattern above, except it has lookaheads for both numbers
+            # and letters, to guarantee we have at least one of each. (This means it will miss git
+            # shas which consist of only letters or only numbers, but fortunately > 96% of 7-digit
+            # hex values are mixed, so that's a tradeoff we're okay with.) Also, it only includes
+            # lowercase letters, since git shas are always expressed that way.
+            (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(name="int", raw_pattern=r"""-\d+\b | \b\d+\b"""),
     ParameterizationRegex(
         name="quoted_str",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all quoted strings
+        raw_pattern=r"""
             '([^']+)' | "([^"]+)"
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all quoted strings
         lookbehind="=",
     ),
     ParameterizationRegex(
         name="bool",
-        raw_pattern=r"""# Using `=`lookbehind which guarantees we'll only match the value half of key-value pairs,
-            # rather than all instances of the words 'true' and 'false'.
+        raw_pattern=r"""
             True |
             true |
             False |
             false
         """,
+        # Using an `=` lookbehind guarantees we'll only match the value half of key-value pairs,
+        # rather than all instances of the words 'true' and 'false'.
         lookbehind="=",
     ),
 ]
 
 
+# Patterns to use for each match type when not in experimental mode.
 DEFAULT_PARAMETERIZATION_REGEXES_MAP = {r.name: r.pattern for r in DEFAULT_PARAMETERIZATION_REGEXES}
+
+# Patterns to use when in experimental mode. If no experimental pattern exists for a given type of
+# match, falls back to the default pattern.
 EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
-    r.name: r.experimental_pattern for r in DEFAULT_PARAMETERIZATION_REGEXES
+    r.name: r.experimental_pattern if r.experimental_pattern else r.pattern
+    for r in DEFAULT_PARAMETERIZATION_REGEXES
 }
-
-
-@dataclasses.dataclass
-class ParameterizationCallable:
-    """
-    Represents a callable that can be used to modify a string, which can give
-    us more flexibility than just using regex.
-    """
-
-    name: str  # name of the pattern (also used as group name in combined regex)
-    apply: Callable[[str], tuple[str, int]]  # function for modifying the input string
-    counter: int = 0
 
 
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
+        # use all available parameterization, omit this argument.
         regex_pattern_keys: Sequence[str] | None = None,
-        experimental: bool = False,
+        # Whether to use experimental patterns, if available. (Pattern types without an experimental
+        # pattern will fall back to the standard pattern.)
+        use_experimental_regexes: bool = False,
     ):
-        self._experimental = experimental
+        self._experimental = use_experimental_regexes
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
-        self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
@@ -268,16 +290,15 @@ class Parameterizer:
 
         return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
-    def parametrize_w_regex(self, content: str) -> str:
+    def parameterize(self, input_str: str) -> str:
         """
-        Replace all matches of the given regex in the content with a placeholder string.
+        Replace all regex matches in the input string with placeholder strings, using the regexes
+        with which the parameterizer was initialized.
 
-        @param content: The string to replace matches in.
-        @param parameterization_regex: The compiled regex pattern to match.
-        @param match_callback: An optional callback function to call with the key of the matched pattern.
-
-        @returns: The content with all matches replaced with placeholders.
+        For example, turn "Error with order #1231" into "Error with order #<int>".
         """
+
+        matches_counter: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Find the first (should be only) non-None match entry, and sub in the placeholder. For
@@ -285,11 +306,23 @@ class Parameterizer:
             # replacement for the original value in the string.
             for key, value in match.groupdict().items():
                 if value is not None:
-                    self.matches_counter[key] += 1
+                    matches_counter[key] += 1
                     return f"<{key}>"
             return ""
 
-        return self._parameterization_regex.sub(_handle_regex_match, content)
+        parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
 
-    def parameterize_all(self, content: str) -> str:
-        return self.parametrize_w_regex(content)
+        metrics.incr(
+            "grouping.parameterizer_called",
+            tags={"changed": parameterized != input_str, "experimental": self._experimental},
+        )
+
+        for key, value in matches_counter.items():
+            # Track the kinds of replacements being made
+            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+
+        return parameterized
+
+
+parameterizer = Parameterizer(use_experimental_regexes=False)
+experimental_parameterizer = Parameterizer(use_experimental_regexes=True)

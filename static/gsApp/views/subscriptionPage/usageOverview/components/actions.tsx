@@ -7,16 +7,18 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useMedia from 'sentry/utils/useMedia';
-import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout} from 'sentry/views/nav/types';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout, isCollapsed: navIsCollapsed} = useNavContext();
-  const isMobile = navLayout === NavLayout.MOBILE;
+export function UsageOverviewActions({organization}: {organization: Organization}) {
+  const {layout: navLayout} = useNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
+  const isMobile = navLayout === 'mobile';
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =
     useMedia(
@@ -108,5 +110,3 @@ function UsageOverviewActions({organization}: {organization: Organization}) {
     </Flex>
   );
 }
-
-export default UsageOverviewActions;

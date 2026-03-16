@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 
-export default function ReplayBulkDeleteAuditLogTable({
+export function ReplayBulkDeleteAuditLogTable({
   error,
   isPending,
   rows,
@@ -101,5 +100,5 @@ function getErrorMessage(fetchError: RequestError) {
 const Query = styled('dl')`
   max-width: 100%;
   overflow: scroll;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;

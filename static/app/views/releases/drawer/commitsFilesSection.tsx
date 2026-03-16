@@ -4,12 +4,11 @@ import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseMeta} from 'sentry/types/release';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {
@@ -120,5 +119,5 @@ export function CommitsFilesSection({
 }
 
 const TabListWithSpace = styled(TabList)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

@@ -7,25 +7,25 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
@@ -36,19 +36,19 @@ import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
-import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
-import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
-import ReleaseListInner from 'sentry/views/releases/list/releaseListInner';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {ReleaseArchivedNotice} from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
+import {MobileBuilds} from 'sentry/views/releases/list/mobileBuilds';
+import {ReleaseHealthCTA} from 'sentry/views/releases/list/releaseHealthCTA';
+import {ReleaseListInner} from 'sentry/views/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
-import ReleasesSortOptions from './releasesSortOptions';
+import {ReleasesSortOptions} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 import {validateSummaryStatsPeriod} from './utils';
 
@@ -217,8 +217,7 @@ export default function ReleasesList() {
       return projects[0];
     }
 
-    const selectedProjectId =
-      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    const selectedProjectId = selection.projects?.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 

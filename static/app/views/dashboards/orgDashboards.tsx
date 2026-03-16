@@ -1,18 +1,18 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import NotFound from 'sentry/components/errors/notFound';
+import {NotFound} from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
@@ -37,7 +37,7 @@ interface OrgDashboardsProps {
   initialDashboard?: DashboardDetails;
 }
 
-function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
+export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -84,12 +84,20 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const {dashboard: prebuiltDashboard, isLoading: isPrebuiltDashboardLoading} =
     useGetPrebuiltDashboard(selectedDashboard?.prebuiltId);
 
-  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard
+  // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
+  // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
       id: selectedDashboard.id,
+      filters: selectedDashboard.filters,
+      projects: selectedDashboard.projects,
+      environment: selectedDashboard.environment,
+      period: selectedDashboard.period,
+      start: selectedDashboard.start,
+      end: selectedDashboard.end,
+      utc: selectedDashboard.utc,
     };
   }
 
@@ -233,5 +241,3 @@ function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
     </SentryDocumentTitle>
   );
 }
-
-export default OrgDashboards;

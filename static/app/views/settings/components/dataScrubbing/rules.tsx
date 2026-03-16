@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import TextOverflow from 'sentry/components/textOverflow';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import type {Rule} from './types';
 import {getRuleDescription} from './utils';
@@ -20,7 +19,7 @@ type Props = {
   ref?: React.Ref<HTMLUListElement>;
 };
 
-function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
+export function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
@@ -72,8 +71,6 @@ function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   );
 }
 
-export default Rules;
-
 const List = styled('ul')<{
   isDisabled?: boolean;
 }>`
@@ -84,7 +81,7 @@ const List = styled('ul')<{
   ${p =>
     p.isDisabled &&
     css`
-      color: ${p.theme.colors.gray200};
+      color: ${p.theme.tokens.content.disabled};
       background: ${p.theme.tokens.background.secondary};
     `}
 `;
@@ -92,14 +89,10 @@ const List = styled('ul')<{
 const ListItem = styled('li')`
   display: grid;
   grid-template-columns: auto max-content max-content;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  &:hover {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
   &:last-child {
     border-bottom: 0;
   }

@@ -18,6 +18,7 @@ from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.grouptype import (
     PreprodSizeAnalysisGroupType,
     SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
     SizeAnalysisValue,
 )
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -253,7 +254,7 @@ def compare_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def manual_size_analysis_comparison(
     project_id: int,
@@ -536,6 +537,10 @@ def maybe_emit_issues(
         logger.exception("Error emitting issues")
 
 
+def _get_platform(artifact: PreprodArtifact) -> str:
+    return artifact.platform or "unknown"
+
+
 def _maybe_emit_issues(
     comparison_results: ComparisonResults,
     head_metric: PreprodArtifactSizeMetrics,
@@ -570,11 +575,25 @@ def _maybe_emit_issues(
         return
 
     diff = comparison_results.size_metric_diff_item
+    head_artifact = head_metric.preprod_artifact
+    base_artifact = base_metric.preprod_artifact
+
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "base_metric_id": base_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "base_artifact_id": base_artifact.id,
+        "head_artifact": head_artifact,
+        "base_artifact": base_artifact,
+    }
+
     size_data: SizeAnalysisValue = {
         "head_install_size_bytes": diff.head_install_size,
         "head_download_size_bytes": diff.head_download_size,
         "base_install_size_bytes": diff.base_install_size,
         "base_download_size_bytes": diff.base_download_size,
+        "metadata": metadata,
     }
 
     data_packet: SizeAnalysisDataPacket = DataPacket(

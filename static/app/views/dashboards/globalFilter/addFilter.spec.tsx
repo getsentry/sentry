@@ -107,7 +107,7 @@ describe('AddFilter', () => {
     await userEvent.click(
       screen.getByRole('option', {name: mockFilterKeys['browser.name']!.key})
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
     // Verify onAddFilter was called with the added global filter object
     expect(onAddFilter).toHaveBeenCalledTimes(1);

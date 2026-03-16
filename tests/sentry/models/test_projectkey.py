@@ -7,10 +7,10 @@ from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeySt
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.testutils.silo import cell_silo_test, create_test_regions
 
 
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 
@@ -89,6 +89,7 @@ class ProjectKeyTest(TestCase):
 
         assert self.model(project=self.project, status=ProjectKeyStatus.ACTIVE).is_active is True
 
+    @override_settings(JS_SDK_LOADER_CDN_URL="")
     def test_get_dsn(self) -> None:
         with self.options({"system.region-api-url-template": ""}):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
@@ -136,7 +137,7 @@ class ProjectKeyTest(TestCase):
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_multiregion(self) -> None:
         key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
-        host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
+        host = "us.testserver" if SiloMode.get_current_mode() == SiloMode.CELL else "testserver"
 
         assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
         assert key.dsn_public == f"http://abc@{host}/{self.project.id}"
@@ -155,7 +156,7 @@ class ProjectKeyTest(TestCase):
         with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest." + (
-                "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
+                "us.testserver" if SiloMode.get_current_mode() == SiloMode.CELL else "testserver"
             )
 
             assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"

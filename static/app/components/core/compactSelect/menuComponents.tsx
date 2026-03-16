@@ -10,12 +10,27 @@ import {
   type LinkButtonProps,
 } from '@sentry/scraps/button';
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
 import {ControlContext} from './control';
 
 export const MenuComponents = {
+  /**
+   * A button sized and styled to sit in `menuHeaderTrailingItems`. Inherits the
+   * header's font size and renders in secondary text color so it blends with the
+   * title rather than competing with it.
+   *
+   * Use this for lightweight, immediate actions in the header — e.g. "Reset",
+   * "Clear", "Invite Member", or "Sync". These actions typically take effect
+   * immediately and close the menu. For navigation actions use `LinkButton`
+   * instead. For prominent footer actions use `CTAButton`.
+   */
+  HeaderButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
+    return <StyledHeaderButton size="zero" priority="transparent" {...props} />;
+  },
+
   /**
    * A button sized and styled to sit in `menuHeaderTrailingItems`. Inherits the
    * header's font size and renders in secondary text color so it blends with the
@@ -32,7 +47,7 @@ export const MenuComponents = {
     const controlContext = useContext(ControlContext);
 
     return (
-      <HeaderButton
+      <StyledHeaderButton
         size="zero"
         priority="transparent"
         {...props}
@@ -42,7 +57,7 @@ export const MenuComponents = {
         }}
       >
         {t('Reset')}
-      </HeaderButton>
+      </StyledHeaderButton>
     );
   },
 
@@ -50,7 +65,7 @@ export const MenuComponents = {
     const controlContext = useContext(ControlContext);
 
     return (
-      <HeaderButton
+      <StyledHeaderButton
         size="zero"
         priority="transparent"
         {...props}
@@ -60,7 +75,7 @@ export const MenuComponents = {
         }}
       >
         {t('Clear')}
-      </HeaderButton>
+      </StyledHeaderButton>
     );
   },
 
@@ -77,10 +92,10 @@ export const MenuComponents = {
    * `priority` and `size` are locked to keep footer actions visually consistent.
    */
   CTAButton(props: DistributedOmit<ButtonProps, 'priority' | 'size'>) {
-    return <Button size="xs" {...props} />;
+    return <Button size="xs" priority="default" {...props} />;
   },
   CTALinkButton(props: DistributedOmit<LinkButtonProps, 'priority' | 'size'>) {
-    return <LinkButton size="xs" {...props} />;
+    return <LinkButton size="xs" priority="default" {...props} />;
   },
 
   /**
@@ -157,8 +172,12 @@ export const MenuComponents = {
    * breaking the menu's padding, and `showIcon` is locked to `false` to keep
    * the alert compact.
    */
-  Alert(props: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
-    return <StyledAlert {...props} system={false} showIcon={false} />;
+  Alert({children, ...props}: DistributedOmit<AlertProps, 'system' | 'showIcon'>) {
+    return (
+      <StyledAlert {...props} system={false} showIcon={false}>
+        <Text size="sm">{children}</Text>
+      </StyledAlert>
+    );
   },
 
   Checkbox(props: DistributedOmit<CheckboxProps, 'size'>) {
@@ -171,7 +190,7 @@ const StyledAlert = styled(Alert)`
   text-wrap: balance;
 `;
 
-const HeaderButton = styled(Button)`
+const StyledHeaderButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};

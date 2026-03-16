@@ -10,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import BaseSearchBar from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -237,6 +236,6 @@ const NoAttributesMessage = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;

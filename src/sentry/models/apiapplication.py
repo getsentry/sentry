@@ -1,9 +1,9 @@
 import logging
-import os
+import posixpath
 import secrets
 from enum import Enum
 from typing import Any, ClassVar, Literal, Self, TypeIs
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import petname
 from django.contrib.postgres.fields.array import ArrayField
@@ -24,7 +24,7 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_all_region_names
+from sentry.types.region import find_all_cell_names
 
 logger = logging.getLogger("sentry.oauth")
 
@@ -130,9 +130,9 @@ class ApiApplication(Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.API_APPLICATION_UPDATE,
-                region_name=region_name,
+                cell_name=region_name,
             )
-            for region_name in find_all_region_names()
+            for region_name in find_all_cell_names()
         ]
 
     @property
@@ -161,14 +161,35 @@ class ApiApplication(Model):
             return False
         return self.version >= min_version
 
+    @staticmethod
+    def _fully_decode(value):
+        """Iteratively percent-decode until stable (no more encoded layers).
+
+        Stops before any lossy step: if a decode would introduce U+FFFD
+        (replacement character) from non-UTF-8 bytes, the previous
+        lossless result is returned instead.
+        """
+        decoded = value
+        while True:
+            candidate = unquote(decoded)
+            if candidate == decoded:
+                break
+            if candidate.count("\ufffd") > decoded.count("\ufffd"):
+                break
+            decoded = candidate
+        return decoded
+
     def normalize_url(self, value):
         parts = urlparse(value)
-        normalized_path = os.path.normpath(parts.path)
+        decoded = self._fully_decode(parts.path)
+
+        has_trailing_slash = decoded.endswith("/")
+        normalized_path = posixpath.normpath(decoded)
         if normalized_path == ".":
             normalized_path = "/"
-        elif value.endswith("/") and not normalized_path.endswith("/"):
+        elif has_trailing_slash and not normalized_path.endswith("/"):
             normalized_path += "/"
-        return urlunparse(parts._replace(path=normalized_path))
+        return urlunparse(parts._replace(path=quote(normalized_path, safe="/")))
 
     def is_valid_redirect_uri(self, value):
         # Spec references:
@@ -176,9 +197,20 @@ class ApiApplication(Model):
         #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
         #   - Native apps loopback exception (RFC 8252 §8.4):
         #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
+
+        decoded_path = self._fully_decode(urlparse(value).path)
+
+        # Reject null bytes — can cause string truncation in downstream servers.
+        if "\x00" in decoded_path:
+            return False
+
+        # Reject backslashes — some servers/proxies interpret \ as /, enabling
+        # path traversal that posixpath.normpath wouldn't catch.
+        if "\\" in decoded_path:
+            return False
+
         value = self.normalize_url(value)
 
-        # First: exact match only (spec-compliant), no logging.
         normalized_ruris = [
             self.normalize_url(redirect_uri) for redirect_uri in self.redirect_uris.split("\n")
         ]

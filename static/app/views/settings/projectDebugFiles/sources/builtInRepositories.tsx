@@ -4,11 +4,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -23,7 +23,7 @@ type Props = {
   project: Project;
 };
 
-function BuiltInRepositories({
+export function BuiltInRepositories({
   api,
   organization,
   builtinSymbolSourceOptions,
@@ -116,8 +116,6 @@ function BuiltInRepositories({
     </Panel>
   );
 }
-
-export default BuiltInRepositories;
 
 const StyledSelectField = styled(SelectField)`
   ${p => p.disabled && `cursor: not-allowed`}

@@ -1,4 +1,5 @@
 .env
+/v10
 .cache/
 .code-workspace
 .coverage*
@@ -64,6 +65,7 @@ package-lock.json
 yarn.lock
 .claude/settings.local.json
 .claude/plans
+.claude/worktrees
 .warden/
 # Auto-updated agent skill dependencies — ignore to avoid dirty state
 .agents/.gitignore

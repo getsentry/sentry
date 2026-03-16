@@ -5,11 +5,10 @@ import {Container, Flex} from '@sentry/scraps/layout';
 
 import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -39,7 +38,7 @@ type Props = {
   usage: CustomerUsage;
 };
 
-function UsageAlert({subscription, usage}: Props) {
+export function UsageAlert({subscription, usage}: Props) {
   const organization = useOrganization();
 
   function getActionSentence() {
@@ -306,12 +305,10 @@ function UsageAlert({subscription, usage}: Props) {
   );
 }
 
-export default UsageAlert;
-
 const UsageInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Description = styled(TextBlock)`

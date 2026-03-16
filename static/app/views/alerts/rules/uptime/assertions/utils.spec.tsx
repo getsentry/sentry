@@ -1,36 +1,36 @@
 import {
-  ComparisonType,
-  OpType,
-  type AndOp,
-  type NotOp,
-  type OrOp,
-  type StatusCodeOp,
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeNotOp,
+  type UptimeOrOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {isAfterOp, moveTo} from './utils';
 
 describe('moveTo', () => {
   it('moves op to after another op in the same parent', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -42,26 +42,26 @@ describe('moveTo', () => {
   });
 
   it('moves op to before another op in the same parent', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -73,26 +73,26 @@ describe('moveTo', () => {
   });
 
   it('moves op to before the first element', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -104,26 +104,26 @@ describe('moveTo', () => {
   });
 
   it('moves op to after the last element', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -135,30 +135,30 @@ describe('moveTo', () => {
   });
 
   it('moves op from nested group to root level', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
             {
               id: 'status-3',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 202,
             },
           ],
@@ -170,35 +170,35 @@ describe('moveTo', () => {
 
     expect(result.children.map(c => c.id)).toEqual(['status-1', 'status-2', 'or-1']);
     // Verify the nested group still has status-3
-    const orOp = result.children.find(c => c.id === 'or-1') as OrOp;
+    const orOp = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-3']);
   });
 
   it('moves op from root to nested group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
             {
               id: 'status-3',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 202,
             },
           ],
@@ -210,41 +210,41 @@ describe('moveTo', () => {
 
     expect(result.children.map(c => c.id)).toEqual(['or-1']);
     // Verify status-1 is now in the nested group
-    const orOp = result.children.find(c => c.id === 'or-1') as OrOp;
+    const orOp = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-1', 'status-2', 'status-3']);
   });
 
   it('moves op within a nested group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
             {
               id: 'status-3',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 202,
             },
             {
               id: 'status-4',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 203,
             },
           ],
@@ -254,19 +254,19 @@ describe('moveTo', () => {
 
     const result = moveTo(rootOp, 'status-4', 'status-2', 'before');
 
-    const orOp = result.children.find(c => c.id === 'or-1') as OrOp;
+    const orOp = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-4', 'status-2', 'status-3']);
   });
 
   it('returns unchanged tree if source not found', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       ],
@@ -278,14 +278,14 @@ describe('moveTo', () => {
   });
 
   it('returns unchanged tree if target not found', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       ],
@@ -297,20 +297,20 @@ describe('moveTo', () => {
   });
 
   it('preserves op data when moving', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.LESS_THAN},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.LESS_THAN},
           value: 400,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       ],
@@ -318,26 +318,26 @@ describe('moveTo', () => {
 
     const result = moveTo(rootOp, 'status-1', 'status-2', 'after');
 
-    const movedOp = result.children.find(c => c.id === 'status-1') as StatusCodeOp;
-    expect(movedOp.operator).toEqual({cmp: ComparisonType.LESS_THAN});
+    const movedOp = result.children.find(c => c.id === 'status-1') as UptimeStatusCodeOp;
+    expect(movedOp.operator).toEqual({cmp: UptimeComparisonType.LESS_THAN});
     expect(movedOp.value).toBe(400);
   });
 
   it('handles two ops: move last before first, then back after first', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -353,26 +353,26 @@ describe('moveTo', () => {
   });
 
   it('handles multiple consecutive moves', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -392,20 +392,20 @@ describe('moveTo', () => {
   });
 
   it('does not create duplicate ops when moving rapidly', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -422,20 +422,20 @@ describe('moveTo', () => {
   });
 
   it('handles moving an op to where it already is (no-op move)', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -448,20 +448,20 @@ describe('moveTo', () => {
   });
 
   it('verifies no duplicate IDs after complex moves', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -480,20 +480,20 @@ describe('moveTo', () => {
   });
 
   it('handles moving to same position (status-1 after status-1 should do nothing)', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -506,19 +506,19 @@ describe('moveTo', () => {
   });
 
   it('moves op inside an empty group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [],
         },
       ],
@@ -529,27 +529,27 @@ describe('moveTo', () => {
     // Root should only have the or group now
     expect(result.children.map(c => c.id)).toEqual(['or-1']);
     // The or group should now contain status-1
-    const orOp = result.children.find(c => c.id === 'or-1') as OrOp;
+    const orOp = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-1']);
   });
 
   it('moves op inside an empty not group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'not-1',
-          op: OpType.NOT,
+          op: UptimeOpType.NOT,
           operand: {
             id: 'or-1',
-            op: OpType.OR,
+            op: UptimeOpType.OR,
             children: [],
           },
         },
@@ -561,30 +561,30 @@ describe('moveTo', () => {
     // Root should only have the not group now
     expect(result.children.map(c => c.id)).toEqual(['not-1']);
     // The not's operand (or group) should now contain status-1
-    const notOp = result.children.find(c => c.id === 'not-1') as NotOp;
-    const orOp = notOp.operand as OrOp;
+    const notOp = result.children.find(c => c.id === 'not-1') as UptimeNotOp;
+    const orOp = notOp.operand as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-1']);
   });
 
   it('moves op inside a non-empty group (appends to end)', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
           ],
@@ -597,25 +597,25 @@ describe('moveTo', () => {
     // Root should only have the or group now
     expect(result.children.map(c => c.id)).toEqual(['or-1']);
     // The or group should now contain both ops
-    const orOp = result.children.find(c => c.id === 'or-1') as OrOp;
+    const orOp = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(orOp.children.map(c => c.id)).toEqual(['status-2', 'status-1']);
   });
 
   it('returns unchanged tree if target for inside move is not a group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -628,28 +628,28 @@ describe('moveTo', () => {
   });
 
   it('returns unchanged tree when moving parent into its own descendant', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-1',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 200,
             },
             {
               id: 'and-2',
-              op: OpType.AND,
+              op: UptimeOpType.AND,
               children: [
                 {
                   id: 'status-2',
-                  op: OpType.STATUS_CODE_CHECK,
-                  operator: {cmp: ComparisonType.EQUALS},
+                  op: UptimeOpType.STATUS_CODE_CHECK,
+                  operator: {cmp: UptimeComparisonType.EQUALS},
                   value: 201,
                 },
               ],
@@ -672,31 +672,31 @@ describe('moveTo', () => {
   });
 
   it('moves op from nested group inside another group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-1',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 200,
             },
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
           ],
         },
         {
           id: 'or-2',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [],
         },
       ],
@@ -705,31 +705,31 @@ describe('moveTo', () => {
     const result = moveTo(rootOp, 'status-1', 'or-2', 'inside');
 
     // or-1 should now have only status-2
-    const or1 = result.children.find(c => c.id === 'or-1') as OrOp;
+    const or1 = result.children.find(c => c.id === 'or-1') as UptimeOrOp;
     expect(or1.children.map(c => c.id)).toEqual(['status-2']);
 
     // or-2 should now contain status-1
-    const or2 = result.children.find(c => c.id === 'or-2') as OrOp;
+    const or2 = result.children.find(c => c.id === 'or-2') as UptimeOrOp;
     expect(or2.children.map(c => c.id)).toEqual(['status-1']);
   });
 });
 
 describe('isAfterOp', () => {
   it('returns true when op is directly after another op', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -739,26 +739,26 @@ describe('isAfterOp', () => {
   });
 
   it('returns false when op is not directly after another op', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
         {
           id: 'status-3',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 202,
         },
       ],
@@ -769,20 +769,20 @@ describe('isAfterOp', () => {
   });
 
   it('returns false when op is before another op', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
         {
           id: 'status-2',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 201,
         },
       ],
@@ -792,24 +792,24 @@ describe('isAfterOp', () => {
   });
 
   it('returns true when op is after another op in nested group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'or-1',
-          op: OpType.OR,
+          op: UptimeOpType.OR,
           children: [
             {
               id: 'status-1',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 200,
             },
             {
               id: 'status-2',
-              op: OpType.STATUS_CODE_CHECK,
-              operator: {cmp: ComparisonType.EQUALS},
+              op: UptimeOpType.STATUS_CODE_CHECK,
+              operator: {cmp: UptimeComparisonType.EQUALS},
               value: 201,
             },
           ],
@@ -821,27 +821,27 @@ describe('isAfterOp', () => {
   });
 
   it('returns true when op is after another op inside not group', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'not-1',
-          op: OpType.NOT,
+          op: UptimeOpType.NOT,
           operand: {
             id: 'or-1',
-            op: OpType.OR,
+            op: UptimeOpType.OR,
             children: [
               {
                 id: 'status-1',
-                op: OpType.STATUS_CODE_CHECK,
-                operator: {cmp: ComparisonType.EQUALS},
+                op: UptimeOpType.STATUS_CODE_CHECK,
+                operator: {cmp: UptimeComparisonType.EQUALS},
                 value: 200,
               },
               {
                 id: 'status-2',
-                op: OpType.STATUS_CODE_CHECK,
-                operator: {cmp: ComparisonType.EQUALS},
+                op: UptimeOpType.STATUS_CODE_CHECK,
+                operator: {cmp: UptimeComparisonType.EQUALS},
                 value: 201,
               },
             ],
@@ -854,14 +854,14 @@ describe('isAfterOp', () => {
   });
 
   it('returns false for non-existent ops', () => {
-    const rootOp: AndOp = {
+    const rootOp: UptimeAndOp = {
       id: 'and-1',
-      op: OpType.AND,
+      op: UptimeOpType.AND,
       children: [
         {
           id: 'status-1',
-          op: OpType.STATUS_CODE_CHECK,
-          operator: {cmp: ComparisonType.EQUALS},
+          op: UptimeOpType.STATUS_CODE_CHECK,
+          operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
       ],
@@ -872,10 +872,10 @@ describe('isAfterOp', () => {
   });
 
   it('returns false for leaf ops (non-group containers)', () => {
-    const statusOp: StatusCodeOp = {
+    const statusOp: UptimeStatusCodeOp = {
       id: 'status-1',
-      op: OpType.STATUS_CODE_CHECK,
-      operator: {cmp: ComparisonType.EQUALS},
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
       value: 200,
     };
 

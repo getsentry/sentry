@@ -588,7 +588,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert len(response.json()) == 1
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -630,7 +629,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "()",
-                "source_file": "Something.java",
+                "source_file": "Util.java",
                 "source_line": 67,
             },
             {
@@ -638,13 +637,12 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "name": "getExtraClassContext",
                 "class_name": "org.slf4j.helpers.Util$ClassContextSecurityManager",
                 "signature": "(): boolean",
-                "source_file": "Else.java",
+                "source_file": "Util.java",
                 "source_line": 69,
             },
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_inline_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -688,7 +686,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 },
                 "name": "onClick",
                 "signature": "()",
-                "source_file": None,
+                "source_file": "-.java",
                 "source_line": 2,
             },
             {
@@ -736,7 +734,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         ]
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_error_on_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
@@ -772,7 +769,6 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert android_profile["profile"]["methods"] == obfuscated_frames
 
     @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_js_symbolication_set_symbolicated_field(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
@@ -972,8 +968,7 @@ def test_track_latest_sdk(
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 
-    with Feature("organizations:profiling-sdks"):
-        process_profile_task(profile=profile)
+    process_profile_task(profile=profile)
 
     assert (
         ProjectSDK.objects.get(
@@ -1020,8 +1015,7 @@ def test_unknown_sdk(
     profile["platform"] = platform
     del profile["client_sdk"]
 
-    with Feature("organizations:profiling-sdks"):
-        process_profile_task(profile=profile)
+    process_profile_task(profile=profile)
 
     assert (
         ProjectSDK.objects.get(
@@ -1064,8 +1058,7 @@ def test_track_latest_sdk_with_payload(
 
     payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
 
-    with Feature("organizations:profiling-sdks"):
-        process_profile_task(payload=payload)
+    process_profile_task(payload=payload)
 
     assert (
         ProjectSDK.objects.get(
@@ -1112,19 +1105,13 @@ def test_deprecated_sdks(
     }
     _symbolicate_profile.return_value = True
 
-    with Feature(
-        [
-            "organizations:profiling-sdks",
-            "organizations:profiling-deprecate-sdks",
-        ]
+    with override_options(
+        {
+            "sdk-deprecation.profile-chunk.python": "2.24.1",
+            "sdk-deprecation.profile-chunk.python.hard": "2.24.0",
+        }
     ):
-        with override_options(
-            {
-                "sdk-deprecation.profile-chunk.python": "2.24.1",
-                "sdk-deprecation.profile-chunk.python.hard": "2.24.0",
-            }
-        ):
-            process_profile_task(profile=profile)
+        process_profile_task(profile=profile)
 
     if dropped:
         _process_vroomrs_profile.assert_not_called()
@@ -1173,13 +1160,7 @@ def test_rejected_sdks(
     }
     _symbolicate_profile.return_value = True
 
-    with Feature(
-        [
-            "organizations:profiling-sdks",
-            "organizations:profiling-deprecate-sdks",
-            "organizations:profiling-reject-sdks",
-        ]
-    ):
+    with Feature("organizations:profiling-reject-sdks"):
         with override_options(
             {
                 "sdk-deprecation.profile-chunk.cocoa": "2.24.1",

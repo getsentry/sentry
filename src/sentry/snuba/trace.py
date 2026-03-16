@@ -18,12 +18,17 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from snuba_sdk import Column as SnubaColumn
 from snuba_sdk import Function
 
+from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.common_columns import COMMON_COLUMNS
 from sentry.search.eap.types import SearchResolverConfig
@@ -111,7 +116,9 @@ class TraceOccurrenceEvent(TypedDict):
     issue_data: TraceIssueOccurrenceData
 
 
-def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -> SerializedIssue:
+def _serialize_rpc_issue(
+    event: dict[str, Any], group_cache: dict[int, Group]
+) -> SerializedIssue | None:
     def _qualify_short_id(project: str, short_id: int | None) -> str | None:
         """Logic for qualified_short_id is copied from property on the Group model
         to prevent an N+1 query from accessing project.slug everytime"""
@@ -127,7 +134,11 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=occurrence.project_id)
+            except Group.DoesNotExist as e:
+                logger.error(e)
+                return None
             group_cache[issue_id] = issue
         return SerializedIssue(
             event_id=occurrence.event_id,
@@ -154,7 +165,11 @@ def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -
         if issue_id in group_cache:
             issue = group_cache[issue_id]
         else:
-            issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+            try:
+                issue = Group.objects.get(id=issue_id, project__id=event["project.id"])
+            except Group.DoesNotExist as e:
+                logger.error(e)
+                return None
             group_cache[issue_id] = issue
 
         return SerializedIssue(
@@ -179,7 +194,7 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck:
+) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck | None:
     if event.get("event_type") not in ("span", "uptime_check"):
         return _serialize_rpc_issue(event, group_cache)
 
@@ -189,11 +204,25 @@ def _serialize_rpc_event(
         if attribute in event
     }
     children = [
-        _serialize_rpc_event(child, group_cache, additional_attributes)
-        for child in event["children"]
+        child
+        for child in [
+            _serialize_rpc_event(child, group_cache, additional_attributes)
+            for child in event["children"]
+        ]
+        if child is not None
     ]
-    errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
-    occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
+    errors = [
+        error
+        for error in [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
+        if error is not None
+    ]
+    occurrences = [
+        occurrence
+        for occurrence in [
+            _serialize_rpc_issue(error, group_cache) for error in event["occurrences"]
+        ]
+        if occurrence is not None
+    ]
 
     if event.get("event_type") == "uptime_check":
         return SerializedUptimeCheck(
@@ -296,12 +325,23 @@ def _run_errors_query(errors_query: DiscoverQueryBuilder):
     return error_data
 
 
-def _perf_issues_query(snuba_params: SnubaParams, trace_id: str) -> DiscoverQueryBuilder:
+def _perf_issues_query(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    organization: Organization | None = None,
+) -> DiscoverQueryBuilder:
+    query = f"trace:{trace_id}"
+
+    if organization:
+        visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
+        if visible_type_ids:
+            query = f"trace:{trace_id} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
+
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params={},
         snuba_params=snuba_params,
-        query=f"trace:{trace_id}",
+        query=query,
         selected_columns=["event_id", "occurrence_id", "project_id"],
         config=QueryBuilderConfig(
             functions_acl=["groupArray"],
@@ -389,7 +429,9 @@ def _uptime_results_query(
     )
 
 
-def _run_uptime_results_query(uptime_query: TraceItemTableRequest) -> list[TraceItemTableResponse]:
+def _run_uptime_results_query(
+    uptime_query: TraceItemTableRequest,
+) -> list[TraceItemTableResponse]:
     return table_rpc([uptime_query])
 
 
@@ -495,6 +537,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     referrer: Referrer = Referrer.API_TRACE_VIEW_GET_EVENTS,
+    organization: Organization | None = None,
 ) -> list[SerializedEvent]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -506,7 +549,7 @@ def query_trace_data(
     # up. Because of that, tests can fail during tear down as there are active connections
     # to the database preventing a DROP.
     errors_query = _errors_query(snuba_params, trace_id, error_id)
-    occurrence_query = _perf_issues_query(snuba_params, trace_id)
+    occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime
@@ -651,4 +694,10 @@ def query_trace_data(
             result.extend(errors)
     group_cache: dict[int, Group] = {}
     with sentry_sdk.start_span(op="serializing_data"):
-        return [_serialize_rpc_event(root, group_cache, additional_attributes) for root in result]
+        return [
+            event
+            for event in [
+                _serialize_rpc_event(root, group_cache, additional_attributes) for root in result
+            ]
+            if event is not None
+        ]

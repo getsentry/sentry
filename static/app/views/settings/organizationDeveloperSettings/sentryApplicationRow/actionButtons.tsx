@@ -1,7 +1,7 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -20,7 +20,7 @@ type Props = {
   onPublish?: () => void;
 };
 
-function ActionButtons({
+export function ActionButtons({
   org,
   app,
   showPublish,
@@ -87,5 +87,3 @@ function ActionButtons({
     </Grid>
   );
 }
-
-export default ActionButtons;

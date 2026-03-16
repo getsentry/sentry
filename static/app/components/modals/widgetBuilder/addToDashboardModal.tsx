@@ -22,15 +22,14 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -63,10 +62,10 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
@@ -213,7 +212,7 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToQueryParams(widget);
 
     navigate(
       normalizeUrl({
@@ -568,7 +567,7 @@ function AddToDashboardModal({
 export default AddToDashboardModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledButtonBar = styled((props: GridProps) => (
@@ -576,7 +575,7 @@ const StyledButtonBar = styled((props: GridProps) => (
 ))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

@@ -11,7 +11,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+export function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {getFrameGroups(component, showNonContributing).map((group, index) => (
@@ -30,5 +30,3 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
     </Fragment>
   );
 }
-
-export default GroupingComponentStacktrace;

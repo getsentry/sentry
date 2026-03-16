@@ -3,10 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
@@ -869,7 +869,7 @@ describe('Results', () => {
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
 
-      expect(projectPageFilter).toHaveTextContent('All Projects');
+      expect(projectPageFilter).toHaveTextContent('Pinned Project');
     });
 
     it('displays tip when events response contains a tip', async () => {

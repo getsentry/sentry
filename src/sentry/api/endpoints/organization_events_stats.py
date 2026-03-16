@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
@@ -39,6 +39,7 @@ from sentry.snuba import (
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
+from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
@@ -57,7 +58,7 @@ SENTRY_BACKEND_REFERRERS = [
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -185,6 +186,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         OurLogs,
                         ProfileFunctions,
                         PreprodSize,
+                        ProcessingErrors,
                         TraceMetrics,
                         errors,
                         transactions,

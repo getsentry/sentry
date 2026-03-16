@@ -8,7 +8,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -191,7 +191,7 @@ export function useLogsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -359,7 +359,7 @@ export function useLogsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

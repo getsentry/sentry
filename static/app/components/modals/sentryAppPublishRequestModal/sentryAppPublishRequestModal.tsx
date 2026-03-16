@@ -5,10 +5,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -213,7 +212,7 @@ export function SentryAppPublishRequestModal(props: Props) {
 }
 
 const Explanation = styled('div')`
-  margin: ${space(1.5)} 0px;
+  margin: ${p => p.theme.space.lg} 0px;
   font-size: ${p => p.theme.font.size.md};
 `;
 
@@ -222,5 +221,5 @@ const Footer = styled('div')`
 `;
 
 const FooterParagraph = styled(`p`)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

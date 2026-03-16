@@ -10,11 +10,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 
@@ -29,7 +28,7 @@ type Props = {
   showDetails: boolean;
 };
 
-function DebugFileRow({
+export function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
@@ -144,17 +143,17 @@ function DebugFileRow({
 
 const DescriptionText = styled('span')`
   display: inline-flex;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
 `;
 
 const FeatureTags = styled('div')`
   display: inline-flex;
   flex-wrap: wrap;
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;
 
 const DebugId = styled('code')`
@@ -165,28 +164,28 @@ const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
   font-size: ${p => p.theme.font.size.sm};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   align-items: center;
 `;
 
 const StyledFileSize = styled(FileSize)`
   flex: 1;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: min-content 1fr;
   flex: 2;
   align-items: center;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
 `;
 
 const Name = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Description = styled('div')`
@@ -203,7 +202,5 @@ const DetailsItem = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
-
-export default DebugFileRow;

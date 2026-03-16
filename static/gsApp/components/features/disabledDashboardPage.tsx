@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-import DashboardBackground from './illustrations/dashboardsBackground';
+import {DashboardBackground} from './illustrations/dashboardsBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 
 type Props = React.PropsWithChildren<{

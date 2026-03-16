@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -17,11 +17,11 @@ import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -36,7 +36,6 @@ import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDr
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -47,8 +46,8 @@ import {
   RETRY_COUNT_OPTIONS,
   TRACE_STATUS_OPTIONS,
 } from 'sentry/views/insights/queues/settings';
-import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
-import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
+import {decodeRetryCount} from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
+import {decodeTraceStatus} from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 interface MessageSpanSamplesPanelSearchQueryBuilderProps {
@@ -290,121 +289,117 @@ export function MessageSpanSamplesPanel() {
 
   return (
     <PageAlertProvider>
-      <InsightsSpanTagProvider>
-        <EventDrawerHeader>
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={query.transaction}
-            subtitle={
-              messageActorType === MessageActorType.PRODUCER
-                ? t('Producer')
-                : t('Consumer')
-            }
-          />
-        </EventDrawerHeader>
+      <EventDrawerHeader>
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+          subtitle={
+            messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
+          }
+        />
+      </EventDrawerHeader>
 
-        <SampleDrawerBody>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <Flex wrap="wrap" gap="3xl">
-                {messageActorType === MessageActorType.PRODUCER ? (
-                  <ProducerMetricsRibbon
-                    metrics={transactionMetrics}
-                    isLoading={aretransactionMetricsFetching}
-                  />
-                ) : (
-                  <ConsumerMetricsRibbon
-                    metrics={transactionMetrics}
-                    isLoading={aretransactionMetricsFetching}
-                  />
+      <SampleDrawerBody>
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <Flex wrap="wrap" gap="3xl">
+              {messageActorType === MessageActorType.PRODUCER ? (
+                <ProducerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              ) : (
+                <ConsumerMetricsRibbon
+                  metrics={transactionMetrics}
+                  isLoading={aretransactionMetricsFetching}
+                />
+              )}
+            </Flex>
+          </ModuleLayout.Full>
+
+          <ModuleLayout.Full>
+            <Flex gap="xl">
+              <CompactSelect
+                search
+                value={query.traceStatus}
+                options={TRACE_STATUS_SELECT_OPTIONS}
+                onChange={handleTraceStatusChange}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
                 )}
-              </Flex>
-            </ModuleLayout.Full>
-
-            <ModuleLayout.Full>
-              <Flex gap="xl">
+              />
+              {messageActorType === MessageActorType.CONSUMER && (
                 <CompactSelect
-                  search
-                  value={query.traceStatus}
-                  options={TRACE_STATUS_SELECT_OPTIONS}
-                  onChange={handleTraceStatusChange}
+                  value={query.retryCount}
+                  options={RETRY_COUNT_SELECT_OPTIONS}
+                  onChange={handleRetryCountChange}
                   trigger={triggerProps => (
-                    <OverlayTrigger.Button {...triggerProps} prefix={t('Status')} />
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
                   )}
                 />
-                {messageActorType === MessageActorType.CONSUMER && (
-                  <CompactSelect
-                    value={query.retryCount}
-                    options={RETRY_COUNT_SELECT_OPTIONS}
-                    onChange={handleRetryCountChange}
-                    trigger={triggerProps => (
-                      <OverlayTrigger.Button {...triggerProps} prefix={t('Retries')} />
-                    )}
-                  />
-                )}
-              </Flex>
-            </ModuleLayout.Full>
+              )}
+            </Flex>
+          </ModuleLayout.Full>
 
-            <ModuleLayout.Full>
-              <InsightsLineChartWidget
-                showLegend="never"
-                queryInfo={{search: timeseriesFilters, referrer: timeseriesReferrer}}
-                title={getDurationChartTitle('queue')}
-                isLoading={isDurationDataFetching}
-                error={durationError}
-                timeSeries={durationSeries ? [durationSeries] : []}
-                samples={samplesPlottable}
-              />
-            </ModuleLayout.Full>
+          <ModuleLayout.Full>
+            <InsightsLineChartWidget
+              showLegend="never"
+              queryInfo={{search: timeseriesFilters, referrer: timeseriesReferrer}}
+              title={getDurationChartTitle('queue')}
+              isLoading={isDurationDataFetching}
+              error={durationError}
+              timeSeries={durationSeries ? [durationSeries] : []}
+              samples={samplesPlottable}
+            />
+          </ModuleLayout.Full>
 
-            <ModuleLayout.Full>
-              <MessageSpanSamplesPanelSearchQueryBuilder
-                selection={selection}
-                handleSearch={handleSearch}
-                query={query.spanSearchQuery}
-              />
-            </ModuleLayout.Full>
+          <ModuleLayout.Full>
+            <MessageSpanSamplesPanelSearchQueryBuilder
+              selection={selection}
+              handleSearch={handleSearch}
+              query={query.spanSearchQuery}
+            />
+          </ModuleLayout.Full>
 
-            <ModuleLayout.Full>
-              <MessageSpanSamplesTable
-                data={spanSamplesData?.data ?? []}
-                isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
-                highlightedSpanId={highlightedSpanId}
-                onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
-                onSampleMouseOut={() => setHighlightedSpanId(undefined)}
-                error={durationSamplesDataError}
-                // Samples endpoint doesn't provide meta data, so we need to provide it here
-                meta={{
-                  fields: {
-                    [SpanFields.SPAN_DURATION]: 'duration',
-                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
-                    [SpanFields.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
-                  },
-                  units: {
-                    [SpanFields.SPAN_DURATION]: DurationUnit.MILLISECOND,
-                    [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
-                  },
-                }}
-                type={messageActorType}
-              />
-            </ModuleLayout.Full>
+          <ModuleLayout.Full>
+            <MessageSpanSamplesTable
+              data={spanSamplesData?.data ?? []}
+              isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
+              highlightedSpanId={highlightedSpanId}
+              onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
+              onSampleMouseOut={() => setHighlightedSpanId(undefined)}
+              error={durationSamplesDataError}
+              // Samples endpoint doesn't provide meta data, so we need to provide it here
+              meta={{
+                fields: {
+                  [SpanFields.SPAN_DURATION]: 'duration',
+                  [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: 'size',
+                  [SpanFields.MESSAGING_MESSAGE_RETRY_COUNT]: 'number',
+                },
+                units: {
+                  [SpanFields.SPAN_DURATION]: DurationUnit.MILLISECOND,
+                  [SpanFields.MESSAGING_MESSAGE_BODY_SIZE]: SizeUnit.BYTE,
+                },
+              }}
+              type={messageActorType}
+            />
+          </ModuleLayout.Full>
 
-            <ModuleLayout.Full>
-              <Button
-                onClick={() => {
-                  trackAnalytics(
-                    'performance_views.sample_spans.try_different_samples_clicked',
-                    {organization, source: ModuleName.QUEUE}
-                  );
-                  refetchDurationSpanSamples();
-                }}
-              >
-                {t('Try Different Samples')}
-              </Button>
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </SampleDrawerBody>
-      </InsightsSpanTagProvider>
+          <ModuleLayout.Full>
+            <Button
+              onClick={() => {
+                trackAnalytics(
+                  'performance_views.sample_spans.try_different_samples_clicked',
+                  {organization, source: ModuleName.QUEUE}
+                );
+                refetchDurationSpanSamples();
+              }}
+            >
+              {t('Try Different Samples')}
+            </Button>
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

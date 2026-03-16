@@ -9,36 +9,34 @@ import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {
   DatePageFilter,
   type DatePageFilterProps,
 } from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -62,7 +60,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -176,11 +174,11 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
 }
 
 const ProfilingHeader = styled(Layout.Header)`
-  padding: ${space(1)} ${space(2)} 0 ${space(2)} !important;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} !important;
 `;
 
 const ProfilingHeaderContent = styled(Layout.HeaderContent)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 
   h1 {
     line-height: normal;
@@ -190,13 +188,13 @@ const ProfilingHeaderContent = styled(Layout.HeaderContent)`
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   display: flex;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.lg};
 `;
 
@@ -208,10 +206,11 @@ interface ProfileFiltersProps {
 
 function ProfileFilters(props: ProfileFiltersProps) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -220,7 +219,7 @@ function ProfileFilters(props: ProfileFiltersProps) {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
@@ -243,9 +242,9 @@ function ProfileFilters(props: ProfileFiltersProps) {
 
 const ActionBar = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: min-content auto;
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
@@ -267,7 +266,7 @@ function ProfileSummaryPage() {
 
   const rawQuery = decodeScalar(location?.query?.query, '');
 
-  const projectIds: number[] = useMemo(() => {
+  const projectIds = useMemo(() => {
     if (!defined(project)) {
       return [];
     }
@@ -280,7 +279,7 @@ function ProfileSummaryPage() {
     return [projects];
   }, [project]);
 
-  const projectSlugs: string[] = useMemo(() => {
+  const projectSlugs = useMemo(() => {
     return defined(project) ? [project.slug] : [];
   }, [project]);
 
@@ -592,8 +591,8 @@ const ViewSelectContainer = styled('div')`
 const AggregateFlamegraphToolbarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(0.5)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
@@ -766,7 +765,7 @@ const ProfileDigestHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   /* force height to be same as toolbar */
   height: 42px;

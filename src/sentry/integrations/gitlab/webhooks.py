@@ -16,7 +16,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.gitlab.types import GitLabIssueAction
 from sentry.integrations.services.integration import integration_service
@@ -379,7 +379,7 @@ class PushEventWebhook(GitlabWebhook):
                 pass
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

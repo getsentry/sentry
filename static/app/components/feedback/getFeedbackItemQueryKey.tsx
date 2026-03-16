@@ -7,7 +7,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
+export function getFeedbackItemQueryKey({feedbackId, organization}: Props): {
   eventQueryKey: ApiQueryKey | undefined;
   issueQueryKey: ApiQueryKey | undefined;
 } {

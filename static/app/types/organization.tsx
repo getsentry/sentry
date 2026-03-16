@@ -119,6 +119,7 @@ export interface Organization extends OrganizationSummary {
       spansExtractionDate: number;
     };
   };
+  ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
 }

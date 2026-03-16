@@ -8,31 +8,27 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LogsPageDataProvider,
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {
   LoadingRenderer,
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
 import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
 import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
-import useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import {useOurLogFilters} from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
-export default function OurLogs() {
+export function OurLogs() {
   const replay = useReplayReader();
 
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
@@ -62,9 +58,7 @@ export default function OurLogs() {
       }}
     >
       <LogsPageDataProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-          <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
-        </TraceItemAttributeProvider>
+        <OurLogsContent startTimestampMs={startTimestampMs} replayId={replayId} />
       </LogsPageDataProvider>
     </LogsQueryParamsProvider>
   );
@@ -76,9 +70,9 @@ interface OurLogsContentProps {
 }
 
 function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: booleanAttributes} = useTraceItemAttributes('boolean');
+  const {attributes: stringAttributes} = useLogItemAttributes({}, 'string');
+  const {attributes: numberAttributes} = useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes} = useLogItemAttributes({}, 'boolean');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {currentTime, setCurrentTime} = useReplayContext();

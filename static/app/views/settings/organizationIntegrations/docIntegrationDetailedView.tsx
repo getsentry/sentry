@@ -1,25 +1,26 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 export default function DocIntegrationDetailsView() {
+  const theme = useTheme();
   const tabs: IntegrationTab[] = ['overview'];
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
@@ -73,14 +74,21 @@ export default function DocIntegrationDetailsView() {
         <LearnMoreButton
           size="sm"
           priority="primary"
-          style={{marginLeft: space(1)}}
+          style={{marginLeft: theme.space.md}}
           icon={<StyledIconOpen />}
         >
           {t('Learn More')}
         </LearnMoreButton>
       </ExternalLink>
     );
-  }, [doc, integrationSlug, integrationType, installationStatus, organization]);
+  }, [
+    doc,
+    integrationSlug,
+    integrationType,
+    installationStatus,
+    organization,
+    theme.space,
+  ]);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -127,12 +135,12 @@ export default function DocIntegrationDetailsView() {
 }
 
 const LearnMoreButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
   position: relative;
   top: 1px;
 `;

@@ -25,8 +25,8 @@ import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
@@ -39,31 +39,32 @@ import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
+import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
-import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
-import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
   type ThresholdMetaState,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
-import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
+import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
@@ -81,7 +82,7 @@ type WidgetBuilderSlideoutProps = {
   thresholdMetaState?: ThresholdMetaState;
 };
 
-function WidgetBuilderSlideout({
+export function WidgetBuilderSlideout({
   onClose,
   onSave,
   onQueryConditionChange,
@@ -204,9 +205,7 @@ function WidgetBuilderSlideout({
         // clears the widget to start fresh on the library page
         dispatch({
           type: 'SET_STATE',
-          payload: convertWidgetToBuilderStateParams(
-            widgetLibraryWidgets[0] ?? ({} as Widget)
-          ),
+          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
         });
       }}
     >
@@ -390,6 +389,7 @@ function WidgetBuilderSlideout({
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      {isTimeSeriesWidget && <AxisRangeSection />}
                     </Section>
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
@@ -470,8 +470,6 @@ function WidgetBuilderSlideout({
     </SlideOverPanel>
   );
 }
-
-export default WidgetBuilderSlideout;
 
 function Section({children}: {children: React.ReactNode}) {
   return (

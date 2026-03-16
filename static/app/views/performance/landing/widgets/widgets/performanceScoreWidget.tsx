@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {PerformanceScoreRingWithTooltips} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -118,7 +117,7 @@ const Wrapper = styled('div')`
   align-items: center;
   justify-content: center;
   border-top: 1px solid ${p => p.theme.colors.gray200};
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

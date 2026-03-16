@@ -15,15 +15,14 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
@@ -233,5 +232,5 @@ const MonitorRows = styled('ul')`
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

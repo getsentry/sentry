@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import toPercent from 'sentry/utils/number/toPercent';
+import {toPercent} from 'sentry/utils/number/toPercent';
 
 import type {EnhancedProcessedSpanType, RawSpanType} from './types';
 import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
@@ -30,10 +30,7 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(
-            getSpanOperation(span),
-            this.props.theme
-          );
+          const spanBarColor = pickBarColor(getSpanOperation(span), this.props.theme);
 
           const bounds = generateBounds({
             startTimestamp: span.start_timestamp,

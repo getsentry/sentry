@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
 describe('useMembers', () => {

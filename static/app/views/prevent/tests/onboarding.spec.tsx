@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
-import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+import {TestsOnboardingPage} from 'sentry/views/prevent/tests/onboarding';
 
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),

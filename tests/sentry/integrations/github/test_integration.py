@@ -454,7 +454,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_plugin_migration(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -477,7 +477,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Updates the existing Repository to belong to the new Integration
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             # Doesn't touch Repositories not accessible by the new Integration
@@ -599,7 +599,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_disable_plugin_when_fully_migrated(self) -> None:
         self._stub_github()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project = Project.objects.create(organization_id=self.organization.id)
 
             plugin = plugins.get("github")
@@ -696,7 +696,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_stacktrace_link_file_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -726,7 +726,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -756,7 +756,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1108,7 +1108,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_commit_context_all_frames(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1205,7 +1205,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -1224,7 +1224,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/repo",
@@ -1246,7 +1246,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1278,7 +1278,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that URLs with special characters (like square brackets) are properly encoded"""
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -1721,7 +1721,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
 
     @responses.activate
-    @with_feature("organizations:integrations-github-project-management")
     def test_get_organization_config(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -1846,7 +1845,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1871,7 +1870,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1894,7 +1893,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=False)
 
         assert len(responses.calls) == 1
@@ -1912,7 +1911,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -1927,7 +1926,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -1947,7 +1946,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -1983,7 +1982,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, None, assign=True)
 
         # Should not make any API calls when user is None and assign=True
@@ -2022,7 +2021,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"state": "closed", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -2065,7 +2064,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"state": "open", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=False, project_id=self.project.id
             )
@@ -2103,7 +2102,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # Test resolve when already closed - should not make update call
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -2119,7 +2118,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = self.integration.get_installation(self.organization.id)
 
         # Create external issue without project mapping
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             external_issue = self.create_integration_external_issue(
                 group=self.group,
                 integration=self.integration,
@@ -2127,7 +2126,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
         # No responses needed - should return early
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Should not raise an exception, just return early
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
@@ -2162,7 +2161,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             status=404,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id
@@ -2205,7 +2204,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         # Test that error is raised properly
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id

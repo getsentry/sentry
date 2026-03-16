@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
@@ -12,7 +12,6 @@ import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField'
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
 import {
   NEGATIVE_POLARITY_COLOR_ORDER,
@@ -106,9 +105,7 @@ export function Thresholds({
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
-  const unitOptions = ['duration', 'rate'].includes(dataType)
-    ? getThresholdUnitSelectOptions(dataType)
-    : [];
+  const unitOptions = getThresholdUnitSelectOptions(dataType);
 
   const isHigherBetter = preferredPolarity === '+';
 
@@ -211,8 +208,8 @@ export function Thresholds({
 const ThresholdsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
     padding: 0;

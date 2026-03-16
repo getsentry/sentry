@@ -5,24 +5,24 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AssertionSuggestionCard,
   AssertionSuggestionCardPlaceholder,
 } from 'sentry/views/alerts/rules/uptime/assertionSuggestionCard';
 import type {
-  AssertionSuggestion,
-  AssertionSuggestionsResponse,
   PreviewCheckPayload,
+  UptimeAssertionSuggestion,
+  UptimeAssertionSuggestionsResponse,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 interface AssertionSuggestionsDrawerContentProps {
-  onApply: (suggestion: AssertionSuggestion) => void;
+  onApply: (suggestion: UptimeAssertionSuggestion) => void;
   payload: PreviewCheckPayload;
 }
 
@@ -40,21 +40,22 @@ export function AssertionSuggestionsDrawerContent({
 }: AssertionSuggestionsDrawerContentProps) {
   const organization = useOrganization();
 
-  const {data, isPending, isError, refetch} = useApiQuery<AssertionSuggestionsResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isPending, isError, refetch} =
+    useApiQuery<UptimeAssertionSuggestionsResponse>(
+      [
+        getApiUrl('/organizations/$organizationIdOrSlug/uptime-assertion-suggestions/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'POST',
+          data: {...payload},
+        },
+      ],
       {
-        method: 'POST',
-        data: {...payload},
-      },
-    ],
-    {
-      staleTime: 5 * 60 * 1000,
-      retry: false,
-    }
-  );
+        staleTime: 5 * 60 * 1000,
+        retry: false,
+      }
+    );
 
   const suggestions = data?.suggestions ?? null;
   const isLoading = isPending;

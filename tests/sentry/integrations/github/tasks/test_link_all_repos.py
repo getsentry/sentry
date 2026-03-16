@@ -70,8 +70,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.all().order_by("name")
         assert len(repos) == 2
 
         for repo in repos:
@@ -117,7 +117,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.all()
         assert len(repos) == 1
 
@@ -161,7 +161,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.all()
         assert len(repos) == 0
 

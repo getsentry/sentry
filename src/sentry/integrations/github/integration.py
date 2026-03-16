@@ -432,59 +432,58 @@ class GitHubIntegration(
         """
         config: list[dict[str, Any]] = []
 
-        if features.has("organizations:integrations-github-project-management", self.organization):
-            config.extend(
-                [
-                    {
-                        "name": self.inbound_status_key,
-                        "type": "boolean",
-                        "label": _("Sync GitHub Status to Sentry"),
-                        "help": _(
-                            "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
-                            "When a GitHub issue is reopened, unresolve its linked Sentry issue."
-                        ),
-                        "default": False,
-                    },
-                    {
-                        "name": self.inbound_assignee_key,
-                        "type": "boolean",
-                        "label": _("Sync GitHub Assignment to Sentry"),
-                        "help": _(
-                            "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
-                        ),
-                        "default": False,
-                    },
-                    {
-                        "name": self.outbound_assignee_key,
-                        "type": "boolean",
-                        "label": _("Sync Sentry Assignment to GitHub"),
-                        "help": _(
-                            "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
-                        ),
-                        "default": False,
-                    },
-                    {
-                        "name": self.resolution_strategy_key,
-                        "label": "Resolve",
-                        "type": "select",
-                        "placeholder": "Resolve",
-                        "choices": [
-                            ("resolve", "Resolve"),
-                            ("resolve_current_release", "Resolve in Current Release"),
-                            ("resolve_next_release", "Resolve in Next Release"),
-                        ],
-                        "help": _(
-                            "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
-                        ),
-                    },
-                    {
-                        "name": self.comment_key,
-                        "type": "boolean",
-                        "label": _("Sync Sentry Comments to GitHub"),
-                        "help": _("Post comments from Sentry issues to linked GitHub issues"),
-                    },
-                ]
-            )
+        config.extend(
+            [
+                {
+                    "name": self.inbound_status_key,
+                    "type": "boolean",
+                    "label": _("Sync GitHub Status to Sentry"),
+                    "help": _(
+                        "When a GitHub issue is marked closed, resolve its linked issue in Sentry. "
+                        "When a GitHub issue is reopened, unresolve its linked Sentry issue."
+                    ),
+                    "default": False,
+                },
+                {
+                    "name": self.inbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync GitHub Assignment to Sentry"),
+                    "help": _(
+                        "When an issue is assigned in GitHub, assign its linked Sentry issue to the same user."
+                    ),
+                    "default": False,
+                },
+                {
+                    "name": self.outbound_assignee_key,
+                    "type": "boolean",
+                    "label": _("Sync Sentry Assignment to GitHub"),
+                    "help": _(
+                        "When an issue is assigned in Sentry, assign its linked GitHub issue to the same user."
+                    ),
+                    "default": False,
+                },
+                {
+                    "name": self.resolution_strategy_key,
+                    "label": "Resolve",
+                    "type": "select",
+                    "placeholder": "Resolve",
+                    "choices": [
+                        ("resolve", "Resolve"),
+                        ("resolve_current_release", "Resolve in Current Release"),
+                        ("resolve_next_release", "Resolve in Next Release"),
+                    ],
+                    "help": _(
+                        "Select what action to take on Sentry Issue when GitHub ticket is marked Closed."
+                    ),
+                },
+                {
+                    "name": self.comment_key,
+                    "type": "boolean",
+                    "label": _("Sync Sentry Comments to GitHub"),
+                    "help": _("Post comments from Sentry issues to linked GitHub issues"),
+                },
+            ]
+        )
 
         return config
 
@@ -494,106 +493,52 @@ class GitHubIntegration(
         """
         config = self._get_organization_config_default_values()
 
-        if features.has("organizations:integrations-github-project-management", self.organization):
-            if features.has(
-                "organizations:integrations-external-projects-async-lookup", self.organization
-            ):
-                # Async lookup for integration external projects in the frontend
-                # Get currently configured external projects to display their labels
-                current_repo_items = []
-                external_projects = IntegrationExternalProject.objects.filter(
-                    organization_integration_id=self.org_integration.id
-                )
+        # Async lookup for integration external projects in the frontend
+        # Get currently configured external projects to display their labels
+        current_repo_items = []
+        external_projects = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
 
-                if external_projects.exists():
-                    # Use the stored external_id from IntegrationExternalProject
-                    current_repo_items = [
-                        {"value": project.external_id, "label": project.external_id}
-                        for project in external_projects
-                    ]
+        if external_projects.exists():
+            # Use the stored external_id from IntegrationExternalProject
+            current_repo_items = [
+                {"value": project.external_id, "label": project.external_id}
+                for project in external_projects
+            ]
 
-                config.insert(
-                    0,
-                    {
-                        "name": self.outbound_status_key,
-                        "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to GitHub"),
-                        "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
-                        ),
-                        "addButtonText": _("Add GitHub Project"),
-                        "addDropdown": {
-                            "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find GitHub project"),
-                            "items": current_repo_items,
-                            "url": reverse(
-                                "sentry-integration-github-search",
-                                args=[self.organization.slug, self.model.id],
-                            ),
-                            "searchField": "repo",
-                        },
-                        "mappedSelectors": {
-                            "on_resolve": {"choices": GitHubIssueStatus.get_choices()},
-                            "on_unresolve": {"choices": GitHubIssueStatus.get_choices()},
-                        },
-                        "columnLabels": {
-                            "on_resolve": _("When resolved"),
-                            "on_unresolve": _("When unresolved"),
-                        },
-                        "mappedColumnLabel": _("GitHub Project"),
-                        "formatMessageValue": False,
-                    },
-                )
-            else:
-                config.insert(
-                    0,
-                    {
-                        "name": self.outbound_status_key,
-                        "type": "choice_mapper",
-                        "label": _("Sync Sentry Status to GitHub"),
-                        "help": _(
-                            "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
-                        ),
-                        "addButtonText": _("Add GitHub Project"),
-                        "addDropdown": {
-                            "emptyMessage": _("All projects configured"),
-                            "noResultsMessage": _("Could not find GitHub project"),
-                            "items": [],  # Populated with projects
-                        },
-                        "mappedSelectors": {},
-                        "columnLabels": {
-                            "on_resolve": _("When resolved"),
-                            "on_unresolve": _("When unresolved"),
-                        },
-                        "mappedColumnLabel": _("GitHub Project"),
-                        "formatMessageValue": False,
-                    },
-                )
-
-                try:
-                    # Fetch all repositories and add them to the config
-                    repositories = self.get_client().get_repos()
-
-                    # Format repositories for the dropdown
-                    formatted_repos = [
-                        {"value": repository["full_name"], "label": repository["name"]}
-                        for repository in repositories
-                        if not repository.get("archived")
-                    ]
-                    config[0]["addDropdown"]["items"] = formatted_repos
-
-                    status_choices = GitHubIssueStatus.get_choices()
-
-                    # Add mappedSelectors for each repository with GitHub status choices
-                    config[0]["mappedSelectors"] = {
-                        "on_resolve": {"choices": status_choices},
-                        "on_unresolve": {"choices": status_choices},
-                    }
-                except ApiError:
-                    config[0]["disabled"] = True
-                    config[0]["disabledReason"] = _(
-                        "Unable to communicate with the GitHub instance. You may need to reinstall the integration."
-                    )
+        config.insert(
+            0,
+            {
+                "name": self.outbound_status_key,
+                "type": "choice_mapper",
+                "label": _("Sync Sentry Status to GitHub"),
+                "help": _(
+                    "When a Sentry issue changes status, change the status of the linked ticket in GitHub."
+                ),
+                "addButtonText": _("Add GitHub Project"),
+                "addDropdown": {
+                    "emptyMessage": _("All projects configured"),
+                    "noResultsMessage": _("Could not find GitHub project"),
+                    "items": current_repo_items,
+                    "url": reverse(
+                        "sentry-integration-github-search",
+                        args=[self.organization.slug, self.model.id],
+                    ),
+                    "searchField": "repo",
+                },
+                "mappedSelectors": {
+                    "on_resolve": {"choices": GitHubIssueStatus.get_choices()},
+                    "on_unresolve": {"choices": GitHubIssueStatus.get_choices()},
+                },
+                "columnLabels": {
+                    "on_resolve": _("When resolved"),
+                    "on_unresolve": _("When unresolved"),
+                },
+                "mappedColumnLabel": _("GitHub Project"),
+                "formatMessageValue": False,
+            },
+        )
 
         context = organization_service.get_organization_by_id(
             id=self.organization_id, include_projects=False, include_teams=False

@@ -3,7 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
@@ -224,7 +224,7 @@ export function useTraceMetricsSeriesQuery(
     });
 
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -391,7 +391,7 @@ export function useTraceMetricsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

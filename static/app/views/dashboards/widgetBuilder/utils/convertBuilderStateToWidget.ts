@@ -1,5 +1,9 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  getEquation,
+  isEquation,
+} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -7,15 +11,40 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeSorts,
   type WidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
+/**
+ * Resolves the selected aggregate index, defaulting to the last aggregate.
+ */
+export function getSelectedAggregateIndex(
+  selectedAggregate: number | undefined,
+  aggregateCount: number
+): number {
+  if (selectedAggregate === undefined) {
+    return aggregateCount > 0 ? aggregateCount - 1 : 0;
+  }
+  return Math.min(selectedAggregate, Math.max(0, aggregateCount - 1));
+}
+
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
+  if (state.displayType === DisplayType.TEXT) {
+    return {
+      title: state.title ?? '',
+      description: state.textContent,
+      displayType: state.displayType,
+      interval: '',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+      axisRange: undefined,
+    };
+  }
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
@@ -26,25 +55,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
   let aggregates: string[];
 
-  if (
-    state.dataset === WidgetType.TRACEMETRICS &&
-    (state.displayType === DisplayType.BIG_NUMBER ||
-      usesTimeSeriesData(state.displayType))
-  ) {
-    // HACK: Inject the trace metric name and type into the aggregate function
-    // prior to making the request because the current types for y-axes do not support
-    // the correct number of arguments required for trace metrics
-    const aggregateSource = state.yAxis?.length ? state.yAxis : state.fields;
+  if (state.yAxis?.length) {
     aggregates =
-      aggregateSource?.map(axis => {
-        const traceMetric = state.traceMetric ?? {name: '', type: ''};
-        if (axis.kind === 'function') {
-          return generateMetricAggregate(traceMetric, axis);
-        }
-        return axis.field;
-      }) ?? [];
-  } else if (state.yAxis?.length) {
-    aggregates = state.yAxis?.map(generateFieldAsString) ?? [];
+      state.yAxis
+        ?.map(generateFieldAsString)
+        .filter(f => !isEquation(f) || getEquation(f).trim() !== '') ?? [];
   } else {
     aggregates =
       state.fields
@@ -54,7 +69,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           )
         )
         .map(generateFieldAsString)
-        .filter(Boolean) ?? [];
+        .filter(f => f && (!isEquation(f) || getEquation(f).trim() !== '')) ?? [];
   }
 
   const columns = state.fields
@@ -66,15 +81,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     state.displayType === DisplayType.TABLE ||
     state.displayType === DisplayType.DETAILS ||
     state.displayType === DisplayType.BIG_NUMBER
-      ? state.dataset === WidgetType.TRACEMETRICS
-        ? state.fields?.map(field => {
-            const traceMetric = state.traceMetric ?? {name: '', type: ''};
-            if (field.kind === 'function') {
-              return generateMetricAggregate(traceMetric, field);
-            }
-            return generateFieldAsString(field);
-          })
-        : state.fields?.map(generateFieldAsString)
+      ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
   // If there's no sort, use a sensible default based on display type
@@ -86,8 +93,24 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   if (isReleaseTable) {
     defaultSort = '';
   } else if (isCategoricalBar) {
-    // Categorical bars should sort by aggregate, not by category column
-    defaultSort = aggregates?.[0] ? `-${aggregates[0]}` : defaultQuery.orderby;
+    // Categorical bars should sort by the selected aggregate (last by default, matching Big Number).
+    // For equations, use the alias format (equation[N]) that the API expects, not the raw equation|... string
+    const selectedIndex = getSelectedAggregateIndex(
+      state.selectedAggregate,
+      aggregates.length
+    );
+    const selectedAggregate = aggregates[selectedIndex] ?? aggregates[0];
+    if (selectedAggregate) {
+      if (isEquation(selectedAggregate)) {
+        const equationIndex =
+          aggregates.slice(0, selectedIndex + 1).filter(isEquation).length - 1;
+        // Defensive: equationIndex should always be >= 0 since selectedAggregate
+        // is an equation, but Math.max guards against an empty filter result.
+        defaultSort = `-equation[${Math.max(0, equationIndex)}]`;
+      } else {
+        defaultSort = `-${selectedAggregate}`;
+      }
+    }
   }
   const sort =
     defined(state.sort) && state.sort.length > 0
@@ -125,5 +148,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit,
     thresholds: state.thresholds,
+    axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };
 }

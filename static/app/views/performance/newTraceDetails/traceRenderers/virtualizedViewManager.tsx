@@ -3,8 +3,8 @@ import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
-import getDuration from 'sentry/utils/duration/getDuration';
-import clamp from 'sentry/utils/number/clamp';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -51,9 +51,8 @@ export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
   theme: Theme;
-  row_measurer: TraceRowWidthMeasurer<BaseNode> = new TraceRowWidthMeasurer();
-  indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
-    new TraceRowWidthMeasurer();
+  row_measurer = new TraceRowWidthMeasurer<BaseNode>();
+  indicator_label_measurer = new TraceRowWidthMeasurer<TraceTree['indicators'][0]>();
   text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;
@@ -1141,6 +1140,7 @@ export class VirtualizedViewManager {
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
+    const text_width_ceil = Math.ceil(text_width);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
     const text_left = Math.min(span_space[0], timestamps[0]!);
@@ -1152,20 +1152,20 @@ export class VirtualizedViewManager {
     // |---text|
     const right_inside =
       this.transformXFromTimestamp(span_space[0] + span_space[1]) -
-      text_width -
-      TEXT_PADDING;
+      TEXT_PADDING -
+      text_width_ceil;
     // |text---|
     const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width_ceil;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.transformXFromTimestamp(
         this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
       ) -
-      text_width -
+      text_width_ceil -
       TEXT_PADDING;
     const window_left =
       this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
@@ -1208,7 +1208,7 @@ export class VirtualizedViewManager {
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_left];
       }
 
@@ -1230,9 +1230,9 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < text_width
+        space_right / this.span_to_px[0] < text_width_ceil
       ) {
-        if (full_span_px_width > text_width) {
+        if (full_span_px_width > text_width_ceil) {
           return [1, right_inside];
         }
         return [0, left_outside];
@@ -1241,14 +1241,14 @@ export class VirtualizedViewManager {
     }
 
     // If text fits inside the span
-    if (full_span_px_width > text_width) {
+    if (full_span_px_width > text_width_ceil) {
       const distance = span_right - this.view.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= text_width) {
+      if (visible_width - TEXT_PADDING >= text_width_ceil) {
         return [1, window_right];
       }
 

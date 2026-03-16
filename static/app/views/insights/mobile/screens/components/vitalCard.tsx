@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {space} from 'sentry/styles/space';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   makePerformanceScoreColors,
   type PerformanceScore,
@@ -19,7 +18,7 @@ type Props = {
   onClick?: () => void;
 };
 
-function VitalCard({
+export function VitalCard({
   description,
   formattedValue,
   status,
@@ -60,7 +59,7 @@ const MeterBarBody = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
   border-bottom: none;
-  padding: ${space(1)} 0 ${space(0.5)} 0;
+  padding: ${p => p.theme.space.md} 0 ${p => p.theme.space.xs} 0;
 `;
 
 const MeterHeader = styled('div')`
@@ -104,13 +103,11 @@ const MeterBarFooterContainer = styled('div')<{
     p.status === 'none' ? 'none' : makePerformanceScoreColors(p.theme)[p.status].light};
   border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   font-size: ${p => p.theme.font.size.xs};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   text-align: center;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
 `;
-
-export default VitalCard;

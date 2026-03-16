@@ -2,15 +2,14 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {space} from 'sentry/styles/space';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
@@ -76,7 +75,7 @@ function GroupEvents({group}: GroupEventsProps) {
 }
 
 const AllEventsFilters = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 // TODO(streamlined-ui): Remove this file completely and change route to new events list

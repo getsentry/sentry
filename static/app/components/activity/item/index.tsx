@@ -5,8 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
-import textStyles from 'sentry/styles/text';
+import {textStyles} from 'sentry/styles/text';
 import type {AvatarUser} from 'sentry/types/user';
 
 import {ActivityAvatar} from './avatar';
@@ -118,7 +117,7 @@ function ActivityItem({
 const ActivityHeader = styled('div')`
   display: flex;
   align-items: center;
-  padding: 6px ${space(2)};
+  padding: 6px ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.md};
 
@@ -132,12 +131,12 @@ const ActivityHeaderContent = styled('div')`
 `;
 
 const ActivityBody = styled('div')`
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   ${textStyles}
 `;
 
 const StyledActivityAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

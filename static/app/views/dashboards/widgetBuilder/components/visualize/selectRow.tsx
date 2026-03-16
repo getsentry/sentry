@@ -5,9 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -19,7 +17,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
@@ -60,21 +58,12 @@ interface SelectRowProps {
   source: string;
   columnFilterMethod?: (
     option: FieldValueOption,
-    fieldValue?: QueryFieldValue | undefined
+    fieldValue?: QueryFieldValue
   ) => boolean;
   disabled?: boolean;
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
-}
-
-export function renderDropdownMenuFooter() {
-  return (
-    <FooterWrapper>
-      <IconInfo size="xs" />
-      {t('Select relevant fields or tags to use as groups within the table')}
-    </FooterWrapper>
-  );
 }
 
 function validateParameter(
@@ -212,9 +201,6 @@ export function SelectRow({
         options={sortSelectedFirst(aggregateValue, aggregateOptions)}
         value={aggregateValue}
         position="bottom-start"
-        menuFooter={
-          state.displayType === DisplayType.TABLE ? renderDropdownMenuFooter : undefined
-        }
         onChange={dropdownSelection => {
           const isNone = dropdownSelection.value === NONE;
           let newFields = cloneDeep(fields);
@@ -515,16 +501,6 @@ export const ColumnCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
-`;
-
-const FooterWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  align-items: center;
-  justify-content: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const SelectWrapper = styled('div')`

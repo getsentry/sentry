@@ -24,17 +24,16 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -251,7 +250,7 @@ function HighlightsData({
   );
 }
 
-export default function HighlightsDataSection({
+export function HighlightsDataSection({
   viewAllRef,
   event,
   project,
@@ -303,11 +302,11 @@ export default function HighlightsDataSection({
 
 const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
   margin-top: 0;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const EmptyHighlights = styled('div')`
-  padding: ${space(2)} ${space(1)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => p.theme.tokens.background.secondary};
@@ -329,7 +328,7 @@ const HighlightsLoadingIndicator = styled(LoadingIndicator)`
 
 const AddHighlightsButton = styled(Button)`
   display: block;
-  margin: ${space(1)} auto 0;
+  margin: ${p => p.theme.space.md} auto 0;
 `;
 
 const HighlightColumn = styled(TreeColumn)`
@@ -342,11 +341,11 @@ const HighlightContextContent = styled(ContextCardContent)`
 
 const highlightModalCss = (theme: Theme) => css`
   width: 850px;
-  padding: 0 ${space(2)};
-  margin: ${space(2)} 0;
+  padding: 0 ${theme.space.xl};
+  margin: ${theme.space.xl} 0;
   /* Disable overriding margins with breakpoint on default modal */
   @media (min-width: ${theme.breakpoints.md}) {
-    margin: ${space(2)} 0;
-    padding: 0 ${space(2)};
+    margin: ${theme.space.xl} 0;
+    padding: 0 ${theme.space.xl};
   }
 `;

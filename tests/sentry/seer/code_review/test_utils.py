@@ -154,7 +154,7 @@ class GetTargetCommitShaTest(TestCase):
         mock_integration.get_installation.assert_called_once_with(
             organization_id=self.repo.organization_id
         )
-        mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", 42)
+        mock_client.get_pull_request.assert_called_once_with("test-owner/test-repo", "42")
 
     def test_issue_comment_raises_without_integration(self) -> None:
         event = {"issue": {"number": 42}}
@@ -244,7 +244,6 @@ class TestTransformWebhookToCodegenRequest:
         expected_repo["integration_id"] = str(repo.integration_id)
 
         assert isinstance(result, dict)
-        assert result["request_type"] == "pr-review"
         assert result["external_owner_id"] == "123456"
         assert result["data"]["pr_id"] == 42
         repo_data = result["data"]["repo"]

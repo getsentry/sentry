@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
@@ -20,6 +21,8 @@ const DEFAULT_GLOBAL_FILTERS = [
     value: '',
   },
 ];
+
+export const DEFAULT_TRACES_TABLE_WIDTHS = [110, 600, 140, 110, 110, 110, 120, 110, 110];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -51,11 +54,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: t('Error Rate'),
           conditions: AGENT_FILTER,
-          fields: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
-          aggregates: [`${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          fields: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
+          aggregates: [`equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`],
           columns: [],
           fieldAliases: [t('Error Rate')],
-          orderby: `-${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
+          orderby: `-equation|${SpanFunction.TRACE_STATUS_RATE}(internal_error)`,
         },
       ],
     },
@@ -105,6 +108,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -128,6 +138,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_REQUEST_MODEL],
           fieldAliases: [t('Model'), t('Total Tokens')],
           orderby: `-sum(${SpanFields.GEN_AI_USAGE_TOTAL_TOKENS})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_REQUEST_MODEL,
+              staticDashboardId: 17,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -148,6 +165,13 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
+          linkedDashboards: [
+            {
+              dashboardId: '-1',
+              field: SpanFields.GEN_AI_TOOL_NAME,
+              staticDashboardId: 18,
+            },
+          ],
         },
       ],
       limit: 3,
@@ -157,6 +181,32 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 3, minH: 3}
 );
 
+const AGENTS_TRACES_TABLE = {
+  id: 'ai-agents-traces-table',
+  title: t('Traces'),
+  displayType: DisplayType.AGENTS_TRACES_TABLE,
+  interval: '1h',
+  tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
+  limit: MAX_TABLE_LIMIT,
+  queries: [
+    {
+      conditions: '',
+      fields: [],
+      columns: [],
+      aggregates: [],
+      name: '',
+      orderby: '',
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 6,
+    w: 6,
+    h: 4,
+    minH: TABLE_MIN_HEIGHT,
+  },
+};
+
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
@@ -164,5 +214,10 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS],
+  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'agent-monitoring',
+    requiredProjectFlags: ['hasInsightsAgentMonitoring'],
+  },
 };

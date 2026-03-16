@@ -6,7 +6,6 @@ import FormField from 'sentry/components/forms/formField';
 import ListItem from 'sentry/components/list/listItem';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -15,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function RuleNameOwnerForm({disabled, project}: Props) {
+export function RuleNameOwnerForm({disabled, project}: Props) {
   const renderRuleName = () => (
     <StyledTextField
       data-test-id="alert-name"
@@ -68,7 +67,7 @@ export default function RuleNameOwnerForm({disabled, project}: Props) {
 }
 
 const StyledListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
 `;
 
@@ -81,7 +80,7 @@ const StyledTextField = styled(TextField)`
     width: 100%;
   }
 
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
@@ -92,5 +91,5 @@ const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
     width: 100%;
   }
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
+  margin-bottom: ${p => (p.extraMargin ? '60px' : p.theme.space.md)};
 `;

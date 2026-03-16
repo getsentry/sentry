@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
@@ -24,13 +24,12 @@ import {
 } from 'sentry/components/events/highlights/util';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface EditHighlightsModalProps extends ModalRenderProps {
   event: Event;
@@ -342,6 +341,7 @@ export default function EditHighlightsModal({
   const [highlightTags, setHighlightTags] = useState<HighlightTags>(prevHighlightTags);
 
   const organization = useOrganization();
+  const theme = useTheme();
 
   const {mutate: saveHighlights, isPending} = useUpdateProject(project);
 
@@ -351,7 +351,7 @@ export default function EditHighlightsModal({
       <Header closeButton>
         <Title>{t('Edit Event Highlights')}</Title>
       </Header>
-      <Body css={modalBodyCss}>
+      <Body css={modalBodyCss(theme)}>
         <EditPreviewHighlightSection
           event={event}
           highlightTags={highlightTags}
@@ -479,9 +479,9 @@ function SectionFilterInput(props: InputProps) {
   );
 }
 
-const modalBodyCss = css`
-  margin: 0 -${space(4)};
-  padding: 0 ${space(4)};
+const modalBodyCss = (theme: Theme) => css`
+  margin: 0 -${theme.space['3xl']};
+  padding: 0 ${theme.space['3xl']};
   /* Full height minus enough buffer for header, footer and margins */
   max-height: calc(100vh - 275px);
   overflow-y: auto;
@@ -493,8 +493,8 @@ const Title = styled('h3')`
 
 const Subtitle = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${space(1.5)};
-  padding-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.lg};
+  padding-bottom: ${p => p.theme.space.xs};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -510,7 +510,7 @@ const FooterInfo = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const EditHighlightPreview = styled('div')<{columnCount: number}>`
@@ -529,7 +529,7 @@ const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
   color: ${p => p.theme.tokens.content.secondary};
   grid-column: 1 / -1;
   text-align: center;
-  margin: ${p => (p.extraMargin ? space(3) : 0)} 0;
+  margin: ${p => (p.extraMargin ? p.theme.space['2xl'] : 0)} 0;
 `;
 
 const EditHighlightSection = styled('div')`
@@ -545,12 +545,12 @@ const EditHighlightColumn = styled('div')`
   grid-column: span 1;
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
@@ -611,5 +611,5 @@ const ContextType = styled('p')`
   grid-column: span 2;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   text-transform: capitalize;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
