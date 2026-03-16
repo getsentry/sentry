@@ -305,6 +305,7 @@ jobs:
             exit 1
           fi
 
+          PIDS=()
           for i in $(seq 0 $((XDIST_N - 1))); do
             (
               WORKER_DB="default_gw${i}"
@@ -324,8 +325,11 @@ jobs:
                 -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
                 -e "DEBUG=1" "$SNUBA_IMAGE" api
             ) &
+            PIDS+=($!)
           done
-          wait
+          for pid in "${PIDS[@]}"; do
+            wait "$pid" || { echo "Bootstrap job (pid $pid) failed"; exit 1; }
+          done
 
           for i in $(seq 0 $((XDIST_N - 1))); do
             WORKER_PORT=$((1230 + i))
