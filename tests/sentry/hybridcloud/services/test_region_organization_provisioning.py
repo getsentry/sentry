@@ -5,7 +5,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.hybridcloud.services.region_organization_provisioning import (
-    region_organization_provisioning_rpc_service,
+    cell_organization_provisioning_rpc_service,
 )
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -69,7 +69,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -83,7 +83,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user, create_default_team=False)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -104,7 +104,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         assert existing_org.id == organization_id
 
         provision_options = self.get_provisioning_args(user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -125,7 +125,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -142,7 +142,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         provision_options.provision_options.name = "a" * 128
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=42, provision_payload=provision_options, cell_name="us"
         )
 
@@ -161,7 +161,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -183,7 +183,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         )
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -201,7 +201,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         self.create_organization(slug="santry", name="Santry", owner=user)
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+        result = cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
@@ -217,7 +217,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        region_organization_provisioning_rpc_service.create_organization_in_cell(
+        cell_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id,
             provision_payload=provision_options,
             cell_name="us",
@@ -265,7 +265,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             organization=self.provisioned_org, region="us", slug=desired_slug
         )
         result = (
-            region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
@@ -280,7 +280,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
 
     def test_returns_true_if_organization_slug_already_updated(self) -> None:
         result = (
-            region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     self.provisioned_org.slug
@@ -299,7 +299,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
             self.provisioned_org.delete()
 
         result = (
-            region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 cell_name="us",
                 org_slug_temporary_alias_res=rpc_org_slug_res,
             )
@@ -313,7 +313,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         desired_slug = "new-sentry"
         self.create_organization(slug=desired_slug, name="conflicted org", owner=self.create_user())
         result = (
-            region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
                 cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
