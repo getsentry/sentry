@@ -9,7 +9,8 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import FeedbackGroup, PerformanceNPlusOneAPICallsGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage

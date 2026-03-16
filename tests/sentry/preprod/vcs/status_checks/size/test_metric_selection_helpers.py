@@ -7,10 +7,10 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
 )
 from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class StatusCheckMetricSelectionHelpersTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
@@ -457,7 +457,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         return data
 
 
-class DetailedWorkflowEngineDetectorSerializer(WorkflowEngineDetectorSerializer):
+class DetailedWorkflowEngineDetectorSerializer(Serializer):
     """
     Detailed serializer for detector detail endpoints.
     Always includes eventTypes and snooze fields to match DetailedAlertRuleSerializer.
@@ -473,20 +473,23 @@ class DetailedWorkflowEngineDetectorSerializer(WorkflowEngineDetectorSerializer)
         expand = expand or []
         if "eventTypes" not in expand:
             expand = list(expand) + ["eventTypes"]
-        super().__init__(expand=expand, prepare_component_fields=prepare_component_fields)
+        self.base_serializer = WorkflowEngineDetectorSerializer(
+            expand=expand, prepare_component_fields=prepare_component_fields
+        )
+
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> defaultdict[Detector, dict[str, Any]]:
+        return self.base_serializer.get_attrs(item_list, user, **kwargs)
 
     def serialize(
         self, obj: Detector, attrs, user, **kwargs
     ) -> DetailedAlertRuleSerializerResponse:
-        # This is a bit dirty, but it should be temporary.
-        # We are using AlertRuleSerializerResponse, but with two more fields, and mypy doesn't
-        # seem to be able to tell, so we cast rather than "translating".
-        data = cast(
-            DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user, **kwargs)
-        )
-        # Parent already includes eventTypes since we forced it into expand
-        # Add snooze fields based on detector enabled state
-        data["snooze"] = not obj.enabled
+        base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
+        data: DetailedAlertRuleSerializerResponse = {
+            **base_data,
+            "snooze": not obj.enabled,
+        }
         if not obj.enabled:
             data["snoozeForEveryone"] = True
         return data

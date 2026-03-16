@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import rest_framework
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus

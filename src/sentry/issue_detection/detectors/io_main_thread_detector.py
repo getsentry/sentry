@@ -7,11 +7,11 @@ from typing import Any
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
-from sentry.issues.grouptype import (
-    GroupType,
+from sentry.issue_detection.grouptype import (
     PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
 )
+from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile

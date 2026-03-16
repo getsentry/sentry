@@ -109,13 +109,13 @@ class OutboxCategory(IntEnum):
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    region_name=region_name,
+                    cell_name=region_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, region_name=region_name
+                    shard_identifier=shard_identifier, cell_name=region_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)

@@ -416,7 +416,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
@@ -429,7 +429,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         in this method must be entirely idempotent and safe to async / stale states that can occur.
         """
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         """
         Called one or more times as an outbox receiver processes the class update category and
         the given identifier is found in the database.  This method can be used to invoke service
@@ -450,13 +450,13 @@ class HasControlReplicationHandlers(Protocol):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
         pass
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         pass
 
 

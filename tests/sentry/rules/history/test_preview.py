@@ -6,11 +6,11 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import (
-    GroupCategory,
+from sentry.issue_detection.grouptype import (
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee

@@ -43,7 +43,7 @@ type SchemaFieldValue<
   TFieldName extends SchemaFieldName<TSchema>,
 > = DeepValue<z.infer<TSchema>, TFieldName>;
 
-type AutoSaveFieldRenderArg<
+type AutoSaveFormRenderArg<
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends SchemaFieldName<TSchema>,
 > = FieldApi<
@@ -82,7 +82,7 @@ type AutoSaveFieldRenderArg<
  * A component that provides field props and mutation state via render prop.
  *
  * @example
- * <AutoSaveField
+ * <AutoSaveForm
  *   name="lastName"
  *   schema={baseUserSchema}
  *   initialValue={user.data?.lastName ?? ''}
@@ -98,10 +98,10 @@ type AutoSaveFieldRenderArg<
  *       onChange={field.handleChange}
  *     />
  *   )}
- * </AutoSaveField>
+ * </AutoSaveForm>
  */
 
-interface AutoSaveFieldProps<
+interface AutoSaveFormProps<
   TData,
   TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
@@ -110,7 +110,7 @@ interface AutoSaveFieldProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: AutoSaveFieldRenderArg<TSchema, TFieldName>) => React.ReactElement;
+  children: (field: AutoSaveFormRenderArg<TSchema, TFieldName>) => React.ReactElement;
 
   /**
    * Initial value - must match the schema's type for this field
@@ -156,12 +156,12 @@ interface AutoSaveFieldProps<
   confirm?: ConfirmConfig<z.infer<TSchema>[TFieldName]>;
 }
 
-export function AutoSaveField<
+export function AutoSaveForm<
   TData,
   TContext,
   TSchema extends z.ZodObject<z.ZodRawShape>,
   TFieldName extends Extract<keyof z.infer<TSchema>, string>,
->(props: AutoSaveFieldProps<TData, TContext, TSchema, TFieldName>) {
+>(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
   const id = useId();
   const mutation = useMutation(mutationOptions);
