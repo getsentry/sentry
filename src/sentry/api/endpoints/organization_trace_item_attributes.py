@@ -13,8 +13,9 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesResponse,
     TraceItemAttributeValuesRequest,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.request_common_pb2 import (
+    PageToken,
+    RequestMeta,
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -862,6 +863,25 @@ def serialize_type(search_type: constants.SearchType) -> str:
     return "number"
 
 
+def _check_attribute_exists(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    name: str,
+) -> str | None:
+    """Check if a single attribute exists in storage. Returns the name if found, None otherwise."""
+    rpc_request = TraceItemAttributeNamesRequest(
+        meta=meta,
+        limit=100,
+        type=attr_type,
+        value_substring_match=name,
+    )
+    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+    for attr in rpc_response.attributes:
+        if attr.name == name:
+            return name
+    return None
+
+
 def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
@@ -876,21 +896,21 @@ def _check_attributes_exist(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
 
-    found: set[str] = set()
+    all_checks = [(attr_type, name) for attr_type, names in attrs_by_type.items() for name in names]
 
-    for attr_type, names in attrs_by_type.items():
-        for name in names:
-            rpc_request = TraceItemAttributeNamesRequest(
-                meta=meta,
-                limit=100,
-                type=attr_type,
-                value_substring_match=name,
-            )
-            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-            for attr in rpc_response.attributes:
-                if attr.name == name:
-                    found.add(name)
-                    break
+    found: set[str] = set()
+    with ThreadPoolExecutor(
+        thread_name_prefix="attr_validate",
+        max_workers=len(all_checks),
+    ) as pool:
+        futures = [
+            pool.submit(_check_attribute_exists, meta, attr_type, name)
+            for attr_type, name in all_checks
+        ]
+        for future in futures:
+            result = future.result()
+            if result is not None:
+                found.add(result)
 
     return found
 
