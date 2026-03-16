@@ -591,6 +591,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
             "issue.seer_last_run": ScalarCondition("seer_autofix_last_triggered"),
+            "issue.id": QCallbackCondition(lambda ids: Q(id__in=[int(id) for id in ids])),
         }
 
         if environments is not None:

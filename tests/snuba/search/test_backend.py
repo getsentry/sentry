@@ -2630,6 +2630,27 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
 
         assert len(results) == 0
 
+    def test_issue_id_filter(self) -> None:
+        # issue.id must be applied to the postgres queryset so that candidates
+        # include the searched group. Without this, _preprocess_group_id_redirects
+        # can intersect postgres candidates with the snuba group_id condition
+        # and produce an empty IN clause that crashes ClickHouse.
+        results = self.make_query(
+            search_filter_query=f"issue.id:[{self.group1.id}]",
+        )
+        assert set(results) == {self.group1}
+
+        results = self.make_query(
+            search_filter_query=f"issue.id:[{self.group1.id},{self.group2.id}]",
+        )
+        assert set(results) == {self.group1, self.group2}
+
+        # Non-existent group should return empty results (not crash)
+        results = self.make_query(
+            search_filter_query="issue.id:[999999999]",
+        )
+        assert set(results) == set()
+
 
 class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
     pass
