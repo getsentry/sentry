@@ -408,10 +408,9 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> set[str | bytes, float]:
+    def _prepare_payloads(self, spans: list[Span]) -> set[str | bytes]:
         """
-        Prepare span payloads for storage. Returns set_members mapping
-        payload bytes to their minimum timestamp.
+        Prepare span payloads for storage. Returns a set of payload bytes.
         """
         if self._zstd_compressor is None:
             return {span.payload for span in spans}
