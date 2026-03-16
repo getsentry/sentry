@@ -10,12 +10,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
-import type {
-  RoutableModuleNames,
-  URLBuilder,
-} from 'sentry/views/insights/common/utils/useModuleURL';
+import type {PrebuiltDashboardURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
@@ -234,7 +232,7 @@ function getDashboardsBreadCrumbs(
 function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
-  moduleURLBuilder: URLBuilder,
+  prebuiltDashboardUrlBuilder: PrebuiltDashboardURLBuilder,
   leafBreadcrumb: Crumb,
   view?: DomainView
 ) {
@@ -256,7 +254,7 @@ function getInsightsModuleBreadcrumbs(
     });
   }
 
-  let moduleName: RoutableModuleNames | undefined = undefined;
+  let moduleName: ModuleName | undefined = undefined;
 
   if (
     typeof location.query.source === 'string' &&
@@ -264,9 +262,10 @@ function getInsightsModuleBreadcrumbs(
       location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
     ]
   ) {
-    moduleName = TRACE_SOURCE_TO_INSIGHTS_MODULE[
-      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
-    ] as RoutableModuleNames;
+    moduleName =
+      TRACE_SOURCE_TO_INSIGHTS_MODULE[
+        location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+      ];
   }
 
   switch (moduleName) {
@@ -275,7 +274,7 @@ function getInsightsModuleBreadcrumbs(
         label: t('Domain Summary'),
         to: getBreadCrumbTarget(
           normalizeUrl(
-            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/domains`
+            `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY, view, '/domains')}`
           ),
           location.query
         ),
@@ -287,7 +286,7 @@ function getInsightsModuleBreadcrumbs(
           label: t('Query Summary'),
           to: getBreadCrumbTarget(
             normalizeUrl(
-              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans/span/${location.query.groupId}`
+              `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY, view, `/spans/span/${location.query.groupId}`)}`
             ),
             location.query
           ),
@@ -304,7 +303,7 @@ function getInsightsModuleBreadcrumbs(
           label: t('Asset Summary'),
           to: getBreadCrumbTarget(
             normalizeUrl(
-              `/organizations/${organization.slug}/${moduleURLBuilder(moduleName)}/spans/span/${location.query.groupId}`
+              `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY, view, `/spans/span/${location.query.groupId}`)}`
             ),
             location.query
           ),
@@ -320,7 +319,7 @@ function getInsightsModuleBreadcrumbs(
         label: t('Screen Summary'),
         to: getBreadCrumbTarget(
           normalizeUrl(
-            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans`
+            `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS, view, '/spans')}`
           ),
           location.query
         ),
@@ -331,7 +330,7 @@ function getInsightsModuleBreadcrumbs(
         label: t('Screen Summary'),
         to: getBreadCrumbTarget(
           normalizeUrl(
-            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/spans`
+            `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS, view, '/spans')}`
           ),
           location.query
         ),
@@ -342,7 +341,7 @@ function getInsightsModuleBreadcrumbs(
         label: t('Page Overview'),
         to: getBreadCrumbTarget(
           normalizeUrl(
-            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/overview`
+            `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.WEB_VITALS_SUMMARY, view, '/overview')}`
           ),
           location.query
         ),
@@ -353,7 +352,7 @@ function getInsightsModuleBreadcrumbs(
         label: t('Destination Summary'),
         to: getBreadCrumbTarget(
           normalizeUrl(
-            `/organizations/${organization.slug}/${moduleURLBuilder(moduleName, view)}/destination`
+            `/organizations/${organization.slug}/${prebuiltDashboardUrlBuilder(PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY, view, '/destination')}`
           ),
           location.query
         ),
@@ -425,14 +424,14 @@ const Wrapper = styled('div')`
 export function getTraceViewBreadcrumbs({
   organization,
   location,
-  moduleURLBuilder,
+  prebuiltDashboardUrlBuilder,
   traceSlug,
   project,
   view,
 }: {
   location: Location;
-  moduleURLBuilder: URLBuilder;
   organization: Organization;
+  prebuiltDashboardUrlBuilder: PrebuiltDashboardURLBuilder;
   traceSlug: string;
   project?: Project;
   view?: DomainView;
@@ -449,7 +448,7 @@ export function getTraceViewBreadcrumbs({
     return getInsightsModuleBreadcrumbs(
       location,
       organization,
-      moduleURLBuilder,
+      prebuiltDashboardUrlBuilder,
       leafBreadcrumb,
       view
     );

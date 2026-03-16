@@ -2,13 +2,16 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
-import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {usePrebuiltDashboardUrlOrModuleUrl} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
@@ -25,8 +28,23 @@ interface Props {
 
 export function SpanSummaryLink(props: Props) {
   const location = useLocation();
-  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
-  const queryBaseUrl = useModuleURL(ModuleName.DB);
+  const {selection} = usePageFilters();
+  const isPlatformized = hasPlatformizedInsights(props.organization);
+  const pageFilters = {
+    project: selection.projects,
+    environment: selection.environments,
+    statsPeriod: selection.datetime.period ?? undefined,
+    start: selection.datetime.start?.toString() ?? undefined,
+    end: selection.datetime.end?.toString() ?? undefined,
+  };
+  const resourceBaseUrl = usePrebuiltDashboardUrlOrModuleUrl(
+    PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
+    {pageFilters}
+  );
+  const queryBaseUrl = usePrebuiltDashboardUrlOrModuleUrl(
+    PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+    {pageFilters}
+  );
 
   if (!props.group) {
     return null;
@@ -38,14 +56,18 @@ export function SpanSummaryLink(props: Props) {
     props.organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
-    return (
-      <Link
-        to={querySummaryRouteWithQuery({
+    const target = isPlatformized
+      ? queryBaseUrl
+      : querySummaryRouteWithQuery({
           base: queryBaseUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,
-        })}
+        });
+
+    return (
+      <Link
+        to={target}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,
@@ -64,14 +86,18 @@ export function SpanSummaryLink(props: Props) {
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(props.op)
   ) {
-    return (
-      <Link
-        to={resourceSummaryRouteWithQuery({
+    const target = isPlatformized
+      ? resourceBaseUrl
+      : resourceSummaryRouteWithQuery({
           baseUrl: resourceBaseUrl,
           query: location.query,
           group: props.group,
           projectID: props.project_id,
-        })}
+        });
+
+    return (
+      <Link
+        to={target}
         onClick={() => {
           trackAnalytics('trace.trace_layout.view_in_insight_module', {
             organization: props.organization,
