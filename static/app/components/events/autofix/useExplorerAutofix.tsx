@@ -541,10 +541,20 @@ export function useExplorerAutofix(
    * @param runId - Optional run ID to continue an existing run
    */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number) => {
+    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
       setWaitingForResponse(true);
 
       try {
+        const data: Record<string, any> = {step};
+
+        if (defined(runId)) {
+          data.run_id = runId;
+        }
+
+        if (userContext) {
+          data.user_context = userContext;
+        }
+
         const response = await api.requestPromise(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
@@ -552,11 +562,7 @@ export function useExplorerAutofix(
           {
             method: 'POST',
             query: {mode: 'explorer'},
-            data: {
-              step,
-              intelligence_level: 'low',
-              ...(runId !== undefined && {run_id: runId}),
-            },
+            data,
           }
         );
 

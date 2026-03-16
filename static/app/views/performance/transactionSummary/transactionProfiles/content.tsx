@@ -27,8 +27,10 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {isEventedProfile, isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -76,8 +78,23 @@ interface TransactionProfilesContentProps {
 
 export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
   const organization = useOrganization();
+  const isEAP = useTransactionSummaryEAP();
+
+  const query = useMemo(() => {
+    if (!isEAP) {
+      return props.query;
+    }
+
+    // EAP and profiles disagree about the attribute for HTTP method. The
+    // transaction summary uses `request.method`, but profiles uses
+    // `http.method`.
+    const search = new MutableSearch(props.query);
+    search.renameFilter('request.method', 'http.method');
+    return search.formatString();
+  }, [props.query, isEAP]);
+
   const {data, status} = useAggregateFlamegraphQuery({
-    query: props.query,
+    query,
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<

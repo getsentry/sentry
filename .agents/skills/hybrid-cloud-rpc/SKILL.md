@@ -400,7 +400,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import (
     all_silo_test,
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
     create_test_regions,

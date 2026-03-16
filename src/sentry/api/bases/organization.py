@@ -164,6 +164,13 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
     }
 
 
+class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+        "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+    }
+
+
 class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:admin"],

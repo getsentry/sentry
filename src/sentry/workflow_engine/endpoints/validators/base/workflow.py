@@ -4,6 +4,7 @@ from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry import audit_log, features, options
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.db import models
@@ -11,6 +12,7 @@ from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     ACTION_FILTERS_HELP_TEXT,
+    OWNER_HELP_TEXT,
     WORKFLOW_CONFIG_HELP_TEXT,
     WORKFLOW_TRIGGERS_HELP_TEXT,
 )
@@ -21,6 +23,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 from sentry.workflow_engine.endpoints.validators.utils import (
     log_alerting_quota_hit,
     remove_items_by_api_input,
+    update_owner,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
@@ -59,6 +62,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     action_filters = serializers.ListField(
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
+    )
+    owner = OwnerActorField(
+        required=False,
+        allow_null=True,
+        help_text=OWNER_HELP_TEXT,
     )
 
     def _split_action_and_condition_group(
@@ -244,8 +252,15 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             if action_filters is not None:
                 self.update_action_filters(action_filters)
 
+            # Handle owner field update
+            if "owner" in validated_data:
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
+
             # Update the workflow
             instance.update(**validated_data)
+            instance.save()
             return instance
 
     def _validate_workflow_limits(self) -> None:
@@ -283,6 +298,17 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             environment = validated_value.get("environment")
 
+            owner = validated_value.get("owner")
+            owner_user_id = None
+            owner_team_id = None
+            if owner:
+                if owner.is_user:
+                    owner_user_id = owner.id
+                elif owner.is_team:
+                    owner_team_id = owner.id
+
+            owner_user_id, owner_team_id = update_owner(validated_value.get("owner"))
+
             workflow = Workflow.objects.create(
                 name=validated_value["name"],
                 enabled=validated_value["enabled"],
@@ -291,6 +317,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
                 created_by_id=self.context["request"].user.id,
+                owner_user_id=owner_user_id,
+                owner_team_id=owner_team_id,
             )
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
