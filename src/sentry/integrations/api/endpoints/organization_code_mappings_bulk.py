@@ -46,6 +46,7 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,
+        allow_blank=True,  # Perforce allows empty streams
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     mappings = MappingItemSerializer(many=True, required=True)
@@ -135,9 +136,12 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         integration = integration_service.get_integration(integration_id=repo.integration_id)
         if not default_branch and integration:
             if integration.provider != IntegrationProviderSlug.PERFORCE:
-                install = integration.get_installation(organization_id=organization.id)
-                if isinstance(install, RepositoryIntegration):
-                    default_branch = install.get_repository_default_branch(repo) or ""
+                try:
+                    install = integration.get_installation(organization_id=organization.id)
+                    if isinstance(install, RepositoryIntegration):
+                        default_branch = install.get_repository_default_branch(repo) or ""
+                except Exception:
+                    logger.exception("bulk_code_mappings.branch_inference_error")
                 if not default_branch:
                     return Response(
                         {

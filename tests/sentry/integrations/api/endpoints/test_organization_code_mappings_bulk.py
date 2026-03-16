@@ -234,10 +234,15 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 400
         assert "not associated with an integration" in response.data["detail"]
 
-    def test_blank_default_branch_rejected(self) -> None:
-        response = self.make_post({"defaultBranch": ""})
+    def test_blank_default_branch_triggers_inference(self) -> None:
+        with mock.patch(
+            "sentry.integrations.source_code_management.repository."
+            "RepositoryIntegration.get_repository_default_branch",
+            return_value=None,
+        ):
+            response = self.make_post({"defaultBranch": ""})
         assert response.status_code == 400
-        assert "defaultBranch" in str(response.data)
+        assert "Could not determine the default branch" in response.data["detail"]
 
     def test_missing_default_branch_inferred_from_integration(self) -> None:
         with mock.patch(
