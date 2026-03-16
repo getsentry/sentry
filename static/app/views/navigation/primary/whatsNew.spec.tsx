@@ -43,8 +43,11 @@ describe('WhatsNew', () => {
 
     render(<PrimaryNavigationWhatsNew />);
 
+    const whatsNewButton = screen.getByRole('button', {name: "What's New"});
     await waitFor(() => {
-      expect(screen.queryByTestId('whats-new-unread-indicator')).not.toBeInTheDocument();
+      expect(
+        whatsNewButton.querySelector('[data-unread-indicator]')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -99,7 +102,13 @@ describe('WhatsNew', () => {
 
     render(<PrimaryNavigationWhatsNew />);
 
-    expect(await screen.findByTestId('whats-new-unread-indicator')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {name: "What's New"})
+          .querySelector('[data-unread-indicator]')
+      ).toBeInTheDocument()
+    );
   });
 
   it('does not call the mark-seen endpoint when all broadcasts are already seen', async () => {
@@ -214,9 +223,12 @@ describe('WhatsNew', () => {
 
     render(<PrimaryNavigationWhatsNew />);
 
-    expect(await screen.findByTestId('whats-new-unread-indicator')).toBeInTheDocument();
+    const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+    await waitFor(() =>
+      expect(whatsNewButton.querySelector('[data-unread-indicator]')).toBeInTheDocument()
+    );
 
-    await userEvent.click(screen.getByRole('button', {name: "What's New"}), {
+    await userEvent.click(whatsNewButton, {
       delay: null,
     });
 
@@ -225,7 +237,9 @@ describe('WhatsNew', () => {
     act(() => jest.advanceTimersByTime(1000));
 
     await waitFor(() => {
-      expect(screen.queryByTestId('whats-new-unread-indicator')).not.toBeInTheDocument();
+      expect(
+        whatsNewButton.querySelector('[data-unread-indicator]')
+      ).not.toBeInTheDocument();
     });
   });
 
