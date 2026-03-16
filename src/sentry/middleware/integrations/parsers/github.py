@@ -154,7 +154,7 @@ class GithubRequestParser(BaseRequestParser):
             return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
-            regions=regions,
+            cells=regions,
             identifier=self.get_mailbox_identifier(integration, event),
             integration_id=integration.id,
         )

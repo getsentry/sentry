@@ -49,14 +49,14 @@ class BaseRequestParserTest(TestCase):
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
         with raises(SiloLimit.AvailabilityError):
-            self.parser.get_responses_from_region_silos(regions=self.region_config)
+            self.parser.get_responses_from_cell_silos(regions=self.region_config)
 
     @override_settings(SILO_MODE=SiloMode.CELL)
     def test_fails_in_region_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
         with raises(SiloLimit.AvailabilityError):
-            self.parser.get_responses_from_region_silos(regions=self.region_config)
+            self.parser.get_responses_from_cell_silos(regions=self.region_config)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_from_control_silo(self) -> None:
@@ -67,10 +67,10 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_cell_silo")
-    def test_get_responses_from_region_silos(self, mock__get_response: MagicMock) -> None:
+    def test_get_responses_from_cell_silos(self, mock__get_response: MagicMock) -> None:
         mock__get_response.side_effect = lambda region: HttpResponse(region.name, status=200)
 
-        response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_responses_from_cell_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
 
         for region in self.region_config:
@@ -80,12 +80,12 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_cell_silo")
-    def test_get_responses_from_region_silos_with_partial_failure(
+    def test_get_responses_from_cell_silos_with_partial_failure(
         self, mock__get_response: MagicMock
     ) -> None:
         mock__get_response.side_effect = lambda region: error_regions(region, ["eu"])
 
-        response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_responses_from_cell_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
         us_response = response_map["us"].response
         assert isinstance(us_response, HttpResponse)
@@ -94,13 +94,13 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(BaseRequestParser, "get_response_from_cell_silo")
-    def test_get_responses_from_region_silos_with_complete_failure(
+    def test_get_responses_from_cell_silos_with_complete_failure(
         self, mock__get_response: MagicMock
     ) -> None:
         mock__get_response.side_effect = lambda region: error_regions(region, ["us", "eu"])
 
         self.response_handler.reset_mock()
-        response_map = self.parser.get_responses_from_region_silos(regions=self.region_config)
+        response_map = self.parser.get_responses_from_cell_silos(regions=self.region_config)
         assert mock__get_response.call_count == len(self.region_config)
 
         for region in self.region_config:

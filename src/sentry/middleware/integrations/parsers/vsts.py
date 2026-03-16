@@ -49,5 +49,5 @@ class VstsRequestParser(BaseRequestParser):
             return self.get_default_missing_integration_response()
 
         return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
+            cells=regions, identifier=integration.id, integration_id=integration.id
         )

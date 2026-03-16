@@ -138,34 +138,33 @@ class BaseRequestParser(ABC):
                 http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
+    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, RegionResult]:
         """
-        Used to handle the requests on a given list of regions (synchronously).
-        Returns a dict of region name to response/exception.
+        Used to handle the requests on a given list of cells (synchronously).
+        Returns a dict of cell name to response/exception.
         """
         self.ensure_control_silo()
 
-        region_to_response_map = {}
+        cell_to_response_map = {}
 
-        with ThreadPoolExecutor(max_workers=len(regions)) as executor:
-            future_to_region = {
-                executor.submit(self.get_response_from_cell_silo, region): region
-                for region in regions
+        with ThreadPoolExecutor(max_workers=len(cells)) as executor:
+            future_to_cell = {
+                executor.submit(self.get_response_from_cell_silo, cell): cell for cell in cells
             }
-            for future in as_completed(future_to_region):
-                region = future_to_region[future]
+            for future in as_completed(future_to_cell):
+                cell = future_to_cell[future]
                 try:
-                    region_response = future.result()
+                    cell_response = future.result()
                 except Exception as e:
-                    region_to_response_map[region.name] = RegionResult(error=e)
+                    cell_to_response_map[cell.name] = RegionResult(error=e)
                 else:
-                    region_to_response_map[region.name] = RegionResult(response=region_response)
+                    cell_to_response_map[cell.name] = RegionResult(response=cell_response)
 
-        return region_to_response_map
+        return cell_to_response_map
 
     def get_response_from_webhookpayload(
         self,
-        regions: list[Cell],
+        cells: list[Cell],
         identifier: int | str | None = None,
         integration_id: int | None = None,
     ) -> HttpResponseBase:
@@ -173,22 +172,22 @@ class BaseRequestParser(ABC):
         Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        if len(regions) < 1:
+        if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        # mailbox_name is provider:identifier, which is constant for all regions in
+        # mailbox_name is provider:identifier, which is constant for all cells in
         # this loop. Create all payloads first, then trigger a single drain.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
-                region=region.name,
+                region=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,
                 integration_id=integration_id,
                 request=self.request,
             )
-            for region in regions
+            for cell in cells
         ]
         if payloads:
             maybe_trigger_drain(payloads[0].mailbox_name)
@@ -255,7 +254,7 @@ class BaseRequestParser(ABC):
     def get_response_from_first_cell(self):
         cells = self.get_cells_from_organizations()
         first_cell = cells[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_cell])
+        response_map = self.get_responses_from_cell_silos(cells=[first_cell])
         cell_result = response_map[first_cell.name]
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
@@ -275,7 +274,7 @@ class BaseRequestParser(ABC):
 
     def get_response_from_all_cells(self):
         regions = self.get_cells_from_organizations()
-        response_map = self.get_responses_from_region_silos(regions=regions)
+        response_map = self.get_responses_from_cell_silos(cells=regions)
         successful_responses = [
             result for result in response_map.values() if result.response is not None
         ]

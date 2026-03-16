@@ -129,5 +129,5 @@ class MsTeamsRequestParser(BaseRequestParser):
             extra={"request_data": self.request_data},
         )
         return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
+            cells=regions, identifier=integration.id, integration_id=integration.id
         )

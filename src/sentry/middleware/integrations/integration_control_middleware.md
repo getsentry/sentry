@@ -50,7 +50,7 @@ class ExampleRequestParser(BaseRequestParser):
             return self.get_responses_from_outbox_creation(regions=cells)
 
         # If we're getting responses from multiple cells synchronously...
-        response_map = self.get_responses_from_region_silos(regions=regions)
+        response_map = self.get_responses_from_cell_silos(cells=regions)
         # Require all forwarded requests to succeed...
         if not all([result.error is None for result in response_map.values()])
             return HttpResponse(status_code=200)

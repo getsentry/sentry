@@ -83,7 +83,7 @@ class GitlabRequestParser(BaseRequestParser):
             data = {}
 
         return self.get_response_from_webhookpayload(
-            regions=regions,
+            cells=regions,
             identifier=self.get_mailbox_identifier(integration, data),
             integration_id=integration.id,
         )
