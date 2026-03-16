@@ -6,7 +6,6 @@ import {
   LINE_HEIGHT,
   type CoverageValue,
 } from 'sentry/components/prevent/virtualRenderers/constants';
-import {space} from 'sentry/styles/space';
 
 interface LineNumberProps {
   ariaLabel: string | undefined;
@@ -86,8 +85,8 @@ const LineNumberWrapper = styled('div')<{
   top: 0;
   width: 100%;
   user-select: none;
-  padding-left: ${space(1)};
-  padding-right: ${space(2)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xl};
   text-align: right;
   height: ${p => p.height}px;
   transform: translateY(${p => p.translateY}px);
@@ -105,7 +104,7 @@ const LineNumberWrapper = styled('div')<{
     if (!p.hasLineNumber) {
       return css`
         background-color: var(--prism-block-background);
-        border-right: ${space(0.25)} solid ${p.theme.colors.gray200};
+        border-right: ${p.theme.space['2xs']} solid ${p.theme.colors.gray200};
       `;
     }
 
@@ -114,7 +113,8 @@ const LineNumberWrapper = styled('div')<{
         ${generatePseudoElement({
           background: p.theme.tokens.background.transparent.accent.muted,
         })}
-        border-right: ${space(0.25)} solid ${p.theme.tokens.border.accent.vibrant};
+        border-right: ${p.theme.space['2xs']} solid ${p.theme.tokens.border.accent
+          .vibrant};
       `;
     }
     if (p.coverage === 'H') {
@@ -122,7 +122,8 @@ const LineNumberWrapper = styled('div')<{
         ${generatePseudoElement({
           background: p.theme.tokens.background.transparent.success.muted,
         })}
-        border-right: ${space(0.25)} solid ${p.theme.tokens.border.success.vibrant};
+        border-right: ${p.theme.space['2xs']} solid ${p.theme.tokens.border.success
+          .vibrant};
       `;
     }
     if (p.coverage === 'M') {
@@ -130,7 +131,8 @@ const LineNumberWrapper = styled('div')<{
         ${generatePseudoElement({
           background: p.theme.tokens.background.transparent.danger.muted,
         })}
-        border-right: ${space(0.25)} solid ${p.theme.tokens.border.danger.vibrant};
+        border-right: ${p.theme.space['2xs']} solid ${p.theme.tokens.border.danger
+          .vibrant};
       `;
     }
     if (p.coverage === 'P') {
@@ -138,13 +140,14 @@ const LineNumberWrapper = styled('div')<{
         ${generatePseudoElement({
           background: p.theme.tokens.background.transparent.warning.muted,
         })}
-        border-right: ${space(0.25)} solid ${p.theme.tokens.border.warning.vibrant};
+        border-right: ${p.theme.space['2xs']} solid ${p.theme.tokens.border.warning
+          .vibrant};
       `;
     }
 
     return css`
       background-color: var(--prism-block-background);
-      border-right: ${space(0.25)} solid
+      border-right: ${p.theme.space['2xs']} solid
         ${p.theme.tokens.border.transparent.neutral.muted};
     `;
   }}

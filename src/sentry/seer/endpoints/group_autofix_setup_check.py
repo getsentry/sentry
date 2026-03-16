@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import orjson
-import requests
 import sentry_sdk
 from django.conf import settings
 from rest_framework.request import Request
@@ -10,7 +9,7 @@ from rest_framework.response import Response
 from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -27,7 +26,11 @@ from sentry.seer.autofix.utils import (
     is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -84,23 +87,21 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         repos_and_access.append({**repo, "ok": response.json().get("has_access", False)})
 
     return repos_and_access
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

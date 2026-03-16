@@ -8,9 +8,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MONTHLY} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
+import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 
 type SliderInfo = {
   billingInterval: string;
@@ -75,8 +75,8 @@ describe('ReserveAdditionalVolume', () => {
 
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
     billingConfig.planList = billingConfig.planList.filter(plan => plan.userSelectable);
-    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business')!;
-    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf')!;
+    const am2BizPlanMonthly = PlanDetailsLookupFixture('am2_business');
+    const am2TeamPlanAnnual = PlanDetailsLookupFixture('am2_team_auf');
 
     const stepProps = {
       checkoutTier: PlanTier.AM2,
@@ -210,7 +210,7 @@ describe('ReserveAdditionalVolume', () => {
     let subscription: Subscription;
 
     const billingConfig = BillingConfigFixture(PlanTier.AM3);
-    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business')!;
+    const bizPlanMonthly = PlanDetailsLookupFixture('am3_business');
 
     const stepProps: any = {
       checkoutTier: PlanTier.AM3,

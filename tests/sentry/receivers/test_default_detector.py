@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.models.project import Project
 from sentry.receivers.project_detectors import (
     create_default_anomaly_detector,
@@ -17,7 +18,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.processors.detector import ensure_default_anomaly_detector
+from sentry.workflow_engine.processors.detector import (
+    ensure_default_anomaly_detector,
+    ensure_performance_detectors,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -200,3 +204,78 @@ class TestDisableDefaultDetectorCreation(TestCase):
 
         # Metric detector should not be created because the signal handler was disconnected
         assert not Detector.objects.filter(project=project, type=MetricIssue.slug).exists()
+
+
+class TestCreatePerformanceDetectors(TestCase):
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_creates_detectors_on_project_creation(self):
+        project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert Detector.objects.filter(project=project, type=mapping.wfe_detector_type).exists()
+
+    def test_does_not_create_detectors_when_flag_disabled(self):
+        project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert not Detector.objects.filter(
+                project=project, type=mapping.wfe_detector_type
+            ).exists()
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_idempotent_no_duplicates(self):
+        with disable_default_detector_creation():
+            project = self.create_project()
+
+        ensure_performance_detectors(project)
+        ensure_performance_detectors(project)
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert (
+                Detector.objects.filter(project=project, type=mapping.wfe_detector_type).count()
+                == 1
+            )
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    def test_disable_default_detector_creation_prevents_performance_detectors(self):
+        with disable_default_detector_creation():
+            project = self.create_project()
+
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            assert not Detector.objects.filter(
+                project=project, type=mapping.wfe_detector_type
+            ).exists()
+
+    @with_feature("projects:workflow-engine-performance-detectors")
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS",
+        {
+            "slow_db_queries_detection_enabled": True,
+            "large_http_payload_detection_enabled": True,
+            "db_query_injection_detection_enabled": False,
+        },
+    )
+    @mock.patch(
+        "sentry.workflow_engine.processors.detector.get_disabled_platforms_by_detector_type",
+        return_value={
+            "performance_slow_db_query": frozenset({"ruby", "php"}),
+        },
+    )
+    def test_respects_default_enabled_state(self, mock_disabled_platforms):
+        """Test that detectors respect both platform-specific disabling and default enabled state."""
+        with disable_default_detector_creation():
+            project = self.create_project(platform="ruby")
+
+        ensure_performance_detectors(project)
+
+        # Disabled because platform is in the disabled list
+        detector = Detector.objects.get(project=project, type="performance_slow_db_query")
+        assert detector.enabled is False
+
+        # Enabled: platform not in any disabled list and default is True
+        detector = Detector.objects.get(project=project, type="performance_large_http_payload")
+        assert detector.enabled is True
+
+        # Disabled because default setting is False (regardless of platform)
+        detector = Detector.objects.get(project=project, type="query_injection_vulnerability")
+        assert detector.enabled is False

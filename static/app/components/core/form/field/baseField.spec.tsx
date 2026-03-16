@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -22,7 +22,7 @@ function TestForm({label, hintText, required, defaultValue, validator}: TestForm
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="testField">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
@@ -49,7 +49,7 @@ function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps
   });
 
   return (
-    <form.AppForm>
+    <form.AppForm form={form}>
       <form.AppField name="testField">
         {field => {
           const LayoutComponent = field.Layout[layout];
@@ -80,7 +80,7 @@ function AutoSaveTestForm({
   label = 'Username',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="testField"
       schema={testSchema}
       initialValue={initialValue}
@@ -91,7 +91,7 @@ function AutoSaveTestForm({
           <field.Input value={field.state.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 

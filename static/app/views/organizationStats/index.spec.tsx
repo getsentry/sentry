@@ -7,9 +7,9 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
@@ -560,9 +560,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+  it('shows Metrics category when tracemetrics-enabled feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+      features: ['team-insights', 'tracemetrics-enabled'],
     });
 
     render(<OrganizationStats />, {
@@ -571,19 +571,6 @@ describe('OrganizationStats', () => {
 
     await userEvent.click(await screen.findByText('Category'));
     expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
-  });
-
-  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['team-insights'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {

@@ -7,11 +7,11 @@ import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import IdBadge from 'sentry/components/idBadge';
-import Panel from 'sentry/components/panels/panel';
+import {IdBadge} from 'sentry/components/idBadge';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   Score,
   ScoreCard,
@@ -22,20 +22,19 @@ import {
 } from 'sentry/components/scoreCard';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
   displayCrashFreePercent,
@@ -49,7 +48,10 @@ interface ProjectCardProps {
   project: Project;
 }
 
-function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProps) {
+export function ProjectCard({
+  project: simpleProject,
+  hasProjectAccess,
+}: ProjectCardProps) {
   const api = useApi();
   const organization = useOrganization();
 
@@ -217,9 +219,9 @@ function ProjectCard({project: simpleProject, hasProjectAccess}: ProjectCardProp
 const CardPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   height: 100%;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
 `;
 
@@ -230,19 +232,19 @@ const CardHeader = styled('div')`
 const CardFooter = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`
   position: relative;
-  margin: 0 -${space(2)};
+  margin: 0 -${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: 0 ${space(0.5)};
+  gap: 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 
   /* @TODO(jonasbadalic) This should be a title component and not a div */
@@ -268,9 +270,9 @@ const AlignedIdBadge = styled(IdBadge)`
 
 const SummaryLinks = styled('div')`
   display: inline-flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
-  top: -${space(2)};
+  top: -${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.regular};
 
   color: ${p => p.theme.tokens.content.secondary};
@@ -286,7 +288,7 @@ const SummaryLinks = styled('div')`
   & > *:not(:last-child)::after {
     content: '|';
     position: relative;
-    left: ${space(0.5)};
+    left: ${p => p.theme.space.xs};
     color: ${p => p.theme.tokens.content.secondary};
   }
 `;
@@ -294,13 +296,13 @@ const SummaryLinks = styled('div')`
 const SummaryLinkPlaceholder = styled(Placeholder)`
   height: 15px;
   width: 180px;
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(0.5)};
+  margin-top: ${p => p.theme.space['2xs']};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const TransactionsLink = styled(Link)`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 
@@ -318,7 +320,7 @@ const ScoreCardWrapper = styled('div')`
   ${Title} {
     font-size: ${p => p.theme.font.size.md};
     color: ${p => p.theme.tokens.content.secondary};
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
   ${ScoreWrapper} {
     flex-direction: column;
@@ -329,20 +331,18 @@ const ScoreCardWrapper = styled('div')`
   }
   ${Trend} {
     margin-left: 0;
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
   }
 `;
 
 const SubHeading = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const FooterPlaceholder = styled(Placeholder)`
   height: 40px;
   width: auto;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
-
-export default ProjectCard;

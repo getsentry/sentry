@@ -4,14 +4,14 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {uniqueId} from 'sentry/utils/guid';
-import sessionStorage from 'sentry/utils/sessionStorage';
+import sessionStorageWrapper from 'sentry/utils/sessionStorage';
 
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
-import trackAmplitudeEvent from 'getsentry/utils/trackAmplitudeEvent';
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
-import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {trackAmplitudeEvent} from 'getsentry/utils/trackAmplitudeEvent';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
+import {trackReloadEvent} from 'getsentry/utils/trackReloadEvent';
 
 jest.mock('sentry/utils/guid');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
@@ -56,7 +56,7 @@ describe('rawTrackAnalyticsEvent', () => {
   });
 
   it('coerces organization_id and project_id and honor existing analytics sessions', () => {
-    sessionStorage.setItem('ANALYTICS_SESSION', '789');
+    sessionStorageWrapper.setItem('ANALYTICS_SESSION', '789');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
       eventName: 'Test Event',
@@ -90,12 +90,12 @@ describe('rawTrackAnalyticsEvent', () => {
       {time: undefined}
     );
     expect(uniqueId).not.toHaveBeenCalled();
-    sessionStorage.removeItem('ANALYTICS_SESSION');
+    sessionStorageWrapper.removeItem('ANALYTICS_SESSION');
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
 
   it('allows null organization and set analytics session if missing', () => {
-    sessionStorage.removeItem('ANALYTICS_SESSION');
+    sessionStorageWrapper.removeItem('ANALYTICS_SESSION');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
       eventName: 'Test Event',
@@ -187,7 +187,7 @@ describe('rawTrackAnalyticsEvent', () => {
   });
 
   it('sets custom_referrer if found in local storage', () => {
-    sessionStorage.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
+    sessionStorageWrapper.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
     setWindowLocation('http:/localhost');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
@@ -207,7 +207,7 @@ describe('rawTrackAnalyticsEvent', () => {
       {time: undefined}
     );
     setWindowLocation('http:/localhost/');
-    expect(sessionStorage.getItem(CUSTOM_REFERRER_KEY)).toBeNull();
+    expect(sessionStorageWrapper.getItem(CUSTOM_REFERRER_KEY)).toBeNull();
   });
 
   it('start analytics session', () => {
@@ -303,7 +303,7 @@ describe('rawTrackAnalyticsEvent', () => {
     );
   });
   it('sets previous_referrer', () => {
-    sessionStorage.setItem('previous_referrer', 'something');
+    sessionStorageWrapper.setItem('previous_referrer', 'something');
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',
       eventName: 'Test Event',
@@ -316,7 +316,7 @@ describe('rawTrackAnalyticsEvent', () => {
       expect.objectContaining({previous_referrer: 'something'}),
       {time: undefined}
     );
-    sessionStorage.removeItem('previous_referrer');
+    sessionStorageWrapper.removeItem('previous_referrer');
   });
   it('pass in timestamp', () => {
     rawTrackAnalyticsEvent(

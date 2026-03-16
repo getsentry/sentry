@@ -3,7 +3,7 @@ import {IncidentFixture} from 'sentry-fixture/incident';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MetricHistory from './metricHistory';
+import {MetricHistory} from './metricHistory';
 
 describe('MetricHistory', () => {
   it('renders empty state', () => {

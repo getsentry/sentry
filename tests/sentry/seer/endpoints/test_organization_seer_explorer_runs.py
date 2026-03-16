@@ -1,10 +1,10 @@
 from datetime import datetime
 from unittest.mock import ANY, MagicMock, patch
 
-import requests
 from django.urls import reverse
 
 from sentry.seer.explorer.client_models import ExplorerRun
+from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cursors import Cursor
@@ -131,7 +131,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert call_args.kwargs["limit"] == 3
 
     def test_get_with_seer_error(self) -> None:
-        self.mock_client.get_runs.side_effect = requests.HTTPError("API Error")
+        self.mock_client.get_runs.side_effect = SeerApiError("API Error", 500)
         response = self.client.get(self.url)
         assert response.status_code == 500
 

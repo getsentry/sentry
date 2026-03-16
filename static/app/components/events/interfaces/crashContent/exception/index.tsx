@@ -7,7 +7,7 @@ import {StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
 import {LineCoverageProvider} from './lineCoverageContext';
-import RawContent from './rawContent';
+import {RawContent} from './rawContent';
 
 type Props = {
   event: Event;

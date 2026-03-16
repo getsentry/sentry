@@ -28,8 +28,7 @@ jobs:
         with:
           node-version-file: '.node-version'
 
-      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
-
+      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: Install github-label-sync
         run: pnpm add github-label-sync@2.2.0
 
@@ -43,13 +42,13 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:
           script: |
-            const fs = require('fs');
-            return fs.readFileSync('sync-report.txt','utf8').toString();
+            const { readFileSync } = await import('node:fs');
+            return readFileSync('sync-report.txt', 'utf8');
           result-encoding: string
 
       - name: Find previous dry-run comment

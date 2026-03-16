@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
@@ -97,7 +97,7 @@ describe('Discover -> ColumnEditModal', () => {
   });
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view', 'dashboards-mep'],
+      features: ['performance-view'],
     },
   });
   const columns: QueryFieldValue[] = [

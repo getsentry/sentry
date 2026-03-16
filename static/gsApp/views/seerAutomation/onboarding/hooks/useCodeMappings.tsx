@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseCodeMappingsParams {
   enabled: boolean;

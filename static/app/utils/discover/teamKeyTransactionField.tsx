@@ -2,14 +2,14 @@ import {Button} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import TeamKeyTransaction from 'sentry/components/performance/teamKeyTransaction';
+import {TeamKeyTransaction} from 'sentry/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type BaseProps = {
   isKeyTransaction: boolean;
@@ -83,7 +83,7 @@ type WrapperProps = BaseProps & {
   transactionName: string | undefined;
 };
 
-export default function TeamKeyTransactionFieldWrapper({
+export function TeamKeyTransactionFieldWrapper({
   isKeyTransaction,
   projectSlug,
   transactionName,

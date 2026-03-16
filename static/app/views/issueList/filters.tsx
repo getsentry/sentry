@@ -4,10 +4,9 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {space} from 'sentry/styles/space';
-import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
+import {IssueListSortOptions} from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearch} from 'sentry/views/issueList/issueSearch';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -21,7 +20,7 @@ interface Props {
 
 const RESET_PARAMS_ON_CHANGE = ['page', 'cursor'];
 
-function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
+export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
     <FiltersContainer>
       <StyledPageFilterBar>
@@ -49,9 +48,9 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
 
 const FiltersContainer = styled('div')`
   display: grid;
-  column-gap: ${space(1)};
-  row-gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
   width: 100%;
 
   grid-template-columns: 100%;
@@ -88,5 +87,3 @@ const StyledPageFilterBar = styled(PageFilterBar)`
     width: 100%;
   }
 `;
-
-export default IssueListFilters;

@@ -14,9 +14,9 @@ from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.testutils.silo import cell_silo_test, create_test_regions
 from sentry.testutils.skips import requires_objectstore
-from sentry.types.region import Region
+from sentry.types.region import Cell
 from sentry.utils import json
 
 
@@ -27,7 +27,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@region_silo_test
+@cell_silo_test
 @requires_objectstore
 @pytest.mark.usefixtures("local_live_server")
 class OrganizationObjectstoreEndpointTest(TransactionTestCase):
@@ -40,7 +40,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def get_endpoint_url(self) -> str:
@@ -102,6 +102,53 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         assert retrieved.payload.read() == b"test data"
 
     @with_feature("organizations:objectstore-endpoint")
+    def test_accept_encoding_passthrough(self):
+        data = os.urandom(10 * 1024)
+        ctx = zstandard.ZstdCompressor()
+        compressed = ctx.compress(data)
+
+        auth_headers = self.get_auth_headers()
+        base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+
+        # Upload with explicit zstd Content-Encoding so objectstore stores it compressed
+        post_resp = requests.post(
+            base_url,
+            data=compressed,
+            headers={
+                **auth_headers,
+                "Content-Encoding": "zstd",
+                "Content-Type": "application/octet-stream",
+            },
+            stream=True,
+        )
+        post_resp.raise_for_status()
+        object_key = post_resp.json()["key"]
+        assert object_key is not None
+
+        # Accept-Encoding: identity means no encoding accepted; proxy must decompress
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={**auth_headers, "Accept-Encoding": "identity"},
+        )
+        get_resp.raise_for_status()
+        assert get_resp.headers.get("Content-Encoding") is None
+        assert get_resp.headers.get("Content-Length") is None  # compressed size would be wrong
+        assert get_resp.content == data
+
+        # With Accept-Encoding: zstd, proxy passes through compressed bytes
+        get_resp = requests.get(
+            f"{base_url}{object_key}",
+            headers={**auth_headers, "Accept-Encoding": "zstd"},
+            stream=True,
+        )
+        get_resp.raise_for_status()
+        assert get_resp.headers.get("Content-Encoding") == "zstd"
+        raw_body = get_resp.raw.read(decode_content=False)
+        dctx = zstandard.ZstdDecompressor()
+        with dctx.stream_reader(raw_body) as reader:
+            assert reader.read() == data
+
+    @with_feature("organizations:objectstore-endpoint")
     def test_large_payload(self):
         session = self.get_session()
         data = b"A" * 1_000_000
@@ -116,7 +163,7 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
 test_region = create_test_regions("us")[0]
 
 
-@region_silo_test(regions=(test_region,))
+@cell_silo_test(regions=(test_region,))
 @requires_objectstore
 @with_feature("organizations:objectstore-endpoint")
 @pytest.mark.usefixtures("local_live_server")
@@ -130,7 +177,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["org:admin"],
+            scope_list=["project:releases"],
         )
 
     def tearDown(self) -> None:
@@ -151,7 +198,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     def test_health(self):
         config = asdict(test_region)
         config["address"] = self.live_server.url
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 response = self.client.get(
                     self.get_endpoint_url() + "health",
@@ -166,7 +213,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 
@@ -237,7 +284,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         ctx = zstandard.ZstdCompressor()
         compressed = ctx.compress(data)
 
-        with override_regions([Region(**config)]):
+        with override_regions([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 

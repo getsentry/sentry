@@ -5,7 +5,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 
 
 class OpenPeriodActivityType(IntEnum):
@@ -24,7 +24,7 @@ def generate_random_uuid() -> UUID:
     return uuid4()
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOpenPeriodActivity(DefaultFieldsModel):
     """
     The GroupOpenPeriodActivity tracks state changes within open periods.
@@ -47,4 +47,5 @@ class GroupOpenPeriodActivity(DefaultFieldsModel):
         db_table = "sentry_groupopenperiodactivity"
         indexes = [
             models.Index(fields=["group_open_period", "type", "event_id"]),
+            models.Index(fields=["event_id"]),
         ]

@@ -4,11 +4,11 @@ import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration';
+import {PullRequestLink} from 'sentry/components/pullRequestLink';
+import {Version} from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   Group,
@@ -41,7 +41,7 @@ function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
     const team = teams.find(({id}) => id === data.assignee);
     // TODO: could show a loading indicator if the team is loading
     assignee = team ? `#${team.slug}` : '<unknown-team>';
-  } else if (activity.user && data.assignee === activity.user.id) {
+  } else if (data.assignee === activity.user?.id) {
     assignee = t('themselves');
   } else if (data.assigneeType === 'user' && data.assigneeEmail) {
     assignee = data.assigneeEmail;
@@ -96,7 +96,7 @@ interface GroupActivityItemProps {
   projectId: Project['id'];
 }
 
-function GroupActivityItem({
+export function GroupActivityItem({
   activity,
   organization,
   projectId,
@@ -612,8 +612,6 @@ function GroupActivityItem({
 
   return <Fragment>{renderContent()}</Fragment>;
 }
-
-export default GroupActivityItem;
 
 const Subtext = styled('div')`
   font-size: ${p => p.theme.font.size.sm};

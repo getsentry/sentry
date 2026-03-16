@@ -57,8 +57,9 @@ export function ToolbarGroupByDropdown({
   loading,
   onClose,
 }: ToolbarGroupByDropdownProps) {
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
+    transition: null,
   });
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
@@ -76,7 +77,7 @@ export function ToolbarGroupByDropdown({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform), transition}}
+      style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
       {canDelete ? (
@@ -93,14 +94,13 @@ export function ToolbarGroupByDropdown({
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
-        searchable
+        search={{onChange: onSearch}}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}
           </OverlayTrigger.Button>
         )}
         menuTitle="Group By"
-        onSearch={onSearch}
         onClose={onClose}
         loading={loading}
       />
@@ -111,6 +111,14 @@ export function ToolbarGroupByDropdown({
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
+        />
+      ) : column.column ? (
+        <Button
+          aria-label={t('Clear Group By')}
+          priority="transparent"
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnChange('')}
         />
       ) : null}
     </ToolbarRow>

@@ -172,13 +172,18 @@ class DashboardFavoriteUserTest(TestCase):
 
         assert DashboardFavoriteUser.objects.count() == 2
 
-        DashboardFavoriteUser.objects.delete_favorite_dashboard(
+        DashboardFavoriteUser.objects.unfavorite_dashboard(
             self.organization, self.user.id, first_dashboard
         )
 
         dashboard = DashboardFavoriteUser.objects.get_favorite_dashboard(
             self.organization, self.user.id, second_dashboard
         )
-        assert DashboardFavoriteUser.objects.count() == 1
+        # Row still exists but with favorited=False
+        assert DashboardFavoriteUser.objects.count() == 2
+        assert DashboardFavoriteUser.objects.filter(favorited=True).count() == 1
+        unfavorited = DashboardFavoriteUser.objects.get(dashboard=first_dashboard)
+        assert unfavorited.favorited is False
+        assert unfavorited.position is None
         assert dashboard is not None
         assert dashboard.position == 0

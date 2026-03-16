@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -9,11 +10,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
 const SECOND_TO_MILLISECOND = 1000;
 const MILLISECOND_TO_DAY = SECOND_TO_MILLISECOND * 60 * 60 * 24;
@@ -145,6 +145,7 @@ function getHourlyForecasts(
 }
 
 function IssueEscalatingDebugging() {
+  const theme = useTheme();
   const api = useApi();
   const [organizationSlug, setOrganizationSlug] = useState('');
   const [groupId, setGroupId] = useState('');
@@ -166,8 +167,8 @@ function IssueEscalatingDebugging() {
       }
     );
 
-    const forecast: Forecast = data.forecast;
-    const hourlyCount: Array<[number, number]> = data.stats['24h']!;
+    const forecast = data.forecast;
+    const hourlyCount = data.stats['24h']!;
 
     if (forecast && forecast.data.length > 0) {
       const timestamps = hourlyCount.map(
@@ -227,7 +228,7 @@ function IssueEscalatingDebugging() {
       <LineChart
         height={300}
         series={hourlySeries}
-        grid={{left: space(4), right: space(4)}}
+        grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         showTimeInTooltip
         xAxis={{
           show: hourlySeries.length > 0,
@@ -261,12 +262,12 @@ export const SearchContainer = styled('div')`
   display: grid;
   grid-template-rows: 1fr;
   grid-template-columns: repeat(2, 1fr 2fr) 1fr 5fr 1fr;
-  gap: ${space(3)};
-  padding: ${space(1.5)};
+  gap: ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.lg};
   align-items: center;
 `;
 
 const StyledTag = styled(Tag)`
-  padding: 0 ${space(4)};
+  padding: 0 ${p => p.theme.space['3xl']};
 `;
 export default DebuggingTools;

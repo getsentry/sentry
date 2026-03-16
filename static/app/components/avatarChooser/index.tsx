@@ -11,12 +11,11 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
-import Panel from 'sentry/components/panels/panel';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Avatar} from 'sentry/types/core';
 import type {
   SentryApp,
@@ -25,7 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {AvatarCropper} from './avatarCropper';
 import {useUploader} from './useUploader';
@@ -68,7 +67,7 @@ const MAX_DIMENSION = 1024;
 // makes a lot of assumptions otherwise about how avatar are stored. We should
 // refactor the interface and split this up more.
 
-function AvatarChooser({
+export function AvatarChooser({
   endpoint,
   model: propsModel,
   disabled,
@@ -321,7 +320,7 @@ function AvatarChooser({
 }
 
 const AvatarChooserFooter = styled(PanelFooter)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const AvatarPreview = styled('div')`
@@ -329,7 +328,7 @@ const AvatarPreview = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   background-size: 20px 20px;
   background-position:
@@ -362,11 +361,11 @@ const AvatarPreview = styled('div')`
 `;
 
 const AvatarChooserBody = styled('div')`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const CropperHovercard = styled(Hovercard)`
@@ -379,5 +378,3 @@ const AvatarHelp = styled('p')`
   font-size: ${p => p.theme.font.size.md};
   width: 50%;
 `;
-
-export default AvatarChooser;

@@ -1,13 +1,13 @@
 import {useEffect, useMemo} from 'react';
 
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
-import useRAF from 'sentry/utils/useRAF';
+import {useRAF} from 'sentry/utils/useRAF';
 
 interface Props {
   callback?: (props: {timeMs: number}) => void;
 }
 
-export default function useReplayCurrentTime(props: Props) {
+export function useReplayCurrentTime(props: Props) {
   const {callback} = props || {};
 
   const {isFinished, playerState, replayers} = useReplayPlayerState();

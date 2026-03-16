@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponent from './groupingComponent';
@@ -14,7 +13,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponentChildren({component, showNonContributing}: Props) {
+export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {component.values
@@ -50,9 +49,10 @@ const GroupingValue = styled('code')<{
   contributes?: boolean;
 }>`
   display: inline-block;
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  margin: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
+    ${p => p.theme.space['2xs']} 0;
   font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
   color: ${p =>
     p.contributes ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
@@ -66,5 +66,3 @@ const GroupingValue = styled('code')<{
         : theme.tokens.content.secondary};
     `}
 `;
-
-export default GroupingComponentChildren;

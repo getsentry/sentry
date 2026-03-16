@@ -2254,7 +2254,6 @@ class MetricsFunction(SnQLFunction):
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_gauge = kwargs.pop("snql_gauge", None)
-        self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
@@ -2273,7 +2272,6 @@ class MetricsFunction(SnQLFunction):
                     self.snql_counter is not None,
                     self.snql_gauge is not None,
                     self.snql_column is not None,
-                    self.snql_metric_layer is not None,
                 ]
             )
             >= 1

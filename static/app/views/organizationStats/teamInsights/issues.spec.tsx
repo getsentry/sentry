@@ -6,12 +6,12 @@ import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
 
 jest.mock('sentry/utils/localStorage');
@@ -172,7 +172,7 @@ describe('TeamStatsIssues', () => {
     expect(screen.queryByText('#internal')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText('#frontend'));
     expect(router.location).toEqual(expect.objectContaining({query: {team: team1.id}}));
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
     );
@@ -188,7 +188,7 @@ describe('TeamStatsIssues', () => {
     expect(screen.getByText('#internal')).toBeInTheDocument();
     await userEvent.click(screen.getByText('#internal'));
     expect(router.location).toEqual(expect.objectContaining({query: {team: team3.id}}));
-    expect(localStorage.setItem).toHaveBeenCalledWith(
+    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team3.id
     );

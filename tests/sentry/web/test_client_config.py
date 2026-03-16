@@ -171,12 +171,12 @@ def test_client_config_default_region_data() -> None:
 @no_silo_test
 @django_db_all
 def test_client_config_empty_region_data() -> None:
-    region_directory = region.load_from_config([])
+    region_directory = region.load_from_config([], [])
 
     # Usually, we would want to use other testutils functions rather than calling
     # `swap_state` directly. We make an exception here in order to test the default
     # region data that `load_from_config` fills in.
-    with get_test_env_directory().swap_state(tuple(region_directory.regions)):
+    with get_test_env_directory().swap_state(tuple(region_directory.cells)):
         request, user = make_user_request_from_org()
         request.user = user
         result = get_client_config(request)
@@ -202,13 +202,13 @@ def test_client_config_with_region_data() -> None:
 
 
 hidden_regions = [
-    region.Region(
+    region.Cell(
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
         category=region.RegionCategory.MULTI_TENANT,
     ),
-    region.Region(
+    region.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",
@@ -241,7 +241,7 @@ def test_client_config_with_multiple_membership() -> None:
     Factories.create_organization(slug="us-co", owner=user)
     Factories.create_organization(slug="eu-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="eu-co")
-    mapping.update(region_name="eu")
+    mapping.update(cell_name="eu")
 
     result = get_client_config(request)
 
@@ -263,7 +263,7 @@ def test_client_config_with_single_tenant_membership() -> None:
 
     Factories.create_organization(slug="acme-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="acme-co")
-    mapping.update(region_name="acme")
+    mapping.update(cell_name="acme")
 
     result = get_client_config(request)
 
@@ -282,7 +282,7 @@ def test_client_config_links_regionurl() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
-    with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+    with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
         result = get_client_config(request)
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"
@@ -309,7 +309,7 @@ def test_client_config_region_display_order() -> None:
 
     Factories.create_organization(slug="acme-co", owner=user)
     mapping = OrganizationMapping.objects.get(slug="acme-co")
-    mapping.update(region_name="acme")
+    mapping.update(cell_name="acme")
 
     result = get_client_config(request)
     region_names = [region["name"] for region in result["regions"]]
@@ -332,7 +332,7 @@ def test_client_config_links_with_priority_org() -> None:
     # we want the org context to have priority over the active org
     assert request.session["activeorg"] != org.slug
 
-    with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+    with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
         result = get_client_config(request, org_context)
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"

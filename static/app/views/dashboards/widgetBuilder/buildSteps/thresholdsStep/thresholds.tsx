@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
 import NumberField from 'sentry/components/forms/fields/numberField';
@@ -11,8 +12,11 @@ import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField'
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
+import {
+  NEGATIVE_POLARITY_COLOR_ORDER,
+  POSITIVE_POLARITY_COLOR_ORDER,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -23,6 +27,8 @@ type ThresholdsStepProps = {
   dataType?: string;
   dataUnit?: string;
   errors?: ThresholdErrors;
+  onPolarityChange?: (polarity: Polarity) => void;
+  preferredPolarity?: Polarity;
 };
 
 type ThresholdRowProp = {
@@ -92,14 +98,25 @@ export function Thresholds({
   errors,
   dataType = '',
   dataUnit = '',
+  preferredPolarity = '-',
+  onPolarityChange,
 }: ThresholdsStepProps) {
   const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
-  const unitOptions = ['duration', 'rate'].includes(dataType)
-    ? getThresholdUnitSelectOptions(dataType)
-    : [];
+  const unitOptions = getThresholdUnitSelectOptions(dataType);
+
+  const isHigherBetter = preferredPolarity === '+';
+
+  const rowColors = isHigherBetter
+    ? POSITIVE_POLARITY_COLOR_ORDER
+    : NEGATIVE_POLARITY_COLOR_ORDER;
+
+  const bottomColor = theme.colors[rowColors[0]];
+  const middleColor = theme.colors[rowColors[1]];
+  const topColor = theme.colors[rowColors[2]];
+
   const thresholdRowProps: ThresholdRowProp[] = [
     {
       maxKey: ThresholdMaxKeys.MAX_1,
@@ -114,7 +131,7 @@ export function Thresholds({
         'aria-label': 'First Maximum',
         error: errors?.max1,
       },
-      color: theme.colors.green400,
+      color: bottomColor,
       unitOptions,
       unitSelectProps: {
         name: 'First unit select',
@@ -134,7 +151,7 @@ export function Thresholds({
         'aria-label': 'Second Maximum',
         error: errors?.max2,
       },
-      color: theme.colors.yellow400,
+      color: middleColor,
       unitOptions,
       unitSelectProps: {
         name: 'Second unit select',
@@ -154,7 +171,7 @@ export function Thresholds({
         placeholder: t('No max'),
         'aria-label': 'Third Maximum',
       },
-      color: theme.colors.red400,
+      color: topColor,
       unitOptions,
       unitSelectProps: {
         name: 'Third unit select',
@@ -166,6 +183,16 @@ export function Thresholds({
 
   return (
     <ThresholdsContainer>
+      <RadioGroup
+        label={t('Preferred polarity')}
+        value={preferredPolarity || '-'}
+        onChange={value => onPolarityChange?.(value)}
+        orientInline
+        choices={[
+          ['-', t('Lower is better')],
+          ['+', t('Higher is better')],
+        ]}
+      />
       {thresholdRowProps.map((props, index) => (
         <ThresholdRow
           {...props}
@@ -181,8 +208,8 @@ export function Thresholds({
 const ThresholdsContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
     padding: 0;

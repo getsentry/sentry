@@ -4,19 +4,19 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import BaseTeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.team import Team
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Teams"])
 class ProjectTeamsEndpoint(ProjectEndpoint):
     publish_status = {
@@ -26,7 +26,7 @@ class ProjectTeamsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="List a Project's Teams",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

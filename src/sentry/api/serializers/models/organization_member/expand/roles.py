@@ -57,10 +57,6 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
             )
         }
 
-        # Filter out emails from the serialized user data
-        for user_data in users_by_id.values():
-            user_data.pop("emails", None)
-
         for item in item_list:
             result.setdefault(item, {})["serializedUser"] = users_by_id.get(str(item.user_id), {})
         return result

@@ -19,7 +19,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-function DiscoverBreadcrumb({
+export function DiscoverBreadcrumb({
   eventView,
   event,
   organization,
@@ -70,5 +70,3 @@ function DiscoverBreadcrumb({
 
   return <Breadcrumbs crumbs={crumbs} />;
 }
-
-export default DiscoverBreadcrumb;

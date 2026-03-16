@@ -3,7 +3,7 @@ import React, {useEffect} from 'react';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';

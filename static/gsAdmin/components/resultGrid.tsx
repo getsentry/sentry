@@ -10,22 +10,21 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {Client} from 'sentry/api';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Region} from 'sentry/types/system';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
-import ResultTable from 'admin/components/resultTable';
+import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
 
@@ -574,10 +573,10 @@ const ResultGridContainer = styled('div')``;
 
 const SortSearchForm = styled('form')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 
   &:not(:empty) {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
@@ -588,9 +587,9 @@ const SortSearchForm = styled('form')`
 
 const FilterList = styled('div')`
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
   align-items: center;
 
@@ -602,7 +601,7 @@ const FilterList = styled('div')`
 
 export const SearchInput = styled(Input)`
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   height: 100%;
 
   &:focus-visible {
@@ -611,12 +610,12 @@ export const SearchInput = styled(Input)`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const ErrorAlert = styled(Alert)`
-  margin-top: ${space(0.5)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space.xs};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 export default withApi(withSentryRouter(ResultGrid));

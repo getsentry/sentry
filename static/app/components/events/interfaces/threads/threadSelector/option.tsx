@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Thread} from 'sentry/types/event';
@@ -24,7 +24,7 @@ type ThreadInfo = {
   state?: ThreadStates;
 };
 
-function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
+export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = thread.name || `<${t('unknown')}>`;
 
@@ -75,8 +75,6 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
     </ThreadSelectorGrid>
   );
 }
-
-export default Option;
 
 const InnerCell = styled('div')<{
   isBold?: boolean;

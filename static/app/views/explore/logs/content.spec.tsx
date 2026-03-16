@@ -12,8 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -222,7 +222,7 @@ describe('LogsPage', () => {
             groupBy: ['severity'],
             interval: '5m',
             partial: 1,
-            project: [],
+            project: [parseInt(project.id, 10)],
             query: '',
             referrer: 'api.explore.ourlogs-timeseries',
             sampling: 'NORMAL',

@@ -7,16 +7,16 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import AuditLogList from './auditLogList';
+import {AuditLogList} from './auditLogList';
 
 type State = {
   entryList: AuditLog[] | null;
@@ -33,6 +33,7 @@ type State = {
 
 function OrganizationAuditLog() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
@@ -151,8 +152,7 @@ function OrganizationAuditLog() {
       ...prevState,
       eventType: value,
     }));
-    browserHistory.push({
-      pathname: location.pathname,
+    navigate({
       query: {...location.query, event: value},
     });
   };
@@ -196,8 +196,7 @@ function OrganizationAuditLog() {
       newQuery.utc = data.utc ? 'true' : 'false';
     }
 
-    browserHistory.push({
-      pathname: location.pathname,
+    navigate({
       query: newQuery,
     });
   };

@@ -10,16 +10,15 @@ import {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconMegaphone, IconNext, IconPrevious} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Release, ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -31,7 +30,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
+export function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -253,9 +252,9 @@ function ReleaseActions({projectSlug, release, releaseMeta, refetchData}: Props)
 }
 
 const ProjectsWrapper = styled('div')`
-  margin: ${space(2)} 0 ${space(2)} ${space(2)};
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   img {
     border: none !important;
     box-shadow: none !important;
@@ -265,5 +264,3 @@ const ProjectsWrapper = styled('div')`
 const ModalHeaderContainer = styled('h4')`
   max-width: 100%;
 `;
-
-export default ReleaseActions;

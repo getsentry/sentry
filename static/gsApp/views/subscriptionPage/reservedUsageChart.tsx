@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
-import barSeries from 'sentry/components/charts/series/barSeries';
-import lineSeries from 'sentry/components/charts/series/lineSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {LineSeries as lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
@@ -23,7 +23,6 @@ import {
 import {GIGABYTE} from 'getsentry/constants';
 import {
   ReservedBudgetCategoryType,
-  type BillingMetricHistory,
   type BillingStats,
   type CustomerUsage,
   type ReservedBudgetForCategory,
@@ -43,7 +42,7 @@ import {
   isContinuousProfiling,
   isPartOfReservedBudget,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getOnDemandBudget,
@@ -88,8 +87,7 @@ function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
-  const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category];
+  const categoryInfo = subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
   // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
@@ -584,8 +582,7 @@ export function ProductUsageChart({
   footer?: React.ReactNode;
 }) {
   const theme = useTheme();
-  const currentHistory: BillingMetricHistory | undefined =
-    subscription.categories[category];
+  const currentHistory = subscription.categories[category];
   const categoryStats = usageStats[category];
 
   function chartMetadata() {
@@ -719,7 +716,7 @@ export function ProductUsageChart({
       chartSeries={[
         ...(displayMode === 'cost' && chartData.reserved
           ? [
-              barSeries({
+              BarSeries({
                 // Reserved spend
                 name: 'Included in Subscription',
                 data: chartData.reserved,
@@ -728,7 +725,7 @@ export function ProductUsageChart({
                 legendHoverLink: false,
                 color: theme.chart.getColorPalette(5)[0],
               }),
-              barSeries({
+              BarSeries({
                 name: displayBudgetName(subscription.planDetails, {title: true}),
                 data: chartData.onDemand,
                 barMinHeight: 1,

@@ -6,20 +6,19 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AvatarChooser from 'sentry/components/avatarChooser';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd, IconClose} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 const fieldProps = {
@@ -33,7 +32,7 @@ type Props = ModalRenderProps & {
   onSubmit?: (docIntegration: DocIntegration) => void;
 };
 
-function DocIntegrationModal(props: Props) {
+export function DocIntegrationModal(props: Props) {
   const {docIntegration, Body, Header, onSubmit: propsOnSubmit, closeModal} = props;
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
@@ -298,15 +297,13 @@ function DocIntegrationModal(props: Props) {
 }
 
 const AddButton = styled(Button)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const RemoveButton = styled(Button)`
-  margin-top: ${space(4)};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const ResourceTextField = styled(TextField)`
   flex: 1;
 `;
-
-export default DocIntegrationModal;

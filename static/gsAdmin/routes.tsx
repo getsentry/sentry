@@ -1,44 +1,45 @@
 import type {SentryRouteObject} from 'sentry/router/types';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
 
-import BeaconDetails from 'admin/views/beaconDetails';
-import Beacons from 'admin/views/beacons';
-import BillingAdmins from 'admin/views/billingAdmins';
+import {BeaconDetails} from 'admin/views/beaconDetails';
+import {Beacons} from 'admin/views/beacons';
+import {BillingAdmins} from 'admin/views/billingAdmins';
 import BillingPlans from 'admin/views/billingPlans';
-import BroadcastDetails from 'admin/views/broadcastDetails';
-import Broadcasts from 'admin/views/broadcasts';
-import CustomerDetails from 'admin/views/customerDetails';
-import Customers from 'admin/views/customers';
-import CustomerUpgradeRequest from 'admin/views/customerUpgradeRequest';
-import DataRequests from 'admin/views/dataRequests';
+import {BroadcastDetails} from 'admin/views/broadcastDetails';
+import {Broadcasts} from 'admin/views/broadcasts';
+import {CustomerContractDetails} from 'admin/views/customerContractDetails';
+import {CustomerDetails} from 'admin/views/customerDetails';
+import {Customers} from 'admin/views/customers';
+import {CustomerUpgradeRequest} from 'admin/views/customerUpgradeRequest';
+import {DataRequests} from 'admin/views/dataRequests';
 import DebuggingTools from 'admin/views/debuggingTools';
-import DocIntegrationDetails from 'admin/views/docIntegrationDetails';
-import DocIntegrations from 'admin/views/docIntegrations';
-import GenerateSpikeProjectionsForBatch from 'admin/views/generateSpikeProjectionsForBatch';
-import Home from 'admin/views/home';
-import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
-import InstanceLevelOAuthDetails from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
-import InvoiceDetails from 'admin/views/invoiceDetails';
-import Invoices from 'admin/views/invoices';
-import LaunchpadAdminPage from 'admin/views/launchpadAdminPage';
-import Layout from 'admin/views/layout';
-import NotFound from 'admin/views/notFound';
+import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
+import {DocIntegrations} from 'admin/views/docIntegrations';
+import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProjectionsForBatch';
+import {HomePage as Home} from 'admin/views/home';
+import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
+import {InstanceLevelOAuthDetails} from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
+import {InvoiceDetails} from 'admin/views/invoiceDetails';
+import {Invoices} from 'admin/views/invoices';
+import {LaunchpadAdminPage} from 'admin/views/launchpadAdminPage';
+import {Layout} from 'admin/views/layout';
+import {NotFound} from 'admin/views/notFound';
 import Options from 'admin/views/options';
-import Policies from 'admin/views/policies';
-import PolicyDetails from 'admin/views/policyDetails';
-import PrivateAPIs from 'admin/views/privateAPIs';
-import ProjectDetails from 'admin/views/projectDetails';
-import PromoCodeDetails from 'admin/views/promoCodeDetails';
-import PromoCodes from 'admin/views/promoCodes';
-import RelocationArtifactDetails from 'admin/views/relocationArtifactDetails';
-import RelocationCreate from 'admin/views/relocationCreate';
-import RelocationDetails from 'admin/views/relocationDetails';
-import Relocations from 'admin/views/relocations';
-import SentryAppDetails from 'admin/views/sentryAppDetails';
-import SentryApps from 'admin/views/sentryApps';
-import SentryEmployees from 'admin/views/sentryEmployees';
-import UserDetails from 'admin/views/userDetails';
-import Users from 'admin/views/users';
+import {Policies} from 'admin/views/policies';
+import {PolicyDetails} from 'admin/views/policyDetails';
+import {PrivateAPIs} from 'admin/views/privateAPIs';
+import {ProjectDetails} from 'admin/views/projectDetails';
+import {PromoCodeDetails} from 'admin/views/promoCodeDetails';
+import {PromoCodes} from 'admin/views/promoCodes';
+import {RelocationArtifactDetails} from 'admin/views/relocationArtifactDetails';
+import {RelocationCreate} from 'admin/views/relocationCreate';
+import {RelocationDetails} from 'admin/views/relocationDetails';
+import {Relocations} from 'admin/views/relocations';
+import {SentryAppDetails} from 'admin/views/sentryAppDetails';
+import {SentryApps} from 'admin/views/sentryApps';
+import {SentryEmployees} from 'admin/views/sentryEmployees';
+import {UserDetails} from 'admin/views/userDetails';
+import {Users} from 'admin/views/users';
 
 function buildRoutes() {
   const routes: SentryRouteObject = {
@@ -92,6 +93,10 @@ function buildRoutes() {
               {
                 path: 'upgrade-request/',
                 component: CustomerUpgradeRequest,
+              },
+              {
+                path: 'contract/',
+                component: CustomerContractDetails,
               },
               {
                 path: 'projects/:projectId/',

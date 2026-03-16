@@ -5,11 +5,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   group: Group;
@@ -18,7 +17,7 @@ interface Props {
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({group}: Props) {
+export function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
   const count = getReplayCountForIssue(group.id, group.issueCategory);
@@ -54,12 +53,10 @@ const ReplayCountLink = styled(Link)`
   display: inline-flex;
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
-  gap: 0 ${space(0.5)};
+  gap: 0 ${p => p.theme.space.xs};
   position: relative;
 
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
 `;
-
-export default IssueReplayCount;

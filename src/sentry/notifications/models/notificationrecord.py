@@ -3,11 +3,11 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 
 
-@region_silo_model
+@cell_silo_model
 class NotificationRecord(DefaultFieldsModel):
     """
     Tracks individual messages sent via the notification platform.

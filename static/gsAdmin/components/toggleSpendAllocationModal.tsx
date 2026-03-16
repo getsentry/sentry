@@ -4,7 +4,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Form from 'sentry/components/forms/form';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;
@@ -68,7 +68,5 @@ const Modal = withApi(SpendAllocationModal);
 
 type Options = Pick<Props, 'orgId' | 'spendAllocationEnabled' | 'onUpdated'>;
 
-const toggleSpendAllocationModal = (opts: Options) =>
+export const toggleSpendAllocationModal = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />);
-
-export default toggleSpendAllocationModal;

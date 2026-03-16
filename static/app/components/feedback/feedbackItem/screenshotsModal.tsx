@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ScreenshotPagination from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotPagination';
-import FeedbackScreenshot from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {ScreenshotPagination} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotPagination';
+import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

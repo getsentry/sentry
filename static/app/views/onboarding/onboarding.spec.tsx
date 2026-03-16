@@ -14,9 +14,9 @@ import {
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import OnboardingDrawerStore from 'sentry/stores/onboardingDrawerStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
@@ -302,7 +302,7 @@ describe('Onboarding', () => {
 
   it('renders the setup docs step', async () => {
     const organization = OrganizationFixture();
-    const nextJsProject: Project = ProjectFixture({
+    const nextJsProject = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs-slug',
@@ -373,7 +373,7 @@ describe('Onboarding', () => {
 
   it('does not render SDK data removal modal when going back', async () => {
     const organization = OrganizationFixture();
-    const reactProject: Project = ProjectFixture({
+    const reactProject = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
@@ -474,7 +474,7 @@ describe('Onboarding', () => {
 
   it('no longer display SDK data removal modal when going back', async () => {
     const organization = OrganizationFixture();
-    const reactProject: Project = ProjectFixture({
+    const reactProject = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
@@ -551,7 +551,7 @@ describe('Onboarding', () => {
 
   it('loads doc on platform click', async () => {
     const organization = OrganizationFixture();
-    const nextJsProject: Project = ProjectFixture({
+    const nextJsProject = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs',

@@ -2,7 +2,10 @@ import {useCallback, useMemo, useRef} from 'react';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
+import xor from 'lodash/xor';
 
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -13,39 +16,18 @@ import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
-import type {HybridFilterProps} from 'sentry/components/pageFilters/hybridFilter';
-import {
-  HybridFilter,
-  HybridFilterComponents,
-  useStagedCompactSelect,
-  type HybridFilterRef,
-} from 'sentry/components/pageFilters/hybridFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useRouter} from 'sentry/utils/useRouter';
 
 export interface EnvironmentPageFilterProps extends Partial<
-  Omit<
-    HybridFilterProps<string>,
-    | 'searchable'
-    | 'multiple'
-    | 'options'
-    | 'value'
-    | 'defaultValue'
-    | 'onReplace'
-    | 'onReset'
-    | 'onToggle'
-    | 'menuTitle'
-    | 'menuBody'
-    | 'shouldCloseOnInteractOutside'
-    | 'triggerProps'
-    | 'stagedSelect'
-  >
+  Omit<MultipleSelectProps<string>, 'onChange'>
 > {
   /**
    * Called when the selection changes
@@ -82,7 +64,10 @@ export function EnvironmentPageFilter({
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
   const organization = useOrganization();
-  const hybridFilterRef = useRef<HybridFilterRef<string>>(null);
+
+  // Ref to break the circular dependency: options need toggleOption, but toggleOption
+  // comes from useStagedCompactSelect which depends on options.
+  const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
@@ -187,9 +172,9 @@ export function EnvironmentPageFilter({
         value: env,
         label: env,
         leadingItems: ({isSelected}: {isSelected: boolean}) => (
-          <HybridFilterComponents.Checkbox
+          <MenuComponents.Checkbox
             checked={isSelected}
-            onChange={() => hybridFilterRef.current?.toggleOption(env)}
+            onChange={() => toggleOptionRef.current?.(env)}
             aria-label={t('Select %s', env)}
             tabIndex={-1}
           />
@@ -217,22 +202,35 @@ export function EnvironmentPageFilter({
 
   const stagedSelect = useStagedCompactSelect({
     value,
-    defaultValue: [],
     options,
     onChange: handleChange,
     onToggle,
     onReplace,
-    onReset,
     multiple: true,
   });
 
+  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // dependency between options (which need toggleOption) and useStagedCompactSelect
+  // (which needs options).
+  toggleOptionRef.current = stagedSelect.toggleOption;
+
+  const {dispatch} = stagedSelect;
+
+  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const shouldShowReset = stagedSelect.value.length > 0;
+
+  const handleReset = useCallback(() => {
+    dispatch({type: 'remove staged'});
+    handleChange([]);
+    onReset?.();
+  }, [dispatch, handleChange, onReset]);
+
   return (
-    <HybridFilter
+    <CompactSelect
+      grid
+      multiple
       {...selectProps}
-      ref={hybridFilterRef}
-      stagedSelect={stagedSelect}
-      searchable
-      options={options}
+      {...stagedSelect.compactSelectProps}
       disabled={disabled ?? (!projectsLoaded || !pageFilterIsReady)}
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
@@ -254,21 +252,20 @@ export function EnvironmentPageFilter({
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        stagedSelect.shouldShowReset ? (
-          <HybridFilterComponents.ResetButton
-            onClick={() => stagedSelect.handleReset()}
-          />
-        ) : null
+        shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null
       }
       menuFooter={
-        stagedSelect.hasStagedChanges ? (
+        hasStagedChanges ? (
           <Flex gap="md" align="center" justify="end">
-            <HybridFilterComponents.CancelButton
-              disabled={!stagedSelect.hasStagedChanges}
-              onClick={() => stagedSelect.removeStagedChanges()}
+            <MenuComponents.CancelButton
+              disabled={!hasStagedChanges}
+              onClick={() => stagedSelect.dispatch({type: 'remove staged'})}
             />
-            <HybridFilterComponents.ApplyButton
-              onClick={() => stagedSelect.commit(stagedSelect.stagedValue)}
+            <MenuComponents.ApplyButton
+              onClick={() => {
+                stagedSelect.dispatch({type: 'remove staged'});
+                handleChange(stagedSelect.value);
+              }}
             />
           </Flex>
         ) : null

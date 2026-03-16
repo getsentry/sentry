@@ -31,11 +31,16 @@ from sentry.grouping.ingest.grouphash_metadata import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+# How long we cache both the existence of secondary grouphashes and grouphashes themselves. We use a
+# minute because experimentation showed that anything more than that didn't improve hit rates.
+GROUPHASH_CACHE_EXPIRY_SECONDS = 60
 
 if TYPE_CHECKING:
     from sentry.event_manager import Job
@@ -215,16 +220,14 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
     """
     Check whether a given hash value has a corresponding `GroupHash` record in the database.
 
-    If `use_caching` is True, cache the boolean result. Cache retention is controlled by the
-    `grouping.ingest_grouphash_existence_cache_expiry` option.
+    If `use_caching` is True, cache the boolean result.
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.check_secondary_hash_existence"
     ) as metrics_tags:
-        if use_caching:
-            cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_existence_cache_expiry")
+        cache_key = get_grouphash_existence_cache_key(hash_value, project.id)
 
+        if use_caching:
             grouphash_exists = cache.get(cache_key)
             got_cache_hit = grouphash_exists is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
@@ -241,7 +244,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
             metrics_tags["grouphash_exists"] = grouphash_exists
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash_exists, cache_expiry)
+            cache.set(cache_key, grouphash_exists, GROUPHASH_CACHE_EXPIRY_SECONDS)
 
         return grouphash_exists
 
@@ -254,16 +257,14 @@ def _get_or_create_single_grouphash(
 
     If `use_caching` is true, and the resulting grouphash has an assigned group, cache the
     `GroupHash` object. (Grouphashes without a group aren't cached because their data is about to
-    change when a group is assigned.) Cache retention is controlled by the
-    `grouping.ingest_grouphash_object_cache_expiry` option.
+    change when a group is assigned.)
     """
     with metrics.timer(
         "grouping.get_or_create_grouphashes.get_or_create_grouphash"
     ) as metrics_tags:
-        if use_caching:
-            cache_key = get_grouphash_object_cache_key(hash_value, project.id)
-            cache_expiry = options.get("grouping.ingest_grouphash_object_cache_expiry")
+        cache_key = get_grouphash_object_cache_key(hash_value, project.id)
 
+        if use_caching:
             grouphash = cache.get(cache_key)
             got_cache_hit = grouphash is not None
             metrics_tags["cache_result"] = "hit" if got_cache_hit else "miss"
@@ -279,7 +280,7 @@ def _get_or_create_single_grouphash(
         if use_caching and grouphash.group_id is not None:
             metrics_tags["cache_set"] = True
 
-            cache.set(cache_key, grouphash, cache_expiry)
+            cache.set(cache_key, grouphash, GROUPHASH_CACHE_EXPIRY_SECONDS)
 
         return (grouphash, created)
 
@@ -308,6 +309,12 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = _get_or_create_single_grouphash(hash_value, project, use_caching)
 
+        if not created:
+            try:
+                grouphash._metadata = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+            except GroupHashMetadata.DoesNotExist:
+                pass
+
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled"):
             try:
                 # We don't expect this to throw any errors, but collecting this metadata
@@ -323,6 +330,7 @@ def get_or_create_grouphashes(
                 logger.warning(
                     "grouphash_metadata.exception", extra={"event_id": event_id, "error": repr(exc)}
                 )
+
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
 

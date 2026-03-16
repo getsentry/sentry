@@ -6,14 +6,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-function NoIssuesMatched() {
+export function NoIssuesMatched() {
   const organization = useOrganization();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const location = useLocation();
   const onBreachedMetricsView = location.pathname.endsWith('/issues/breached-metrics/');
@@ -47,9 +46,7 @@ function NoIssuesMatched() {
                     onClick={event => {
                       event.preventDefault();
                       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-                      if (router) {
-                        navigateTo(url, router);
-                      }
+                      navigateTo(url, navigate, location);
                     }}
                   />
                 ),
@@ -92,20 +89,18 @@ function NoIssuesMatched() {
   );
 }
 
-export default NoIssuesMatched;
-
 const Wrapper = styled('div')`
   display: flex;
   justify-content: center;
   font-size: ${p => p.theme.font.size.lg};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)};
+  padding: 40px ${p => p.theme.space['2xl']};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: center;
-    padding: ${space(3)};
+    padding: ${p => p.theme.space['2xl']};
     text-align: center;
   }
 `;

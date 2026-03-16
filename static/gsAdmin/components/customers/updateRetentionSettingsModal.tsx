@@ -7,7 +7,7 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import Form from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -91,7 +91,7 @@ function UpdateRetentionSettingsModal({
 
     const data = {retentions, orgRetention};
 
-    api.request(`/_admin/${organization.slug}/retention-settings/`, {
+    api.request(`/_admin/customers/${organization.slug}/retention-settings/`, {
       method: 'POST',
       data,
       success: () => {
@@ -185,9 +185,7 @@ function UpdateRetentionSettingsModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization' | 'subscription'>;
 
-const openUpdateRetentionSettingsModal = (opts: Options) =>
+export const openUpdateRetentionSettingsModal = (opts: Options) =>
   openModal(deps => <UpdateRetentionSettingsModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default openUpdateRetentionSettingsModal;

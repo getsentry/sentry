@@ -45,7 +45,7 @@ def handle_snuba_query_update(
     namespace=alerts_tasks,
     retry=Retry(times=5, delay=60),
     processing_deadline_duration=60,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def handle_trigger_action(
     action_id: int,
@@ -106,7 +106,7 @@ def handle_trigger_action(
     name="sentry.incidents.tasks.auto_resolve_snapshot_incidents",
     namespace=alerts_tasks,
     retry=Retry(times=2, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
@@ -121,14 +121,15 @@ def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
         return
 
     batch_size = 50
-    incidents = Incident.objects.filter(alert_rule=alert_rule).exclude(
-        status=IncidentStatus.CLOSED.value
-    )[: batch_size + 1]
-    has_more = incidents.count() > batch_size
+    incidents = list(
+        Incident.objects.filter(alert_rule=alert_rule).exclude(status=IncidentStatus.CLOSED.value)[
+            : batch_size + 1
+        ]
+    )
+    has_more = len(incidents) > batch_size
     if incidents:
-        incidents = incidents[:batch_size]
         with transaction.atomic(router.db_for_write(Incident)):
-            for incident in incidents:
+            for incident in incidents[:batch_size]:
                 update_incident_status(
                     incident,
                     IncidentStatus.CLOSED,

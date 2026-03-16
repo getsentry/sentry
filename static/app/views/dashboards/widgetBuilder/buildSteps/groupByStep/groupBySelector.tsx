@@ -6,9 +6,8 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -18,14 +17,14 @@ import type {FieldValueType} from 'sentry/utils/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   OnDemandExtractionState,
   WidgetType,
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -282,24 +281,24 @@ function FieldValidationErrors(props: {
 }
 
 const StyledField = styled(FieldGroup)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const SortableQueryFields = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const Ghost = styled('div')`
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 
   button {

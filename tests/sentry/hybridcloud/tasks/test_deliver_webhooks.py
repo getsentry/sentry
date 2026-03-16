@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -16,6 +17,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     SLOW_DELIVERY_THRESHOLD,
     drain_mailbox,
     drain_mailbox_parallel,
+    maybe_trigger_drain,
     schedule_webhook_delivery,
 )
 from sentry.testutils.cases import TestCase
@@ -23,9 +25,9 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Region, RegionCategory, RegionResolutionError
+from sentry.types.region import Cell, CellResolutionError, RegionCategory
 
-region_config = [Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
+region_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
 
 
 @control_silo_test
@@ -39,11 +41,11 @@ class ScheduleWebhooksTest(TestCase):
     def test_schedule_multiple_mailboxes(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         webhook_two = self.create_webhook_payload(
             mailbox_name="github:256",
-            region_name="us",
+            cell_name="us",
         )
         assert webhook_one.schedule_for < timezone.now()
         assert webhook_two.schedule_for < timezone.now()
@@ -55,11 +57,11 @@ class ScheduleWebhooksTest(TestCase):
     def test_schedule_one_mailbox_multiple_messages(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 1
@@ -69,11 +71,11 @@ class ScheduleWebhooksTest(TestCase):
     def test_schedule_mailbox_scheduled_later(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         self.create_webhook_payload(
             mailbox_name="github:256",
-            region_name="us",
+            cell_name="us",
             schedule_for=timezone.now() + timedelta(minutes=1),
         )
         schedule_webhook_delivery()
@@ -84,11 +86,11 @@ class ScheduleWebhooksTest(TestCase):
     def test_schedule_updates_mailbox_attributes(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         webhook_two = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         schedule_webhook_delivery()
 
@@ -113,13 +115,14 @@ class ScheduleWebhooksTest(TestCase):
         for _ in range(0, num_records):
             self.create_webhook_payload(
                 mailbox_name="github:123",
-                region_name="us",
+                cell_name="us",
             )
         # Run the task that is spawned to provide some integration test coverage.
         with self.tasks():
             schedule_webhook_delivery()
 
-        # First attempt will fail rescheduling messages.
+        # First attempt fails. provider=None is not in the skip-on-failure allowlist
+        # so processing stops after the first message, preserving mailbox ordering.
         assert len(responses.calls) == 1
         assert WebhookPayload.objects.count() == num_records
         head = WebhookPayload.objects.all().order_by("id").first()
@@ -127,6 +130,7 @@ class ScheduleWebhooksTest(TestCase):
         assert head.schedule_for > timezone.now()
 
         # Do another scheduled run. This should not make any forwarding requests
+        # because the head is still in backoff.
         with self.tasks():
             schedule_webhook_delivery()
         assert len(responses.calls) == 1
@@ -143,7 +147,7 @@ class ScheduleWebhooksTest(TestCase):
         for _ in range(0, int(MAX_MAILBOX_DRAIN / 3 + 1)):
             self.create_webhook_payload(
                 mailbox_name="github:123",
-                region_name="us",
+                cell_name="us",
             )
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 1
@@ -159,17 +163,17 @@ class ScheduleWebhooksTest(TestCase):
         slack_webhook = self.create_webhook_payload(
             mailbox_name="slack:123",
             provider="slack",
-            region_name="us",
+            cell_name="us",
         )
         github_webhook = self.create_webhook_payload(
             mailbox_name="github:123",
             provider="github",
-            region_name="us",
+            cell_name="us",
         )
         stripe_webhook = self.create_webhook_payload(
             mailbox_name="stripe:123",
             provider="stripe",
-            region_name="us",
+            cell_name="us",
         )
 
         # Run the scheduler
@@ -198,12 +202,12 @@ class ScheduleWebhooksTest(TestCase):
         unknown_webhook = self.create_webhook_payload(
             mailbox_name="unknown:123",
             provider="unknown",
-            region_name="us",
+            cell_name="us",
         )
         stripe_webhook = self.create_webhook_payload(
             mailbox_name="stripe:123",
             provider="stripe",
-            region_name="us",
+            cell_name="us",
         )
 
         # Run the scheduler
@@ -231,7 +235,7 @@ class ScheduleWebhooksTest(TestCase):
         null_provider_webhook = WebhookPayload.objects.create(
             mailbox_name="github:456",
             provider=None,
-            region_name="us",
+            cell_name="us",
             request_method="POST",
             request_path="/webhook/",
             request_headers="{}",
@@ -242,7 +246,7 @@ class ScheduleWebhooksTest(TestCase):
         stripe_webhook = self.create_webhook_payload(
             mailbox_name="stripe:123",
             provider="stripe",
-            region_name="us",
+            cell_name="us",
         )
 
         # Run the scheduler
@@ -259,12 +263,13 @@ class ScheduleWebhooksTest(TestCase):
         assert call_args_list[1] == null_provider_webhook.id
 
 
-def create_payloads(num: int, mailbox: str) -> list[WebhookPayload]:
+def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
-            region_name="us",
+            cell_name="us",
+            provider=provider,
         )
         created.append(hook)
     return created
@@ -277,7 +282,7 @@ def create_payloads_with_destination_type(
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
-            region_name=None,
+            cell_name=None,
             destination_type=destination_type,
         )
         created.append(hook)
@@ -295,43 +300,74 @@ class DrainMailboxTest(TestCase):
     def test_drain_unknown_region(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="lolnope",
+            cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox(webhook_one.id)
         assert len(responses.calls) == 0
 
     @responses.activate
     @override_regions(region_config)
     def test_drain_success_partial(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=500,
-            body="",
-        )
-        records = create_payloads(5, "github:123")
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(5, "github:123", provider="github")
         drain_mailbox(records[0].id)
 
-        # Attempts should stop as soon as the first delivery
-        # fails. This retains mailbox ordering while yielding this
-        # worker for new work
-        assert len(responses.calls) == 2
+        # github is in the skip-on-failure allowlist: failed messages are skipped
+        # and processing continues. All 5 messages are attempted.
+        assert len(responses.calls) == 5
 
-        # Mailbox should have 4 records left
-        assert WebhookPayload.objects.count() == 4
+        # Only the failed message remains in the mailbox.
+        assert WebhookPayload.objects.count() == 1
 
-        # Remaining record should be scheduled to run later.
+        # Failed record should be scheduled to run later.
         first = WebhookPayload.objects.order_by("id").first()
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "jira:123", provider="jira")
+        drain_mailbox(records[0].id)
+
+        # jira is not in the allowlist: processing stops on the first failure
+        # to preserve strict mailbox ordering.
+        assert len(responses.calls) == 2
+
+        # The failed message and all subsequent messages remain.
+        assert WebhookPayload.objects.count() == 4
+
+        first = WebhookPayload.objects.order_by("id").first()
+        assert first
+        assert first.attempts == 1
+        assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_regions(region_config)
+    def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "github:123", provider="github")
+        drain_mailbox(records[0].id)
+
+        # All 5 messages are attempted even though all fail.
+        assert len(responses.calls) == 5
+
+        # All 5 messages remain with incremented attempts and a future schedule_for.
+        assert WebhookPayload.objects.count() == 5
+        for record in WebhookPayload.objects.all():
+            assert record.attempts == 1
+            assert record.schedule_for > timezone.now()
 
     @responses.activate
     @override_regions(region_config)
@@ -350,7 +386,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_success_codecov(self) -> None:
         responses.add(
@@ -370,6 +408,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL=None)
+    @override_options({"codecov.forward-webhooks.disabled": False})
     @override_regions(region_config)
     def test_drain_codecov_configuration_error(self) -> None:
         responses.add(
@@ -391,7 +430,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_request_error(self) -> None:
         responses.add(
@@ -412,6 +453,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": False})
     def test_drain_codecov_filtered_getsentry_owner(self) -> None:
         """Skip list uses default option (getsentry); no client or request needed."""
         records = create_payloads_with_destination_type(
@@ -426,7 +468,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_other_owner(self) -> None:
         responses.add(
@@ -448,7 +492,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_malformed_body(self) -> None:
         responses.add(
@@ -466,6 +512,19 @@ class DrainMailboxTest(TestCase):
         drain_mailbox(records[0].id)
 
         assert len(responses.calls) == 3
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": True})
+    @override_regions(region_config)
+    def test_drain_codecov_skipped_when_forwarding_disabled(self) -> None:
+        """When codecov.forward-webhooks.disabled is True, payloads are drained but not sent."""
+        records = create_payloads_with_destination_type(
+            2, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 0
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
@@ -493,7 +552,7 @@ class DrainMailboxTest(TestCase):
     def test_drain_too_many_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             attempts=MAX_ATTEMPTS,
         )
         drain_mailbox(webhook_one.id)
@@ -505,7 +564,7 @@ class DrainMailboxTest(TestCase):
     def test_drain_more_than_max_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             attempts=MAX_ATTEMPTS + 1,
         )
         drain_mailbox(webhook_one.id)
@@ -523,7 +582,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         with pytest.raises(ValueError):
             drain_mailbox(webhook_one.id)
@@ -543,7 +602,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -563,7 +622,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         assert not WebhookPayload.objects.filter(id=webhook_one.id).exists()
@@ -580,7 +639,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -599,7 +658,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -618,7 +677,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -637,7 +696,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="plugins:123",
-            region_name="us",
+            cell_name="us",
             request_path="/plugins/github/organizations/123/webhook/",
         )
         drain_mailbox(webhook_one.id)
@@ -655,7 +714,7 @@ class DrainMailboxTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -677,9 +736,9 @@ class DrainMailboxParallelTest(TestCase):
     def test_drain_unknown_region(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="lolnope",
+            cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox_parallel(webhook_one.id)
         assert len(responses.calls) == 0
 
@@ -783,7 +842,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             attempts=MAX_ATTEMPTS,
         )
         drain_mailbox_parallel(webhook_one.id)
@@ -795,7 +854,7 @@ class DrainMailboxParallelTest(TestCase):
     def test_drain_more_than_max_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             attempts=MAX_ATTEMPTS + 1,
         )
         drain_mailbox_parallel(webhook_one.id)
@@ -813,7 +872,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         with pytest.raises(ValueError):
             drain_mailbox_parallel(webhook_one.id)
@@ -833,7 +892,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox_parallel(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -853,7 +912,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox_parallel(webhook_one.id)
         assert not WebhookPayload.objects.filter(id=webhook_one.id).exists()
@@ -870,7 +929,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox_parallel(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -889,7 +948,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox_parallel(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -908,7 +967,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="plugins:123",
-            region_name="us",
+            cell_name="us",
             request_path="/plugins/github/organizations/123/webhook/",
         )
         drain_mailbox_parallel(webhook_one.id)
@@ -926,7 +985,7 @@ class DrainMailboxParallelTest(TestCase):
         )
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox_parallel(webhook_one.id)
         hook = WebhookPayload.objects.filter(id=webhook_one.id).first()
@@ -950,7 +1009,7 @@ class SlowDeliveryLoggingTest(TestCase):
         )
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
             provider="github",
             request_body='{"repository": {"owner": {"login": "getsentry"}}}',
         )
@@ -971,7 +1030,7 @@ class SlowDeliveryLoggingTest(TestCase):
         assert log_extra.id == webhook.id
         assert log_extra.mailbox_name == "github:123"
         assert log_extra.provider == "github"
-        assert log_extra.region_name == "us"
+        assert log_extra.cell_name == "us"
         # date_added is logged as ISO string; attempts reflects the count before the successful attempt
         assert log_extra.date_added == expected_date_added
         assert log_extra.attempts == 0
@@ -991,7 +1050,7 @@ class DeliveryTimeMetricsTest(TestCase):
         )
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
-            region_name="us",
+            cell_name="us",
         )
         drain_mailbox(webhook.id)
 
@@ -1003,17 +1062,11 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
 
-        incr_calls = [
-            c
-            for c in mock_metrics.incr.call_args_list
-            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
-        ]
-        assert len(incr_calls) == 1
-        assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
-
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_codecov_region_sent_to(self, mock_metrics: MagicMock) -> None:
@@ -1043,3 +1096,273 @@ class DeliveryTimeMetricsTest(TestCase):
         ]
         assert len(incr_calls) == 1
         assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "pull_request", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"action": "opened", "repository": {}}).decode(),
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_and_action") == "pull_request.opened"
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_headers=orjson.dumps(
+                {"X-GitHub-Event": "push", "Content-Type": "application/json"}
+            ).decode(),
+            request_body=orjson.dumps({"repository": {}}).decode(),
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert tags.get("github_event_and_action") == "push.unknown"
+
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="stripe:123",
+            cell_name="us",
+            provider="stripe",
+        )
+        drain_mailbox(webhook.id)
+
+        delivery_time_ms_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+        assert len(delivery_time_ms_calls) == 1
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        assert "github_event_and_action" not in tags
+
+
+@control_silo_test
+class PushTriggerTest(TestCase):
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_enqueues_drain_for_idle_mailbox(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        maybe_trigger_drain(webhook.mailbox_name)
+        mock_drain.delay.assert_called_once_with(webhook.id, mailbox_name=webhook.mailbox_name)
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_deduplicates_concurrent_webhooks(self, mock_drain: MagicMock) -> None:
+        webhook_one = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        webhook_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        maybe_trigger_drain(webhook_one.mailbox_name)
+        maybe_trigger_drain(webhook_two.mailbox_name)
+        # Only the first call should trigger a drain; second is deduplicated
+        assert mock_drain.delay.call_count == 1
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_drains_from_mailbox_head_not_new_payload(
+        self, mock_drain: MagicMock
+    ) -> None:
+        # Older payload is already in the mailbox (e.g. waiting for a retry window)
+        older_webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        newer_webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        # Trigger with the newer webhook's ID, as get_response_from_webhookpayload does
+        maybe_trigger_drain(newer_webhook.mailbox_name)
+        # Must drain from the head of the mailbox so the older payload is not skipped
+        mock_drain.delay.assert_called_once_with(
+            older_webhook.id, mailbox_name=older_webhook.mailbox_name
+        )
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_allows_new_drain_after_ttl_expiry(self, mock_drain: MagicMock) -> None:
+        from django.core.cache import cache
+
+        webhook_one = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        webhook_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        maybe_trigger_drain(webhook_one.mailbox_name)
+        assert mock_drain.delay.call_count == 1
+
+        # Simulate TTL expiry by deleting the lock key
+        cache.delete(f"wh:drain_active:{webhook_one.mailbox_name}")
+
+        maybe_trigger_drain(webhook_two.mailbox_name)
+        assert mock_drain.delay.call_count == 2
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_push_trigger_noop_when_option_disabled(self, mock_drain: MagicMock) -> None:
+        # Option defaults to False
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        maybe_trigger_drain(webhook.mailbox_name)
+        mock_drain.delay.assert_not_called()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_graceful_on_redis_failure(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks.cache.add",
+            side_effect=Exception("Cache unavailable"),
+        ):
+            # Should not raise
+            maybe_trigger_drain(webhook.mailbox_name)
+        mock_drain.delay.assert_not_called()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_scheduler_skips_push_triggered_mailboxes(self, mock_drain: MagicMock) -> None:
+        from django.core.cache import cache
+
+        webhook_a = self.create_webhook_payload(mailbox_name="github:111", cell_name="us")
+        webhook_b = self.create_webhook_payload(mailbox_name="github:222", cell_name="us")
+
+        # Simulate an in-flight drain for mailbox A
+        cache.set(f"wh:drain_active:{webhook_a.mailbox_name}", 1, timeout=15)
+
+        schedule_webhook_delivery()
+
+        # Only mailbox B should have been scheduled
+        assert mock_drain.delay.call_count == 1
+        mock_drain.delay.assert_called_once_with(webhook_b.id)
+
+    @responses.activate
+    @override_regions(region_config)
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_drain_clears_lock_on_completion(self) -> None:
+        from django.core.cache import cache
+
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        drain_mailbox(webhook.id)
+
+        # Lock must be released so new webhooks can immediately trigger a fresh drain
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @responses.activate
+    @override_regions(region_config)
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_fires_immediately_after_drain_completes(
+        self, mock_drain: MagicMock
+    ) -> None:
+        from django.core.cache import cache
+
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook_one = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        drain_mailbox(webhook_one.id)
+
+        # Lock is cleared; a new webhook arriving now must be able to trigger a drain
+        assert cache.get(f"wh:drain_active:{webhook_one.mailbox_name}") is None
+        webhook_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        maybe_trigger_drain(webhook_two.mailbox_name)
+        mock_drain.delay.assert_called_once_with(
+            webhook_two.id, mailbox_name=webhook_two.mailbox_name
+        )
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_lock_released_on_enqueue_failure(self, mock_drain: MagicMock) -> None:
+        from django.core.cache import cache
+
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        mock_drain.delay.side_effect = Exception("Celery broker unavailable")
+
+        # Should not raise — error is counted as a metric and swallowed
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        # Lock must be released so the scheduler can still reach this mailbox
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_push_trigger_skips_drain_when_head_is_in_backoff(self, mock_drain: MagicMock) -> None:
+        from datetime import timedelta
+
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        # Create a payload whose head is in a retry backoff window
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        webhook.update(schedule_for=timezone.now() + timedelta(minutes=5))
+
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        # No drain should be enqueued — head is not ready
+        mock_drain.delay.assert_not_called()
+        # Lock must also be released so the scheduler can pick it up when backoff expires
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_drain_releases_lock_on_replica_doesnotexist(self) -> None:
+        from django.core.cache import cache
+
+        mailbox = "github:123"
+        # Simulate the lock held by maybe_trigger_drain
+        cache.add(f"wh:drain_active:{mailbox}", 1, timeout=15)
+
+        # Call drain_mailbox with a non-existent ID but with mailbox_name, simulating
+        # a replica replication lag race where maybe_trigger_drain found the head on
+        # the primary but drain_mailbox can't see it on the replica yet.
+        drain_mailbox(999999, mailbox_name=mailbox)
+
+        # Lock must be released so new webhooks and the scheduler can reach this mailbox
+        assert cache.get(f"wh:drain_active:{mailbox}") is None

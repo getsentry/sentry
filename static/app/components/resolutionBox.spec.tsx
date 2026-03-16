@@ -73,6 +73,54 @@ describe('ResolutionBox', () => {
       'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
+  it('handles inRelease with sentry app activity (prefers integration name over proxy actor)', () => {
+    const releaseVersion = 'frontend@424ff35513ab';
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {container} = render(
+      <ResolutionBox
+        statusDetails={{
+          inRelease: releaseVersion,
+          actor: {
+            id: '999',
+            name: 'linear-app-abc123@proxy-user.sentry.io',
+            username: 'linear-app-abc123@proxy-user.sentry.io',
+            ip_address: '127.0.0.1',
+            email: 'linear-app-abc123@proxy-user.sentry.io',
+          },
+        }}
+        project={project}
+        organization={organization}
+        activities={[
+          {
+            id: '1',
+            type: GroupActivityType.SET_RESOLVED_IN_RELEASE,
+            data: {version: releaseVersion},
+            sentry_app: {
+              name: 'Linear',
+              slug: 'linear',
+              uuid: 'abc-123',
+            },
+            dateCreated: new Date().toISOString(),
+          },
+        ]}
+      />
+    );
+    expect(container).toHaveTextContent(
+      'Linear marked this issue as resolved in version'
+    );
+    expect(container).toHaveTextContent('424ff35513ab');
+    expect(container).not.toHaveTextContent('proxy-user.sentry.io');
+  });
   it('handles inRelease with semver current_release_version)', () => {
     const currentReleaseVersion = '1.2.0';
     MockApiClient.addMockResponse({

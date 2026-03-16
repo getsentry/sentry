@@ -1,19 +1,18 @@
 import styled from '@emotion/styled';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import ConfigureReplayCard from 'sentry/components/replays/header/configureReplayCard';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
-import {space} from 'sentry/styles/space';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplayItemDropdown from 'sentry/views/replays/detail/header/replayItemDropdown';
+import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayItemDropdown} from 'sentry/views/replays/detail/header/replayItemDropdown';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsHeaderActions({readerResult}: Props) {
+export function ReplayDetailsHeaderActions({readerResult}: Props) {
   return (
     <ReplayLoadingState
       readerResult={readerResult}
@@ -56,7 +55,7 @@ export default function ReplayDetailsHeaderActions({readerResult}: Props) {
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   flex-direction: row;
   justify-content: flex-end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     margin-bottom: 0;
   }

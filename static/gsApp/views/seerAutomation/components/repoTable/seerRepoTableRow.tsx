@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +11,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import getRepoStatusLabel from 'sentry/components/repositories/getRepoStatusLabel';
+import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
@@ -23,24 +23,29 @@ import {
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
-import useRepositoryWithSettings, {
+import {
   getRepositoryWithSettingsQueryKey,
+  useRepositoryWithSettings,
 } from 'getsentry/views/seerAutomation/onboarding/hooks/useRepositoryWithSettings';
 
 interface Props {
+  gridColumns: string;
   mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
   mutationData: Record<string, RepositoryWithSettings>;
   repository: RepositoryWithSettings;
+  style?: React.CSSProperties;
 }
 
-export default function SeerRepoTableRow({
+export function SeerRepoTableRow({
+  gridColumns,
   mutateRepositorySettings,
   mutationData,
   repository: initialRepository,
+  style,
 }: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -61,7 +66,17 @@ export default function SeerRepoTableRow({
   const repository = isError || isPending ? initialRepository : data;
 
   return (
-    <SimpleTable.Row key={repository.id}>
+    <Grid
+      columns={gridColumns}
+      align="center"
+      style={style}
+      role="row"
+      position="absolute"
+      top="0"
+      left="0"
+      width="100%"
+      borderBottom="muted"
+    >
       <SimpleTable.RowCell>
         <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
           <Checkbox
@@ -158,7 +173,7 @@ export default function SeerRepoTableRow({
             ))}
         </Text>
       </SimpleTable.RowCell>
-    </SimpleTable.Row>
+    </Grid>
   );
 }
 

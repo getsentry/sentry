@@ -36,7 +36,7 @@ class WebhookPayload(Model):
     destination_type = models.CharField(
         choices=DestinationType.choices, null=False, db_default=DestinationType.SENTRY_REGION
     )
-    region_name = models.CharField(null=True)
+    cell_name = models.CharField(null=True, db_column="region_name")
 
     # May need to add organization_id in the future for debugging.
     integration_id = models.BigIntegerField(null=True)
@@ -82,7 +82,7 @@ class WebhookPayload(Model):
         constraints = [
             models.CheckConstraint(
                 condition=~Q(destination_type=DestinationType.SENTRY_REGION)
-                | Q(region_name__isnull=False),
+                | Q(cell_name__isnull=False),
                 name="webhookpayload_region_name_not_null",
             ),
         ]
@@ -90,7 +90,7 @@ class WebhookPayload(Model):
     __repr__ = sane_repr(
         "mailbox_name",
         "destination_type",
-        "region_name",
+        "cell_name",
         "schedule_for",
         "attempts",
         "integration_id",
@@ -126,7 +126,7 @@ class WebhookPayload(Model):
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
             destination_type=destination_type,
-            region_name=region,
+            cell_name=region,
             integration_id=integration_id,
             **cls.get_attributes_from_request(request),
         )
@@ -141,7 +141,7 @@ class WebhookPayload(Model):
             "integration_id": self.integration_id,
             "mailbox_name": self.mailbox_name,
             "provider": self.provider,
-            "region_name": self.region_name,
+            "cell_name": self.cell_name,
             "request_method": self.request_method,
             "request_path": self.request_path,
             "schedule_for": self.schedule_for.isoformat() if self.schedule_for else None,

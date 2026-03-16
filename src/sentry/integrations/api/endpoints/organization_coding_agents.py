@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
@@ -66,7 +66,7 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -77,9 +77,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return Response({"detail": "Feature not available"}, status=404)
-
         integrations = integration_service.get_integrations(
             organization_id=organization.id,
             providers=get_coding_agent_providers(),

@@ -23,6 +23,7 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
 
 @control_silo_endpoint
@@ -70,6 +71,8 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                     ).run()
                 except RequestException as exc:
                     sentry_sdk.capture_exception(exc)
+                except WebhookTimeoutError:
+                    pass
 
             transaction.on_commit(notify_on_commit, using=db)
         if request.user.is_authenticated:

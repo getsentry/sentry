@@ -29,19 +29,18 @@ import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
@@ -211,8 +210,8 @@ function SolutionDescription({
 
 const Description = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding-bottom: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 type SolutionEventListProps = {
@@ -702,7 +701,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
 }
 
 const NoSolutionPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const SolutionContainer = styled('div')`
@@ -715,7 +714,7 @@ const SolutionContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0 0;
+  padding: ${p => p.theme.space.md} 0 0;
 `;
 
 const HeaderText = styled('div')`
@@ -723,12 +722,12 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const AnimationWrapper = styled(motion.div)`
@@ -736,7 +735,8 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const CustomSolutionPadding = styled('div')`
-  padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xs']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xs']};
 `;
 
 const InstructionsInputWrapper = styled('form')`
@@ -749,7 +749,7 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 
   &::placeholder {
     color: ${p => p.theme.tokens.content.secondary};
@@ -758,7 +758,7 @@ const InstructionsInput = styled(Input)`
 
 const SubmitButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;

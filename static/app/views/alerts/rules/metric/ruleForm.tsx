@@ -5,8 +5,9 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
@@ -18,20 +19,19 @@ import {
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
   Confidence,
@@ -50,19 +50,19 @@ import {
   hasOnDemandMetricAlertFeature,
   shouldShowOnDemandMetricAlertUI,
 } from 'sentry/utils/onDemandMetrics/features';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import {OnDemandThresholdChecker} from 'sentry/views/alerts/rules/metric/onDemandThresholdChecker';
-import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
-import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
+import {RuleNameOwnerForm} from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
+import {ThresholdTypeForm} from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {SeriesSamplingInfo} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {hasThresholdValue} from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getBackendAlertType, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
@@ -1047,12 +1047,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleMEPAlertDataset = (data: EventsStats | MultiSeriesEventsStats | null) => {
     const {isMetricsData} = data ?? {};
-    const {organization} = this.props;
 
-    if (
-      isMetricsData === undefined ||
-      !organization.features.includes('mep-rollout-flag')
-    ) {
+    if (isMetricsData === undefined) {
       return;
     }
 
@@ -1213,12 +1209,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO: once all alerts are migrated to MEP, we can set the default to GENERIC_METRICS and remove this as well as
     // logic in handleMEPDataset, handleTimeSeriesDataFetched and checkOnDemandMetricsDataset
     const {dataset} = this.state;
-    const {organization} = this.props;
-    const hasMetricsFeatureFlags =
-      organization.features.includes('mep-rollout-flag') ||
-      hasOnDemandMetricAlertFeature(organization);
-
-    if (hasMetricsFeatureFlags && dataset === Dataset.TRANSACTIONS) {
+    if (dataset === Dataset.TRANSACTIONS) {
       return Dataset.GENERIC_METRICS;
     }
     return dataset;
@@ -1436,6 +1427,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       traceItemType
     );
+    const showWorkflowEngineMetricIssueUi = organization.features.includes(
+      'workflow-engine-metric-issue-ui'
+    );
 
     // Rendering the main form body
     return (
@@ -1540,31 +1534,45 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
                   <AlertListItem>
                     {
-                      <Flex align="center" gap="sm">
-                        {t('Set thresholds')}
-                        {showExtrapolationModeChangeWarning && (
-                          <WarningIcon
-                            tooltipProps={{
-                              title: tct(
-                                'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
-                                {
-                                  samplingLink: (
-                                    <ExternalLink
-                                      href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
-                                      openInNewTab
-                                    />
-                                  ),
-                                }
-                              ),
-                              isHoverable: true,
-                            }}
-                            id="thresholds-warning-icon"
-                          />
-                        )}
-                      </Flex>
+                      <div>
+                        <Flex align="center" gap="sm">
+                          {showWorkflowEngineMetricIssueUi
+                            ? t('Set issue detection thresholds')
+                            : t('Set thresholds')}
+
+                          {showExtrapolationModeChangeWarning && (
+                            <WarningIcon
+                              tooltipProps={{
+                                title: tct(
+                                  'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
+                                  {
+                                    samplingLink: (
+                                      <ExternalLink
+                                        href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer"
+                                        openInNewTab
+                                      />
+                                    ),
+                                  }
+                                ),
+                                isHoverable: true,
+                              }}
+                              id="thresholds-warning-icon"
+                            />
+                          )}
+                        </Flex>
+                      </div>
                     }
                   </AlertListItem>
-                  {thresholdTypeForm(formDisabled)}
+                  <Stack gap="lg">
+                    {showWorkflowEngineMetricIssueUi && (
+                      <Text>
+                        {t(
+                          'Metric alerts create metric issues and events. The thresholds below will determine: when the issue is created, resolved, and re-opened, as well as the issue priority.'
+                        )}
+                      </Text>
+                    )}
+                    {thresholdTypeForm(formDisabled)}
+                  </Stack>
                   {showErrorMigrationWarning && (
                     <Alert.Container>
                       <Alert variant="warning">
@@ -1631,14 +1639,15 @@ const Main = styled(Layout.Main)`
 `;
 
 const AlertListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
   margin-top: 0;
 `;
 
 const ChartHeader = styled('div')`
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
-  margin-bottom: -${space(1.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']} 0
+    ${p => p.theme.space['2xl']};
+  margin-bottom: -${p => p.theme.space.lg};
 `;
 
 const AlertName = styled(HeaderTitleLegend)`
@@ -1654,12 +1663,12 @@ const AlertInfo = styled('div')`
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const Aggregate = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

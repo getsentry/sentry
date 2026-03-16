@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {
   PREBUILT_DASHBOARDS,
@@ -45,7 +45,10 @@ const usePopulatePrebuiltIdsWithActualIds = (
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
-        query: {prebuiltId: [...prebuiltIds.sort(), prebuiltId].filter(defined)},
+        query: {
+          prebuiltId: [...prebuiltIds.sort(), prebuiltId].filter(defined),
+          filter: 'showHidden',
+        },
       },
     ],
     {

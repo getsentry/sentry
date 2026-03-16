@@ -23,7 +23,7 @@ Sentry is a developer-first error tracking and performance monitoring platform. 
 
 - **Container**: Docker (via devservices)
 - **Package Management**: pnpm (Node.js), pip (Python)
-- **Node Version**: 22 (managed by Volta)
+- **Node Version**: 24.14.0 LTS (from `.node-version`, installed by `devenv/sync.py`)
 
 ## Project Structure
 
@@ -146,12 +146,12 @@ Sentry uses `devservices` to manage local development dependencies:
 # src/sentry/core/endpoints/organization_details.py
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import DetailedOrganizationSerializer
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -444,7 +444,7 @@ if event_count < 10:
 - **Control Silo**: User auth, billing, organization management
 - **Region Silo**: Project data, events, issues
 - Check model's silo in `src/sentry/models/outbox.py`
-- Use `@region_silo_endpoint` or `@control_silo_endpoint`
+- Use `@cell_silo_endpoint` or `@control_silo_endpoint`
 
 ### Database Guidelines
 

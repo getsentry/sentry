@@ -21,7 +21,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
@@ -163,7 +163,7 @@ def resolve_maybe_bool_value(value):
     return None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -437,6 +437,16 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         member.flags["idp:provisioned"] = True
         member.save()
 
+        if previous_role != member.role:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_EDIT"),
+                data={"role": member.role, "email": member.get_email()},
+            )
+
         # only update metric if the role changed
         if (
             previous_role != organization.default_role
@@ -455,7 +465,7 @@ class SCIMListMembersResponse(SCIMListBaseResponse):
     Resources: list[OrganizationMemberSCIMSerializerResponse]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

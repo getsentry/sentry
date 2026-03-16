@@ -19,10 +19,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';
@@ -35,7 +34,7 @@ import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
-import MonitorEnvironmentLabel from './monitorEnvironmentLabel';
+import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 
 interface Props {
   monitor: Monitor;
@@ -244,7 +243,7 @@ export function OverviewRow({
 
 const DetailsLink = styled(Link)`
   display: block;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   color: ${p => p.theme.tokens.content.primary};
 
   &:focus-visible {
@@ -260,14 +259,14 @@ const DetailsArea = styled('div')`
 
 const DetailsHeadline = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: 1fr minmax(30px, max-content);
 `;
 
 const OwnershipDetails = styled('div')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
@@ -276,12 +275,12 @@ const OwnershipDetails = styled('div')`
 const Name = styled('h3')`
   font-size: ${p => p.theme.font.size.lg};
   word-break: break-word;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const ScheduleDetails = styled('small')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
@@ -331,7 +330,7 @@ const DetailsActions = styled('div')`
 
   /* Align to the center of the heading text */
   height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
-  margin: ${space(3)};
+  margin: ${p => p.theme.space['2xl']};
 
   /* Show when timeline is hovered / focused */
   ${TimelineRow}:hover &,
@@ -344,8 +343,8 @@ const DetailsActions = styled('div')`
 
 const MonitorEnvContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} ${space(2)};
-  gap: ${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  gap: ${p => p.theme.space['3xl']};
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.tokens.border.secondary};
   text-align: right;
@@ -357,7 +356,7 @@ const EnvDropdown = styled(DropdownMenu)`
 
 const EnvRow = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   justify-content: space-between;
   align-items: center;
   height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
@@ -371,9 +370,9 @@ const EnvActionButton = styled(Button)`
 
 const TimelineContainer = styled('div')`
   display: flex;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   flex-direction: column;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   contain: content;
   grid-column: 3/-1;
 `;
