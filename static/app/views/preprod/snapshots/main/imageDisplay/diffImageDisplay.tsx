@@ -305,7 +305,6 @@ const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`
   mask-mode: luminance;
   -webkit-mask-image: url(${p => p.$maskUrl});
   -webkit-mask-size: 100% 100%;
-  -webkit-mask-mode: luminance;
 `;
 
 const OnionContainer = styled('div')`

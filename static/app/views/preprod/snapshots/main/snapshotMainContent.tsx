@@ -168,23 +168,24 @@ function OverlayControls({
   showOverlay: boolean;
 }) {
   const theme = useTheme();
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const overlayColors = theme.chart.getColorPalette(10);
 
   useEffect(() => {
-    if (!isPickerOpen) {
+    if (!isColorPickerOpen) {
       return undefined;
     }
+
     function handleMouseDown(e: MouseEvent) {
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setIsPickerOpen(false);
+        setIsColorPickerOpen(false);
       }
     }
     document.addEventListener('mousedown', handleMouseDown);
     return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [isPickerOpen]);
+  }, [isColorPickerOpen]);
 
   return (
     <Flex align="center" gap="sm">
@@ -197,21 +198,21 @@ function OverlayControls({
       </Button>
       <ColorPickerWrapper ref={pickerRef}>
         <ColorTrigger
-          $color={overlayColor}
+          color={overlayColor}
           aria-label={t('Pick overlay color')}
-          onClick={() => setIsPickerOpen(open => !open)}
+          onClick={() => setIsColorPickerOpen(open => !open)}
         />
-        {isPickerOpen && (
+        {isColorPickerOpen && (
           <ColorPickerDropdown>
             <Flex gap="xs">
               {overlayColors.map(color => (
                 <ColorSwatch
                   key={color}
-                  $color={color}
-                  $selected={overlayColor === color}
+                  color={color}
+                  selected={overlayColor === color}
                   onClick={() => {
                     onOverlayColorChange(color);
-                    setIsPickerOpen(false);
+                    setIsColorPickerOpen(false);
                   }}
                   aria-label={t('Overlay color %s', color)}
                 />
@@ -241,13 +242,13 @@ const ColorPickerDropdown = styled('div')`
   z-index: ${p => p.theme.zIndex.dropdown};
 `;
 
-const ColorTrigger = styled('button')<{$color: string}>`
+const ColorTrigger = styled('button')<{color: string}>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.$color};
+  background-color: ${p => p.color};
   padding: 0;
 
   &:hover {
@@ -255,15 +256,15 @@ const ColorTrigger = styled('button')<{$color: string}>`
   }
 `;
 
-const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
+const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid
-    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  background-color: ${p => p.$color};
+    ${p => (p.selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  background-color: ${p => p.color};
   padding: 0;
-  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline: ${p => (p.selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
   outline-offset: 1px;
 `;
