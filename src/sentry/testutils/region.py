@@ -88,7 +88,7 @@ def override_regions(regions: Sequence[Cell], local_region: Cell | None = None) 
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
-    changes the behavior of the module-level functions in `sentry.types.region`. This
+    changes the behavior of the module-level functions in `sentry.types.cell`. This
     is preferable to overriding the `SENTRY_REGION_CONFIG` setting value directly
     because the region mapping may already be cached.
     """
