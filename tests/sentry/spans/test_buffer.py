@@ -1620,7 +1620,6 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
         segment_id=segment_id,
         project_id=example["project_id"],
         payload=payload,
-        end_timestamp=cast(float, example["end_timestamp"]),
         is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
     )
 
