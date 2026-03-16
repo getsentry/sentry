@@ -3205,16 +3205,21 @@ class UptimeTestCaseMixin:
             return_value="https://fake.com/",
         )
         self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
         self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
         self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
         self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
         self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
 
     def tearDown(self):
         super().tearDown()
         self.mock_resolve_hostname_ctx.__exit__(None, None, None)
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def create_uptime_result(
         self,
