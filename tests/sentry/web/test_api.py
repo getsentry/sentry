@@ -706,6 +706,8 @@ class McpJsonTest(TestCase):
 class OAuthAuthorizationServerMetadataTest(TestCase):
     @cached_property
     def path(self) -> str:
+        # RFC 8414 fixes the discovery URL, so test the concrete well-known path
+        # and exact absolute endpoint values rather than Django route indirection.
         return "/.well-known/oauth-authorization-server"
 
     def test_metadata_response(self) -> None:
