@@ -9,7 +9,7 @@ import pytest
 from sentry_redis_tools.clients import StrictRedis
 
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
-from sentry.spans.segment_key import SegmentKey, parse_segment_key
+from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
 pytestmark = [pytest.mark.django_db]
@@ -33,7 +33,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
-    "spans.buffer.max-flush-segments-per-trace": 0,
     "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
@@ -1299,93 +1298,6 @@ def test_partition_routing_stable_across_rebalance() -> None:
 
         buf.done_flush_segments(rv)
         assert_clean(buf.client)
-
-
-def test_per_trace_flush_limit_throttles(buffer: SpansBuffer) -> None:
-    """A trace exceeding the per-trace limit is capped; other traces flush normally."""
-    spans_a = [
-        Span(
-            payload=_payload(f"a{i:015d}"),
-            trace_id="a" * 32,
-            span_id=f"a{i:015d}",
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=1,
-            end_timestamp=1700000000.0,
-        )
-        for i in range(3)
-    ]
-    spans_b = [
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="b" * 32,
-            span_id="b" * 16,
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=2,
-            end_timestamp=1700000000.0,
-        )
-    ]
-
-    process_spans(spans_a + spans_b, buffer, now=0)
-
-    with override_options({"spans.buffer.max-flush-segments-per-trace": 1}):
-        rv = buffer.flush_segments(now=11)
-        trace_a_key = ("a" * 32).encode()
-        trace_b_key = ("b" * 32).encode()
-        traces_flushed = set()
-        for seg_key in rv:
-            _, trace_id, _ = parse_segment_key(seg_key)
-            traces_flushed.add(trace_id)
-        assert trace_a_key in traces_flushed
-        assert trace_b_key in traces_flushed
-        assert len(rv) == 2
-        buffer.done_flush_segments(rv)
-
-        rv = buffer.flush_segments(now=12)
-        assert len(rv) == 1
-        buffer.done_flush_segments(rv)
-
-        rv = buffer.flush_segments(now=13)
-        assert len(rv) == 1
-        buffer.done_flush_segments(rv)
-
-
-def test_per_trace_flush_limit_disabled(buffer: SpansBuffer) -> None:
-    """With default option (0), all segments flush in one cycle."""
-    spans_a = [
-        Span(
-            payload=_payload(f"a{i:015d}"),
-            trace_id="a" * 32,
-            span_id=f"a{i:015d}",
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=1,
-            end_timestamp=1700000000.0,
-        )
-        for i in range(3)
-    ]
-    spans_b = [
-        Span(
-            payload=_payload("b" * 16),
-            trace_id="b" * 32,
-            span_id="b" * 16,
-            parent_span_id=None,
-            segment_id=None,
-            is_segment_span=True,
-            project_id=2,
-            end_timestamp=1700000000.0,
-        )
-    ]
-
-    process_spans(spans_a + spans_b, buffer, now=0)
-
-    rv = buffer.flush_segments(now=11)
-    buffer.done_flush_segments(rv)
-    assert len(rv) == 4
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
