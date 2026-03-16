@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - mchen/tiered-xdist-prod-v2
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
