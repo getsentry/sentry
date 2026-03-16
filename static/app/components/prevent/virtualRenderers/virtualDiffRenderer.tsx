@@ -22,7 +22,6 @@ import {useIsOverflowing} from 'sentry/components/prevent/virtualRenderers/useIs
 import {useSyncScrollMargin} from 'sentry/components/prevent/virtualRenderers/useSyncScrollMargin';
 import {useSyncTotalWidth} from 'sentry/components/prevent/virtualRenderers/useSyncTotalWidth';
 import {useSyncWrapperWidth} from 'sentry/components/prevent/virtualRenderers/useSyncWrapperWidth';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
@@ -394,7 +393,7 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   ${p => {
     if (!p.isOverflowing) {
       return css`
-        border-bottom: ${space(0.25)} solid ${p.theme.colors.gray200};
+        border-bottom: ${p.theme.space['2xs']} solid ${p.theme.colors.gray200};
       `;
     }
     return '';

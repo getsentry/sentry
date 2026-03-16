@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry.models.team import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import create_test_regions, region_silo_test
+from sentry.testutils.silo import cell_silo_test, create_test_regions
 
 
 class SCIMIndexListTest(SCIMTestCase):
@@ -187,7 +187,7 @@ class SCIMIndexListTest(SCIMTestCase):
         assert response.status_code == 400, response.data
 
 
-@region_silo_test(regions=create_test_regions("na"))
+@cell_silo_test(regions=create_test_regions("na"))
 class SCIMIndexCreateTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-index"
     method = "post"

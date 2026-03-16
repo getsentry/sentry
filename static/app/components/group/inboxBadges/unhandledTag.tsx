@@ -4,7 +4,7 @@ import {IconFatal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-function UnhandledTag() {
+export function UnhandledTag() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   return (
     <UnhandledTagWrapper>
@@ -13,8 +13,6 @@ function UnhandledTag() {
     </UnhandledTagWrapper>
   );
 }
-
-export default UnhandledTag;
 
 const UnhandledTagWrapper = styled('div')`
   display: flex;

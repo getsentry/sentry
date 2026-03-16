@@ -66,9 +66,7 @@ class BitbucketRequestParserTest(TestCase):
         parser = BitbucketRequestParser(request=request, response_handler=self.get_response)
 
         # Missing region
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="eu"
-        )
+        OrganizationMapping.objects.get(organization_id=self.organization.id).update(cell_name="eu")
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)

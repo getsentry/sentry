@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry import tagstore
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupTagsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

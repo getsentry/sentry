@@ -2,20 +2,20 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -69,7 +69,7 @@ export default function ProjectToolbarSettings() {
         )}
 
         <FieldGroup title={t('Settings')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="sentry:toolbar_allowed_origins"
             schema={toolbarSchema}
             initialValue={initialValue}
@@ -116,7 +116,7 @@ export default function ProjectToolbarSettings() {
                 />
               </field.Layout.Stack>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       </SentryDocumentTitle>
     </FormSearch>

@@ -15,15 +15,15 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -44,7 +44,7 @@ import {
   getNextAvailablePosition,
   pickDefinedStoreKeys,
 } from './layoutUtils';
-import SortableWidget from './sortableWidget';
+import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
@@ -89,7 +89,6 @@ type Props = {
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
-  useTimeseriesVisualization?: boolean;
   widgetInterval?: string;
 };
 
@@ -114,7 +113,6 @@ function Dashboard({
   onEditWidget,
   onNewWidgetScrollComplete,
   onSetNewWidget,
-  useTimeseriesVisualization,
   widgetInterval,
 }: Props) {
   const theme = useTheme();
@@ -441,7 +439,6 @@ function Dashboard({
               index={String(index)}
               newlyAddedWidget={newlyAddedWidget}
               onNewWidgetScrollComplete={onNewWidgetScrollComplete}
-              useTimeseriesVisualization={useTimeseriesVisualization}
               widgetInterval={widgetInterval}
             />
           </div>

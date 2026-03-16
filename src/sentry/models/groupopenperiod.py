@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -36,7 +36,7 @@ def should_create_open_periods(type_id: int) -> bool:
     return True
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOpenPeriod(DefaultFieldsModel):
     """
     A GroupOpenPeriod is a period of time where a group is considered "open",

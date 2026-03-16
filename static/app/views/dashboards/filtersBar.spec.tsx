@@ -29,7 +29,7 @@ describe('FiltersBar', () => {
     mockNetworkRequests();
 
     organization = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit', 'dashboards-global-filters'],
+      features: ['dashboards-basic', 'dashboards-edit'],
     });
   });
 
@@ -219,7 +219,7 @@ describe('FiltersBar', () => {
     expect(
       screen.getByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save for Everyone'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 });

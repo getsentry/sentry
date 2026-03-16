@@ -12,7 +12,6 @@ import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import GridEditable from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -21,8 +20,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -279,10 +278,10 @@ function CustomPagination({
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

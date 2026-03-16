@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.auto_enable_codecov.enable_for_org",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def enable_for_org(dry_run: bool = False) -> None:
     """

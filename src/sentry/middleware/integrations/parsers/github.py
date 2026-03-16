@@ -93,6 +93,8 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
@@ -144,11 +146,7 @@ class GithubRequestParser(BaseRequestParser):
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the region
         # returns 400 and GitHub is notified of the delivery failure.
-        if (
-            github_event
-            and github_event not in REGION_PROCESSED_GITHUB_EVENTS
-            and options.get("github.webhook.drop-unprocessed-events.enabled")
-        ):
+        if github_event and github_event not in REGION_PROCESSED_GITHUB_EVENTS:
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",
                 tags={"event_type": github_event or "unknown"},

@@ -7,9 +7,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupList from './groupList';

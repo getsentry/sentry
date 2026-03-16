@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
+import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsSettingForm', () => {

@@ -10,7 +10,7 @@ import {
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
@@ -1488,15 +1488,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1543,15 +1539,11 @@ describe('Visualize', () => {
     });
 
     it('adds equations line chart', async () => {
-      const organizationWithFlag = OrganizationFixture();
-      organizationWithFlag.features.push('visibility-explore-equations');
-
       render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: organizationWithFlag,
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

@@ -1,15 +1,15 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import IdBadge from 'sentry/components/idBadge';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TeamRoleSelect from 'sentry/components/teamRoleSelect';
+import {IdBadge} from 'sentry/components/idBadge';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -118,10 +118,10 @@ const RoleSelectWrapper = styled('div')`
   }
 `;
 
-export const GRID_TEMPLATE = `
+export const GRID_TEMPLATE = (p: {theme: Theme}) => `
   display: grid;
   grid-template-columns: minmax(100px, 1fr) 200px 150px;
-  gap: ${space(1)};
+  gap: ${p.theme.space.md};
 `;
 
 const TeamRolesPanelItem = styled(PanelItem)`

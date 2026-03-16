@@ -52,7 +52,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=action.id).exists()
 
     def test_delete_actions_for_organization_integration_multiple_actions(self) -> None:
@@ -95,7 +95,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=action_1.id).exists()
             assert not Action.objects.filter(id=action_2.id).exists()
             assert Action.objects.filter(id=action_3.id).exists()
@@ -119,7 +119,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert Action.objects.filter(id=action.id).exists()
 
     def test_delete_actions_for_organization_integration_mixed_types(self) -> None:
@@ -154,7 +154,7 @@ class TestActionService(TestCase):
             organization_id=self.organization.id, integration_id=self.integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Action.objects.filter(id=integration_action.id).exists()
             assert Action.objects.filter(id=sentry_app_action.id).exists()
 
@@ -192,7 +192,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.filter(id=integration_action.id).first()
             assert action is not None
             assert action.status == ObjectStatus.DISABLED
@@ -237,7 +237,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.ACTIVE,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action = Action.objects.filter(id=integration_action.id).first()
             assert action is not None
             assert action.status == ObjectStatus.ACTIVE
@@ -284,7 +284,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             sentry_app_id_action.refresh_from_db()
             sentry_app_id_action2.refresh_from_db()
             assert sentry_app_id_action.status == ObjectStatus.DISABLED
@@ -316,7 +316,7 @@ class TestActionService(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action.refresh_from_db()
             other_sentry_app_action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED
@@ -335,6 +335,6 @@ class TestActionService(TestCase):
             status=ObjectStatus.DISABLED,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             action.refresh_from_db()
             assert action.status == ObjectStatus.DISABLED

@@ -1,6 +1,6 @@
 import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 
 export enum ConversationDrawerUrlParams {

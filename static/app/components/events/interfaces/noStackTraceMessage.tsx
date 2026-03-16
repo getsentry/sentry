@@ -6,7 +6,7 @@ type Props = {
   message?: React.ReactNode;
 };
 
-function NoStackTraceMessage({message}: Props) {
+export function NoStackTraceMessage({message}: Props) {
   return (
     <Alert.Container>
       <Alert variant="muted" showIcon={false}>
@@ -15,5 +15,3 @@ function NoStackTraceMessage({message}: Props) {
     </Alert.Container>
   );
 }
-
-export default NoStackTraceMessage;

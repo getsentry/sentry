@@ -7,9 +7,9 @@ import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+import {ParticipantList} from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
-export default function PeopleSection({
+export function PeopleSection({
   userParticipants,
   teamParticipants,
   viewers,

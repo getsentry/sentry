@@ -12,7 +12,7 @@ interface FooterWithButtonsProps {
   onClick?: ButtonProps['onClick'] | LinkButtonProps['onClick'];
 }
 
-export default function FooterWithButtons({
+export function FooterWithButtons({
   buttonText,
   disabled,
   formFields,

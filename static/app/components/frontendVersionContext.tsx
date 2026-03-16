@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
 import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';

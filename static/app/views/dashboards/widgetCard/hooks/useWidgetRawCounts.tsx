@@ -51,6 +51,12 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           enabled: isSupportedDisplayType,
         };
       }
+      case WidgetType.LOGS:
+        return {
+          supported: true,
+          dataset: DiscoverDatasets.OURLOGS,
+          enabled: isSupportedDisplayType,
+        };
       default:
         return {
           supported: false,

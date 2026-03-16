@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.region import get_local_locality
@@ -34,7 +34,7 @@ def _get_signature(project_id, plugin_id, token):
     ).hexdigest()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

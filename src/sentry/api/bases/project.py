@@ -90,6 +90,15 @@ class ProjectDistributionPermission(ProjectPermission):
     }
 
 
+class ProjectDistributionOrProjectPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:distribution", "project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
+
+
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],

@@ -12,7 +12,7 @@ import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubb
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
+import {EventIdFieldStatusIcon} from './eventIdFieldStatusIcon';
 
 const suggestionOptions = (
   orgSlug: string,
@@ -46,7 +46,7 @@ type Props = {
   projectId?: string;
 };
 
-function EventIdField({
+export function EventIdField({
   fieldProps,
   value,
   onChange,
@@ -160,8 +160,6 @@ function EventIdField({
     </Flex>
   );
 }
-
-export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;

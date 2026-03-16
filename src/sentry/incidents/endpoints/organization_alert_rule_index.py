@@ -1,9 +1,11 @@
 import logging
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
-from django.db.models.functions import Coalesce
+from django.db.models.fields import BigIntegerField
+from django.db.models.functions import Cast, Coalesce
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -14,7 +16,7 @@ from rest_framework.response import Response
 from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.actor import OwnerActorField
@@ -74,7 +76,7 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import ExtrapolationMode
+from sentry.snuba.models import ExtrapolationMode, QuerySubscription
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
@@ -88,6 +90,27 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
+
+
+def filter_detectors_by_dataset(
+    detectors: BaseQuerySet[Detector], dataset: Dataset
+) -> BaseQuerySet[Detector]:
+    """Filter detectors to only those with the specified dataset."""
+    # Filter by joining through Detector -> DataSource -> QuerySubscription -> SnubaQuery
+    # Cast DataSource.source_id (string) to int so the subquery can use the index on QuerySubscription.id
+    return (
+        detectors.annotate(
+            source_id_as_int=Cast("data_sources__source_id", output_field=BigIntegerField())
+        )
+        .filter(
+            data_sources__type="snuba_query_subscription",
+            source_id_as_int__in=QuerySubscription.objects.filter(
+                snuba_query__dataset=dataset.value
+            ).values_list("id", flat=True),
+        )
+        .distinct()
+    )
+
 
 # Valid sort keys for combined rules endpoint
 VALID_COMBINED_RULE_SORT_KEYS = {"date_added", "name", "incident_status", "date_triggered"}
@@ -177,14 +200,14 @@ class AlertRuleFetchMixin(Endpoint):
     Can be used with any endpoint base class (OrganizationEndpoint, ProjectEndpoint, etc).
     """
 
-    def fetch_metric_alert(
-        self, request: Request, organization: Organization, alert_rules: BaseQuerySet[AlertRule]
+    def fetch_metric_alerts(
+        self,
+        request: Request,
+        organization: Organization,
+        projects: Sequence[Project],
     ) -> HttpResponseBase:
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
-
-        if not features.has("organizations:performance-view", organization):
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
         if "latestIncident" in request.GET.getlist("expand", []) and not is_frontend_request(
             request
@@ -194,12 +217,25 @@ class AlertRuleFetchMixin(Endpoint):
                 extra={"organization": organization.id},
             )
 
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
-            detectors = Detector.objects.filter(
-                alertruledetector__alert_rule_id__in=[alert_rule.id for alert_rule in alert_rules]
-            )
-            if not len(detectors):
-                return Response(status=status.HTTP_404_NOT_FOUND)
+        use_workflow_engine = features.has(
+            "organizations:workflow-engine-rule-serializers", organization
+        )
+
+        if use_workflow_engine:
+            # Filter to metric alerts only, then check if dual-written or single-written
+            detectors = (
+                Detector.objects.filter(
+                    type="metric_issue",
+                    project__in=projects,
+                )
+                .filter(
+                    Q(alertruledetector__alert_rule_id__isnull=False)  # Dual-written
+                    | Q(alertruledetector__isnull=True)  # Single-written
+                )
+                .distinct()
+            )  # Deduplicate after JOIN
+            if not features.has("organizations:performance-view", organization):
+                detectors = filter_detectors_by_dataset(detectors, Dataset.Events)
             response = self.paginate(
                 request,
                 queryset=detectors,
@@ -209,7 +245,11 @@ class AlertRuleFetchMixin(Endpoint):
                 default_per_page=25,
                 count_hits=True,
             )
+            response[ALERT_RULES_COUNT_HEADER] = detectors.count()
         else:
+            alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+            if not features.has("organizations:performance-view", organization):
+                alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
             response = self.paginate(
                 request,
                 queryset=alert_rules,
@@ -219,12 +259,12 @@ class AlertRuleFetchMixin(Endpoint):
                 default_per_page=25,
                 count_hits=True,
             )
-        response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
+            response[ALERT_RULES_COUNT_HEADER] = alert_rules.count()
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     publish_status = {
@@ -265,7 +305,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -610,7 +650,7 @@ Metric alert rule trigger actions follow the following structure:
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, AlertRuleFetchMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -650,8 +690,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         project.
         """
         projects = self.get_projects(request, organization)
-        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        return self.fetch_metric_alert(request, organization, alert_rules)
+        return self.fetch_metric_alerts(request, organization, projects)
 
     @extend_schema(
         operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",

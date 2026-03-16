@@ -2,7 +2,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PreventPage from 'sentry/views/prevent';
+import {PreventPage} from 'sentry/views/prevent';
 
 describe('PreventPage', () => {
   const initialRouterConfig = {

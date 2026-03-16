@@ -136,14 +136,14 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
 @instrumented_task(
     name="sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
         return
 
     _schedule_hybrid_cloud_foreign_key(
-        SiloMode.REGION, process_hybrid_cloud_foreign_key_cascade_batch
+        SiloMode.CELL, process_hybrid_cloud_foreign_key_cascade_batch
     )
 
 
@@ -165,7 +165,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task[A
                     app_name=app,
                     model_name=model.__name__,
                     field_name=field.name,
-                    silo_mode=silo_mode.name,
+                    silo_mode=silo_mode.value,
                 )
 
 
@@ -192,7 +192,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
 @instrumented_task(
     name="sentry.deletions.tasks.process_hybrid_cloud_foreign_key_cascade_batch",
     namespace=deletion_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -205,7 +205,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch(
         model_name=model_name,
         field_name=field_name,
         process_task=process_hybrid_cloud_foreign_key_cascade_batch,
-        silo_mode=SiloMode.REGION,
+        silo_mode=SiloMode.CELL,
     )
 
 
@@ -242,7 +242,7 @@ def _process_hybrid_cloud_foreign_key_cascade(
                 app_name=app_name,
                 model_name=model_name,
                 field_name=field_name,
-                silo_mode=silo_mode.name,
+                silo_mode=silo_mode.value,
             )
     except Exception as err:
         sentry_sdk.set_context(

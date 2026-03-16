@@ -21,7 +21,7 @@ type Props = {
   transactionMethod?: string;
 };
 
-function SampleInfo(props: Props) {
+export function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod, subregions} = props;
   const {setPageDanger} = usePageAlert();
 
@@ -86,5 +86,3 @@ function SampleInfo(props: Props) {
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
   margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export default SampleInfo;

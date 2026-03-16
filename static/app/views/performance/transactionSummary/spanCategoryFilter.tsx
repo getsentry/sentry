@@ -6,11 +6,10 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -113,8 +112,8 @@ export function SpanCategoryFilter({segmentSpanName}: Props) {
 
 const OperationDot = styled('div')<{backgroundColor: string}>`
   display: block;
-  width: ${space(1)};
-  height: ${space(1)};
+  width: ${p => p.theme.space.md};
+  height: ${p => p.theme.space.md};
   border-radius: 100%;
   background-color: ${p => p.backgroundColor};
 `;

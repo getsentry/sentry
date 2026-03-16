@@ -7,7 +7,7 @@ type Props = Omit<ViewerProps, 'attachment'> & {
   onLoad?: React.ReactEventHandler<HTMLImageElement>;
 };
 
-function ImageViewer({onLoad, onError, className, ...props}: Props) {
+export function ImageViewer({onLoad, onError, className, ...props}: Props) {
   return (
     <img
       className={className}
@@ -18,5 +18,3 @@ function ImageViewer({onLoad, onError, className, ...props}: Props) {
     />
   );
 }
-
-export default ImageViewer;

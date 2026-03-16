@@ -7,15 +7,15 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
+import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();
@@ -79,7 +79,7 @@ interface BreadcrumbsTimelineProps {
   startTimeString?: string;
 }
 
-export default function BreadcrumbsTimeline({
+export function BreadcrumbsTimeline({
   breadcrumbs,
   containerElement,
   startTimeString,

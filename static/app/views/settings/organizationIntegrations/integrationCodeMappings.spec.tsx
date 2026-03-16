@@ -11,10 +11,10 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {IntegrationCodeMappings} from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
 
 describe('IntegrationCodeMappings', () => {
   const projects = [

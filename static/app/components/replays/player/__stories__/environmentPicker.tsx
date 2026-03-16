@@ -4,9 +4,9 @@ import uniq from 'lodash/uniq';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-export default function EnvironmentPicker({
+export function EnvironmentPicker({
   environment,
   onChange,
   project,

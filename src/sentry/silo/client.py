@@ -28,7 +28,7 @@ from sentry.silo.util import (
 )
 from sentry.types.region import (
     Cell,
-    RegionResolutionError,
+    CellResolutionError,
     get_cell_by_name,
     get_global_directory,
 )
@@ -48,8 +48,8 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
     """
     region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
-    for region in get_global_directory().regions:
-        url = urllib3.util.parse_url(region.address)
+    for cell in get_global_directory().cells:
+        url = urllib3.util.parse_url(cell.address)
         if url.host:
             # This is an IPv4 address.
             # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
@@ -58,16 +58,16 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
             except Exception:
                 metrics.incr(
                     "hybrid_cloud.silo_client.ip_address_resolution_error",
-                    tags={"region": region.name},
+                    tags={"region": cell.name},
                 )
                 sentry_sdk.capture_exception(
-                    RegionResolutionError(f"Unable to resolve region host for: {url.host}")
+                    CellResolutionError(f"Unable to resolve region host for: {url.host}")
                 )
                 continue
             region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
         else:
             sentry_sdk.capture_exception(
-                RegionResolutionError(f"Unable to parse url to host for: {region.address}")
+                CellResolutionError(f"Unable to parse url to host for: {cell.address}")
             )
 
     return frozenset(region_ip_addresses)
@@ -80,7 +80,7 @@ def validate_region_ip_address(ip: str) -> bool:
     allowed_region_ip_addresses = get_region_ip_addresses()
     if not allowed_region_ip_addresses:
         sentry_sdk.capture_exception(
-            RegionResolutionError(f"allowed_region_ip_addresses is empty for: {ip}")
+            CellResolutionError(f"allowed_region_ip_addresses is empty for: {ip}")
         )
         return False
 
@@ -89,12 +89,12 @@ def validate_region_ip_address(ip: str) -> bool:
 
     if not result:
         sentry_sdk.capture_exception(
-            RegionResolutionError(f"Disallowed Region Silo IP address: {ip}")
+            CellResolutionError(f"Disallowed Region Silo IP address: {ip}")
         )
     return result
 
 
-class RegionSiloClient(BaseApiClient):
+class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
     access_modes = [SiloMode.CONTROL]

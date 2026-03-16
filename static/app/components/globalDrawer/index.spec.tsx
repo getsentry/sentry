@@ -10,7 +10,7 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {

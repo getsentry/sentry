@@ -19,7 +19,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_spans_fields import BaseSpanFieldValuesAutocompletionExecutor
 from sentry.api.event_search import translate_escape_sequences
@@ -28,6 +28,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -37,6 +38,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions, VirtualColumnDefinition
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.preprod_size.definitions import PREPROD_SIZE_DEFINITIONS
+from sentry.search.eap.processing_errors.definitions import PROCESSING_ERROR_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -158,6 +160,8 @@ def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitio
         return TRACE_METRICS_DEFINITIONS
     elif item_type == SupportedTraceItemType.PREPROD:
         return PREPROD_SIZE_DEFINITIONS
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS:
+        return PROCESSING_ERROR_DEFINITIONS
 
     raise ValueError(f"Invalid item type: {item_type}")
 
@@ -171,6 +175,8 @@ def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
         return Referrer.API_TRACE_METRICS_TAG_KEYS_RPC
     elif item_type == SupportedTraceItemType.PREPROD.value:
         return Referrer.API_PREPROD_TAG_KEYS_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_KEYS_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
@@ -184,6 +190,8 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
         return Referrer.API_TRACE_METRICS_TAG_VALUES_RPC
     elif item_type == SupportedTraceItemType.PREPROD.value:
         return Referrer.API_PREPROD_TAG_VALUES_RPC
+    elif item_type == SupportedTraceItemType.PROCESSING_ERRORS.value:
+        return Referrer.API_PROCESSING_ERRORS_TAG_VALUES_RPC
     else:
         raise ValueError(f"Invalid item type: {item_type}")
 
@@ -230,7 +238,7 @@ def as_attribute_key(
     return attribute_key
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
@@ -417,7 +425,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not self.has_feature(organization, request):
@@ -740,3 +748,76 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return start_date, end_date
+
+
+class OrganizationTraceItemAttributeValidateSerializer(serializers.Serializer):
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    attributes = serializers.ListField(
+        child=serializers.CharField(max_length=300),
+        min_length=1,
+        max_length=100,
+        required=True,
+    )
+
+
+def serialize_type(search_type: constants.SearchType) -> str:
+    proto_type = constants.TYPE_MAP.get(search_type)
+    if proto_type == constants.STRING:
+        return "string"
+    if proto_type == constants.BOOLEAN:
+        return "boolean"
+    # DOUBLE, INT, or anything else numeric
+    return "number"
+
+
+@cell_silo_endpoint
+class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.DATA_BROWSING
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        serializer = OrganizationTraceItemAttributeValidateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        validated = serializer.validated_data
+        item_type = SupportedTraceItemType(validated["item_type"])
+        attribute_names: list[str] = validated["attributes"]
+
+        try:
+            snuba_params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response({"attributes": {}})
+
+        try:
+            definitions = get_column_definitions(item_type)
+        except ValueError:
+            return Response({"detail": f"Unsupported item type: {item_type.value}"}, status=400)
+        resolver = SearchResolver(
+            params=snuba_params,
+            config=SearchResolverConfig(),
+            definitions=definitions,
+        )
+
+        results: dict[str, dict[str, Any]] = {}
+        for attr_name in attribute_names:
+            try:
+                resolved, _context = resolver.resolve_attribute(attr_name)
+                results[attr_name] = {
+                    "valid": True,
+                    "type": serialize_type(resolved.search_type),
+                }
+            except InvalidSearchQuery as e:
+                results[attr_name] = {
+                    "valid": False,
+                    "error": str(e),
+                }
+
+        return Response({"attributes": results})

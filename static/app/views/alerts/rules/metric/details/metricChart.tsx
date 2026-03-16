@@ -14,13 +14,13 @@ import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert'
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {
   transformComparisonTimeseriesData,
   transformTimeseriesData,
 } from 'sentry/components/charts/eventsRequest';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {
   ChartControls,
   HeaderTitleLegend,
@@ -29,10 +29,10 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -40,16 +40,16 @@ import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
@@ -153,7 +153,7 @@ function getRuleChangeSeries(
   ];
 }
 
-export default function MetricChart({
+export function MetricChart({
   rule,
   project,
   timePeriod,

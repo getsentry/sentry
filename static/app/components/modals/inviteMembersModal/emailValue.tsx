@@ -7,12 +7,12 @@ import type {
   OptionTypeBase,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 
 import type {InviteStatus} from './types';
 
-function EmailValue<Option extends OptionTypeBase>({
+export function EmailValue<Option extends OptionTypeBase>({
   status,
   valueProps,
 }: {
@@ -53,5 +53,3 @@ const SendingIndicator = styled(LoadingIndicator)`
     border-width: 2px;
   }
 `;
-
-export default EmailValue;

@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow, IconRepository} from 'sentry/icons';
 import {t} from 'sentry/locale';

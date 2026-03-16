@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState
 from urllib3 import BaseHTTPResponse
@@ -85,9 +86,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -111,9 +113,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -137,9 +140,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(HTTPError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -161,9 +165,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(ClientError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Client error tracked in metrics with appropriate status label, not retried
@@ -190,9 +195,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(MaxRetryError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -218,9 +224,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -246,9 +253,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(SSLError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -274,9 +282,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(NewConnectionError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -302,9 +311,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         with pytest.raises(TimeoutError):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         # Verify metric is incremented exactly once (not double-counted)
@@ -331,9 +341,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
         # Unexpected exceptions are not retried
         with pytest.raises(ValueError, match="Invalid JSON format"):
             process_github_webhook_event._func(
-                github_event=GithubWebhookType.CHECK_RUN,
+                seer_path="/v1/code_review/check/rerun",
                 event_payload={"original_run_id": self.original_run_id},
                 enqueued_at_str=self.enqueued_at_str,
+                tags={},
             )
 
         mock_metrics.incr.assert_called()
@@ -356,9 +367,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.CHECK_RUN,
+            seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": self.original_run_id},
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         mock_metrics.timing.assert_called_once()
@@ -393,9 +405,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
             try:
                 process_github_webhook_event._func(
-                    github_event=GithubWebhookType.CHECK_RUN,
+                    seer_path="/v1/code_review/check/rerun",
                     event_payload={"original_run_id": self.original_run_id},
                     enqueued_at_str=enqueued_at_str,
+                    tags={},
                 )
                 assert False, "Expected MaxRetryError to be raised"
             except MaxRetryError:
@@ -419,18 +432,19 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_check_run_and_pr_events_processed_separately(self, mock_request: MagicMock) -> None:
-        """Test that CHECK_RUN events use rerun endpoint while PR events use overwatch-request."""
+        """Test that check rerun and PR review use their configured Seer paths."""
         mock_request.return_value = self._mock_response(200, b"{}")
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.CHECK_RUN,
+            seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": self.original_run_id},
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         assert mock_request.call_count == 1
         check_run_call = mock_request.call_args
-        assert check_run_call[1]["path"] == "/v1/automation/codegen/pr-review/rerun"
+        assert check_run_call[1]["path"] == "/v1/code_review/check/rerun"
 
         mock_request.reset_mock()
 
@@ -465,14 +479,15 @@ class ProcessGitHubWebhookEventTest(TestCase):
         }
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
+            seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         assert mock_request.call_count == 1
         pr_call = mock_request.call_args
-        assert pr_call[1]["path"] == "/v1/automation/overwatch-request"
+        assert pr_call[1]["path"] == "/v1/code_review/review-request"
 
     @patch("sentry.seer.code_review.utils.make_signed_seer_api_request")
     def test_validation_converts_enum_keys_to_strings(self, mock_request: MagicMock) -> None:
@@ -516,16 +531,16 @@ class ProcessGitHubWebhookEventTest(TestCase):
         }
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
+            seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         # Verify the request was made
         assert mock_request.call_count == 1
 
         # Get the actual payload that was sent
-        import orjson
 
         sent_body = mock_request.call_args[1]["body"]
         sent_payload = orjson.loads(sent_body)
@@ -574,9 +589,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         # Should not raise validation error
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
+            seer_path="/v1/code_review/review-request",
             event_payload=event_payload,
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         assert mock_request.call_count == 1
@@ -617,9 +633,10 @@ class ProcessGitHubWebhookEventTest(TestCase):
 
         # Should not raise validation error
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.PULL_REQUEST,
+            seer_path="/v1/code_review/pr-closed",
             event_payload=event_payload,
             enqueued_at_str=self.enqueued_at_str,
+            tags={},
         )
 
         assert mock_request.call_count == 1
@@ -641,7 +658,7 @@ class TestProcessGitHubWebhookEventSetsTags:
         }
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.CHECK_RUN,
+            seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": "123"},
             enqueued_at_str=datetime.now(timezone.utc).isoformat(),
             tags=tags,
@@ -658,7 +675,7 @@ class TestProcessGitHubWebhookEventSetsTags:
         mock_request.return_value = MagicMock(status=200, data=b"{}")
 
         process_github_webhook_event._func(
-            github_event=GithubWebhookType.CHECK_RUN,
+            seer_path="/v1/code_review/check/rerun",
             event_payload={"original_run_id": "123"},
             enqueued_at_str=datetime.now(timezone.utc).isoformat(),
         )

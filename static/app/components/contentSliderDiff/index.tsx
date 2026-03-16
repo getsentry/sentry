@@ -1,7 +1,7 @@
-import {Fragment, useRef, type CSSProperties} from 'react';
+import {useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -62,7 +62,9 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = `${viewDimensions.width}px`;
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer({
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const {onMouseDown, onDoubleClick, setSize} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -92,8 +94,19 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
     },
   });
 
+  const handleContainerMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+    if (event.button !== 0 || !containerRef.current) {
+      return;
+    }
+    const rect = containerRef.current.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    setSize(relativeX, true);
+    onDragHandleMouseDown?.(event);
+    onMouseDown(event);
+  };
+
   return (
-    <Fragment>
+    <SidesContainer ref={containerRef} onMouseDown={handleContainerMouseDown}>
       <Cover style={{width}} data-test-id="after-content">
         <Placement style={{width}}>
           <FullHeightContainer>{after}</FullHeightContainer>
@@ -107,17 +120,13 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
       <DragHandle
         data-test-id="drag-handle"
         ref={dividerElem}
-        onMouseDown={event => {
-          onDragHandleMouseDown?.(event);
-          onMouseDown(event);
-        }}
         onDoubleClick={onDoubleClick}
       >
         <DragIndicator>
           <IconGrabbable size="sm" />
         </DragIndicator>
       </DragHandle>
-    </Fragment>
+    </SidesContainer>
   );
 }
 
@@ -152,6 +161,12 @@ const Positioned = styled('div')`
   height: 100%;
   position: relative;
   width: 100%;
+`;
+
+const SidesContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  cursor: ew-resize;
 `;
 
 const DragIndicator = styled('div')`

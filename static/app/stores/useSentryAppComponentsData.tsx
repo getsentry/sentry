@@ -1,17 +1,17 @@
 import {useEffect} from 'react';
 
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   projectId: string | undefined;
 }
 
-export default function useSentryAppComponentsData({projectId}: Props) {
+export function useSentryAppComponentsData({projectId}: Props) {
   const organization = useOrganization();
 
   const {data: installs} = useApiQuery<SentryAppInstallation[]>(

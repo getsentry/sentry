@@ -37,7 +37,7 @@ class CreateAuditEntryTest(TestCase):
         self.project = self.create_project(teams=[self.team], platform="java")
 
     def assert_no_delete_log_created(self):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
             assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
@@ -134,7 +134,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )

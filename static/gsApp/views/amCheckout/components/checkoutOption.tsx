@@ -5,7 +5,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
-function CheckoutOption({
+export function CheckoutOption({
   isSelected,
   onClick,
   dataTestId,
@@ -77,8 +77,6 @@ function CheckoutOption({
     </Option>
   );
 }
-
-export default CheckoutOption;
 
 const Option = styled('div')<{isSelected: boolean}>`
   width: 100%;

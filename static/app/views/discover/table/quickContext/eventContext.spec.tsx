@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {
   Event,
   EventError,
@@ -17,7 +17,7 @@ import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 
-import EventContext from './eventContext';
+import {EventContext} from './eventContext';
 
 const mockedLocation = LocationFixture({
   query: {

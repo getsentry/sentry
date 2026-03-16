@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import type {User} from 'sentry/types/user';
 
-import CustomerContact from 'admin/components/customerContact';
+import {CustomerContact} from 'admin/components/customerContact';
 import ResultGrid from 'admin/components/resultGrid';
 import type {PromoCode} from 'admin/types';
 
@@ -55,7 +55,7 @@ const getRow = (row: PromoClaimant) => {
   ];
 };
 
-function PromoCodeClaimants({promoCode}: Props) {
+export function PromoCodeClaimants({promoCode}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -78,5 +78,3 @@ function PromoCodeClaimants({promoCode}: Props) {
     />
   );
 }
-
-export default PromoCodeClaimants;

@@ -4,7 +4,7 @@ import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
 import type {BaseRole} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type OptionType = {
   details: React.ReactNode;
@@ -23,7 +23,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
   value?: string | null;
 };
 
-function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
+export function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   const organization = useOrganization();
   const isMemberInvite =
     organization.allowMemberInvite && organization.access?.includes('member:invite');
@@ -49,8 +49,6 @@ function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
     />
   );
 }
-
-export default RoleSelectControl;
 
 const Details = styled('span')`
   display: inline-block;

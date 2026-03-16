@@ -140,12 +140,12 @@ export declare namespace TraceTree {
     event_id: string;
     event_type: 'occurrence';
     issue_id: number;
+    issue_type: number;
     level: Level;
     project_id: number;
     project_slug: string;
     start_timestamp: number;
     transaction: string;
-    type: number;
     short_id?: string;
   };
 
@@ -437,7 +437,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     });
 
     // Track visited event_ids to prevent cycles during tree construction.
-    // Cyclic nodes are skipped and logged to Sentry for monitoring.
+    // Cyclic nodes are skipped and logged for debugging.
     const visitedIds = new Set<string>();
 
     function visit(
@@ -451,10 +451,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-tree-cycle-detected']);
-          Sentry.captureMessage('Cycle detected in trace tree structure');
-        });
+        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
         return;
       }
       if (nodeId) {

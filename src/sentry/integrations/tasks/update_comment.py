@@ -20,7 +20,7 @@ from sentry.types.activity import ActivityType
     name="sentry.tasks.integrations.update_comment",
     namespace=integrations_tasks,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(Integration.DoesNotExist))

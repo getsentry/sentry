@@ -7,20 +7,21 @@ import {Button} from '@sentry/scraps/button';
 import {Select} from '@sentry/scraps/select';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields';
@@ -40,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   organizations: Organization[];
 }
 
-function NotificationSettingsByEntity({
+export function NotificationSettingsByEntity({
   entityType,
   handleAddNotificationOption,
   handleEditNotificationOption,
@@ -50,7 +51,8 @@ function NotificationSettingsByEntity({
   organizations,
 }: NotificationSettingsByEntityProps) {
   const theme = useTheme();
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
@@ -60,7 +62,7 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    router.location?.query?.organizationId ??
+    (location.query?.organizationId as string | undefined) ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
@@ -99,10 +101,13 @@ function NotificationSettingsByEntity({
   const entityById = keyBy<Organization | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    router.replace({
-      ...router.location,
-      query: {organizationId},
-    });
+    navigate(
+      {
+        ...location,
+        query: {organizationId},
+      },
+      {replace: true}
+    );
   };
 
   const handleAdd = () => {
@@ -129,7 +134,7 @@ function NotificationSettingsByEntity({
       option => option.type === notificationType && option.scopeType === entityType
     );
     return matchedOptions.map(option => {
-      const entity = entityById[`${option.scopeIdentifier}`];
+      const entity = entityById[option.scopeIdentifier];
       if (!entity) {
         return null;
       }
@@ -301,8 +306,6 @@ function NotificationSettingsByEntity({
     </MinHeight>
   );
 }
-
-export default NotificationSettingsByEntity;
 
 const MinHeight = styled('div')`
   min-height: 400px;

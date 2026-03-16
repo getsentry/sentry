@@ -1,6 +1,6 @@
 import pickBy from 'lodash/pickBy';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -13,7 +13,7 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,

@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';

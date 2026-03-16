@@ -1,4 +1,4 @@
-import {Fragment, memo, useMemo} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -7,21 +7,22 @@ import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import Legend from 'sentry/components/charts/components/legend';
+import {Legend} from 'sentry/components/charts/components/legend';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {DataCategoryExact} from 'sentry/types/core';
-import type {DataPoint} from 'sentry/types/echarts';
+import type {DataPoint, ECharts} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 
 enum SeriesName {
   ACCEPTED = 'Accepted',
@@ -91,6 +92,102 @@ export const useSeries = (): Record<string, SeriesItem> => {
     },
   };
 };
+
+function isAbuseWithoutReason(by: {outcome: string; reason?: string}): boolean {
+  return by.outcome === 'abuse' && (!by.reason || by.reason === 'none');
+}
+
+type AbuseData = {
+  intervalMs: number;
+  intervals: number[];
+  regions: Array<{end: number; start: number}>;
+  valueByTimestamp: Map<number, number>;
+};
+
+function getAbuseData(
+  intervals: Array<string | number>,
+  groups: StatsGroup[]
+): AbuseData {
+  const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+
+  for (const group of groups) {
+    if (isAbuseWithoutReason(group.by)) {
+      group.series['sum(quantity)']?.forEach((val, i) => {
+        abuseByInterval[i]! += val;
+      });
+    }
+  }
+
+  const valueByTimestamp = new Map<number, number>();
+  const allTimestamps: number[] = [];
+  const regions: Array<{end: number; start: number}> = [];
+  let regionStart: number | null = null;
+  let regionEnd: number | null = null;
+
+  for (let i = 0; i < intervals.length; i++) {
+    const ts = new Date(intervals[i]!).getTime();
+    allTimestamps.push(ts);
+
+    if (abuseByInterval[i]! > 0) {
+      valueByTimestamp.set(ts, abuseByInterval[i]!);
+      if (regionStart === null) {
+        regionStart = ts;
+      }
+      regionEnd = ts;
+    } else if (regionStart !== null && regionEnd !== null) {
+      regions.push({start: regionStart, end: regionEnd});
+      regionStart = null;
+      regionEnd = null;
+    }
+  }
+
+  if (regionStart !== null && regionEnd !== null) {
+    regions.push({start: regionStart, end: regionEnd});
+  }
+
+  const intervalMs =
+    intervals.length >= 2
+      ? new Date(intervals[1]!).getTime() - new Date(intervals[0]!).getTime()
+      : 0;
+
+  return {regions, valueByTimestamp, intervals: allTimestamps, intervalMs};
+}
+
+function useAbuseMarkAreaSeries(
+  regions: Array<{end: number; start: number}>,
+  intervalMs: number
+): SeriesItem[] {
+  const theme = useTheme();
+
+  return useMemo(() => {
+    if (regions.length === 0) {
+      return [];
+    }
+
+    const halfInterval = intervalMs / 2;
+
+    return regions.map(r => ({
+      seriesName: '',
+      data: [] as DataPoint[],
+      markArea: MarkArea({
+        silent: true,
+        itemStyle: {
+          color: theme.tokens.graphics.promotion.vibrant,
+          opacity: 0.1,
+        },
+        label: {
+          show: false,
+        },
+        data: [
+          [
+            {xAxis: new Date(r.start - halfInterval).toISOString()},
+            {xAxis: new Date(r.end + halfInterval).toISOString()},
+          ] as [{xAxis: string}, {xAxis: string}],
+        ],
+      }),
+    })) as SeriesItem[];
+  }, [regions, intervalMs, theme]);
+}
 
 function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   const zero: SeriesItem = {
@@ -207,7 +304,7 @@ export function populateChartData(
         return;
       }
 
-      if (point.by.outcome === 'abuse' && point.by.reason === 'none') {
+      if (isAbuseWithoutReason(point.by)) {
         if (droppedData.abuse === undefined) {
           droppedData.abuse = {
             seriesName: 'Abuse',
@@ -215,7 +312,11 @@ export function populateChartData(
           };
         }
 
-        droppedData.abuse.data.push(dataObject);
+        if (dateIndex >= droppedData.abuse.data.length) {
+          droppedData.abuse.data.push(dataObject);
+        } else {
+          droppedData.abuse.data[dateIndex]!.value += dataObject.value;
+        }
 
         if (dateIndex >= totalDropped!.data.length) {
           totalDropped!.data.push({...dataObject, value: 0});
@@ -375,6 +476,10 @@ export const CustomerStats = memo(
       };
     }, [router.location.query, onDemandPeriodStart, onDemandPeriodEnd]);
 
+    const statsEndpointUrl = getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    });
+
     const {
       isPending: loading,
       error,
@@ -382,9 +487,7 @@ export const CustomerStats = memo(
       refetch,
     } = useApiQuery<Stats>(
       [
-        getApiUrl(`/organizations/$organizationIdOrSlug/stats_v2/`, {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
+        statsEndpointUrl,
         {
           query: {
             start: dataDatetime.start,
@@ -405,8 +508,150 @@ export const CustomerStats = memo(
       }
     );
 
+    const {data: abuseStats} = useApiQuery<Stats>(
+      [
+        statsEndpointUrl,
+        {
+          query: {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+            statsPeriod: dataDatetime.period,
+            interval: getInterval(dataDatetime),
+            groupBy: ['outcome', 'reason', 'category'],
+            field: 'sum(quantity)',
+            outcome: ['abuse'],
+            ...(projectId ? {project: projectId} : {}),
+          },
+        },
+      ],
+      {
+        staleTime: Infinity,
+        retry: false,
+      }
+    );
+
     const theme = useTheme();
     const series = useSeries();
+    const abuseTooltipRef = useRef<HTMLDivElement>(null);
+
+    const abuseData = useMemo(
+      () =>
+        abuseStats
+          ? getAbuseData(abuseStats.intervals, abuseStats.groups)
+          : {
+              regions: [] as Array<{end: number; start: number}>,
+              valueByTimestamp: new Map<number, number>(),
+              intervals: [] as number[],
+              intervalMs: 0,
+            },
+      [abuseStats]
+    );
+
+    const abuseMarkArea = useAbuseMarkAreaSeries(abuseData.regions, abuseData.intervalMs);
+
+    const abuseDataRef = useRef(abuseData);
+    abuseDataRef.current = abuseData;
+
+    const activeAbuseRegionRef = useRef<number | null>(null);
+    const chartInstanceRef = useRef<ECharts | null>(null);
+
+    const updateAbuseRegionOpacity = useCallback(
+      (instance: ECharts, regionIndex: number | null) => {
+        const {regions} = abuseDataRef.current;
+        if (regions.length === 0) {
+          return;
+        }
+        // Get the total series count from the current chart option so we can
+        // pad the update array to the full length, preventing ECharts from
+        // accidentally merging markArea config into bar series
+        const seriesOption = instance.getOption?.()?.series;
+        const totalSeries = Array.isArray(seriesOption) ? seriesOption.length : 0;
+        if (totalSeries === 0) {
+          return;
+        }
+        const seriesUpdate = Array.from({length: totalSeries}, () => ({}));
+        regions.forEach((_, i) => {
+          seriesUpdate[i] = {
+            markArea: {itemStyle: {opacity: i === regionIndex ? 0.3 : 0.1}},
+          };
+        });
+        instance.setOption({series: seriesUpdate}, {replaceMerge: []});
+      },
+      []
+    );
+
+    const dismissAbuseTooltip = useCallback(
+      (instance?: ECharts) => {
+        const el = abuseTooltipRef.current;
+        if (el) {
+          el.style.display = 'none';
+        }
+        if (instance && activeAbuseRegionRef.current !== null) {
+          activeAbuseRegionRef.current = null;
+          updateAbuseRegionOpacity(instance, null);
+        }
+      },
+      [updateAbuseRegionOpacity]
+    );
+
+    const handleChartMouseLeave = useCallback(() => {
+      dismissAbuseTooltip(chartInstanceRef.current ?? undefined);
+    }, [dismissAbuseTooltip]);
+
+    const handleBarHighlight = useCallback(
+      (
+        params: {batch?: Array<{dataIndex: number; seriesIndex: number}>},
+        instance: ECharts
+      ) => {
+        const el = abuseTooltipRef.current;
+        if (!el || !instance) {
+          return;
+        }
+        chartInstanceRef.current = instance;
+
+        // Skip mark area series (first N entries) and find a bar series highlight
+        const {valueByTimestamp, regions} = abuseDataRef.current;
+        const barEntry = params.batch?.find(entry => entry.seriesIndex >= regions.length);
+        const dataIndex = barEntry?.dataIndex;
+        if (dataIndex === undefined) {
+          dismissAbuseTooltip(instance);
+          return;
+        }
+        // Use the main chart's intervals to resolve the timestamp from dataIndex,
+        // then look it up in the abuse data's valueByTimestamp Map. This avoids
+        // index mismatches between the two independent API queries.
+        const chartInterval = stats?.intervals[dataIndex];
+        if (chartInterval === undefined) {
+          dismissAbuseTooltip(instance);
+          return;
+        }
+        const ts = new Date(chartInterval).getTime();
+
+        const value = valueByTimestamp.get(ts);
+        if (!value) {
+          dismissAbuseTooltip(instance);
+          return;
+        }
+
+        const regionIndex = regions.findIndex(r => ts >= r.start && ts <= r.end);
+        if (regionIndex >= 0 && regionIndex !== activeAbuseRegionRef.current) {
+          activeAbuseRegionRef.current = regionIndex;
+          updateAbuseRegionOpacity(instance, regionIndex);
+        }
+
+        const pixelPos = instance.convertToPixel('grid', [ts, 0]);
+        if (pixelPos) {
+          el.style.left = `${pixelPos[0]}px`;
+          const textSpan = el.querySelector('[data-abuse-text]');
+          if (textSpan) {
+            textSpan.textContent = `Abuse: ${value.toLocaleString()}`;
+          }
+          el.style.display = 'flex';
+        }
+      },
+      [dismissAbuseTooltip, updateAbuseRegionOpacity, stats]
+    );
 
     if (loading) {
       return <LoadingIndicator />;
@@ -426,6 +671,8 @@ export const CustomerStats = memo(
       Number(new Date(intervals[intervals.length - 1]!)) / 1000 + 86400;
 
     const chartSeries = [
+      // Abuse markArea first so bars render on top and get mouse events
+      ...abuseMarkArea,
       ...populateChartData(intervals, groups, series),
       zeroFillDates(
         zeroFillStart,
@@ -472,24 +719,32 @@ export const CustomerStats = memo(
             >
               {zoomRenderProps => (
                 <Fragment>
-                  <BarChart
-                    isGroupedByDate
-                    stacked
-                    animation={false}
-                    series={chartSeries}
-                    colors={Object.values(series)
-                      .map(serie => serie.color)
-                      .filter(defined)}
-                    tooltip={{subLabels}}
-                    legend={Legend({
-                      right: 10,
-                      top: 0,
-                      data: legend,
-                      theme,
-                    })}
-                    grid={{top: 30, bottom: 0, left: 0, right: 0}}
-                    {...zoomRenderProps}
-                  />
+                  <ChartContainer onMouseLeave={handleChartMouseLeave}>
+                    <BarChart
+                      onHighlight={handleBarHighlight}
+                      onMouseOut={(_params, instance) => dismissAbuseTooltip(instance)}
+                      isGroupedByDate
+                      stacked
+                      animation={false}
+                      series={chartSeries}
+                      colors={Object.values(series)
+                        .map(serie => serie.color)
+                        .filter(defined)}
+                      tooltip={{subLabels}}
+                      legend={Legend({
+                        right: 10,
+                        top: 0,
+                        data: legend,
+                        theme,
+                      })}
+                      grid={{top: 30, bottom: 0, left: 0, right: 0}}
+                      {...zoomRenderProps}
+                    />
+                    <AbuseTooltip ref={abuseTooltipRef}>
+                      <AbuseDot />
+                      <span data-abuse-text />
+                    </AbuseTooltip>
+                  </ChartContainer>
                   <Footer>
                     <FooterLegend points={stats} />
                   </Footer>
@@ -503,6 +758,37 @@ export const CustomerStats = memo(
     );
   }
 );
+
+const ChartContainer = styled('div')`
+  position: relative;
+`;
+
+const AbuseDot = styled('span')`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${p => p.theme.tokens.graphics.promotion.vibrant};
+  opacity: 0.3;
+  flex-shrink: 0;
+`;
+
+const AbuseTooltip = styled('div')`
+  display: none;
+  position: absolute;
+  bottom: -${p => p.theme.space.md};
+  transform: translateX(-50%);
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+  background: ${p => p.theme.tokens.background.primary};
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 1;
+`;
 
 const Footer = styled('div')`
   display: flex;

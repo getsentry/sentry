@@ -1,7 +1,7 @@
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {tct} from 'sentry/locale';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -14,7 +14,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function PartnershipNote({subscription}: Props) {
+export function PartnershipNote({subscription}: Props) {
   return (
     <Panel data-test-id="partnership-note">
       <PanelBody withPadding>
@@ -34,5 +34,3 @@ function PartnershipNote({subscription}: Props) {
     </Panel>
   );
 }
-
-export default PartnershipNote;
