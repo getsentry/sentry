@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -168,6 +168,7 @@ function OverlayControls({
   showOverlay: boolean;
 }) {
   const theme = useTheme();
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const overlayColors = theme.chart.getColorPalette(10);
 
@@ -180,28 +181,51 @@ function OverlayControls({
       >
         {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
       </Button>
-      <Tooltip
-        isHoverable
-        maxWidth={400}
-        title={
-          <Flex gap="xs">
-            {overlayColors.map(color => (
-              <ColorSwatch
-                key={color}
-                $color={color}
-                $selected={overlayColor === color}
-                onClick={() => onOverlayColorChange(color)}
-                aria-label={t('Overlay color %s', color)}
-              />
-            ))}
-          </Flex>
-        }
-      >
-        <ColorTrigger $color={overlayColor} aria-label={t('Pick overlay color')} />
-      </Tooltip>
+      <ColorPickerWrapper>
+        <ColorTrigger
+          $color={overlayColor}
+          aria-label={t('Pick overlay color')}
+          onClick={() => setIsPickerOpen(open => !open)}
+        />
+        {isPickerOpen && (
+          <ColorPickerDropdown>
+            <Flex gap="xs">
+              {overlayColors.map(color => (
+                <ColorSwatch
+                  key={color}
+                  $color={color}
+                  $selected={overlayColor === color}
+                  onClick={() => {
+                    onOverlayColorChange(color);
+                    setIsPickerOpen(false);
+                  }}
+                  aria-label={t('Overlay color %s', color)}
+                />
+              ))}
+            </Flex>
+          </ColorPickerDropdown>
+        )}
+      </ColorPickerWrapper>
     </Flex>
   );
 }
+
+const ColorPickerWrapper = styled('div')`
+  position: relative;
+`;
+
+const ColorPickerDropdown = styled('div')`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
 
 const ColorTrigger = styled('button')<{$color: string}>`
   width: 24px;
