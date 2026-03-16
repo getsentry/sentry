@@ -52,6 +52,7 @@ export function MetricToolbar({traceMetric, queryIndex, dragId}: MetricToolbarPr
       gap="md"
       columns={`${hasMultipleQueries ? '20px ' : ''}34px 2fr 3fr 6fr ${hasMultipleQueries ? '40px' : '0'}`}
       data-test-id="metric-toolbar"
+      {...attributes}
     >
       {hasMultipleQueries && (
         <Button
@@ -59,7 +60,6 @@ export function MetricToolbar({traceMetric, queryIndex, dragId}: MetricToolbarPr
           priority="transparent"
           size="zero"
           icon={<IconGrabbable size="sm" />}
-          {...attributes}
           {...listeners}
         />
       )}
