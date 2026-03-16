@@ -82,9 +82,9 @@ class OrganizationProvisioningService:
         :return: RpcOrganization of the newly created org
         """
 
-        destination_region_name = self._validate_or_default_region(region_name=cell_name)
+        destination_cell_name = self._validate_or_default_region(region_name=cell_name)
         return self._control_based_provisioning(
-            provisioning_options=provisioning_options, region_name=destination_region_name
+            provisioning_options=provisioning_options, region_name=destination_cell_name
         )
 
     # TODO(cells): Remove when all callers switch to `provision_organization_in_cell`
