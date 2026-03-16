@@ -9,7 +9,7 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import all_silo_view
+from sentry.web.frontend.base import all_silo_view, control_silo_view
 
 # Paths to pages should not be added here, otherwise crawlers will
 # not be able to access the metadata with the 'none' directive
@@ -99,7 +99,7 @@ def mcp_json(request):
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
 
 
-@all_silo_view
+@control_silo_view
 @cache_control(max_age=3600, public=True)
 def oauth_authorization_server_metadata(request: HttpRequest) -> HttpResponse:
     """OAuth 2.0 Authorization Server Metadata endpoint (RFC 8414).

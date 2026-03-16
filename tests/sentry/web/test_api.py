@@ -711,7 +711,8 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         return "/.well-known/oauth-authorization-server"
 
     def test_metadata_response(self) -> None:
-        response = self.client.get(self.path)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -753,14 +754,16 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         assert "project:read" in data["scopes_supported"]
 
     def test_cache_control(self) -> None:
-        response = self.client.get(self.path)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert "max-age=3600" in response["Cache-Control"]
         assert "public" in response["Cache-Control"]
 
     def test_issuer_matches_server(self) -> None:
-        response = self.client.get(self.path)
-        data = json.loads(response.content)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            response = self.client.get(self.path)
+            data = json.loads(response.content)
 
         assert data["issuer"] == "http://testserver"
