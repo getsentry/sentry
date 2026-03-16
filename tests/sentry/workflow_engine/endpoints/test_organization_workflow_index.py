@@ -564,6 +564,19 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             data=new_workflow.get_audit_log_data(),
         )
 
+    def test_create_workflow__with_owner(self) -> None:
+        self.valid_workflow["owner"] = f"user:{self.user.id}"
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        assert new_workflow.owner_user_id == self.user.id
+
     def test_create_workflow__with_environment(self) -> None:
         self.valid_workflow["environment"] = self.environment.name
         response = self.get_success_response(
