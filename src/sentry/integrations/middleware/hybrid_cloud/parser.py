@@ -268,13 +268,13 @@ class BaseRequestParser(ABC):
                 }
             )
             if cell_result.error is not None:
-                # We want to fail loudly so that devs know this error happened on the region silo (for now)
+                # We want to fail loudly so that devs know this error happened on the cell silo (for now)
                 raise SiloClientError(cell_result.error)
             return cell_result.response
 
     def get_response_from_all_cells(self):
-        regions = self.get_cells_from_organizations()
-        response_map = self.get_responses_from_cell_silos(cells=regions)
+        cells = self.get_cells_from_organizations()
+        response_map = self.get_responses_from_cell_silos(cells=cells)
         successful_responses = [
             result for result in response_map.values() if result.response is not None
         ]
@@ -285,9 +285,9 @@ class BaseRequestParser(ABC):
             lifecycle.add_extra("path", self.request.path)
             if len(successful_responses) == 0:
                 error_map_str = ", ".join(
-                    f"{region}: {result.error}" for region, result in response_map.items()
+                    f"{cell}: {result.error}" for cell, result in response_map.items()
                 )
-                raise SiloClientError("No successful region responses", error_map_str)
+                raise SiloClientError("No successful cell responses", error_map_str)
             return successful_responses[0].response
 
     # Required Overrides
@@ -365,7 +365,7 @@ class BaseRequestParser(ABC):
         self, organizations: list[RpcOrganizationMapping] | None = None
     ) -> list[Cell]:
         """
-        Use the get_organizations_from_integration() method to identify forwarding regions.
+        Use the get_organizations_from_integration() method to identify forwarding cells.
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
