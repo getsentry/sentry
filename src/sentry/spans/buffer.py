@@ -588,19 +588,15 @@ class SpansBuffer:
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
-<<<<<<< vic/more_precise_logging
             # Pass queue mapping to enable TTL expiration detection
             segment_to_queue = {
-                segment_key: queue_key for _, queue_key, segment_key in segment_keys
+                segment_key: queue_key for _, queue_key, segment_key, _ in segment_keys
             }
-            segments = self._load_segment_data(
-                [k for _, _, k in segment_keys],
+            segments, ingested_counts = self._load_segment_data(
+                [k for _, _, k, _ in segment_keys],
                 segment_to_queue,
                 now,
             )
-=======
-            segments, ingested_counts = self._load_segment_data([k for _, _, k, _ in segment_keys])
->>>>>>> master
         load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
@@ -692,7 +688,6 @@ class SpansBuffer:
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
-<<<<<<< vic/more_precise_logging
     def _apply_per_trace_limit(
         self,
         segment_keys: list[tuple[int, QueueKey, SegmentKey]],
@@ -739,25 +734,14 @@ class SpansBuffer:
         segment_to_queue: dict[SegmentKey, QueueKey],
         now: int,
     ) -> dict[SegmentKey, list[bytes]]:
-=======
-    def _load_segment_data(
-        self, segment_keys: list[SegmentKey]
-    ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, int]]:
->>>>>>> master
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
 
         :param segment_keys: List of segment keys to load.
-<<<<<<< vic/more_precise_logging
         :param segment_to_queue: Mapping of segment keys to their queue keys for TTL checking.
         :param now: Current timestamp for age calculation.
         :return: payloads mapping segment keys to lists of span payloads.
-=======
-        :return: Tuple of (payloads, ingested_counts). payloads maps segment
-            keys to lists of span payloads. ingested_counts maps segment keys
-            to ingested count at read time.
->>>>>>> master
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
