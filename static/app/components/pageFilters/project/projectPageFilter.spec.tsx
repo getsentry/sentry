@@ -50,7 +50,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
 
     // Select only project-1
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
@@ -68,14 +68,11 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    // Open menu — initial state is All Projects (open-membership org)
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
 
-    // Deselect project-1 & project-2 by clicking on their checkboxes
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
-
-    // Select project-3 by clicking on its checkbox
+    // Uncheck All Projects to clear the selection, then select only project-3
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
@@ -102,13 +99,12 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open the menu, search input has focus
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
     });
 
-    // Move focus past the two special items ("All Projects", "My Projects") to project-1
-    await userEvent.keyboard('{ArrowDown}');
+    // Move focus past the one special item ("All Projects") to project-1
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowDown}');
     const optionOne = screen.getByRole('row', {name: 'project-1'});
@@ -170,7 +166,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open the menu, select project-1
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
     expect(router.location.query).toEqual({project: '1'});
 
@@ -179,7 +175,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
     // Trigger button was updated, onReset was called
-    expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
     expect(onReset).toHaveBeenCalled();
   });
 
@@ -196,7 +192,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Confirm initial selection
-    expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'All Projects'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateProjects([2], mockRouter));
@@ -207,6 +203,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects when All Projects is active selects only non-member projects', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
       projects: [-1],
@@ -215,7 +213,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
@@ -237,6 +235,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects while All Projects is staged selects only non-member projects', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -245,7 +245,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -270,6 +270,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('All Projects toggles all projects on; clicking again deselects everything', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -278,7 +280,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -305,6 +307,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('unchecking all project checkboxes from All Projects leaves everything unchecked', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
       projects: [-1],
@@ -313,7 +317,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
@@ -335,6 +339,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('My Projects toggles member projects on; clicking again deselects everything', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -343,7 +349,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -370,8 +376,10 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects separator when My Projects is visible', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -393,7 +401,7 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
     await userEvent.type(screen.getByPlaceholderText('Search…'), 'project-1');
 
     expect(
@@ -406,11 +414,13 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects or My Projects options when only one project exists', async () => {
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
     const singleProject = [ProjectFixture({id: '3', slug: 'project-3', isMember: false})];
     ProjectsStore.loadInitialData(singleProject);
 
     render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -602,6 +612,9 @@ describe('ProjectPageFilter', () => {
   ])(
     'shows selection limit warning when $label is active and a single project is unchecked',
     async ({memberCount, nonMemberCount, urlProjects, urlQuery, triggerName}) => {
+      // My Projects sentinel only exists in closed-membership orgs
+      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
       const manyProjects = [
         ...Array.from({length: memberCount}, (_, index) =>
           ProjectFixture({
@@ -627,7 +640,7 @@ describe('ProjectPageFilter', () => {
       });
 
       render(<ProjectPageFilter />, {
-        organization,
+        organization: closedOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: urlQuery},
         },
@@ -773,9 +786,18 @@ describe('ProjectPageFilter', () => {
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
     expect(within(projectRows[3]!).getByText('regular-project-b')).toBeInTheDocument();
 
+    // Navigate via keyboard to regular-project-a to make the Bookmark button visible.
+    // (hover is unreliable across tests due to shared pointer state in userEvent)
+    await waitFor(() => expect(screen.getByPlaceholderText('Search…')).toHaveFocus());
+    // No sentinel items (all 4 projects are members), so:
+    // ArrowDown x1 → selected-project, x2 → already-bookmarked, x3 → regular-project-a
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+
     // Bookmark regular-project-a while menu is open
     const regularProjectARow = screen.getByRole('row', {name: 'regular-project-a'});
-    await userEvent.hover(regularProjectARow);
+    expect(regularProjectARow).toHaveFocus();
     const bookmarkButton = within(regularProjectARow).getByRole('button', {
       name: 'Bookmark',
     });
@@ -834,9 +856,11 @@ describe('ProjectPageFilter', () => {
   });
 
   it('deselecting My Projects does not select All Projects in the URL', async () => {
-    // Start with default empty URL = "My Projects" state
+    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+
+    // Start with default empty URL = "My Projects" state in a closed org
     const {router} = render(<ProjectPageFilter />, {
-      organization,
+      organization: closedOrg,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -856,6 +880,76 @@ describe('ProjectPageFilter', () => {
     // URL must NOT become project=-1 (All Projects); the user did not select All Projects
     await waitFor(() => {
       expect(router.location.query.project).not.toBe('-1');
+    });
+  });
+
+  describe('open-membership org defaults', () => {
+    it('shows All Projects (not My Projects) as the default trigger label', async () => {
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'All Projects'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not show the My Projects option in the dropdown', async () => {
+      render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select My Projects'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('sends no project param for the default All Projects state', async () => {
+      const {router} = render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
+    });
+
+    it('resetting navigates to All Projects with no project param', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      });
+
+      const {router} = render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+
+      await waitFor(() => {
+        expect(router.location.query.project).toBeUndefined();
+      });
+
+      expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
     });
   });
 
