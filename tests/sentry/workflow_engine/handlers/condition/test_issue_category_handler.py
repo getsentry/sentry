@@ -4,8 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData

@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages

@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 import {ExploreSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/explore/exploreSecondaryNavigation';
@@ -11,7 +11,7 @@ import {MonitorsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/settings/settingsSecondaryNavigation';
 
 export function SecondaryNavigationContent(): ReactNode {
-  const {activeGroup} = useNavigation();
+  const {activeGroup} = usePrimaryNavigation();
   switch (activeGroup) {
     case 'issues':
       return <IssuesSecondaryNavigation />;

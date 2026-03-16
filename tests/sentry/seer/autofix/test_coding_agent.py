@@ -513,7 +513,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_client = MagicMock()
         mock_client.get_task_status.return_value = GithubCopilotTask(
             id="task-123",
-            status="completed",
+            state="completed",
             artifacts=[
                 GithubCopilotArtifact(
                     provider="github",
@@ -572,7 +572,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="failed",
+                state="failed",
             )
         )
 
@@ -609,7 +609,7 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_task_status = MagicMock(
             return_value=GithubCopilotTask(
                 id="task-123",
-                status="running",
+                state="in_progress",
                 artifacts=[
                     GithubCopilotArtifact(
                         provider="github",

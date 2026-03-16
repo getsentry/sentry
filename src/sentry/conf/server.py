@@ -490,10 +490,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
-    "sentry.prevent",
     "sentry.seer",
     "sentry.scm",
-    "sentry.issue_detection",
 )
 
 # Silence internal hints from Django's system checks

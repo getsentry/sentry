@@ -5,7 +5,7 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,

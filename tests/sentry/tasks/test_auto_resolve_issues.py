@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
 )
