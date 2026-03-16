@@ -844,7 +844,23 @@ class DashboardDetail extends Component<Props, State> {
                 }
               );
             },
-            () => undefined
+            error => {
+              const seerRunId = location.query?.seerRunId;
+              // Currently only runs for seer-generated dashboards
+              if (seerRunId && typeof seerRunId === 'string') {
+                Sentry.withScope(scope => {
+                  scope.setFingerprint(['generated-dashboard-save-failed']);
+                  scope.setTag('seer.run_id', seerRunId);
+                  scope.setLevel('error');
+                  Sentry.captureMessage('Generated dashboard failed to save', {
+                    extra: {
+                      dashboard_title: newModifiedDashboard.title,
+                      error_message: error?.message,
+                    },
+                  });
+                });
+              }
+            }
           );
         }
         break;
