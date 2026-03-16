@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import QueryCount from 'sentry/components/queryCount';
+import {QueryCount} from 'sentry/components/queryCount';
 
 describe('QueryCount', () => {
   it('displays count when no max', () => {

@@ -81,11 +81,10 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.db.models import NodeData
 from sentry.event_manager import EventManager
 from sentry.eventstream.item_helpers import (
-    _build_occurrence_attributes,
-    serialize_event_data_as_item,
+    _encode_attribute_data,
+    _gather_attribute_data_from_event_data,
 )
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issue_detection.performance_detection import detect_performance_problems
@@ -464,7 +463,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
                         region = None
-                        if mode is SiloMode.REGION:
+                        if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
@@ -695,7 +694,7 @@ class APITestCaseMixin:
             }
             if params:
                 url += "?" + urlencode(params)
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 resp = getattr(client, method.lower())(
                     url, b"".join(data), headers["Content-Type"], **extra
                 )
@@ -733,7 +732,7 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization.flags.require_2fa = True
             organization.save()
 
@@ -999,7 +998,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1168,14 +1167,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_ourlogs(self, ourlogs):
-        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def produce_and_store_eap_items(
         self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> list[TraceItem]:
@@ -1205,17 +1196,6 @@ class SnubaTestCase(BaseTestCase):
 
         self.store_eap_items(trace_items)
         return trace_items
-
-    def store_occurrences(self, occurrences: Sequence[TraceItem]):
-        files = {
-            f"occurrence_{i}": occurrence.SerializeToString()
-            for i, occurrence in enumerate(occurrences)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
 
     def store_events_to_snuba_and_eap(
         self,
@@ -1251,28 +1231,6 @@ class SnubaTestCase(BaseTestCase):
                 events.append(event)
         return events
 
-    def store_trace_metrics(self, trace_metrics):
-        files = {
-            f"trace_metric_{i}": trace_metric.SerializeToString()
-            for i, trace_metric in enumerate(trace_metrics)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-    def store_profile_functions(self, profile_functions):
-        files = {
-            f"profile_functions_{i}": profile_function.SerializeToString()
-            for i, profile_function in enumerate(profile_functions)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
@@ -1280,6 +1238,11 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+        # Reverse the ids since these are stored in little endian in
+        # ClickHouse and end up reversed. This helps if we want to compare
+        # these inserted items to results returned from EAP.
+        for item in items:
+            item.item_id = item.item_id[::-1]
 
     def store_issues(self, issues):
         assert (
@@ -1509,39 +1472,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload)
-
-
-class BaseOccurrenceTestCase(SnubaTestCase):
-    def create_occurrence(self, data, project: Project | None = None):
-        if project is None:
-            project = self.project
-        if "event_id" in data:
-            event_id = data["event_id"]
-        else:
-            event_id = uuid.uuid4().hex
-            data["event_id"] = event_id
-        if "timestamp" not in data:
-            data["timestamp"] = self.ten_mins_ago.timestamp()
-        if "received" not in data:
-            data["received"] = data["timestamp"]
-
-        if "contexts" not in data:
-            data["contexts"] = {"trace": {}}
-        if "trace" not in data["contexts"]:
-            data["contexts"]["trace"] = {}
-        if "trace_id" not in data["contexts"]["trace"]:
-            data["contexts"]["trace"]["trace_id"] = uuid.uuid4().hex
-
-        group = self.create_group(project=project)
-        node_id = Event.generate_node_id(project.id, event_id)
-        node_data = NodeData(node_id, data=data)
-        group_event = GroupEvent(
-            project_id=project.id,
-            event_id=event_id,
-            group=group,
-            data=node_data,
-        )
-        return serialize_event_data_as_item(group_event, data, project), group_event
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2548,7 +2478,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repository(
         self,
         repository_config,
@@ -3649,16 +3579,20 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
             "title": title,
             "type": occurrence_type,
         }
+        preprocessed: dict[str, Any] = {}
         if group_id is not None:
-            data["group_id"] = group_id
+            preprocessed["group_id"] = group_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
             data["transaction"] = transaction
         if attributes:
             data.update(attributes)
+        if tags is not None:
+            data["tags"] = tags.items()
 
-        attributes_proto = _build_occurrence_attributes(data, tags=tags)
+        attr_data = _gather_attribute_data_from_event_data(data, preprocessed=preprocessed)
+        attributes_proto = _encode_attribute_data(attr_data)
 
         return TraceItem(
             organization_id=organization.id,
@@ -4050,7 +3984,7 @@ class ReplayEAPTestCase(BaseTestCase):
         **attributes,
     ):
         """Create single EAP replay breadcrumb TraceItem."""
-        from datetime import datetime, timezone
+        from datetime import datetime
         from uuid import uuid4
 
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -4060,7 +3994,7 @@ class ReplayEAPTestCase(BaseTestCase):
         if organization is None:
             organization = self.organization
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc)
+            timestamp = datetime.now(UTC)
         if trace_id is None:
             trace_id = replay_id
 
@@ -4178,19 +4112,12 @@ class UptimeResultEAPTestCase(BaseTestCase):
         status_reason_description=None,
         span_id=None,
     ):
-        from datetime import datetime, timedelta, timezone
-        from uuid import uuid4
-
-        from google.protobuf.timestamp_pb2 import Timestamp
-        from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-        from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
-
         if organization is None:
             organization = self.organization
         if project is None:
             project = self.project
         if scheduled_check_time is None:
-            scheduled_check_time = datetime.now(timezone.utc) - timedelta(minutes=1)
+            scheduled_check_time = datetime.now(UTC) - timedelta(minutes=1)
         if trace_id is None:
             trace_id = uuid4().hex
         if guid is None:
@@ -4273,21 +4200,71 @@ class UptimeResultEAPTestCase(BaseTestCase):
             attributes=attributes_proto,
         )
 
-    def store_uptime_results(self, uptime_results):
-        """Store uptime results in the EAP dataset."""
-        import requests
-        from django.conf import settings
 
-        files = {
-            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
+class ProcessingErrorTestCase(BaseTestCase):
+    """Test case for creating and storing EAP processing error items."""
+
+    def create_processing_error(
+        self,
+        *,
+        organization=None,
+        project=None,
+        timestamp=None,
+        trace_id=None,
+        event_id=None,
+        error_type="js_no_source",
+        symbolicator_type=None,
+        release=None,
+        environment=None,
+        platform="javascript",
+        sdk_name=None,
+        sdk_version=None,
+    ):
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now(UTC) - timedelta(minutes=1)
+        if trace_id is None:
+            trace_id = uuid4().hex
+        if event_id is None:
+            event_id = uuid4().hex
+
+        attributes_data: dict[str, str | int] = {
+            "event_id": event_id,
+            "error_type": error_type,
         }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
 
-        for result in uptime_results:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            result.item_id = result.item_id[::-1]
+        if symbolicator_type is not None:
+            attributes_data["symbolicator_type"] = symbolicator_type
+        if release is not None:
+            attributes_data["release"] = release
+        if environment is not None:
+            attributes_data["environment"] = environment
+        if platform is not None:
+            attributes_data["platform"] = platform
+        if sdk_name is not None:
+            attributes_data["sdk_name"] = sdk_name
+        if sdk_version is not None:
+            attributes_data["sdk_version"] = sdk_version
+
+        attributes_proto = {}
+        for k, v in attributes_data.items():
+            if v is not None:
+                attributes_proto[k] = scalar_to_any_value(v)
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes=attributes_proto,
+        )

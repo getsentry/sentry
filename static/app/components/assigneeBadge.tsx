@@ -7,7 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -18,7 +18,6 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
-  className?: string;
   isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
@@ -33,7 +32,6 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
   isTooltipDisabled,
-  className,
 }: AssigneeBadgeProps) {
   const theme = useTheme();
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
@@ -92,7 +90,7 @@ export function AssigneeBadge({
   );
 
   return loading ? (
-    <StyledTag className={className} icon={loadingIcon} variant="muted" />
+    <StyledTag icon={loadingIcon} variant="muted" />
   ) : assignedTo ? (
     <Tooltip
       isHoverable
@@ -108,11 +106,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <StyledTag
-        className={className}
-        icon={makeAssignedIcon(assignedTo)}
-        variant="muted"
-      />
+      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
     </Tooltip>
   ) : (
     <Tooltip
@@ -135,7 +129,7 @@ export function AssigneeBadge({
       }
       skipWrapper
     >
-      <UnassignedTag className={className} icon={unassignedIcon} variant="muted" />
+      <UnassignedTag icon={unassignedIcon} variant="muted" />
     </Tooltip>
   );
 }

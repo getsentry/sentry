@@ -6,8 +6,6 @@ import styled from '@emotion/styled';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {space} from 'sentry/styles/space';
-
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;
 }
@@ -114,7 +112,7 @@ function RadioGroup<C extends string>({
 
 const Container = styled('div')<ContainerProps>`
   display: flex;
-  gap: ${p => space(p.orientInline ? 3 : 1)};
+  gap: ${p => (p.orientInline ? p.theme.space['2xl'] : p.theme.space.md)};
   flex-direction: ${p => (p.orientInline ? 'row' : 'column')};
 `;
 

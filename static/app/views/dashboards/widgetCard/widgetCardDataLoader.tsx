@@ -9,13 +9,14 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {shouldForceQueryToSpans} from 'sentry/views/dashboards/utils/shouldForceQueryToSpans';
-import SpansWidgetQueries from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
-import TraceMetricsWidgetQueries from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
+import {SpansWidgetQueries} from 'sentry/views/dashboards/widgetCard/spansWidgetQueries';
+import {TraceMetricsWidgetQueries} from 'sentry/views/dashboards/widgetCard/traceMetricsWidgetQueries';
 
-import IssueWidgetQueries from './issueWidgetQueries';
-import MobileAppSizeWidgetQueries from './mobileAppSizeWidgetQueries';
+import {IssueWidgetQueries} from './issueWidgetQueries';
+import {LogsWidgetQueries} from './logsWidgetQueries';
+import {MobileAppSizeWidgetQueries} from './mobileAppSizeWidgetQueries';
 import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetQueries from './widgetQueries';
+import {WidgetQueries} from './widgetQueries';
 
 type Results = {
   loading: boolean;
@@ -155,6 +156,22 @@ export function WidgetCardDataLoader({
       >
         {props => <Fragment>{children({...props})}</Fragment>}
       </TraceMetricsWidgetQueries>
+    );
+  }
+
+  if (widget.widgetType === WidgetType.LOGS) {
+    return (
+      <LogsWidgetQueries
+        widget={widget}
+        selection={selection}
+        limit={tableItemLimit}
+        onDataFetchStart={onDataFetchStart}
+        onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
+        widgetInterval={widgetInterval}
+      >
+        {props => <Fragment>{children({...props})}</Fragment>}
+      </LogsWidgetQueries>
     );
   }
 

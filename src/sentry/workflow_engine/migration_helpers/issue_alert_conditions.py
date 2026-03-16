@@ -411,9 +411,16 @@ data_condition_translator_mapping: dict[
 }
 
 
-def translate_to_data_condition(data: Mapping[str, Any], dcg: DataConditionGroup) -> DataCondition:
+def translate_to_data_condition_data(
+    data: Mapping[str, Any], dcg: DataConditionGroup
+) -> DataConditionKwargs:
     translator = data_condition_translator_mapping.get(data["id"])
     if not translator:
         raise ValueError(f"Unsupported condition: {data['id']}")
 
-    return DataCondition(**asdict(translator(data, dcg)))
+    return translator(data, dcg)
+
+
+def translate_to_data_condition(data: Mapping[str, Any], dcg: DataConditionGroup) -> DataCondition:
+    data_condition_data = translate_to_data_condition_data(data, dcg)
+    return DataCondition(**asdict(data_condition_data))

@@ -11,7 +11,7 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ChallengeData} from 'sentry/types/auth';
 
 import {handleSign} from './handlers';

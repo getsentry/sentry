@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -71,7 +71,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -221,7 +221,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -258,7 +258,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         return Response(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
     Endpoint for managing the favorite status of dashboards for users
@@ -296,7 +296,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
                     dashboard=dashboard,
                 )
             else:
-                DashboardFavoriteUser.objects.delete_favorite_dashboard(
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
                     user_id=request.user.id,
                     dashboard=dashboard,

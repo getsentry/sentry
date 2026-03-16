@@ -3,7 +3,7 @@ import {createMockAttributeResults} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
+import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {
   AllowedDataScrubbingDatasets,
   MethodType,

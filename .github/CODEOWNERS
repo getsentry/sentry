@@ -200,7 +200,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_spans_histogram.py            @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends.py                     @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trends_v2.py                  @getsentry/data-browsing
@@ -220,7 +219,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_spans_histogram.py      @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trends.py               @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_events_trends_v2.py           @getsentry/data-browsing
@@ -532,8 +530,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/seerExplorer/                             @getsentry/machine-learning-ai
 /src/sentry/seer/                                           @getsentry/machine-learning-ai
 /tests/sentry/seer/                                         @getsentry/machine-learning-ai
-/src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows
-/tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows
+/src/sentry/seer/fetch_issues/                              @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
+/tests/sentry/seer/fetch_issues/                            @getsentry/machine-learning-ai @getsentry/coding-workflows-sentry-backend
 ## End of ML & AI
 
 ## Issues
@@ -712,6 +710,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/pageFilters/                   @getsentry/design-engineering
 /static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
+/static/app/views/navigation/                         @getsentry/design-engineering
 
 # LLM Agent guidelines
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
@@ -724,14 +723,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Frontend Platform
 
 # Coding Workflows
-/static/app/components/prevent/                           @getsentry/coding-workflows
-/static/app/views/prevent/                                @getsentry/coding-workflows
-/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows
-/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows
-/src/sentry/prevent/                                      @getsentry/coding-workflows
-/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows
-/src/sentry/seer/code_review/                                                @getsentry/coding-workflows
-/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows
+/static/app/components/prevent/                           @getsentry/coding-workflows-sentry-frontend
+/static/app/views/prevent/                                @getsentry/coding-workflows-sentry-frontend
+/static/app/views/nav/secondary/sections/prevent/         @getsentry/coding-workflows-sentry-frontend
+/static/gsApp/views/seerAutomation/                       @getsentry/coding-workflows-sentry-frontend
+/src/sentry/prevent/                                      @getsentry/coding-workflows-sentry-backend
+/src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows-sentry-backend
+/src/sentry/seer/code_review/                                                @getsentry/coding-workflows-sentry-backend
+/tests/sentry/seer/code_review/                                              @getsentry/coding-workflows-sentry-backend
 
 ## SCM
 /src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm

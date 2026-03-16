@@ -38,7 +38,7 @@ from urllib3.exceptions import ReadTimeoutError
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -146,7 +146,7 @@ class OrganizationTracesEndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(

@@ -7230,3 +7230,95 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "equation|0 * count(span.duration)": 0,
             }
         ]
+
+    def test_has_in_filter(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "os.name": "Android",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {
+                            "app_start_type": "warm",
+                            "os.name": "iOS",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"os.name": "Windows"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        response = self.do_request(
+            {
+                "field": ["app_start_type", "ttid", "os.name"],
+                "query": "has:[ttid,app_start_type]",
+                "orderby": "app_start_type",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+
+        ttid_row = next((r for r in data if r.get("ttid") == "ttid"), None)
+        app_start_row = next((r for r in data if r.get("app_start_type") == "warm"), None)
+        assert ttid_row is not None
+        assert ttid_row["os.name"] == "Android"
+        assert app_start_row is not None
+        assert app_start_row["os.name"] == "iOS"
+
+        assert meta["dataset"] == "spans"
+
+    def test_failure_count_and_rate_none(self):
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "failure_count()", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "failure_rate()": None,
+                "failure_count()": 0,
+                "count()": 0,
+            }
+        ]
+
+    def test_failure_count_and_rate_zero(self):
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "failure_count()", "count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "failure_rate()": 0,
+                "failure_count()": 0,
+                "count()": 1,
+            }
+        ]

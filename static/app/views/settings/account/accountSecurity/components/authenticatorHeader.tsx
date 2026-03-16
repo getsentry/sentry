@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {t} from 'sentry/locale';
 
 interface AuthenticatorHeaderProps {

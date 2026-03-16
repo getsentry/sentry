@@ -9,10 +9,10 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class FormatPrCommentTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -59,9 +59,12 @@ class FormatPrCommentTest(TestCase):
         result = format_pr_comment([artifact])
 
         assert "## Sentry Build Distribution" in result
+        assert "| App Name | App ID | Version | Configuration | Install Page |" in result
         assert "MyApp" in result
+        assert "com.example.app" in result
         assert "1.2.3 (456)" in result
         assert "Release" in result
+        assert "[Install Build](" in result
         # Single platform — no subheader
         assert "### iOS" not in result
 

@@ -99,7 +99,7 @@ export function DO_NOT_USE_getButtonStyles(
       position: 'absolute',
       inset: '0',
       height: `calc(100% - ${buttonElevation})`,
-      top: `${buttonElevation}`,
+      top: buttonElevation,
       transform: `translateY(-${buttonElevation})`,
       boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
       background: buttonTheme.background,
@@ -132,7 +132,11 @@ export function DO_NOT_USE_getButtonStyles(
       zIndex: 1,
       position: 'relative',
 
+      display: 'inherit',
+      alignItems: 'inherit',
+      justifyContent: 'inherit',
       flex: '1',
+      gap: 'inherit',
       overflow: 'hidden',
 
       whiteSpace: 'nowrap',

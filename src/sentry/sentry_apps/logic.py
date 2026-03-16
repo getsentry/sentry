@@ -214,12 +214,12 @@ class SentryAppUpdater:
 
     def _update_service_hooks_via_outbox(self) -> None:
         if installations := SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id):
-            org_ids_and_region_names = OrganizationMapping.objects.filter(
+            org_ids_and_cell_names = OrganizationMapping.objects.filter(
                 organization_id__in=installations.values_list("organization_id", flat=True)
-            ).values_list("organization_id", "region_name")
+            ).values_list("organization_id", "cell_name")
 
-            installation_org_id_to_region_name = {
-                org_id: region_name for org_id, region_name in org_ids_and_region_names
+            installation_org_id_to_cell_name = {
+                org_id: cell_name for org_id, cell_name in org_ids_and_cell_names
             }
 
             with outbox_context(
@@ -227,7 +227,7 @@ class SentryAppUpdater:
             ):
                 for installation in installations:
                     assert (
-                        installation_org_id_to_region_name.get(installation.organization_id)
+                        installation_org_id_to_cell_name.get(installation.organization_id)
                         is not None
                     ), (
                         f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
@@ -238,9 +238,7 @@ class SentryAppUpdater:
                         shard_identifier=self.sentry_app.id,
                         object_identifier=installation.id,
                         category=OutboxCategory.SERVICE_HOOK_UPDATE,
-                        region_name=installation_org_id_to_region_name[
-                            installation.organization_id
-                        ],
+                        cell_name=installation_org_id_to_cell_name[installation.organization_id],
                     ).save()
                     logger.info(
                         "_update_service_hooks_via_outbox.created_outbox_entry",
@@ -249,7 +247,7 @@ class SentryAppUpdater:
                             "sentry_app_id": self.sentry_app.id,
                             "events": self.sentry_app.events,
                             "application_id": self.sentry_app.application_id,
-                            "region_name": installation_org_id_to_region_name[
+                            "cell_name": installation_org_id_to_cell_name[
                                 installation.organization_id
                             ],
                         },

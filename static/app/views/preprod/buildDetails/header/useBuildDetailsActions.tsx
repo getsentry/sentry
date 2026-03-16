@@ -5,8 +5,8 @@ import {t} from 'sentry/locale';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
-import {getListBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface UseBuildDetailsActionsProps {
@@ -33,12 +33,7 @@ export function useBuildDetailsActions({
     },
     onSuccess: () => {
       addSuccessMessage(t('Build deleted successfully'));
-      // TODO(preprod): navigate back to the release page once built?
-      navigate(
-        getListBuildPath({
-          organizationSlug: organization.slug,
-        })
-      );
+      navigate(makeReleasesUrl(organization.slug, projectId));
     },
     onError: () => {
       addErrorMessage(t('Failed to delete build'));

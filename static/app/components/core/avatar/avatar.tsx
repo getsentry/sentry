@@ -85,6 +85,7 @@ export function Avatar({
       >
         {avatarDefinition.type === 'image' ? (
           <ImageAvatar
+            loading="eager"
             configuration={avatarDefinition.configuration}
             round={round}
             suggested={suggested}

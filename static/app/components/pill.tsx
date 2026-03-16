@@ -12,7 +12,7 @@ type Props = {
   value?: number | string | boolean | null;
 };
 
-const Pill = memo(({name, value, children, type, className}: Props) => {
+export const Pill = memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {
     if (value === undefined) {
       return {};
@@ -152,5 +152,3 @@ const StyledPill = styled('li')<{type?: PillType}>`
     ${getPillValueStyle};
   }
 `;
-
-export default Pill;

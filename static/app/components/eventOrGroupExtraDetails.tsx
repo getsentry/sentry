@@ -7,12 +7,12 @@ import {
   getAutofixRunExists,
   isIssueQuickFixable,
 } from 'sentry/components/events/autofix/utils';
-import EventAnnotation from 'sentry/components/events/eventAnnotation';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
-import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
-import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import IssueReplayCount from 'sentry/components/group/issueReplayCount';
-import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
+import {EventAnnotation} from 'sentry/components/events/eventAnnotation';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
+import {TimesTag} from 'sentry/components/group/inboxBadges/timesTag';
+import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
+import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
+import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
@@ -22,10 +22,10 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   data: Event | Group;
@@ -54,7 +54,11 @@ function Lifetime({
   );
 }
 
-function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Props) {
+export function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  showLifetime = true,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -246,5 +250,3 @@ const Location = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default EventOrGroupExtraDetails;

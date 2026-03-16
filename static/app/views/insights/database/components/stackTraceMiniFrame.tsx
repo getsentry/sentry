@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {

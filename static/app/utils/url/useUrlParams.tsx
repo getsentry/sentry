@@ -6,22 +6,22 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 // TODO(epurkhiser): Once we're on react-router 6 we should replace this with
 // their useSearchParams hook
 
-function useUrlParams(
+export function useUrlParams(
   defaultKey: string,
   defaultValue: string
 ): {
   getParamValue: () => string;
   setParamValue: (value: string) => void;
 };
-function useUrlParams(defaultKey: string): {
+export function useUrlParams(defaultKey: string): {
   getParamValue: () => string | undefined;
   setParamValue: (value: string) => void;
 };
-function useUrlParams(): {
+export function useUrlParams(): {
   getParamValue: (key: string) => string | undefined;
   setParamValue: (key: string, value: string) => void;
 };
-function useUrlParams(defaultKey?: string, defaultValue?: string) {
+export function useUrlParams(defaultKey?: string, defaultValue?: string) {
   const getParamValue = useCallback(
     (key: string) => {
       const currentQuery = qs.parse(window.location.search);
@@ -63,5 +63,3 @@ function useUrlParams(defaultKey?: string, defaultValue?: string) {
     setParamValue,
   };
 }
-
-export default useUrlParams;

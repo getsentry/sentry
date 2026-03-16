@@ -20,7 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
@@ -37,7 +37,7 @@ type Props = {
   project?: Project;
 };
 
-function TagFacetsDistributionMeter({
+export function TagFacetsDistributionMeter({
   segments,
   title,
   totalValues,
@@ -262,8 +262,6 @@ function TagFacetsDistributionMeter({
   );
 }
 
-export default TagFacetsDistributionMeter;
-
 const TagSummary = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
@@ -395,7 +393,7 @@ const StyledSummary = styled('summary')`
 
 const StyledButton = styled(Button)`
   width: 100%;
-  > span > span {
+  > span {
     display: block;
   }
 `;

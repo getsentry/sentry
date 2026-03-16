@@ -16,7 +16,7 @@ import {MatchType} from 'sentry/views/automations/components/actionFilters/const
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {AutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
+import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
 
 const dataConditionHandlers: DataConditionHandler[] = [
   DataConditionHandlerFixture({type: DataConditionType.AGE_COMPARISON}),

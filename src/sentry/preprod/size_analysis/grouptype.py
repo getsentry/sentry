@@ -7,8 +7,10 @@ from datetime import timezone as dt_timezone
 from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 from uuid import uuid4
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -86,7 +88,33 @@ SizeAnalysisEvaluation: TypeAlias = int | float
 class PreprodSizeAnalysisDetectorHandler(
     BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
+    def _matches_query(self, data_packet: SizeAnalysisDataPacket) -> bool:
+        query = self.detector.config.get("query", "")
+        if not query or not query.strip():
+            return True
+
+        metadata = data_packet.packet.get("metadata")
+        if not metadata:
+            raise ValueError(
+                f"Data packet is missing metadata required to evaluate query filter: {query}"
+            )
+
+        artifact = metadata["head_artifact"]
+        organization = self.detector.project.organization
+
+        try:
+            return artifact_matches_query(artifact, query, organization)
+        except InvalidSearchQuery:
+            logger.exception(
+                "preprod.size_analysis.invalid_detector_query",
+                extra={"detector_id": self.detector.id, "query": query},
+            )
+            return False
+
     def evaluate_impl(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+        if not self._matches_query(data_packet):
+            return GroupedDetectorEvaluationResult(result={}, tainted=False)
+
         value = self.extract_value(data_packet)
         evaluation, priority = self._evaluate_conditions(value)
         if evaluation is None or priority is None:
@@ -236,7 +264,7 @@ class PreprodSizeAnalysisDetectorHandler(
 
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
-    pass
+    data_source_required = False
 
 
 @dataclass(frozen=True)
@@ -267,6 +295,10 @@ class PreprodSizeAnalysisGroupType(GroupType):
                     "type": "string",
                     "enum": ["install_size", "download_size"],
                     "description": "The measurement to track",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "Search query to filter which artifacts are monitored",
                 },
             },
             "required": ["threshold_type", "measurement"],

@@ -14,10 +14,10 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
-import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {BrowserTypeSelector} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
@@ -33,11 +33,11 @@ import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeatu
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -49,7 +49,7 @@ function PageOverview() {
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
-  const router = useRouter();
+  const navigate = useNavigate();
   const {view} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
@@ -86,10 +86,13 @@ function PageOverview() {
     Component: <PageOverviewWebVitalsDetailPanel webVital={state.webVital} />,
     webVital: state.webVital,
     onClose: () => {
-      router.replace({
-        pathname: router.location.pathname,
-        query: omit(router.location.query, 'webVital'),
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          query: omit(location.query, 'webVital'),
+        },
+        {replace: true}
+      );
 
       setState({...state, webVital: null});
     },
@@ -175,10 +178,13 @@ function PageOverview() {
                 projectData={pageData}
                 projectScore={projectScore}
                 onClick={webVital => {
-                  router.replace({
-                    pathname: location.pathname,
-                    query: {...location.query, webVital},
-                  });
+                  navigate(
+                    {
+                      pathname: location.pathname,
+                      query: {...location.query, webVital},
+                    },
+                    {replace: true}
+                  );
                   setState({...state, webVital});
                 }}
                 transaction={transaction}

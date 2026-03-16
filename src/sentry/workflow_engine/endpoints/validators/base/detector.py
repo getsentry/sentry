@@ -53,6 +53,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     This prevents invalid configurations for detector types that don't support multiple data sources.
     """
 
+    data_source_required = True
+    """
+    Set to False in subclasses if data sources are not required for this detector type.
+    By default, data sources are required when creating a new detector.
+    """
+
     name = serializers.CharField(
         required=True,
         max_length=200,
@@ -136,6 +142,17 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 )
 
         return value
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+        Validate detector data, enforcing data source requirements if configured.
+        """
+        # Check if data sources are missing when creating a new detector
+        if self.data_source_required and not self.instance and not attrs.get("data_sources"):
+            raise serializers.ValidationError(
+                {"data_sources": ["This field is required when creating a detector."]}
+            )
+        return attrs
 
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)

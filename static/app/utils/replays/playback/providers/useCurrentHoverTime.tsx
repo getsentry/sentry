@@ -11,6 +11,6 @@ export function ReplayCurrentTimeContextProvider({children}: {children: ReactNod
   return <Context value={state}>{children}</Context>;
 }
 
-export default function useCurrentHoverTime() {
+export function useCurrentHoverTime() {
   return useContext(Context);
 }

@@ -15,7 +15,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {StarFixabilityViewButton} from 'sentry/components/events/autofix/seerCreateViewButton';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,
   useAutofixRepos,
@@ -33,9 +34,9 @@ import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
-import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -188,7 +189,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       automated_run_stopping_point: 'root_cause',
       automation_handoff: {
         handoff_point: 'root_cause',
-        target: 'cursor_background_agent',
+        target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
         integration_id: parseInt(cursorIntegration.id, 10),
       },
     });

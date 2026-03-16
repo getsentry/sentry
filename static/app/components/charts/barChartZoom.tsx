@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
-import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import ToolBox from 'sentry/components/charts/components/toolBox';
+import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
@@ -68,7 +68,7 @@ type Props = {
   onHistoryPush?: (start: number, end: number) => void;
 };
 
-function BarChartZoom({
+export function BarChartZoom({
   buckets,
   children,
   location,
@@ -168,5 +168,3 @@ function BarChartZoom({
     onDataZoom: handleDataZoom,
   });
 }
-
-export default BarChartZoom;

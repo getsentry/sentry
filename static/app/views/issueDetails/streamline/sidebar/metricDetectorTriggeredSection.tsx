@@ -4,15 +4,17 @@ import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import GroupList from 'sentry/components/issues/groupList';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
@@ -28,10 +30,10 @@ import type {
 import {defined} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
@@ -262,6 +264,7 @@ function ContributingIssues({
     end,
     limit: 5,
     sort: aggregate === 'count_unique(user)' ? 'user' : 'freq',
+    groupStatsPeriod: 'auto',
   };
 
   const discoverUrl: LocationDescriptor = {
@@ -302,7 +305,7 @@ function ContributingIssues({
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            withChart={false}
+            withChart
             withPagination={false}
             source="metric-issue-contributing-issues"
             numPlaceholderRows={3}
@@ -401,14 +404,27 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         type="triggered_condition"
         actions={
-          isOpenPeriodLoading ? null : (
-            <OpenInDestinationButton
-              snubaQuery={snubaQuery}
-              projectId={projectId}
-              start={startDate}
-              end={endDate}
+          <Flex gap="xs">
+            <FeedbackButton
+              aria-label={t('Give feedback on metric issues')}
+              size="xs"
+              feedbackOptions={{
+                messagePlaceholder: t('Tell us what you think about this metric issue.'),
+                tags: {
+                  ['feedback.source']: 'metric_issue_details',
+                  ['feedback.owner']: 'aci',
+                },
+              }}
             />
-          )
+            {!isOpenPeriodLoading && (
+              <OpenInDestinationButton
+                snubaQuery={snubaQuery}
+                projectId={projectId}
+                start={startDate}
+                end={endDate}
+              />
+            )}
+          </Flex>
         }
       >
         <KeyValueList

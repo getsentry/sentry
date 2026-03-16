@@ -20,9 +20,7 @@ import {Radio} from '@sentry/scraps/radio';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/radio';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/radio');
 
 `<Radio>` is a radio button component for selecting a single option from a set of mutually exclusive choices. Radio buttons should always be used in groups where only one option can be selected at a time.
 

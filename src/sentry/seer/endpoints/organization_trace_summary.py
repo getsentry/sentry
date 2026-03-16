@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.models.organization import Organization
@@ -26,7 +26,7 @@ class OrganizationTraceSummaryPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -64,7 +64,9 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
         try:
             trace_endpoint = OrganizationTraceEndpoint()
             snuba_params = trace_endpoint.get_snuba_params(request, organization)
-            trace_tree = trace_endpoint.query_trace_data(snuba_params, trace_id)
+            trace_tree = trace_endpoint.query_trace_data(
+                snuba_params, trace_id, organization=organization
+            )
         except Exception:
             return Response({"detail": "Error fetching trace"}, status=400)
 

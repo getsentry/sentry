@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {

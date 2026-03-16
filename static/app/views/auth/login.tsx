@@ -5,17 +5,17 @@ import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
-import LoginForm from './loginForm';
-import RegisterForm from './registerForm';
-import SsoForm from './ssoForm';
+import {LoginForm} from './loginForm';
+import {RegisterForm} from './registerForm';
+import {SsoForm} from './ssoForm';
 
 const FORM_COMPONENTS = {
   login: LoginForm,

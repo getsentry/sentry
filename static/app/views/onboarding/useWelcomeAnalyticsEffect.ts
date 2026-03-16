@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ONBOARDING_WELCOME_SCREEN_SOURCE} from 'sentry/views/onboarding/consts';
 
 export function useWelcomeAnalyticsEffect() {

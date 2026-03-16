@@ -25,7 +25,7 @@ The goal is to stay out of your way when you need flexibility while giving you c
 The form system provides two modes:
 
 - **Submit-based forms** — Use `useScrapsForm` for traditional forms with a submit button. Best for creation flows, dialogs, and multi-field submissions.
-- **Auto-save fields** — Use `AutoSaveField` for settings pages where each field saves independently on blur or change. See [AutoSaveField](./autoSaveField.mdx).
+- **Auto-save forms** — Use `AutoSaveForm` for settings pages where each field saves independently on blur or change. See [AutoSaveForm](./autoSaveForm.mdx).
 
 For a reference of all available field components, see [Fields](./fields.mdx).
 
@@ -355,7 +355,79 @@ function MyForm() {
 
 `SubmitButton` automatically disables while submission is pending and triggers form validation before submitting.
 
+## Nullable Default Values
+
+When a required field has no meaningful initial value (e.g., a select that starts empty), use `.nullable().refine()` in the schema. This creates a difference between the schema's input type (accepts `null`) and output type (does not). Type `defaultValues` with `z.input<typeof schema>` and call `schema.parse(value)` in `onSubmit` to narrow the type.
+
+```jsx
+import {z} from 'zod';
+
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+
+const schema = z.object({
+  provider: z
+    .enum(['GitHub', 'LaunchDarkly'])
+    .nullable()
+    .refine(v => v !== null, 'Provider is required'),
+  name: z.string().min(1, 'Name is required'),
+});
+
+// z.input allows null for the provider field
+const defaultValues: z.input<typeof schema> = {
+  provider: null,
+  name: '',
+};
+
+function MyForm() {
+  const mutation = useMutation({
+    mutationFn: (data: z.output<typeof schema>) =>
+      fetchMutation({url: '/endpoint/', method: 'POST', data}),
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      // schema.parse validates and narrows null away
+      return mutation.mutateAsync(schema.parse(value)).catch(() => {});
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="provider">
+        {field => (
+          <field.Layout.Row label={t('Provider')} required>
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              placeholder={t('Select a provider')}
+              options={[
+                {value: 'GitHub', label: 'GitHub'},
+                {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+              ]}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+      <form.AppField name="name">
+        {field => (
+          <field.Layout.Row label={t('Name')} required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+      <form.SubmitButton>Submit</form.SubmitButton>
+    </form.AppForm>
+  );
+}
+```
+
+> [!TIP]
+> This pattern avoids non-null assertions (`value.provider!`) and type casts. The `schema.parse()` call is both type-safe and validates at runtime, ensuring your mutation always receives the correct type.
+
 ## See Also
 
 - [Fields Reference](./fields.mdx) — All available field components
-- [AutoSaveField](./autoSaveField.mdx) — Auto-save fields for settings pages
+- [AutoSaveForm](./autoSaveForm.mdx) — Auto-save form fields for settings pages

@@ -209,7 +209,7 @@ def get_delegated_constructors(
             DelegatedByOpenTransaction(
                 {
                     User: mapping[SiloMode.CONTROL],
-                    Organization: mapping[SiloMode.REGION],
+                    Organization: mapping[SiloMode.CELL],
                 },
                 mapping[SiloMode.MONOLITH],
             ),

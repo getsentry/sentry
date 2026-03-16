@@ -24,7 +24,7 @@ from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -76,7 +76,7 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-@region_silo_view
+@cell_silo_view
 class ErrorPageEmbedView(View):
     """
     View for the crash report modal.

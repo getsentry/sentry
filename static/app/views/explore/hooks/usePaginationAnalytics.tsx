@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function usePaginationAnalytics(
   type: 'samples' | 'traces' | 'aggregates',

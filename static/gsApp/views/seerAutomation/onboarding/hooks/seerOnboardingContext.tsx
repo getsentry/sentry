@@ -18,7 +18,7 @@ import type {
   RepositoryWithSettings,
 } from 'sentry/types/integrations';
 import {useInfiniteQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
 import {useIntegrationProvider} from './useIntegrationProvider';

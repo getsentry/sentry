@@ -2,18 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import BreakdownBars from 'sentry/components/charts/breakdownBars';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {BreakdownBars} from 'sentry/components/charts/breakdownBars';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
@@ -24,13 +25,15 @@ type Props = {
   organization: Organization;
 };
 
-function StatusBreakdown({eventView, location, organization}: Props) {
+export function StatusBreakdown({eventView, location, organization}: Props) {
   const navigate = useNavigate();
+  const statusAttribute =
+    eventView.dataset === DiscoverDatasets.SPANS ? 'span.status' : 'transaction.status';
 
   const breakdownView = eventView
     .withColumns([
       {kind: 'function', function: ['count', '', '', undefined]},
-      {kind: 'field', field: 'transaction.status'},
+      {kind: 'field', field: statusAttribute},
     ])
     .withSorts([{kind: 'desc', field: 'count'}]);
 
@@ -67,7 +70,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
             );
           }
           const points = tableData.data.map(row => ({
-            label: String(row['transaction.status']),
+            label: String(row[statusAttribute]),
             value: parseInt(String(row['count()']), 10),
             onClick: () => {
               const query = new MutableSearch(eventView.query);
@@ -78,10 +81,8 @@ function StatusBreakdown({eventView, location, organization}: Props) {
               query.removeFilter('event.type').removeFilter('transaction');
 
               query
-                .removeFilter('!transaction.status')
-                .setFilterValues('transaction.status', [
-                  row['transaction.status'] as string,
-                ]);
+                .removeFilter(`!${statusAttribute}`)
+                .setFilterValues(statusAttribute, [row[statusAttribute] as string]);
               navigate({
                 pathname: location.pathname,
                 query: {
@@ -95,7 +96,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
                 'performance_views.transaction_summary.status_breakdown_click',
                 {
                   organization,
-                  status: row['transaction.status'] as string,
+                  status: row[statusAttribute] as string,
                 }
               );
             },
@@ -111,5 +112,3 @@ const EmptyStatusBreakdown = styled(EmptyStateWarning)`
   height: 124px;
   padding: 50px 15%;
 `;
-
-export default StatusBreakdown;

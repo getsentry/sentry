@@ -249,19 +249,19 @@ class AppService(RpcService):
         pass
 
 
-@back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
+@back_with_silo_cache("app_service.get_installation", SiloMode.CELL, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:
     return app_service.get_installation_by_id(id=id)
 
 
 @back_with_silo_cache_list(
-    "app_service.get_installed_for_organization", SiloMode.REGION, RpcSentryAppInstallation
+    "app_service.get_installed_for_organization", SiloMode.CELL, RpcSentryAppInstallation
 )
 def get_installations_for_organization(organization_id: int) -> list[RpcSentryAppInstallation]:
     return app_service.get_installations_for_organization(organization_id=organization_id)
 
 
-@back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)
+@back_with_silo_cache("app_service.get_by_application_id", SiloMode.CELL, RpcSentryApp)
 def get_by_application_id(application_id: int) -> RpcSentryApp | None:
     return app_service.find_service_hook_sentry_app(api_application_id=application_id)
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';

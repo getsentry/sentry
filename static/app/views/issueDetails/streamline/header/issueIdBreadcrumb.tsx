@@ -15,8 +15,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 
 interface ShortIdBreadcrumbProps {

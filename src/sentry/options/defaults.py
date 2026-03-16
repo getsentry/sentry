@@ -711,10 +711,10 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.code-review.excluded-pr-author-logins",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -731,6 +731,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -748,11 +749,6 @@ register(
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.drop-unprocessed-events.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1352,6 +1348,12 @@ register(
 )
 register(
     "seer.explorer-index.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.explorer.context-engine-rollout",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2496,12 +2498,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=[],
+    default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -3289,6 +3290,27 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Write payload sets to per-span distributed keys AND merged keys.
+# Flusher reads merged keys as before.
+register(
+    "spans.buffer.write-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Switch flusher to read from distributed keys instead of merged.
+register(
+    "spans.buffer.read-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Set to False to stop writing merged keys and skip set merges.
+# Disable after read-distributed-payloads is stable. Rollback: re-enable
+# this flag to resume merged writes before reverting read-distributed-payloads.
+register(
+    "spans.buffer.write-merged-payloads",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3316,6 +3338,12 @@ register(
 )
 register(
     "spans.process-segments.drop-segments",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.process-segments.skip-enrichment-projects",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4117,6 +4145,15 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SCM
+
+register(
+    "sentry.scm.stream.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

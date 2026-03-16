@@ -38,7 +38,7 @@ from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.grouptype import MetricIssue
@@ -167,7 +167,7 @@ from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.region import Cell, get_cell_by_name, get_local_region
+from sentry.types.region import Cell, get_cell_by_name, get_local_cell
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
@@ -377,14 +377,14 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 # TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, region: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
         with contextlib.ExitStack() as ctx:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
-                region_name = get_local_region().name
+                region_name = get_local_cell().name
             else:
                 if isinstance(region, Cell):
                     region_name = region.name
@@ -393,7 +393,7 @@ class Factories:
                     region_name = region_obj.name
 
                 ctx.enter_context(
-                    override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION=region_name)
+                    override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION=region_name)
                 )
 
             with outbox_context(flush=False):
@@ -403,7 +403,7 @@ class Factories:
                 # Organization mapping creation relies on having a matching org slug reservation
                 OrganizationSlugReservation(
                     organization_id=org.id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     user_id=owner.id if owner else -1,
                     slug=org.slug,
                 ).save(unsafe_write=True)
@@ -412,7 +412,7 @@ class Factories:
             org.handle_async_replication(org.id)
 
             # Flush remaining organization update outboxes accumulated by org create
-            RegionOutbox(
+            CellOutbox(
                 shard_identifier=org.id,
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                 category=OutboxCategory.ORGANIZATION_UPDATE,
@@ -434,7 +434,7 @@ class Factories:
         return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
         teamRole = kwargs.pop("teamRole", None)
@@ -464,7 +464,7 @@ class Factories:
         return om
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_member_invite(
         organization: Organization | None = None,
         email: str | None = None,
@@ -480,7 +480,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, created = OrganizationMember.objects.get_or_create(
@@ -526,7 +526,7 @@ class Factories:
         return OrgAuthToken.objects.create(*args, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_team(organization, **kwargs):
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
@@ -541,7 +541,7 @@ class Factories:
         return team
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_environment(project, **kwargs):
         name = kwargs.get("name", petname.generate(3, " ", letters=10)[:64])
 
@@ -553,7 +553,7 @@ class Factories:
         return env
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_project(
         organization=None,
         teams=None,
@@ -593,12 +593,12 @@ class Factories:
         return DataAccessGrant.objects.create(**kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_project_rule(
         project,
         action_data=None,
@@ -663,7 +663,7 @@ class Factories:
         return rule
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_slack_project_rule(project, integration_id, channel_id=None, channel_name=None):
         action_data = [
             {
@@ -677,12 +677,12 @@ class Factories:
         return Factories.create_project_rule(project, action_data)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_tempest_credentials(
         project: Project,
         created_by: User | None = None,
@@ -710,7 +710,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_release(
         project: Project,
         user: User | None = None,
@@ -791,7 +791,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_release_file(release_id, file=None, name=None, dist_id=None):
         if file is None:
             file = Factories.create_file(
@@ -815,7 +815,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_artifact_bundle_zip(
         org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
@@ -839,7 +839,7 @@ class Factories:
         return bundle.getvalue()
 
     @classmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_release_archive(cls, org, release: str, project=None, dist=None):
         bundle = cls.create_artifact_bundle_zip(org, release, project)
         file = File.objects.create(name="release-artifacts.zip")
@@ -848,7 +848,7 @@ class Factories:
         return update_artifact_index(release_obj, dist, file)
 
     @classmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_artifact_bundle(
         cls,
         org,
@@ -877,7 +877,7 @@ class Factories:
         return artifact_bundle
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_code_mapping(project, repo=None, organization_integration=None, **kwargs):
         kwargs.setdefault("stack_root", "")
         kwargs.setdefault("source_root", "")
@@ -895,7 +895,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repo(
         project, name=None, provider=None, integration_id=None, url=None, external_id=None
     ):
@@ -911,7 +911,7 @@ class Factories:
         return repo
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repository_settings(
         repository: Repository,
         enabled_code_review: bool = False,
@@ -931,7 +931,7 @@ class Factories:
         return settings
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_commit(
         repo, project=None, author=None, release=None, message=None, key=None, date_added=None
     ):
@@ -964,7 +964,7 @@ class Factories:
         return commit
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_commit_author(organization_id=None, project=None, user=None, email=None):
         if email:
             user_email = email
@@ -977,7 +977,7 @@ class Factories:
         )[0]
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_pull_request(
         repository_id=None, organization_id=None, key=None, title=None, message=None, author=None
     ):
@@ -993,7 +993,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_pull_request_comment(
         pull_request,
         external_id=None,
@@ -1027,7 +1027,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_pull_request_commit(pull_request, commit):
         return PullRequestCommit.objects.create(
             pull_request=pull_request,
@@ -1035,14 +1035,14 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_commit_file_change(commit, filename):
         return CommitFileChange.objects.get_or_create(
             organization_id=commit.organization_id, commit_id=commit.id, filename=filename, type="M"
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_release_commit(release, commit, order=1):
         return ReleaseCommit.objects.create(
             organization_id=release.organization_id,
@@ -1144,7 +1144,7 @@ class Factories:
                 )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def store_event(
         data,
         project_id: int,
@@ -1201,7 +1201,7 @@ class Factories:
         return event
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
         from sentry.models.groupopenperiod import GroupOpenPeriod, should_create_open_periods
@@ -1236,24 +1236,24 @@ class Factories:
         return group
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_file(**kwargs):
         return File.objects.create(**kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_forwarder(organization, provider, config, **kwargs):
         return DataForwarder.objects.create(
             organization=organization, provider=provider, config=config, **kwargs
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_forwarder_project(data_forwarder, project, **kwargs):
         from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 
@@ -1262,7 +1262,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_file_from_path(path, name=None, **kwargs):
         if name is None:
             name = os.path.basename(path)
@@ -1273,7 +1273,7 @@ class Factories:
         return file
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dif_file(
         project,
         debug_id=None,
@@ -1317,7 +1317,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dif_from_path(path, object_name=None, **kwargs):
         if object_name is None:
             object_name = os.path.basename(path)
@@ -1407,7 +1407,7 @@ class Factories:
         return _kwargs
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_sentry_app_installation(
         organization=None,
         slug=None,
@@ -1535,7 +1535,7 @@ class Factories:
         }
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_service_hook(
         actor=None, org=None, project=None, events=None, url=None, project_ids=None, **kwargs
     ):
@@ -1575,7 +1575,7 @@ class Factories:
         return ServiceHook.objects.get(id=hook_id)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_service_hook_project_for_installation(
         project_id: int,
         installation_id: int,
@@ -1658,7 +1658,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_userreport(
         project: Project, event_id: str | None = None, **kwargs: Any
     ) -> UserReport:
@@ -1691,7 +1691,7 @@ class Factories:
         return session
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_platform_external_issue(
         group=None, service_type=None, display_name=None, web_url=None
     ):
@@ -1704,7 +1704,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
@@ -1733,7 +1733,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_incident(
         organization,
         projects,
@@ -1772,14 +1772,14 @@ class Factories:
         return incident
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_activity(incident, type, comment=None, user_id=None, **kwargs):
         return IncidentActivity.objects.create(
             incident=incident, type=type, comment=comment, user_id=user_id, **kwargs
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule(
         organization,
         projects,
@@ -1838,7 +1838,7 @@ class Factories:
         return alert_rule
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
@@ -1846,7 +1846,7 @@ class Factories:
         return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_trigger(incident, alert_rule_trigger, status=None):
         if status is None:
             status = TriggerStatus.ACTIVE.value
@@ -1856,7 +1856,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_trigger_action(
         trigger,
         type=AlertRuleTriggerAction.Type.EMAIL,
@@ -1877,7 +1877,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_external_user(user: User, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
@@ -1885,7 +1885,7 @@ class Factories:
         return ExternalActor.objects.create(user_id=user.id, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_external_team(team: Team, **kwargs: Any) -> ExternalActor:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "@getsentry/ecosystem")
@@ -1893,7 +1893,7 @@ class Factories:
         return ExternalActor.objects.create(team_id=team.id, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_codeowners(project, code_mapping, **kwargs):
         kwargs.setdefault("raw", "")
 
@@ -2016,7 +2016,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group_history(
         group: Group,
         status: int,
@@ -2042,7 +2042,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
@@ -2054,7 +2054,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_saved_search(name: str, **kwargs):
         if "owner" in kwargs:
             owner = kwargs.pop("owner")
@@ -2062,7 +2062,7 @@ class Factories:
         return SavedSearch.objects.create(name=name, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_notification_action(
         organization: Organization | None = None,
         projects: list[Project] | None = None,
@@ -2105,7 +2105,7 @@ class Factories:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def snooze_rule(**kwargs):
         return RuleSnooze.objects.create(**kwargs)
 
@@ -2133,7 +2133,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_webhook_payload(
-        mailbox_name: str, region_name: str | None, **kwargs
+        mailbox_name: str, cell_name: str | None, **kwargs
     ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
@@ -2143,7 +2143,7 @@ class Factories:
             **kwargs,
         }
         return WebhookPayload.objects.create(
-            mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+            mailbox_name=mailbox_name, cell_name=cell_name, **payload_kwargs
         )
 
     @staticmethod
@@ -2201,7 +2201,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dashboard(
         organization: Organization | None = None,
         title: str | None = None,
@@ -2220,7 +2220,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dashboard_widget(
         dashboard: Dashboard | None = None,
         title: str | None = None,
@@ -2239,7 +2239,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dashboard_widget_query(
         order: int,
         widget: DashboardWidget | None = None,
@@ -2253,7 +2253,7 @@ class Factories:
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_workflow(
         name: str | None = None,
         organization: Organization | None = None,
@@ -2271,7 +2271,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_condition_group(
         organization: Organization | None = None,
         **kwargs,
@@ -2281,7 +2281,7 @@ class Factories:
         return DataConditionGroup.objects.create(organization=organization, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_workflow_data_condition_group(
         workflow: Workflow | None = None,
         condition_group: DataConditionGroup | None = None,
@@ -2298,7 +2298,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_condition(
         condition_group: DataConditionGroup | None = None, **kwargs
     ) -> DataCondition:
@@ -2307,7 +2307,7 @@ class Factories:
         return DataCondition.objects.create(condition_group=condition_group, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_source(
         organization: Organization | None = None,
         source_id: str | None = None,
@@ -2323,7 +2323,7 @@ class Factories:
         return DataSource.objects.create(organization=organization, source_id=source_id, type=type)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector(
         name: str | None = None,
         config: dict | None = None,
@@ -2349,7 +2349,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_state(
         detector: Detector | None = None,
         **kwargs,
@@ -2360,7 +2360,7 @@ class Factories:
         return DetectorState.objects.create(detector=detector, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_source_detector(
         data_source: DataSource | None = None,
         detector: Detector | None = None,
@@ -2373,7 +2373,7 @@ class Factories:
         return DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
@@ -2403,7 +2403,7 @@ class Factories:
         return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_workflow(
         detector: Detector | None = None,
         workflow: Workflow | None = None,
@@ -2416,7 +2416,7 @@ class Factories:
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_group(
         detector: Detector,
         group: Group,
@@ -2425,7 +2425,7 @@ class Factories:
         return DetectorGroup.objects.create(detector=detector, group=group, **kwargs)
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_workflow(
         alert_rule_id: int | None = None,
         rule_id: int | None = None,
@@ -2446,7 +2446,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_incident_group_open_period(
         incident: Incident,
         group_open_period: GroupOpenPeriod,
@@ -2460,7 +2460,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_alert_rule_detector(
         alert_rule_id: int | None = None,
         rule_id: int | None = None,
@@ -2481,7 +2481,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_action_alert_rule_trigger_action(
         alert_rule_trigger_action_id: int,
         action: Action | None = None,
@@ -2495,7 +2495,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_data_condition_group_action(
         action: Action | None = None,
         condition_group: DataConditionGroup | None = None,
@@ -2510,7 +2510,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_preprod_artifact_size_metrics(
         artifact,
         metrics_type=None,
@@ -2626,7 +2626,7 @@ class Factories:
         assert response.status_code == 200
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_commit_comparison(
         organization: Organization,
         head_sha: str | None = None,
@@ -2658,7 +2658,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_preprod_artifact(
         project: Project,
         state: int = PreprodArtifact.ArtifactState.PROCESSED,
@@ -2707,7 +2707,7 @@ class Factories:
         return artifact
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_preprod_artifact_mobile_app_info(
         preprod_artifact: PreprodArtifact,
         build_version: str | None = None,
@@ -2729,7 +2729,7 @@ class Factories:
         return obj
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_preprod_build_configuration(
         project: Project,
         name: str = "release",
@@ -2740,7 +2740,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_preprod_artifact_size_comparison(
         organization: Organization,
         head_size_analysis: PreprodArtifactSizeMetrics,
@@ -2761,7 +2761,7 @@ class Factories:
         )
 
     @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_installable_preprod_artifact(
         preprod_artifact,
         url_path: str | None = None,

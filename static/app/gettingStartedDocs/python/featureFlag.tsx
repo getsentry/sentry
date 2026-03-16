@@ -146,7 +146,7 @@ export const featureFlag: OnboardingConfig = {
               featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
                 ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
                 : tct('Add [name] to your integrations list.', {
-                    name: <code>{`${integrationName}`}</code>,
+                    name: <code>{integrationName}</code>,
                   }),
           },
           {

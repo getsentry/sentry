@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 
 type Props = {
   imgUrl: string;
@@ -10,7 +10,7 @@ type Props = {
   title: string;
 };
 
-function ResourceCard({title, link, imgUrl}: Props) {
+export function ResourceCard({title, link, imgUrl}: Props) {
   return (
     <Card interactive>
       <StyledLink href={link}>
@@ -20,8 +20,6 @@ function ResourceCard({title, link, imgUrl}: Props) {
     </Card>
   );
 }
-
-export default ResourceCard;
 
 const StyledLink = styled(ExternalLink)`
   padding: ${p => p.theme.space['2xl']};

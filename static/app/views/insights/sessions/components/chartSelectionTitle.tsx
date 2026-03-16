@@ -14,7 +14,7 @@ interface Props {
   title: string;
 }
 
-export default function ChartSelectionTitle({title}: Props) {
+export function ChartSelectionTitle({title}: Props) {
   const {chartName, chartOptions, onChange} = useChartPlacementContext();
 
   if (!chartName) {

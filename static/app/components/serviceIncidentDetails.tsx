@@ -10,7 +10,7 @@ import {Prose} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import TimeSince from 'sentry/components/timeSince';
 import {
@@ -22,7 +22,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   StatuspageIncident,
   StatusPageIncidentUpdate,
@@ -196,10 +195,10 @@ function getIndicatorColor({
 }
 
 const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
 
   &::before {

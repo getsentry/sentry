@@ -8,7 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
 

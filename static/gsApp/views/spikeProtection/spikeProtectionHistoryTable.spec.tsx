@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
