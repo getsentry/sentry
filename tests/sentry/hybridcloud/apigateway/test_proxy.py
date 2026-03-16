@@ -5,6 +5,7 @@ import pytest
 import requests
 import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponse
 from django.test.client import RequestFactory
 from requests.exceptions import Timeout
 
@@ -288,6 +289,7 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
             mock_breaker_class.return_value = self._make_breaker_mock(allow_request=False)
             request = RequestFactory().get("http://sentry.io/get")
             resp = proxy_request(request, self.organization.slug, url_name)
+        assert isinstance(resp, HttpResponse)
         assert resp.status_code == 503
         assert json.loads(resp.content) == {
             "error": "apigateway",
