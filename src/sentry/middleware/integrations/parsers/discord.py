@@ -60,11 +60,11 @@ class DiscordRequestParser(BaseRequestParser):
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
 
-    def get_async_cell_response(self, regions: Sequence[Cell]) -> HttpResponse:
+    def get_async_cell_response(self, cells: Sequence[Cell]) -> HttpResponse:
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={
-                    "region_names": [r.name for r in regions],
+                    "cell_names": [c.name for c in cells],
                     "payload": create_async_request_payload(self.request),
                     "response_url": self.discord_request.response_url,
                 }
@@ -132,14 +132,14 @@ class DiscordRequestParser(BaseRequestParser):
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():
                 return (
-                    self.get_async_cell_response(regions=[cells[0]])
+                    self.get_async_cell_response(cells=[cells[0]])
                     if self.discord_request.response_url
                     else self.get_response_from_first_cell()
                 )
 
             if self.discord_request.is_message_component():
                 return (
-                    self.get_async_cell_response(regions=cells)
+                    self.get_async_cell_response(cells=cells)
                     if self.discord_request.response_url
                     else self.get_response_from_all_cells()
                 )

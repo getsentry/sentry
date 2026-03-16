@@ -20,7 +20,7 @@ class VstsRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     webhook_identifier = WebhookProviderIdentifier.VSTS
 
-    region_view_classes = [WorkItemWebhook]
+    cell_view_classes = [WorkItemWebhook]
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
@@ -33,7 +33,7 @@ class VstsRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self) -> HttpResponseBase:
-        if self.view_class not in self.region_view_classes:
+        if self.view_class not in self.cell_view_classes:
             return self.get_response_from_control_silo()
 
         try:
@@ -41,13 +41,13 @@ class VstsRequestParser(BaseRequestParser):
             if not integration:
                 return self.get_default_missing_integration_response()
 
-            regions = self.get_cells_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
         return self.get_response_from_webhookpayload(
-            cells=regions, identifier=integration.id, integration_id=integration.id
+            cells=cells, identifier=integration.id, integration_id=integration.id
         )
