@@ -188,7 +188,7 @@ class TestGetCodingAgentPrompt(TestCase):
         )
 
         assert "Fixes AIML-2301" in result
-        assert "Include 'Fixes AIML-2301' in the pull request description" in result
+        assert "Include 'Fixes AIML-2301' in the commit message" in result
         assert "Please fix the following issue" in result
         assert "This is the autofix prompt" in result
 
