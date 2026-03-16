@@ -1428,7 +1428,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ],
             "actionMatch": "any",
             "filterMatch": "all",
-            "owner": "team:74234",
+            "owner": f"team:{self.team.id}",
             "projects": [self.project.slug],
         }
         responses.add(
