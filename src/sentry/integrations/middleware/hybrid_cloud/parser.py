@@ -116,13 +116,13 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
+    def get_response_from_cell_silo(self, region: Cell) -> HttpResponseBase:
         with metrics.timer(
-            "integration_proxy.control.get_response_from_region_silo",
+            "integration_proxy.control.get_response_from_cell_silo",
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = CellSiloClient(region, retry=True)
+            cell_client = CellSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,
@@ -135,7 +135,7 @@ class BaseRequestParser(ABC):
                     }
                 )
 
-                http_response = region_client.proxy_request(incoming_request=self.request)
+                http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
     def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
@@ -374,8 +374,8 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        region_names = find_cells_for_orgs([org.id for org in organizations])
-        return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
+        cell_names = find_cells_for_orgs([org.id for org in organizations])
+        return sorted([get_cell_by_name(name) for name in cell_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)

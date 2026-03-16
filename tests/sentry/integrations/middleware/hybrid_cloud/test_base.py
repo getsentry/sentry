@@ -66,7 +66,7 @@ class BaseRequestParserTest(TestCase):
         assert response == self.response_handler(self.request)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_cell_silo")
     def test_get_responses_from_region_silos(self, mock__get_response: MagicMock) -> None:
         mock__get_response.side_effect = lambda region: HttpResponse(region.name, status=200)
 
@@ -79,7 +79,7 @@ class BaseRequestParserTest(TestCase):
             assert response.content == region.name.encode()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_cell_silo")
     def test_get_responses_from_region_silos_with_partial_failure(
         self, mock__get_response: MagicMock
     ) -> None:
@@ -93,7 +93,7 @@ class BaseRequestParserTest(TestCase):
         assert type(response_map["eu"].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_cell_silo")
     def test_get_responses_from_region_silos_with_complete_failure(
         self, mock__get_response: MagicMock
     ) -> None:

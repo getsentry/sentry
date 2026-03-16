@@ -73,7 +73,7 @@ class JiraRequestParser(BaseRequestParser):
 
         if self.view_class in self.immediate_response_region_classes:
             try:
-                return self.get_response_from_region_silo(region=regions[0])
+                return self.get_response_from_cell_silo(region=regions[0])
             except ApiError as err:
                 sentry_sdk.capture_exception(err)
                 return self.get_response_from_control_silo()
