@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import type {UseMutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField} from '@sentry/scraps/form';
+import {AutoSaveForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
@@ -90,7 +90,7 @@ export function BackendJsonFormAdapter<
   if (field.type === 'table') {
     const tableSchema = z.object({[fieldName]: z.any()});
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={fieldName}
         schema={tableSchema}
         initialValue={initialValue ?? field.default ?? []}
@@ -122,7 +122,7 @@ export function BackendJsonFormAdapter<
             )}
           </fieldApi.Base>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   }
 
@@ -132,7 +132,7 @@ export function BackendJsonFormAdapter<
     });
 
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={fieldName}
         schema={projectMapperSchema}
         initialValue={initialValue ?? field.default ?? []}
@@ -165,7 +165,7 @@ export function BackendJsonFormAdapter<
             }}
           </fieldApi.Base>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   }
 
@@ -175,7 +175,7 @@ export function BackendJsonFormAdapter<
     });
 
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={fieldName}
         schema={choiceMapperSchema}
         initialValue={initialValue ?? field.default ?? {}}
@@ -204,7 +204,7 @@ export function BackendJsonFormAdapter<
             )}
           </fieldApi.Base>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   }
 
@@ -216,7 +216,7 @@ export function BackendJsonFormAdapter<
         : field.default;
 
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name={fieldName}
       schema={schema}
       initialValue={value}
@@ -296,6 +296,6 @@ export function BackendJsonFormAdapter<
             );
         }
       }}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
