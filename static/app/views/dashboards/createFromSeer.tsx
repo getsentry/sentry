@@ -111,7 +111,7 @@ export default function CreateFromSeer() {
     organization.features.includes('dashboards-ai-generate');
 
   const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
-  const [isUpdating, setisUpdating] = useState(false); // State tracks
+  const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
   const prevSessionStatusRef = useRef<string | null>(null);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
@@ -143,6 +143,7 @@ export default function CreateFromSeer() {
     const wasTerminal = prevStatus === 'completed' || prevStatus === 'error';
     const isTerminal = sessionStatus === 'completed' || sessionStatus === 'error';
 
+    // Only trigger Dashboard rerender when transition from updating state to completed state
     if (!wasTerminal && isTerminal && session) {
       if (isUpdating) {
         setisUpdating(false);
