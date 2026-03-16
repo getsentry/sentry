@@ -169,6 +169,14 @@ def _trigger_autofix_task(
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
 
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
+
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
             user = user_service.get_user(user_id=user_id)
