@@ -476,6 +476,83 @@ def _run_perf_issues_query(
     return result
 
 
+def _run_perf_issues_query_eap(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    referrer: str,
+    organization: Organization | None = None,
+) -> list[TraceIssueOccurrenceData]:
+    if not trace_id:
+        return []
+
+    query_string = f"trace:{trace_id}"
+    if organization:
+        visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
+        if visible_type_ids:
+            query_string = (
+                f"trace:{trace_id} group_type_id:[{','.join(map(str, visible_type_ids))}]"
+            )
+
+    try:
+        result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=query_string,
+            selected_columns=["id", "issue_occurrence_id", "project_id", "group_id"],
+            orderby=None,
+            offset=0,
+            limit=ERROR_LIMIT,
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+        )
+        eap_data = result.get("data", [])
+    except Exception:
+        logger.exception(
+            "Fetching issue platform occurrences for trace from EAP failed",
+            extra={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+                "referrer": referrer,
+            },
+        )
+        return []
+
+    # Group by (issue_occurrence_id, project_id) and collect group_ids,
+    # mirroring the legacy groupArray(group_id) aggregation
+    # TODO: is there a better way to do this?
+    proj_id_to_issue_occ_ids: dict[int, list[str]] = defaultdict(list)
+    issue_occ_id_to_group_ids: dict[str, list[int]] = defaultdict(list)
+    for row in eap_data:
+        issue_occ_id = row.get("issue_occurrence_id")
+        proj_id = row.get("project_id")
+        group_id = row.get("group_id")
+        if issue_occ_id and proj_id:
+            if issue_occ_id not in proj_id_to_issue_occ_ids.get(proj_id, []):
+                proj_id_to_issue_occ_ids[proj_id].append(issue_occ_id)
+            if group_id is not None:
+                issue_occ_id_to_group_ids[issue_occ_id].append(group_id)
+
+    issue_occurrences: list[IssueOccurrence | None] = []
+    for project_id, issue_occ_ids in proj_id_to_issue_occ_ids.items():
+        issue_occurrences.extend(
+            IssueOccurrence.fetch_multi(
+                issue_occ_ids,
+                project_id,
+            )
+        )
+
+    output: list[TraceIssueOccurrenceData] = []
+    for issue in issue_occurrences:
+        if issue:
+            for issue_id in issue_occ_id_to_group_ids.get(issue.id, []):
+                output.append({"occurrence": issue, "issue_id": issue_id})
+
+    return output
+
+
 def _uptime_results_query(
     snuba_params: SnubaParams,
     trace_id: str,
@@ -667,8 +744,8 @@ def query_trace_data(
     occurrence_data = occurrence_future.result()
     uptime_data = uptime_future.result() if uptime_future else []
 
-    callsite = "snuba.trace.errors_query"
-    if EAPOccurrencesComparator.should_check_experiment(callsite):
+    errors_callsite = "snuba.trace.errors_query"
+    if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
         eap_errors_data = _run_errors_query_eap(
             snuba_params=snuba_params,
             trace_id=trace_id,
@@ -678,11 +755,36 @@ def query_trace_data(
         errors_data = EAPOccurrencesComparator.check_and_choose(
             control_data=errors_data,
             experimental_data=eap_errors_data,
-            callsite=callsite,
+            callsite=errors_callsite,
             is_experimental_data_a_null_result=len(eap_errors_data) == 0,
             reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
                 {e["id"] for e in snuba}
             ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
+    perf_callsite = "snuba.trace.perf_issues_query"
+    if EAPOccurrencesComparator.should_check_experiment(perf_callsite):
+        eap_occurrence_data = _run_perf_issues_query_eap(
+            snuba_params=snuba_params,
+            trace_id=trace_id,
+            referrer=referrer.value,
+            organization=organization,
+        )
+        occurrence_data = EAPOccurrencesComparator.check_and_choose(
+            control_data=occurrence_data,
+            experimental_data=eap_occurrence_data,
+            callsite=perf_callsite,
+            is_experimental_data_a_null_result=len(eap_occurrence_data) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {
+                (e["occurrence"].id, e["issue_id"]) for e in eap
+            }.issubset({(e["occurrence"].id, e["issue_id"]) for e in snuba}),
             debug_context={
                 "trace_id": trace_id,
                 "organization_id": (

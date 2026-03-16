@@ -18,7 +18,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.trace import _run_errors_query_eap
+from sentry.snuba.trace import _run_errors_query_eap, _run_perf_issues_query_eap
 from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -1040,3 +1040,214 @@ class TestTracingErrorsQueryEAP(TestCase, SnubaTestCase, OccurrenceTestCase):
 
         assert len(results) == 3
         assert results[0]["id"] == event_id_3
+
+
+class TestTracingPerformanceIssuesQueryEAP(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        now = datetime.now()
+        self.start = now - timedelta(hours=1)
+        self.end = now + timedelta(hours=1)
+        self.trace_id = uuid4().hex
+        self.snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+    def _create_issue_occurrence(
+        self,
+        occurrence_id: str,
+        event_id: str,
+    ) -> IssueOccurrence:
+        occurrence = IssueOccurrence(
+            id=occurrence_id,
+            project_id=self.project.id,
+            event_id=event_id,
+            fingerprint=[uuid4().hex],
+            issue_title="Test Performance Issue",
+            subtitle="test subtitle",
+            resource_id=None,
+            evidence_data={"offender_span_ids": ["abc123"]},
+            evidence_display=[],
+            type=PerformanceFileIOMainThreadGroupType,
+            detection_time=timezone.now(),
+            level="info",
+            culprit="test culprit",
+        )
+        occurrence.save()
+        return occurrence
+
+    def test_returns_issue_platform_occurrences(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id = uuid4().hex
+        issue_occurrence_id = uuid4().hex
+
+        issue_occurrence = self._create_issue_occurrence(
+            occurrence_id=issue_occurrence_id,
+            event_id=event_id,
+        )
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id,
+                    issue_occurrence_id=issue_occurrence_id,
+                ),
+            ]
+        )
+
+        results = _run_perf_issues_query_eap(
+            snuba_params=self.snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.perf_issues_eap",
+        )
+
+        assert len(results) == 1
+        assert results[0]["occurrence"].id == issue_occurrence.id
+        assert results[0]["occurrence"].event_id == event_id
+        assert results[0]["issue_id"] == group.id
+
+    def test_multiple_occurrences_in_same_trace(self) -> None:
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        event_id_1 = uuid4().hex
+        event_id_2 = uuid4().hex
+        issue_occ_id_1 = uuid4().hex
+        issue_occ_id_2 = uuid4().hex
+
+        issue_occurrence_1 = self._create_issue_occurrence(
+            occurrence_id=issue_occ_id_1, event_id=event_id_1
+        )
+        issue_occurrence_2 = self._create_issue_occurrence(
+            occurrence_id=issue_occ_id_2, event_id=event_id_2
+        )
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group_1.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_1,
+                    issue_occurrence_id=issue_occ_id_1,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_2.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_2,
+                    issue_occurrence_id=issue_occ_id_2,
+                ),
+            ]
+        )
+
+        results = _run_perf_issues_query_eap(
+            snuba_params=self.snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.perf_issues_eap",
+        )
+
+        assert len(results) == 2
+        result_pairs = {(r["occurrence"].id, r["issue_id"]) for r in results}
+        assert result_pairs == {
+            (issue_occurrence_1.id, group_1.id),
+            (issue_occurrence_2.id, group_2.id),
+        }
+
+    def test_excludes_error_occurrences(self) -> None:
+        group_error = self.create_group(project=self.project)
+        group_perf = self.create_group(project=self.project)
+        event_id = uuid4().hex
+        issue_occurrence_id = uuid4().hex
+
+        self._create_issue_occurrence(
+            occurrence_id=issue_occurrence_id,
+            event_id=event_id,
+        )
+
+        self.store_eap_items(
+            [
+                # Error occurrence (no issue_occurrence_id) — should be excluded
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=self.trace_id,
+                ),
+                # Issue platform occurrences — should be included
+                self.create_eap_occurrence(
+                    group_id=group_perf.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id,
+                    issue_occurrence_id=issue_occurrence_id,
+                ),
+            ]
+        )
+
+        results = _run_perf_issues_query_eap(
+            snuba_params=self.snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.perf_issues_eap",
+        )
+
+        assert len(results) == 1
+        assert results[0]["issue_id"] == group_perf.id
+
+    def test_filters_by_trace_id(self) -> None:
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.project)
+        other_trace_id = uuid4().hex
+        event_id_1 = uuid4().hex
+        event_id_2 = uuid4().hex
+        event_id_3 = uuid4().hex
+        issue_occ_id_1 = uuid4().hex
+        issue_occ_id_2 = uuid4().hex
+        issue_occ_id_3 = uuid4().hex
+
+        self._create_issue_occurrence(occurrence_id=issue_occ_id_1, event_id=event_id_1)
+        self._create_issue_occurrence(occurrence_id=issue_occ_id_2, event_id=event_id_2)
+        self._create_issue_occurrence(occurrence_id=issue_occ_id_3, event_id=event_id_3)
+
+        self.store_eap_items(
+            [
+                # Two occurrences on the target trace
+                self.create_eap_occurrence(
+                    group_id=group_1.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_1,
+                    issue_occurrence_id=issue_occ_id_1,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_2.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_2,
+                    issue_occurrence_id=issue_occ_id_2,
+                ),
+                # One occurrence on a different trace — should be excluded
+                self.create_eap_occurrence(
+                    group_id=group_1.id,
+                    trace_id=other_trace_id,
+                    event_id=event_id_3,
+                    issue_occurrence_id=issue_occ_id_3,
+                ),
+            ]
+        )
+
+        results = _run_perf_issues_query_eap(
+            snuba_params=self.snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.perf_issues_eap",
+        )
+
+        assert len(results) == 2
+        result_ids = {r["occurrence"].id for r in results}
+        assert result_ids == {issue_occ_id_1, issue_occ_id_2}
+
+    def test_empty_trace(self) -> None:
+        results = _run_perf_issues_query_eap(
+            snuba_params=self.snuba_params,
+            trace_id="",
+            referrer="test.trace.perf_issues_eap",
+        )
+
+        assert results == []
