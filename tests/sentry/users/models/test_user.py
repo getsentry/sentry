@@ -155,7 +155,7 @@ class UserHybridCloudDeletionTest(TestCase):
         na_org = self.create_organization(region=_TEST_REGIONS[0])
         self.create_member(user=user, organization=na_org)
 
-        with patch.object(caching_module, "region_caching_service") as mock_caching_service:
+        with patch.object(caching_module, "cell_caching_service") as mock_caching_service:
             user.username = "bob2"
             user.save()
             mock_caching_service.clear_key.assert_any_call(

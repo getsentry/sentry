@@ -33,6 +33,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -125,6 +126,8 @@ export function TransactionHeader({
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
 
+  const isEAP = useTransactionSummaryEAP();
+
   function handleCreateAlertSuccess() {
     trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
@@ -157,7 +160,9 @@ export function TransactionHeader({
     >
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-      <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+      <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+        {t('Tags')}
+      </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -319,7 +324,9 @@ export function TransactionHeader({
       >
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+        <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+          {t('Tags')}
+        </TabList.Item>
         <TabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}

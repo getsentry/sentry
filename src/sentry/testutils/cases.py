@@ -1167,14 +1167,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_ourlogs(self, ourlogs):
-        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def produce_and_store_eap_items(
         self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> list[TraceItem]:
@@ -4207,25 +4199,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
             retention_days=90,
             attributes=attributes_proto,
         )
-
-    def store_uptime_results(self, uptime_results):
-        """Store uptime results in the EAP dataset."""
-        import requests
-        from django.conf import settings
-
-        files = {
-            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for result in uptime_results:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            result.item_id = result.item_id[::-1]
 
 
 class ProcessingErrorTestCase(BaseTestCase):

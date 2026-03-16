@@ -431,13 +431,8 @@ describe('Uptime Alert Form', () => {
     expect(pathName).toHaveValue('Uptime check for example.com/with-path');
   });
 
-  it('sends assertion in create request when feature is enabled', async () => {
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+  it('sends assertion in create request', async () => {
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
     // Verify the Verification section is shown
@@ -453,7 +448,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(name, 'Rule with Assertion');
 
     const createMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
     });
 
@@ -490,25 +485,7 @@ describe('Uptime Alert Form', () => {
     );
   });
 
-  it('does not show assertions when feature is disabled', async () => {
-    const orgWithoutAssertions = OrganizationFixture({
-      features: [],
-    });
-    OrganizationStore.onUpdate(orgWithoutAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithoutAssertions});
-    await screen.findByText('Configure Request');
-
-    // Verify the Verification section is NOT shown
-    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
-  });
-
   it('renders and updates assertion for existing rule', async () => {
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
     const assertion: UptimeAssertion = {
       root: {
         op: UptimeOpType.AND,
@@ -532,11 +509,11 @@ describe('Uptime Alert Form', () => {
       assertion,
     });
 
-    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Verification');
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -555,12 +532,7 @@ describe('Uptime Alert Form', () => {
   it('displays assertion compilation errors', async () => {
     const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');
 
     await selectEvent.select(input('Project'), project.slug);
@@ -573,7 +545,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(name, 'Rule with Invalid Assertion');
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
       statusCode: 400,
       body: {
@@ -609,12 +581,7 @@ describe('Uptime Alert Form', () => {
   it('displays assertion serialization error toast', async () => {
     const addErrorMessageSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
-    render(<UptimeAlertForm />, {organization: orgWithAssertions});
+    render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');
 
     await selectEvent.select(input('Project'), project.slug);
@@ -627,7 +594,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.type(name, 'Rule with Invalid Assertion');
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/`,
       method: 'POST',
       statusCode: 400,
       body: {
@@ -649,11 +616,6 @@ describe('Uptime Alert Form', () => {
   });
 
   it('preserves null assertion when editing rule without assertions', async () => {
-    const orgWithAssertions = OrganizationFixture({
-      features: ['uptime-runtime-assertions'],
-    });
-    OrganizationStore.onUpdate(orgWithAssertions);
-
     // Rule with no assertions (assertion: null from API)
     const rule = UptimeRuleFixture({
       name: 'Rule without Assertion',
@@ -663,7 +625,7 @@ describe('Uptime Alert Form', () => {
       assertion: null,
     });
 
-    render(<UptimeAlertForm rule={rule} />, {organization: orgWithAssertions});
+    render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Verification');
 
     // Should show empty UI - Add Assertion button but no assertion inputs
@@ -675,7 +637,7 @@ describe('Uptime Alert Form', () => {
     ).toBeLessThanOrEqual(0);
 
     const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
       method: 'PUT',
     });
 
@@ -687,101 +649,6 @@ describe('Uptime Alert Form', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           assertion: null,
-        }),
-      })
-    );
-  });
-
-  it('preserves null assertion when feature flag is disabled', async () => {
-    // When the feature flag is off, the assertions field isn't rendered,
-    // so we need to ensure the original null assertion is preserved on submit
-    const orgWithoutAssertions = OrganizationFixture({
-      features: [],
-    });
-    OrganizationStore.onUpdate(orgWithoutAssertions);
-
-    const rule = UptimeRuleFixture({
-      name: 'Rule without Assertion',
-      projectSlug: project.slug,
-      url: 'https://existing-url.com',
-      owner: ActorFixture(),
-      assertion: null,
-    });
-
-    render(<UptimeAlertForm rule={rule} />, {organization: orgWithoutAssertions});
-    await screen.findByText('Configure Request');
-
-    // Verification section should NOT be shown
-    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
-
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithoutAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
-      method: 'PUT',
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
-
-    // Should submit null assertion, not the empty default structure
-    expect(updateMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          assertion: null,
-        }),
-      })
-    );
-  });
-
-  it('preserves existing assertion when feature flag is disabled', async () => {
-    // When the feature flag is off but the rule has existing assertions,
-    // those assertions should be preserved on submit
-    const orgWithoutAssertions = OrganizationFixture({
-      features: [],
-    });
-    OrganizationStore.onUpdate(orgWithoutAssertions);
-
-    const existingAssertion: UptimeAssertion = {
-      root: {
-        op: UptimeOpType.AND,
-        children: [
-          {
-            id: 'test-1',
-            op: UptimeOpType.STATUS_CODE_CHECK,
-            operator: {cmp: UptimeComparisonType.EQUALS},
-            value: 200,
-          },
-        ],
-        id: 'root-1',
-      },
-    };
-
-    const rule = UptimeRuleFixture({
-      name: 'Rule with Assertion',
-      projectSlug: project.slug,
-      url: 'https://existing-url.com',
-      owner: ActorFixture(),
-      assertion: existingAssertion,
-    });
-
-    render(<UptimeAlertForm rule={rule} />, {organization: orgWithoutAssertions});
-    await screen.findByText('Configure Request');
-
-    // Verification section should NOT be shown
-    expect(screen.queryByText('Verification')).not.toBeInTheDocument();
-
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithoutAssertions.slug}/${project.slug}/uptime/${rule.id}/`,
-      method: 'PUT',
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
-
-    // Should submit the existing assertion unchanged
-    expect(updateMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          assertion: existingAssertion,
         }),
       })
     );

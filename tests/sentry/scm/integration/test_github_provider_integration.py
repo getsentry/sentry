@@ -437,6 +437,7 @@ class TestGitHubProviderIntegration(TestCase):
         assert commit["message"] == "Fix bug"
         assert commit["author"] is not None
         assert commit["author"]["name"] == "Test User"
+        assert commit["files"] is not None
         assert len(commit["files"]) == 1
         assert commit["files"][0]["filename"] == "src/main.py"
         assert commit["files"][0]["status"] == "modified"
@@ -516,7 +517,7 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         pr = result["data"]
-        assert pr["number"] == 42
+        assert pr["number"] == "42"
         assert pr["title"] == "New Feature"
         assert pr["state"] == "open"
         assert pr["head"]["ref"] == "feature"

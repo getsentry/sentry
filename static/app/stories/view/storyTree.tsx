@@ -166,7 +166,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   forms: {
     label: 'Forms',
-    components: ['form', 'fields', 'autosavefield'],
+    components: ['form', 'fields', 'autosaveform'],
     subgroups: [
       {
         label: 'Primitives',

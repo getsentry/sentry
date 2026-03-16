@@ -8,7 +8,6 @@ import {Grid} from '@sentry/scraps/layout';
 import type {Client} from 'sentry/api';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -134,7 +133,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
           buttonProps={{
             priority: 'default',
             size: 'xs',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {marginBlock: '-2px'},
           }}
           eventTypes={eventTypes}
           referrer={`product-trial-alert-${eventTypes.join('-')}`}

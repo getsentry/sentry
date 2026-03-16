@@ -13,9 +13,9 @@ export function SettingsPageTabs() {
   const {pathname} = useLocation();
 
   const tabs: Array<[string, Path]> = [
-    [t('Settings'), `/settings/${organization.slug}/seer/`],
-    [t('SCM Config'), `/settings/${organization.slug}/seer/scm/`],
-    [t('Issue Autofix'), `/settings/${organization.slug}/seer/projects/`],
+    [t('Overview'), `/settings/${organization.slug}/seer/`],
+    [t('Source Code Management'), `/settings/${organization.slug}/seer/scm/`],
+    [t('Autofix'), `/settings/${organization.slug}/seer/projects/`],
     [t('Code Review'), `/settings/${organization.slug}/seer/repos/`],
   ];
 

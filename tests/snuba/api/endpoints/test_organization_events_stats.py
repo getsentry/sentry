@@ -3097,7 +3097,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
                 for i in range(60)
             ]
         )
-        self.store_ourlogs(self.logs)
+        self.store_eap_items(self.logs)
 
         self.enabled_features = {
             "organizations:discover-basic": True,

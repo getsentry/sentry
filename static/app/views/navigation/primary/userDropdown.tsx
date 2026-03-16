@@ -1,22 +1,21 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -27,8 +26,7 @@ export function UserDropdown() {
   const api = useApi();
   const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
 
@@ -65,25 +63,32 @@ export function UserDropdown() {
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
-      position={isMobile ? 'bottom' : 'right-end'}
+      position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
-        isMobile ? (
-          <MobileUserButton
-            {...triggerProps}
-            aria-label={user.email}
-            icon={<UserAvatar user={user} size={16} />}
-            priority="transparent"
-            size="xs"
-            onClick={e => {
-              handleTriggerClick();
-              triggerProps.onClick?.(e);
-            }}
-          >
-            {t('User Settings')}
-          </MobileUserButton>
+        layout === 'mobile' ? (
+          <Flex justify="start" padding="md 2xl">
+            {props => (
+              <PrimaryNavigation.Button
+                {...props}
+                {...triggerProps}
+                aria-label={user.email}
+                analyticsKey="user-settings"
+                label={t('User Settings')}
+                buttonProps={{
+                  size: 'xs',
+                  priority: 'transparent',
+                  onClick: e => {
+                    handleTriggerClick();
+                    triggerProps.onClick?.(e);
+                  },
+                  icon: <UserAvatar user={user} size={16} />,
+                }}
+              />
+            )}
+          </Flex>
         ) : (
-          <FullWidthAvatarButton
+          <AvatarButton
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
@@ -99,9 +104,23 @@ export function UserDropdown() {
         {
           key: 'user',
           label: (
-            <SectionTitleWrapper>
-              <UserBadge user={user} avatarSize={32} />
-            </SectionTitleWrapper>
+            <Flex align="center" gap="md">
+              <UserAvatar user={user} size={32} />
+              <Stack gap="xs">
+                <Text size="sm" bold uppercase variant="primary">
+                  {/*
+                  Some users never set their name, so lets not show their email twice and
+                  attempt to infer their name from their email
+                   */}
+                  {user.name === user.email
+                    ? user.email.split('@')[0]?.split('.').join(' ')
+                    : user.name}
+                </Text>
+                <Text size="xs" variant="muted">
+                  {user.email}
+                </Text>
+              </Stack>
+            </Flex>
           ),
           textValue: t('User Summary'),
           children: [
@@ -127,20 +146,3 @@ export function UserDropdown() {
     />
   );
 }
-
-const FullWidthAvatarButton = styled(AvatarButton)`
-  min-width: unset;
-`;
-
-const MobileUserButton = styled(Button)`
-  width: 100%;
-  justify-content: flex-start;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
-`;
-
-const SectionTitleWrapper = styled('div')`
-  text-transform: none;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;

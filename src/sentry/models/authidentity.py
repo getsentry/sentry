@@ -39,13 +39,13 @@ class AuthIdentity(ReplicatedControlModel):
     def outbox_region_names(self) -> Collection[str]:
         return find_cells_for_orgs([self.auth_provider.organization_id])
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_identity
         from sentry.hybridcloud.services.replica.service import region_replica_service
 
         serialized = serialize_auth_identity(self)
         region_replica_service.upsert_replicated_auth_identity(
-            auth_identity=serialized, region_name=region_name
+            auth_identity=serialized, cell_name=cell_name
         )
 
     @classmethod

@@ -27,12 +27,12 @@ This skill generates tests for Sentry's hybrid cloud architecture. It covers RPC
 
 Determine which category of HC test to generate based on the user's request:
 
-| Signal                                                                | Category             | Go To  |
-| --------------------------------------------------------------------- | -------------------- | ------ |
-| RPC service, service method, serialization round-trip, dispatch       | RPC Service Tests    | Step 3 |
-| API gateway, proxy, middleware, forwarding                            | API Gateway Tests    | Step 4 |
-| Outbox, cross-silo message, ControlOutbox, RegionOutbox, outbox drain | Outbox Pattern Tests | Step 5 |
-| API endpoint with silo decorator, endpoint test, permission check     | Endpoint Silo Tests  | Step 6 |
+| Signal                                                              | Category             | Go To  |
+| ------------------------------------------------------------------- | -------------------- | ------ |
+| RPC service, service method, serialization round-trip, dispatch     | RPC Service Tests    | Step 3 |
+| API gateway, proxy, middleware, forwarding                          | API Gateway Tests    | Step 4 |
+| Outbox, cross-silo message, ControlOutbox, CellOutbox, outbox drain | Outbox Pattern Tests | Step 5 |
+| API endpoint with silo decorator, endpoint test, permission check   | Endpoint Silo Tests  | Step 6 |
 
 If the signal is ambiguous, ask the user to clarify which category.
 
@@ -40,7 +40,7 @@ If the signal is ambiguous, ask the user to clarify which category.
 
 Before generating any test:
 
-1. **Read the source module** being tested. Determine its silo mode by checking for `@region_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@cell_silo_model`/`@control_silo_model` decorators.
+1. **Read the source module** being tested. Determine its silo mode by checking for `@cell_silo_endpoint`, `@control_silo_endpoint`, `local_mode = SiloMode.X`, or `@cell_silo_model`/`@control_silo_model` decorators.
 
 2. **Find the existing test file** using the mirror path convention:
    - `src/sentry/foo/bar.py` → `tests/sentry/foo/test_bar.py`
@@ -104,7 +104,7 @@ Outbox tests verify that cross-silo messages are created, drained, and produce t
 | Scenario                          | Decorator            | Base Class            |
 | --------------------------------- | -------------------- | --------------------- |
 | Control outbox test               | `@control_silo_test` | `TestCase`            |
-| Region outbox test                | `@region_silo_test`  | `TestCase`            |
+| Cell outbox test                  | `@cell_silo_test`    | `TestCase`            |
 | Outbox with threading/concurrency | (none)               | `TransactionTestCase` |
 
 ## Step 6: Generate Endpoint Silo Tests
@@ -122,7 +122,7 @@ Endpoint silo tests verify that API endpoints work correctly under their declare
 
 | Endpoint Decorator                    | Test Decorator                                          |
 | ------------------------------------- | ------------------------------------------------------- |
-| `@region_silo_endpoint`               | `@region_silo_test`                                     |
+| `@cell_silo_endpoint  `               | `@cell_silo_test`                                       |
 | `@control_silo_endpoint`              | `@control_silo_test`                                    |
 | `@control_silo_endpoint` (with proxy) | `@control_silo_test(regions=create_test_regions("us"))` |
 | No decorator (monolith-only)          | `@no_silo_test`                                         |
@@ -149,7 +149,7 @@ Before presenting the generated test, verify against this checklist:
 from sentry.testutils.silo import (
     all_silo_test,
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
     no_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
@@ -171,7 +171,7 @@ from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
 
 # Outbox models
-from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 ```
 

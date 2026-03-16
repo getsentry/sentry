@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import OccurrenceTestCase
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -75,3 +77,53 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             )
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
+
+    def _request_table_rate(self, field: str):
+        """Store two occurrences in a 2h window and request /events/ with the given rate field."""
+        group = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            return self.do_request(
+                {
+                    "field": [field],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+
+    def test_eps_rate_aggregate(self) -> None:
+        # 2 events / 7200 seconds (2h).
+        response = self._request_table_rate("eps()")
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["eps()"] == pytest.approx(2 / 7200, abs=0.0001)
+        meta = response.data["meta"]
+        assert meta["fields"]["eps()"] == "rate"
+        assert meta["units"]["eps()"] == "1/second"
+
+    def test_epm_rate_aggregate(self) -> None:
+        # 2 events / (7200/60) = 2/120 per minute.
+        response = self._request_table_rate("epm()")
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["epm()"] == pytest.approx(2 / (7200 / 60), abs=0.001)
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"

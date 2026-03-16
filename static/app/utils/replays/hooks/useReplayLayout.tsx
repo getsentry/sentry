@@ -11,7 +11,7 @@ import {
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 export enum LayoutKey {
   /**
@@ -97,12 +97,16 @@ function getDefaultLayout(
 
 export function useReplayLayout() {
   const theme = useTheme();
-  const {isCollapsed} = useNavigationContext();
+  const {view} = useSecondaryNavigation();
   const [secondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
-  const defaultLayout = getDefaultLayout(isCollapsed, theme, secondarySidebarWidth);
+  const defaultLayout = getDefaultLayout(
+    view !== 'expanded',
+    theme,
+    secondarySidebarWidth
+  );
 
   const organization = useOrganization();
 
