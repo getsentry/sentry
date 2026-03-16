@@ -975,7 +975,8 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
             attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
             for _, resolved in unknown_attrs:
                 attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
-            existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
+            with handle_query_errors():
+                existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
 
             for attr_name, resolved in unknown_attrs:
                 if resolved.internal_name in existing:
