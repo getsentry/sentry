@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   setFieldErrors,
   useScrapsForm,
@@ -175,7 +175,7 @@ function InlineMappingForm({
 
   return (
     <FormWrapper>
-      <AutoSaveField
+      <AutoSaveForm
         name="sentryId"
         schema={schema}
         initialValue={initialValue}
@@ -219,7 +219,7 @@ function InlineMappingForm({
             />
           )
         }
-      </AutoSaveField>
+      </AutoSaveForm>
     </FormWrapper>
   );
 }
