@@ -156,9 +156,13 @@ def _extract_from_event(event: Event | GroupEvent) -> Mapping[str, float | int |
         out["group_first_seen"] = event.group.first_seen.timestamp()
         occurrence = event.occurrence
         if occurrence is not None:
-            out["issue_occurrence_id"] = occurrence.id
-            out["group_type_id"] = occurrence.type.type_id
+            out["issue_occurrence_id"] = str(occurrence.id)
+            out["group_type_id"] = int(occurrence.type.type_id)
     return out
+
+
+def format_attr_key(key: str) -> str:
+    return f"attr[{key}]"
 
 
 def _extract_tags_and_contexts(
@@ -171,9 +175,8 @@ def _extract_tags_and_contexts(
         "dist": event_data.get("dist"),
     }
 
-    # From a user's perspective, "attributes" are tags + contexts.
+    # From a user's perspective, "attributes" are tags + contexts (+ flags, from ctx).
     # Yes, it's confusing with the general EAP attributes.
-    format_attr_key = lambda key: f"attr[{key}]"
 
     attr_keys = set()
     tags = event_data.get("tags")
@@ -320,8 +323,9 @@ def _extract_http(
 
         headers = request.get("headers", []) or []
         for header_name, header_value in [h for h in headers if h is not None]:
+            # Referer [sic] is spelled wrong in the HTTP standard.
             if header_name == "Referer" or header_name == "Referrer":
-                out["http_referrer"] = header_value
+                out["http_referer"] = header_value
 
     return out
 

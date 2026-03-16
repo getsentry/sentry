@@ -334,7 +334,7 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
 """
 
-region_silo_test = SiloModeTestDecorator(SiloMode.CELL)
+cell_silo_test = SiloModeTestDecorator(SiloMode.CELL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.

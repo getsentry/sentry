@@ -9,11 +9,11 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.replays.models import OrganizationMemberReplayAccess, ReplayDeletionJobModel
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.cursors import Cursor
 
 
-@region_silo_test
+@cell_silo_test
 class ProjectReplayDeletionJobsIndexTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-jobs-index"
 
@@ -463,7 +463,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=True)
 
 
-@region_silo_test
+@cell_silo_test
 class ProjectReplayDeletionJobDetailTest(APITestCase):
     endpoint = "sentry-api-0-project-replay-deletion-job-details"
 

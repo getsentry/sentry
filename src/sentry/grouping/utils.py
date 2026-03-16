@@ -63,13 +63,29 @@ def normalize_message_for_grouping(
     """
     if message == context.canonical_event_message:
         parameterized = context.canonical_message_parameterized
+
+        # Before we mark the value as having been used, check if it's already marked that way. If
+        # so, that means our use of the value here is at least the second use, thus proving the
+        # caching worthwhile.
+        if context.cached_param_result_used:
+            # This represents a saved call to `parameterizer.parameterize`
+            metrics.incr("grouping.cached_param_result_used")
+
+        context.cached_param_result_used = True
     else:
         parameterized = context.parameterizer.parameterize(message)
 
-    message_parameterized = parameterized != message
+        # Before we mark the parameterizer as having been used, check if it's already marked that
+        # way. If so, that means our use of it here is at least the second use, thus proving the
+        # caching worthwhile.
+        if context.cached_parameterizer_used:
+            # This represents a saved call to `in_rollout_group` on the project vis-à-vis
+            # experimental parameterization
+            metrics.incr("grouping.cached_parameterizer_used")
 
-    if message_parameterized:
-        metrics.incr("grouping.message_parameterized", tags={"source": reason})
+        context.cached_parameterizer_used = True
+
+    metrics.incr("grouping.message_used", tags={"reason": reason})
 
     return _trim_extra_lines(parameterized) if trim_message else parameterized
 

@@ -6,10 +6,10 @@ import pytest
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class BroadcastWebhooksForOrganizationTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()

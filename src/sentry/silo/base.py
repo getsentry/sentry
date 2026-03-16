@@ -29,8 +29,6 @@ class SiloMode(Enum):
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
     CELL = "REGION"
-    # TODO(cells): remove once getsentry migrates to CELL
-    REGION = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
@@ -38,7 +36,7 @@ class SiloMode(Enum):
             return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
-        return cls[mode]
+        return cls(mode)
 
     def __str__(self) -> str:
         return str(self.value)

@@ -20,9 +20,9 @@ from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import (
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
     create_test_regions,
-    region_silo_test,
 )
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
@@ -332,7 +332,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
 
-@region_silo_test(regions=create_test_regions("de", "us"))
+@cell_silo_test(regions=create_test_regions("de", "us"))
 class OrganizationsCreateInRegionTest(OrganizationIndexTest):
     method = "post"
 

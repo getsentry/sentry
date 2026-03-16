@@ -69,6 +69,12 @@ def _process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
+
+    if unprocessed_spans:
+        project_id = unprocessed_spans[0].get("project_id")
+        if project_id in options.get("spans.process-segments.skip-enrichment-projects"):
+            return [make_compatible(span) for span in unprocessed_spans]
+
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
