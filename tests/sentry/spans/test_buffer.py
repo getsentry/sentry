@@ -38,7 +38,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
-    "spans.buffer.oob-threshold-bytes": 0,
     "spans.process-segments.schema-validation": 1.0,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
     "spans.buffer.done-flush-conditional-zrem": False,
