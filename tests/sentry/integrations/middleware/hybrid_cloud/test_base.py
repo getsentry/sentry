@@ -119,7 +119,7 @@ class BaseRequestParserTest(TestCase):
 
         parser = MockParser(self.request, self.response_handler)
 
-        response = parser.get_response_from_webhookpayload(regions=self.region_config)
+        response = parser.get_response_from_webhookpayload(cells=self.region_config)
         assert response.status_code == status.HTTP_202_ACCEPTED
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 2
