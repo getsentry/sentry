@@ -345,7 +345,6 @@ def test_observability_metrics_parent_span_already_oversized(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
 
@@ -1265,7 +1264,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1275,7 +1273,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(initial_spans, buffer, now=0)
@@ -1295,7 +1292,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(new_spans, buffer, now=20)
@@ -1334,7 +1330,6 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1344,7 +1339,6 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(spans, buffer, now=0)
@@ -1378,7 +1372,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1388,7 +1381,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(initial_spans, buffer, now=0)
@@ -1407,7 +1399,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(new_spans, buffer, now=20)
@@ -1474,7 +1465,6 @@ def _dspan(
         segment_id=None,
         is_segment_span=is_root,
         project_id=1,
-        end_timestamp=1700000000.0 + ts_offset,
     )
 
 
