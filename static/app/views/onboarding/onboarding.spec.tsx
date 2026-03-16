@@ -671,7 +671,7 @@ describe('Onboarding', () => {
 
       const {router} = renderOnboarding('scm-connect');
 
-      expect(await screen.findByText('Connect your repository')).toBeInTheDocument();
+      expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
@@ -776,7 +776,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('scm-connect');
 
       // Wait for the step to render
-      await screen.findByText('Connect your repository');
+      await screen.findByText('Connect a repository');
 
       await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 

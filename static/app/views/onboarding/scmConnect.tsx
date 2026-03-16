@@ -1,16 +1,15 @@
 import {useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import Access from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconAdd, IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -41,22 +40,29 @@ export function ScmConnect({onComplete, genSkipOnboardingLink}: StepProps) {
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null);
   const [selectedRepos, setSelectedRepos] = useState<IntegrationRepository[]>([]);
 
-  // After integrations refetch, auto-select the first connected one if none active
-  const effectiveIntegration =
-    activeIntegration ?? (scmIntegrations.length > 0 ? scmIntegrations[0]! : null);
-
   const handleInstall = useCallback(
-    (_data: Integration) => {
+    (data: Integration) => {
+      setActiveIntegration(data);
+      setSelectedRepos([]);
       refetchIntegrations();
     },
     [refetchIntegrations]
   );
 
+  const handleDisconnect = useCallback(() => {
+    setActiveIntegration(null);
+    setSelectedRepos([]);
+  }, []);
+
+  const handleSelectProvider = useCallback((installation: Integration) => {
+    setActiveIntegration(installation);
+    setSelectedRepos([]);
+  }, []);
+
   const handleContinue = useCallback(() => {
-    if (effectiveIntegration) {
-      onboardingContext.setSelectedIntegration(effectiveIntegration);
+    if (activeIntegration) {
+      onboardingContext.setSelectedIntegration(activeIntegration);
       if (selectedRepos.length > 0) {
-        // Store repo identifiers for use in later steps
         onboardingContext.setSelectedRepositories(
           selectedRepos.map(repo => ({
             id: '',
@@ -65,18 +71,18 @@ export function ScmConnect({onComplete, genSkipOnboardingLink}: StepProps) {
             externalSlug: repo.identifier,
             url: '',
             provider: {
-              id: effectiveIntegration.provider.key,
-              name: effectiveIntegration.provider.name,
+              id: activeIntegration.provider.key,
+              name: activeIntegration.provider.name,
             },
             status: RepositoryStatus.ACTIVE,
             dateCreated: '',
-            integrationId: effectiveIntegration.id,
+            integrationId: activeIntegration.id,
           }))
         );
       }
     }
     onComplete();
-  }, [effectiveIntegration, selectedRepos, onboardingContext, onComplete]);
+  }, [activeIntegration, selectedRepos, onboardingContext, onComplete]);
 
   const addRepo = useCallback((repo: IntegrationRepository) => {
     setSelectedRepos(prev => {
@@ -102,144 +108,148 @@ export function ScmConnect({onComplete, genSkipOnboardingLink}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="xl" flexGrow={1}>
       <Stack align="center" gap="md">
-        <Heading as="h2">{t('Connect your repository')}</Heading>
-        <Text size="lg" variant="muted">
-          {t(
-            'Link your source code management tool to automatically detect platforms and set up your project.'
-          )}
+        <Heading as="h2">{t('Connect a repository')}</Heading>
+        <Text variant="muted">
+          {t('Link your source control for enhanced debugging features')}
         </Text>
       </Stack>
 
-      <ProviderGrid>
-        {scmProviders.map(provider => {
-          const installation = scmIntegrations.find(i => i.provider.key === provider.key);
-          const isConnected = Boolean(installation);
-          const isActive = effectiveIntegration?.provider.key === provider.key;
-
-          return (
-            <ProviderCard
-              key={provider.key}
-              provider={provider}
-              installation={installation}
-              isConnected={isConnected}
-              isActive={isActive}
-              onInstall={handleInstall}
-              onSelect={() => {
-                if (installation) {
-                  setActiveIntegration(installation);
-                  setSelectedRepos([]);
-                }
-              }}
-            />
-          );
-        })}
-      </ProviderGrid>
-
-      {effectiveIntegration && (
-        <RepoSelector
-          integration={effectiveIntegration}
-          selectedRepos={selectedRepos}
-          onAddRepo={addRepo}
-          onRemoveRepo={removeRepo}
-        />
-      )}
+      <Stack gap="lg" style={{width: '100%', maxWidth: 600}}>
+        {activeIntegration ? (
+          <ConnectedView
+            integration={activeIntegration}
+            selectedRepos={selectedRepos}
+            onDisconnect={handleDisconnect}
+            onAddRepo={addRepo}
+            onRemoveRepo={removeRepo}
+          />
+        ) : (
+          <ProviderPills
+            providers={scmProviders}
+            integrations={scmIntegrations}
+            onInstall={handleInstall}
+            onSelect={handleSelectProvider}
+          />
+        )}
+      </Stack>
 
       <Flex gap="md" align="center">
-        <Button
-          priority="primary"
-          onClick={handleContinue}
-          disabled={scmIntegrations.length === 0}
-        >
+        {genSkipOnboardingLink()}
+        <Button priority="primary" onClick={handleContinue}>
           {t('Continue')}
         </Button>
-        {genSkipOnboardingLink()}
       </Flex>
     </Flex>
   );
 }
 
-interface ProviderCardProps {
-  isActive: boolean;
-  isConnected: boolean;
+interface ProviderPillsProps {
+  integrations: Integration[];
   onInstall: (data: Integration) => void;
-  onSelect: () => void;
-  provider: IntegrationProvider;
-  installation?: Integration;
+  onSelect: (installation: Integration) => void;
+  providers: IntegrationProvider[];
 }
 
-function ProviderCard({
-  provider,
-  installation,
-  isConnected,
-  isActive,
+function ProviderPills({
+  providers,
+  integrations,
   onInstall,
   onSelect,
-}: ProviderCardProps) {
+}: ProviderPillsProps) {
   const organization = useOrganization();
 
-  if (isConnected) {
-    return (
-      <StyledContainer
-        border={isActive ? 'accent' : 'primary'}
-        padding="lg"
-        onClick={onSelect}
-        role="button"
-        tabIndex={0}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            onSelect();
-          }
-        }}
-      >
-        <Flex align="center" gap="md">
-          {getIntegrationIcon(provider.key)}
-          <Stack gap="xs" flexGrow={1}>
-            <Text bold>{provider.name}</Text>
-            <Text size="sm" variant="muted">
-              {installation?.domainName ?? t('Connected')}
-            </Text>
-          </Stack>
-          <IconCheckmark variant="success" />
-        </Flex>
-      </StyledContainer>
-    );
-  }
-
   return (
-    <Container border="primary" padding="lg">
-      <Flex align="center" gap="md">
-        {getIntegrationIcon(provider.key)}
-        <Flex flexGrow={1}>
-          <Text bold>{provider.name}</Text>
+    <Flex gap="md" wrap="wrap" justify="center">
+      {providers.map(provider => {
+        const installation = integrations.find(i => i.provider.key === provider.key);
+
+        if (installation) {
+          return (
+            <Button
+              key={provider.key}
+              size="sm"
+              icon={getIntegrationIcon(provider.key, 'sm')}
+              onClick={() => onSelect(installation)}
+            >
+              {provider.name}
+            </Button>
+          );
+        }
+
+        return (
+          <IntegrationContext
+            key={provider.key}
+            value={{
+              provider,
+              type: 'first_party',
+              installStatus: 'Not Installed',
+              analyticsParams: {
+                view: 'onboarding',
+                already_installed: false,
+              },
+            }}
+          >
+            <Access access={['org:integrations']} organization={organization}>
+              {({hasAccess}) => (
+                <IntegrationButton
+                  userHasAccess={hasAccess}
+                  onAddIntegration={onInstall}
+                  onExternalClick={() => {}}
+                  buttonProps={{
+                    size: 'sm',
+                    icon: getIntegrationIcon(provider.key, 'sm'),
+                    buttonText: provider.name,
+                  }}
+                />
+              )}
+            </Access>
+          </IntegrationContext>
+        );
+      })}
+    </Flex>
+  );
+}
+
+interface ConnectedViewProps {
+  integration: Integration;
+  onAddRepo: (repo: IntegrationRepository) => void;
+  onDisconnect: () => void;
+  onRemoveRepo: (identifier: string) => void;
+  selectedRepos: IntegrationRepository[];
+}
+
+function ConnectedView({
+  integration,
+  selectedRepos,
+  onDisconnect,
+  onAddRepo,
+  onRemoveRepo,
+}: ConnectedViewProps) {
+  return (
+    <Stack gap="lg">
+      <Flex align="center" justify="between">
+        <Flex align="center" gap="sm">
+          <IconCheckmark variant="success" size="sm" />
+          <Text bold variant="success">
+            {t('Connected to %s', integration.domainName ?? integration.provider.name)}
+          </Text>
         </Flex>
-        <IntegrationContext
-          value={{
-            provider,
-            type: 'first_party',
-            installStatus: 'Not Installed',
-            analyticsParams: {
-              view: 'onboarding',
-              already_installed: false,
-            },
-          }}
+        <Button
+          size="sm"
+          priority="link"
+          icon={<IconClose size="xs" />}
+          onClick={onDisconnect}
         >
-          <Access access={['org:integrations']} organization={organization}>
-            {({hasAccess}) => (
-              <IntegrationButton
-                userHasAccess={hasAccess}
-                onAddIntegration={onInstall}
-                onExternalClick={() => {}}
-                buttonProps={{
-                  size: 'sm',
-                  icon: <IconAdd />,
-                  buttonText: t('Connect'),
-                }}
-              />
-            )}
-          </Access>
-        </IntegrationContext>
+          {t('Disconnect')}
+        </Button>
       </Flex>
-    </Container>
+      <RepoSelector
+        integration={integration}
+        selectedRepos={selectedRepos}
+        onAddRepo={onAddRepo}
+        onRemoveRepo={onRemoveRepo}
+      />
+    </Stack>
   );
 }
 
@@ -301,10 +311,9 @@ function RepoSelector({
   }, [searchResult, selectedIdentifiers]);
 
   return (
-    <Stack gap="md" style={{width: '100%', maxWidth: 500}}>
-      <Text bold>{t('Select repositories (optional)')}</Text>
+    <Stack gap="md">
       <CompactSelect
-        menuWidth={400}
+        menuWidth="100%"
         disabled={false}
         options={dropdownItems}
         onChange={selection => {
@@ -330,46 +339,30 @@ function RepoSelector({
         loading={query.isFetching}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            {t('Search and add repositories')}
+            {selectedRepos.length > 0
+              ? t('%d selected', selectedRepos.length)
+              : t('Search repositories')}
           </OverlayTrigger.Button>
         )}
       />
       {selectedRepos.length > 0 && (
         <Stack gap="sm">
           {selectedRepos.map(repo => (
-            <Container key={repo.identifier} border="primary" padding="sm md">
-              <Flex align="center" gap="sm">
-                <Flex flexGrow={1}>
-                  <Text size="sm">{repo.name}</Text>
-                </Flex>
-                <Button
-                  size="zero"
-                  priority="link"
-                  icon={<IconClose size="xs" />}
-                  aria-label={t('Remove %s', repo.name)}
-                  onClick={() => onRemoveRepo(repo.identifier)}
-                />
+            <Flex key={repo.identifier} align="center" gap="sm">
+              <Flex flexGrow={1}>
+                <Text size="sm">{repo.name}</Text>
               </Flex>
-            </Container>
+              <Button
+                size="zero"
+                priority="link"
+                icon={<IconClose size="xs" />}
+                aria-label={t('Remove %s', repo.name)}
+                onClick={() => onRemoveRepo(repo.identifier)}
+              />
+            </Flex>
           ))}
         </Stack>
       )}
     </Stack>
   );
 }
-
-const ProviderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-  max-width: 600px;
-`;
-
-const StyledContainer = styled(Container)`
-  cursor: pointer;
-
-  &:hover {
-    border-color: ${p => p.theme.tokens.border.accent};
-  }
-`;
