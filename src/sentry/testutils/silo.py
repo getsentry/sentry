@@ -340,9 +340,6 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
 """
 
-# TODO(cells): Remove alias once no longer used in getsentry
-region_silo_test = cell_silo_test
-
 
 # assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?
 #
