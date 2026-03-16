@@ -1,9 +1,11 @@
 import uuid
+from datetime import timedelta
 
 import pytest
 
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import OccurrenceTestCase
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
 )
@@ -127,3 +129,126 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         meta = response.data["meta"]
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"
+
+    def test_count_unique(self) -> None:
+        group = self.create_group(project=self.project)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    project=self.project,
+                    level="error",
+                    attributes={"fingerprint": ["a"]},
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    project=self.project,
+                    level="error",
+                    attributes={"fingerprint": ["b"]},
+                ),
+            ]
+        )
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                {
+                    "field": ["count()", "count_unique(level)"],
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count()"] == 2
+        assert data[0]["count_unique(level)"] == 1
+
+    def test_count_if(
+        self,
+    ) -> None:
+        group = self.create_group(project=self.project)
+        for _ in range(3):
+            self.store_eap_items(
+                [
+                    self.create_eap_occurrence(
+                        group_id=group.id,
+                        project=self.project,
+                        level="error",
+                        attributes={"fingerprint": ["x"]},
+                    )
+                ]
+            )
+        for _ in range(2):
+            self.store_eap_items(
+                [
+                    self.create_eap_occurrence(
+                        group_id=group.id,
+                        project=self.project,
+                        level="warning",
+                        attributes={"fingerprint": ["x"]},
+                    )
+                ]
+            )
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                {
+                    "field": [
+                        "count()",
+                        "count_if(level,equals,error)",
+                        "count_if(level,notEquals,error)",
+                    ],
+                    "statsPeriod": "1h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count()"] == 5
+        assert data[0]["count_if(level,equals,error)"] == 3
+        assert data[0]["count_if(level,notEquals,error)"] == 2
+
+    def test_last_seen_table(
+        self,
+    ) -> None:
+        group = self.create_group(project=self.project)
+        base = before_now(hours=1)
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    project=self.project,
+                    timestamp=base,
+                    attributes={"fingerprint": ["a"]},
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    project=self.project,
+                    timestamp=base + timedelta(minutes=10),
+                    attributes={"fingerprint": ["a"]},
+                ),
+            ]
+        )
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                {
+                    "field": ["last_seen()"],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        # EAP returns last_seen as Unix timestamp in seconds (float).
+        expected_seconds = (base + timedelta(minutes=10)).timestamp()
+        assert abs(data[0]["last_seen()"] - expected_seconds) < 1

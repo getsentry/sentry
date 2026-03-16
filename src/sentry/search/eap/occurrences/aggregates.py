@@ -1,7 +1,10 @@
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import count_processor, resolve_key_eq_value_filter
+from sentry.search.eap.aggregate_utils import (
+    count_processor,
+    resolve_key_eq_value_filter,
+)
 from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
@@ -9,6 +12,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
 )
+from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
 from sentry.search.eap.validator import literal_validator, number_validator
 
 OCCURRENCE_GROUP_ID_KEY = AttributeKey(
@@ -125,6 +129,24 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
+            )
+        ],
+    ),
+    "count_unique": count_unique_aggregate_definition(default_arg="group_id"),
+    "last_seen": AggregateDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        default_search_type="date",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "integer",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="timestamp",
             )
         ],
     ),
