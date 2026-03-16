@@ -2272,7 +2272,9 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
         assert "POST" in values
 
 
-class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestCase, SpanTestCase):
+class OrganizationTraceItemAttributeValidateEndpointTest(
+    APITestCase, BaseSpansTestCase, SpanTestCase
+):
     viewname = "sentry-api-0-organization-trace-item-attributes-validate"
     feature_flags = {
         "organizations:visibility-explore-view": True,
@@ -2372,7 +2374,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         assert attr["valid"] is True
         assert attr["type"] == "string"
 
-    def test_user_tags(self):
+    def test_user_tags_not_in_storage(self):
         response = self.do_request(
             payload={
                 "itemType": "spans",
@@ -2380,26 +2382,44 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
                     "my.custom.tag",
                     "tags[x,string]",
                     "tags[numberAttr,number]",
-                    "tags[booleanAttr,boolean]",
                 ],
             },
         )
         assert response.status_code == 200
+        for key in ["my.custom.tag", "tags[x,string]", "tags[numberAttr,number]"]:
+            assert response.data["attributes"][key]["valid"] is False
+            assert "error" in response.data["attributes"][key]
+
+    def test_user_tags_in_storage(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
+        response = self.do_request(
+            payload={
+                "itemType": "spans",
+                "attributes": ["my.custom.tag", "nonexistent.tag"],
+            },
+        )
+        assert response.status_code == 200
+
         tag1 = response.data["attributes"]["my.custom.tag"]
         assert tag1["valid"] is True
         assert tag1["type"] == "string"
 
-        tag2 = response.data["attributes"]["tags[x,string]"]
-        assert tag2["valid"] is True
-        assert tag2["type"] == "string"
-
-        tag3 = response.data["attributes"]["tags[numberAttr,number]"]
-        assert tag3["valid"] is True
-        assert tag3["type"] == "number"
-
-        tag4 = response.data["attributes"]["tags[booleanAttr,boolean]"]
-        assert tag4["valid"] is True
-        assert tag4["type"] == "boolean"
+        tag2 = response.data["attributes"]["nonexistent.tag"]
+        assert tag2["valid"] is False
+        assert "error" in tag2
 
     def test_invalid_attributes(self):
         long_attr = "a" * 201
@@ -2418,6 +2438,20 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
         assert "error" in response.data["attributes"]["tags[foo,faketype]"]
 
     def test_mixed_valid_and_invalid(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"my.custom.tag": "hello"},
+        )
+
         long_attr = "a" * 201
         response = self.do_request(
             payload={
@@ -2426,6 +2460,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
                     "span.duration",
                     "project",
                     "my.custom.tag",
+                    "nonexistent.tag",
                     long_attr,
                 ],
             },
@@ -2441,6 +2476,9 @@ class OrganizationTraceItemAttributeValidateEndpointTest(APITestCase, SnubaTestC
 
         assert attrs["my.custom.tag"]["valid"] is True
         assert attrs["my.custom.tag"]["type"] == "string"
+
+        assert attrs["nonexistent.tag"]["valid"] is False
+        assert "error" in attrs["nonexistent.tag"]
 
         assert attrs[long_attr]["valid"] is False
         assert "error" in attrs[long_attr]
