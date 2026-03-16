@@ -462,15 +462,15 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     for mode in endpoint_silo_limit.modes:
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
-                        region = None
+                        cell = None
                         if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
-                            SingleProcessSiloModeState.enter(mode, region),
+                            SingleProcessSiloModeState.enter(mode, cell),
                         ):
                             return old_request(**request)
             return old_request(**request)
