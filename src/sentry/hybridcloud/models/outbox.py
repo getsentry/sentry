@@ -412,8 +412,8 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -432,8 +432,12 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
+# TODO(cells): remove once getsentry updated
+RegionOutboxBase = CellOutboxBase
+
+
 @cell_silo_model
-class CellOutbox(RegionOutboxBase):
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"

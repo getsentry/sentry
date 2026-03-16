@@ -9,9 +9,9 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     total_span_time,
 )
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project

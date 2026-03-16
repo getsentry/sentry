@@ -6,7 +6,8 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
-from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.testutils.cases import BaseMetricsTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time

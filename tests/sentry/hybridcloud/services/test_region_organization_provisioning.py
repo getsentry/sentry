@@ -266,7 +266,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
                 ),
@@ -281,7 +281,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
     def test_returns_true_if_organization_slug_already_updated(self) -> None:
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     self.provisioned_org.slug
                 ),
@@ -300,7 +300,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
 
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=rpc_org_slug_res,
             )
         )
@@ -314,7 +314,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         self.create_organization(slug=desired_slug, name="conflicted org", owner=self.create_user())
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
                 ),

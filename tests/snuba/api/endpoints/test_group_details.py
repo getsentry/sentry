@@ -5,8 +5,8 @@ from unittest.mock import patch
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
+from sentry.issue_detection.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.escalating.forecasts import generate_and_save_forecasts
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus

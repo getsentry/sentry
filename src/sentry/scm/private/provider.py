@@ -229,8 +229,18 @@ class GetCommitProtocol(Protocol):
 class GetCommitsProtocol(Protocol):
     def get_commits(
         self,
-        sha: SHA | None = None,
-        path: str | None = None,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]: ...
+
+
+@runtime_checkable
+class GetCommitsByPathProtocol(Protocol):
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]: ...
@@ -307,7 +317,17 @@ class CreatePullRequestProtocol(Protocol):
         body: str,
         head: BranchName,
         base: BranchName,
-        draft: bool = False,
+    ) -> ActionResult[PullRequest]: ...
+
+
+@runtime_checkable
+class CreatePullRequestDraftProtocol(Protocol):
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: BranchName,
+        base: BranchName,
     ) -> ActionResult[PullRequest]: ...
 
 
@@ -521,6 +541,7 @@ class ActionMap:
     update_branch = UpdateBranchProtocol
     get_commit = GetCommitProtocol
     get_commits = GetCommitsProtocol
+    get_commits_by_path = GetCommitsByPathProtocol
     compare_commits = CompareCommitsProtocol
     get_pull_request = GetPullRequestProtocol
     get_pull_requests = GetPullRequestsProtocol
@@ -528,6 +549,7 @@ class ActionMap:
     get_pull_request_commits = GetPullRequestCommitsProtocol
     get_pull_request_diff = GetPullRequestDiffProtocol
     create_pull_request = CreatePullRequestProtocol
+    create_pull_request_draft = CreatePullRequestDraftProtocol
     update_pull_request = UpdatePullRequestProtocol
     request_review = RequestReviewProtocol
     get_tree = GetTreeProtocol

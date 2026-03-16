@@ -75,9 +75,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
     def update_repository(self, *, organization_id: int, update: RpcRepository) -> None:
         with transaction.atomic(router.db_for_write(Repository)):
-            repository = Repository.objects.filter(
-                organization_id=organization_id, id=update.id
-            ).first()
+            repository = (
+                Repository.objects.filter(organization_id=organization_id, id=update.id)
+                .select_for_update()
+                .first()
+            )
             if repository is None:
                 return
 
@@ -106,8 +108,12 @@ class DatabaseBackedRepositoryService(RepositoryService):
         fields_to_update = set(list(update_mapping.values())[0].keys())
 
         with transaction.atomic(router.db_for_write(Repository)):
-            repositories = Repository.objects.filter(
-                organization_id=organization_id, id__in=update_mapping.keys()
+            repositories = (
+                Repository.objects.filter(
+                    organization_id=organization_id, id__in=update_mapping.keys()
+                )
+                .select_for_update()
+                .order_by("id")
             )
 
             # Apply updates to each repository object
