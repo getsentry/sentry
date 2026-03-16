@@ -38,11 +38,19 @@ export function MobileNavigation() {
   const scrollLock = useScrollLock(document.getElementById('main')!);
 
   useEffect(() => {
+    const main = document.getElementById('main');
     if (view === 'closed') {
+      main?.removeAttribute('inert');
       scrollLock.release();
     } else {
+      main?.setAttribute('inert', '');
       scrollLock.acquire();
     }
+
+    return () => {
+      main?.removeAttribute('inert');
+      scrollLock.release();
+    };
   }, [view, scrollLock]);
 
   // The tour only works with the sidebar layout, so if we change to the mobile
