@@ -163,13 +163,14 @@ class TestWorkflowValidatorCreate(TestCase):
         workflow = validator.create(validator.validated_data)
         assert workflow.owner_user_id == self.user.id
 
-    def test_create__owner_team_id(self) -> None:
-        self.valid_data["owner"] = f"team:{self.team.id}"
+    def test_team_owner(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        self.valid_data["owner"] = f"team:{team.id}"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
-
         workflow = validator.create(validator.validated_data)
-        assert workflow.owner_team_id == self.team.id
+        assert workflow.owner_team_id == team.id
+        assert workflow.owner_user_id is None
 
     def test_owner_perms(self) -> None:
         other_user = self.create_user()
@@ -183,15 +184,6 @@ class TestWorkflowValidatorCreate(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
         assert str(validator.errors["owner"][0]) == "Team is not a member of this organization"
-
-    def test_team_owner(self) -> None:
-        team = self.create_team(organization=self.organization, members=[self.user])
-        self.valid_data["owner"] = f"team:{team.id}"
-        validator = WorkflowValidator(data=self.valid_data, context=self.context)
-        assert validator.is_valid() is True
-        workflow = validator.create(validator.validated_data)
-        assert workflow.owner_team_id == team.id
-        assert workflow.owner_user_id is None
 
     def test_team_owner_not_member(self) -> None:
         self.organization.flags.allow_joinleave = False
