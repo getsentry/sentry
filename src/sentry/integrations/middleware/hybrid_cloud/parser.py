@@ -149,7 +149,7 @@ class BaseRequestParser(ABC):
 
         with ThreadPoolExecutor(max_workers=len(regions)) as executor:
             future_to_region = {
-                executor.submit(self.get_response_from_region_silo, region): region
+                executor.submit(self.get_response_from_cell_silo, region): region
                 for region in regions
             }
             for future in as_completed(future_to_region):
