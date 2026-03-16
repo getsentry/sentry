@@ -11,7 +11,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-
+from sentry.types.actor import parse_and_validate_actor
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -747,6 +747,7 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
+    project: Project,
 ) -> WorkflowInput:
     workflow_payload: WorkflowInput = {
         "name": data.get("name", ""),
@@ -760,6 +761,13 @@ def format_request_data(
     fake_dcg = DataConditionGroup()
     # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
+
+    owner = data.get("owner")
+    if owner:
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
+        if actor is not None:
+            workflow_payload["owner"] = actor.identifier
+    
 
     for condition in data.get("conditions", []):
         try:
