@@ -101,6 +101,21 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """Used for migrating repositories. Checks if the installation has access to the repository."""
         raise NotImplementedError
 
+    def get_repository_default_branch(self, repo: Repository) -> str | None:
+        """
+        Resolve a repository's default branch using integration repository metadata.
+        """
+        repositories = self.get_repositories(query=repo.name)
+        for repo_info in repositories:
+            if repo_info.get("identifier") == repo.name:
+                return repo_info.get("default_branch")
+
+        for repo_info in repositories:
+            if repo_info.get("name") == repo.name:
+                return repo_info.get("default_branch")
+
+        return None
+
     def get_unmigratable_repositories(self) -> list[RpcRepository]:
         """
         Get all repositories which are in our database but no longer exist as far as

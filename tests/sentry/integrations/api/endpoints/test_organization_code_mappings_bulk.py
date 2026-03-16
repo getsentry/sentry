@@ -241,8 +241,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
     def test_missing_default_branch_inferred_from_integration(self) -> None:
         with mock.patch(
-            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
-            "OrganizationCodeMappingsBulkEndpoint._get_default_branch_from_integration",
+            "sentry.integrations.source_code_management.repository."
+            "RepositoryIntegration.get_repository_default_branch",
             return_value="develop",
         ):
             payload = {
@@ -261,9 +261,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
     def test_missing_default_branch_inference_fails(self) -> None:
         with mock.patch(
-            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
-            "OrganizationCodeMappingsBulkEndpoint._get_default_branch_from_integration",
-            return_value="",
+            "sentry.integrations.source_code_management.repository."
+            "RepositoryIntegration.get_repository_default_branch",
+            return_value=None,
         ):
             payload = {
                 "project": self.project1.slug,
